@@ -5,13 +5,13 @@ export interface Transaction {
   user_id: string;
   source_email: string;
   source_message_id: string;
+  date: string; // Fecha y hora cuando se recibió el email
   amount: number;
   currency: string;
-  transaction_type: 'income' | 'expense';
+  transaction_type: 'ingreso' | 'egreso' | 'income' | 'expense';
   transaction_description: string;
-  transaction_date: string;
+  transaction_date: string; // Fecha de la transacción extraída por IA
   merchant?: string;
-  extraction_confidence: number;
   created_at: string;
 }
 

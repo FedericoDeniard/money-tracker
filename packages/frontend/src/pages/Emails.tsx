@@ -90,6 +90,14 @@ export function Transactions() {
                   selectedTransaction?.id === transaction.id
                     ? "bg-[var(--bg-primary)]"
                     : ""
+                } ${
+                  transaction.transaction_type === "egreso" ||
+                  transaction.transaction_type === "expense"
+                    ? "border-l-4 border-l-red-500"
+                    : transaction.transaction_type === "ingreso" ||
+                        transaction.transaction_type === "income"
+                      ? "border-l-4 border-l-green-500"
+                      : "border-l-4 border-l-gray-300"
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
@@ -98,19 +106,38 @@ export function Transactions() {
                       {transaction.transaction_description}
                     </span>
                     <div className="flex items-center gap-2 mt-1">
-                      {transaction.transaction_type === "income" ? (
-                        <TrendingUp size={14} className="text-green-500" />
+                      {transaction.transaction_type === "egreso" ||
+                      transaction.transaction_type === "expense" ? (
+                        <TrendingDown size={14} className="text-red-600" />
+                      ) : transaction.transaction_type === "ingreso" ||
+                        transaction.transaction_type === "income" ? (
+                        <TrendingUp size={14} className="text-green-600" />
                       ) : (
-                        <TrendingDown size={14} className="text-red-500" />
+                        <Receipt size={14} className="text-gray-500" />
                       )}
                       <span
-                        className={`text-sm font-semibold ${
-                          transaction.transaction_type === "income"
-                            ? "text-green-600"
-                            : "text-red-600"
+                        className={`text-sm font-bold ${
+                          transaction.transaction_type === "egreso" ||
+                          transaction.transaction_type === "expense"
+                            ? "text-red-700 bg-red-50 px-2 py-1 rounded"
+                            : transaction.transaction_type === "ingreso" ||
+                                transaction.transaction_type === "income"
+                              ? "text-green-700 bg-green-50 px-2 py-1 rounded"
+                              : "text-gray-600"
                         }`}
                       >
                         {transaction.currency} ${transaction.amount}
+                      </span>
+                      <span className="text-xs text-[var(--text-secondary)]">
+                        (
+                        {transaction.transaction_type === "egreso" ||
+                        transaction.transaction_type === "expense"
+                          ? "Gasto"
+                          : transaction.transaction_type === "ingreso" ||
+                              transaction.transaction_type === "income"
+                            ? "Ingreso"
+                            : transaction.transaction_type}
+                        )
                       </span>
                       {transaction.merchant && (
                         <span className="text-xs text-[var(--text-secondary)]">
@@ -159,29 +186,55 @@ export function Transactions() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-[var(--text-secondary)]">Monto:</span>
-                    <p
+                    <span
                       className={`font-semibold text-lg ${
-                        selectedTransaction.transaction_type === "income"
-                          ? "text-green-600"
-                          : "text-red-600"
+                        selectedTransaction.transaction_type === "egreso" ||
+                        selectedTransaction.transaction_type === "expense"
+                          ? "text-red-600"
+                          : "text-green-600"
                       }`}
                     >
                       {selectedTransaction.currency} $
                       {selectedTransaction.amount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--text-secondary)]">Fecha:</span>
+                    <p className="font-medium flex items-center gap-1">
+                      <Calendar size={16} />
+                      {selectedTransaction.transaction_date ||
+                        new Date(selectedTransaction.date).toLocaleDateString(
+                          "es-ES",
+                          {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          },
+                        )}
                     </p>
                   </div>
                   <div>
                     <span className="text-[var(--text-secondary)]">Tipo:</span>
                     <p className="font-medium flex items-center gap-1">
-                      {selectedTransaction.transaction_type === "income" ? (
+                      {selectedTransaction.transaction_type === "egreso" ||
+                      selectedTransaction.transaction_type === "expense" ? (
                         <>
-                          <TrendingUp size={16} className="text-green-500" />
-                          Ingreso
+                          <TrendingDown size={16} className="text-red-600" />
+                          <span className="text-red-700 font-semibold">
+                            GASTO
+                          </span>
+                        </>
+                      ) : selectedTransaction.transaction_type === "ingreso" ||
+                        selectedTransaction.transaction_type === "income" ? (
+                        <>
+                          <TrendingUp size={16} className="text-green-600" />
+                          <span className="text-green-700 font-semibold">
+                            INGRESO
+                          </span>
                         </>
                       ) : (
                         <>
-                          <TrendingDown size={16} className="text-red-500" />
-                          Egreso
+                          <Receipt size={16} className="text-gray-500" />
                         </>
                       )}
                     </p>
@@ -195,29 +248,6 @@ export function Transactions() {
                         <Store size={16} />
                         {selectedTransaction.merchant}
                       </p>
-                    </div>
-                  )}
-                  {selectedTransaction.extraction_confidence && (
-                    <div className="col-span-2">
-                      <span className="text-[var(--text-secondary)]">
-                        Confianza de extracción:
-                      </span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-blue-500 h-2 rounded-full"
-                            style={{
-                              width: `${selectedTransaction.extraction_confidence * 100}%`,
-                            }}
-                          ></div>
-                        </div>
-                        <span className="text-xs font-medium">
-                          {Math.round(
-                            selectedTransaction.extraction_confidence * 100,
-                          )}
-                          %
-                        </span>
-                      </div>
                     </div>
                   )}
                 </div>
