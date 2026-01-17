@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.90.1",
     "bun-plugin-tailwind": "^0.0.15",
+    "framer-motion": "^12.26.2",
     "lucide-react": "^0.562.0",
     "react": "^19",
     "react-dom": "^19",

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { DecorativeSquare } from '../ui/DecorativeSquare';
 import { Button } from '../ui/Button';
+import { motion } from 'framer-motion';
 
 export function Sidebar() {
   const location = useLocation();
@@ -33,14 +34,23 @@ export function Sidebar() {
             <Link
               key={link.path}
               to={link.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${
                 isActive 
-                  ? 'bg-[var(--primary)] text-white shadow-md' 
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
+                  ? 'text-white' 
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <link.icon size={20} />
-              <span className="font-medium">{link.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-[var(--primary)] rounded-lg shadow-md"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <div className="relative flex items-center gap-3 z-10">
+                <link.icon size={20} className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span className="font-medium">{link.label}</span>
+              </div>
             </Link>
           );
         })}
