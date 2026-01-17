@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { google } from "googleapis";
 import fs from "fs";
 import path from "path";
@@ -48,6 +49,15 @@ const oAuth2Client = new google.auth.OAuth2(
 );
 
 const app = express();
+
+// Configure CORS to allow frontend requests
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 // Función para decodificar notificaciones de Pub/Sub
@@ -57,6 +67,74 @@ function decodeNotification(data: string) {
 
 // Set para evitar procesar el mismo mensaje múltiples veces
 const processedMessages = new Set<string>();
+
+// Temporary endpoint to stop all Gmail watches
+app.post("/stop-all-watches", async (req, res) => {
+  try {
+    // Get all active watches
+    const { data: watches } = await supabase
+      .from("gmail_watches")
+      .select("*")
+      .eq("is_active", true);
+
+    if (!watches || watches.length === 0) {
+      return res.json({ message: "No active watches found" });
+    }
+
+    const results = [];
+
+    for (const watch of watches) {
+      try {
+        // Get user tokens
+        const { data: tokenData } = await supabase
+          .from("user_oauth_tokens")
+          .select("*")
+          .eq("gmail_email", watch.gmail_email)
+          .single();
+
+        if (!tokenData) {
+          results.push({ email: watch.gmail_email, status: "no_tokens" });
+          continue;
+        }
+
+        // Decrypt tokens
+        const accessToken = await decryptToken(tokenData.access_token_encrypted);
+        const refreshToken = tokenData.refresh_token_encrypted
+          ? await decryptToken(tokenData.refresh_token_encrypted)
+          : null;
+
+        // Set credentials
+        oAuth2Client.setCredentials({
+          access_token: accessToken,
+          refresh_token: refreshToken || undefined,
+        });
+
+        // Stop watch
+        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+        await gmail.users.stop({ userId: "me" });
+
+        // Mark as inactive in database
+        await supabase
+          .from("gmail_watches")
+          .update({ is_active: false })
+          .eq("id", watch.id);
+
+        results.push({ email: watch.gmail_email, status: "stopped" });
+      } catch (error) {
+        results.push({
+          email: watch.gmail_email,
+          status: "error",
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+
+    res.json({ message: "Watches processed", results });
+  } catch (error) {
+    console.error("Error stopping watches:", error);
+    res.status(500).json({ error: "Failed to stop watches" });
+  }
+});
 
 // Endpoint to disconnect Gmail
 app.delete("/gmail-disconnect/:userId", async (req, res) => {
@@ -178,6 +256,8 @@ app.get("/auth/callback", async (req, res) => {
       requestBody: {
         labelIds: ["INBOX"],
         topicName,
+        // Solo procesar nuevos emails, no movimientos o eliminaciones
+        labelFilterAction: "include",
       },
     });
 
@@ -298,138 +378,185 @@ app.post("/webhook", async (req, res) => {
       });
     }
 
-    // Obtener el último mensaje del INBOX
+    // Usar History API para obtener solo mensajes nuevos
     const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-    const messages = await gmail.users.messages.list({
+
+    // Obtener el último historyId guardado
+    const { data: watchData } = await supabase
+      .from("gmail_watches")
+      .select("history_id")
+      .eq("gmail_email", gmailEmail)
+      .eq("is_active", true)
+      .single();
+
+    const startHistoryId = watchData?.history_id || historyId;
+
+    // Obtener cambios desde el último historyId
+    const historyResponse = await gmail.users.history.list({
       userId: "me",
-      labelIds: ["INBOX"],
-      maxResults: 1,
+      startHistoryId: startHistoryId,
+      historyTypes: ["messageAdded"], // Solo mensajes nuevos
+      labelId: "INBOX",
     });
 
-    if (messages.data.messages && messages.data.messages.length > 0) {
-      const latestMessageSummary = messages.data.messages[0];
-      if (!latestMessageSummary || !latestMessageSummary.id)
-        return res.sendStatus(200);
-      const messageId = latestMessageSummary.id;
+    const history = historyResponse.data.history;
 
-      const messageResponse = await gmail.users.messages.get({
-        userId: "me",
-        id: messageId,
-        format: "full",
-      });
+    if (!history || history.length === 0) {
+      console.log("No hay mensajes nuevos en el historial");
+      return res.sendStatus(200);
+    }
 
-      // Extraer headers importantes
-      const headers = messageResponse.data.payload?.headers;
-      const subject = headers?.find((h) => h.name === "Subject")?.value || '';
-      const fromHeader = headers?.find((h) => h.name === "From")?.value || '';
-      const dateHeader = headers?.find((h) => h.name === "Date")?.value;
-      const date = dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString();
+    // Filtrar solo messagesAdded
+    const addedMessages = history
+      .flatMap(h => h.messagesAdded || [])
+      .filter(m => m.message?.labelIds?.includes("INBOX"));
 
-      // Extraer el email del remitente del header From
-      const fromEmailMatch = fromHeader.match(/<(.+?)>/) || fromHeader.match(/([^\s]+@[^\s]+)/);
-      const fromEmail = fromEmailMatch ? (fromEmailMatch[1] || fromEmailMatch[0]) : fromHeader;
+    if (addedMessages.length === 0) {
+      console.log("No hay mensajes nuevos en INBOX");
+      return res.sendStatus(200);
+    }
 
-      // Extraer el cuerpo del email (recursivamente para manejar multipart)
-      const extractBody = (payload: { body?: { data?: string | null }; parts?: Array<{ mimeType?: string | null; body?: { data?: string | null } }> }): string => {
-        let text = '';
+    // Procesar el mensaje más reciente
+    const latestMessage = addedMessages[addedMessages.length - 1];
+    if (!latestMessage || !latestMessage.message?.id) {
+      return res.sendStatus(200);
+    }
 
-        // Si tiene body data directamente
-        if (payload.body?.data) {
-          text = Buffer.from(payload.body.data, "base64").toString();
+    const messageId = latestMessage.message.id;
+    console.log("Procesando mensaje nuevo:", messageId);
+
+    // Actualizar historyId en la base de datos
+    await supabase
+      .from("gmail_watches")
+      .update({ history_id: historyId })
+      .eq("gmail_email", gmailEmail)
+      .eq("is_active", true);
+
+    const messageResponse = await gmail.users.messages.get({
+      userId: "me",
+      id: messageId,
+      format: "full",
+    });
+
+    // Verificar que el email esté en INBOX y no en SPAM
+    const labelIds = messageResponse.data.labelIds || [];
+    if (!labelIds.includes('INBOX') || labelIds.includes('SPAM') || labelIds.includes('TRASH')) {
+      console.log("Email no está en INBOX o está en SPAM/TRASH - ignorando");
+      console.log("Labels:", labelIds);
+      return res.sendStatus(200);
+    }
+
+    // Extraer headers importantes
+    const headers = messageResponse.data.payload?.headers;
+    const subject = headers?.find((h) => h.name === "Subject")?.value || '';
+    const fromHeader = headers?.find((h) => h.name === "From")?.value || '';
+    const dateHeader = headers?.find((h) => h.name === "Date")?.value;
+    const date = dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString();
+
+    // Extraer el email del remitente del header From
+    const fromEmailMatch = fromHeader.match(/<(.+?)>/) || fromHeader.match(/([^\s]+@[^\s]+)/);
+    const fromEmail = fromEmailMatch ? (fromEmailMatch[1] || fromEmailMatch[0]) : fromHeader;
+
+    // Extraer el cuerpo del email (recursivamente para manejar multipart)
+    const extractBody = (payload: { body?: { data?: string | null }; parts?: Array<{ mimeType?: string | null; body?: { data?: string | null } }> }): string => {
+      let text = '';
+
+      // Si tiene body data directamente
+      if (payload.body?.data) {
+        text = Buffer.from(payload.body.data, "base64").toString();
+      }
+
+      // Si tiene partes, buscar recursivamente
+      if (payload.parts) {
+        for (const part of payload.parts) {
+          // Priorizar text/plain
+          if (part.mimeType === "text/plain" && part.body?.data) {
+            const plainText = Buffer.from(part.body.data, "base64").toString();
+            if (plainText.trim()) {
+              text = plainText;
+              break;
+            }
+          }
+          // Si es multipart, buscar recursivamente
+          if (part.mimeType?.startsWith("multipart/")) {
+            const nestedText = extractBody(part);
+            if (nestedText.trim()) {
+              text = nestedText;
+            }
+          }
         }
 
-        // Si tiene partes, buscar recursivamente
-        if (payload.parts) {
+        // Si no encontramos text/plain, intentar con text/html
+        if (!text.trim()) {
           for (const part of payload.parts) {
-            // Priorizar text/plain
-            if (part.mimeType === "text/plain" && part.body?.data) {
-              const plainText = Buffer.from(part.body.data, "base64").toString();
-              if (plainText.trim()) {
-                text = plainText;
-                break;
-              }
-            }
-            // Si es multipart, buscar recursivamente
-            if (part.mimeType?.startsWith("multipart/")) {
-              const nestedText = extractBody(part);
-              if (nestedText.trim()) {
-                text = nestedText;
-              }
-            }
-          }
-
-          // Si no encontramos text/plain, intentar con text/html
-          if (!text.trim()) {
-            for (const part of payload.parts) {
-              if (part.mimeType === "text/html" && part.body?.data) {
-                const htmlText = Buffer.from(part.body.data, "base64").toString();
-                // Extraer texto básico del HTML (remover tags)
-                text = htmlText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-                if (text) break;
-              }
+            if (part.mimeType === "text/html" && part.body?.data) {
+              const htmlText = Buffer.from(part.body.data, "base64").toString();
+              // Extraer texto básico del HTML (remover tags)
+              text = htmlText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+              if (text) break;
             }
           }
         }
+      }
 
-        return text;
-      };
+      return text;
+    };
 
-      const bodyText = messageResponse.data.payload ? extractBody(messageResponse.data.payload) : '';
+    const bodyText = messageResponse.data.payload ? extractBody(messageResponse.data.payload) : '';
 
-      console.log("\n=== PROCESANDO EMAIL CON IA ===");
-      console.log("Usuario receptor:", gmailEmail);
-      console.log("Remitente:", fromEmail);
-      console.log("Asunto:", subject);
-      console.log("Fecha:", date);
-      console.log("ID:", messageResponse.data.id);
-      console.log("Contenido extraído (primeros 500 chars):", bodyText.substring(0, 500));
-      console.log("========================\n");
+    console.log("\n=== PROCESANDO EMAIL CON IA ===");
+    console.log("Usuario receptor:", gmailEmail);
+    console.log("Remitente:", fromEmail);
+    console.log("Asunto:", subject);
+    console.log("Fecha:", date);
+    console.log("ID:", messageResponse.data.id);
+    console.log("Contenido extraído (primeros 500 chars):", bodyText.substring(0, 500));
+    console.log("========================\n");
 
-      // Extraer transacción usando IA
-      const aiResult = await extractTransactionFromEmail(bodyText);
+    // Extraer transacción usando IA
+    const aiResult = await extractTransactionFromEmail(bodyText);
 
-      if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
-        // Es una transacción válida - guardar en la base de datos
-        const transaction = aiResult.data;
-        console.log("✓ Transacción extraída:", transaction);
+    if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
+      // Es una transacción válida - guardar en la base de datos
+      const transaction = aiResult.data;
+      console.log("✓ Transacción extraída:", transaction);
 
-        const { error: insertError } = await supabase
-          .from("transactions")
-          .insert({
-            user_id: tokenData.user_id,
-            source_email: fromEmail, // Email del remitente
-            source_message_id: messageResponse.data.id,
-            date: date, // Fecha en que se recibió el email
-            // Datos extraídos por IA
-            amount: transaction.amount,
-            currency: transaction.currency,
-            transaction_type: transaction.type,
-            transaction_description: transaction.description,
-            transaction_date: transaction.date || date.split('T')[0],
-            merchant: transaction.merchant,
-            category: transaction.category, // Category is now required
-          })
-          .select();
+      const { error: insertError } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: tokenData.user_id,
+          source_email: fromEmail, // Email del remitente
+          source_message_id: messageResponse.data.id,
+          date: date, // Fecha en que se recibió el email
+          // Datos extraídos por IA
+          amount: transaction.amount,
+          currency: transaction.currency,
+          transaction_type: transaction.type,
+          transaction_description: transaction.description,
+          transaction_date: transaction.date || date.split('T')[0],
+          merchant: transaction.merchant,
+          category: transaction.category, // Category is now required
+        })
+        .select();
 
-        if (insertError) {
-          if (insertError.code === '23505') {
-            console.log("Transacción ya existe en la base de datos");
-          } else {
-            console.error("Error guardando transacción:", insertError);
-          }
+      if (insertError) {
+        if (insertError.code === '23505') {
+          console.log("Transacción ya existe en la base de datos");
         } else {
-          console.log("✓ Transacción guardada exitosamente");
+          console.error("Error guardando transacción:", insertError);
         }
       } else {
-        // No se encontró transacción - no guardar nada
-        console.log("No se encontró transacción en el email - descartando");
-        console.log("--- Email descartado ---");
-        console.log("Remitente:", fromEmail);
-        console.log("Asunto:", subject);
-        console.log("Cuerpo (primeros 200 chars):", bodyText.substring(0, 200) + "...");
-        console.log("Razón:", (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción");
-        console.log("------------------------");
+        console.log("✓ Transacción guardada exitosamente");
       }
+    } else {
+      // No se encontró transacción - no guardar nada
+      console.log("No se encontró transacción en el email - descartando");
+      console.log("--- Email descartado ---");
+      console.log("Remitente:", fromEmail);
+      console.log("Asunto:", subject);
+      console.log("Cuerpo (primeros 200 chars):", bodyText.substring(0, 200) + "...");
+      console.log("Razón:", (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción");
+      console.log("------------------------");
     }
 
     res.sendStatus(200);
