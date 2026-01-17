@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Mail, MailOpen, Calendar, User } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
-import { useAuth } from "../hooks/useAuth";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 interface Email {
   id: string;
@@ -19,8 +19,7 @@ export function Emails() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const { user } = useAuth();
-  const [supabase, setSupabase] = useState<any>(null);
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
 
   useEffect(() => {
     getSupabase().then(setSupabase);
@@ -33,6 +32,8 @@ export function Emails() {
   }, [supabase]);
 
   const fetchEmails = async () => {
+    if (!supabase) return;
+    
     try {
       const { data, error } = await supabase
         .from("emails")
