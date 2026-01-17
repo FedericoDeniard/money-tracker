@@ -8,7 +8,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let subscription: any;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     async function initAuth() {
       try {
