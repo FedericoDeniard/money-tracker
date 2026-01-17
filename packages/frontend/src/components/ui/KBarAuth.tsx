@@ -39,7 +39,13 @@ function KBarContent() {
                   }`}
                 >
                   <span className="text-lg">
-                    {item.id === "settings" ? "⚙️" : "⚡"}
+                    {item.id === "dashboard"
+                      ? "📊"
+                      : item.id === "transactions"
+                        ? "💰"
+                        : item.id === "settings"
+                          ? "⚙️"
+                          : "⚡"}
                   </span>
                   <div className="flex-1">{item.name}</div>
                   {item.shortcut && (
@@ -70,11 +76,27 @@ export default function KBarAuth() {
 
   const actions: Action[] = [
     {
+      id: "dashboard",
+      name: "Dashboard",
+      shortcut: ["d"],
+      keywords: "inicio dashboard home principal",
+      section: "Navegación",
+      perform: () => navigate("/"),
+    },
+    {
+      id: "transactions",
+      name: "Transacciones",
+      shortcut: ["t"],
+      keywords: "transacciones emails movimientos finanzas",
+      section: "Navegación",
+      perform: () => navigate("/emails"),
+    },
+    {
       id: "settings",
       name: "Configuración",
       shortcut: ["c"],
       keywords: "configuracion preferencias ajustes",
-      section: "Acciones Rápidas",
+      section: "Navegación",
       perform: () => navigate("/settings"),
     },
     {
