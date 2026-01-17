@@ -1,4 +1,5 @@
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "../components/ui/Button";
 
 export function Home() {
   const { user, signOut } = useAuth();
@@ -8,12 +9,12 @@ export function Home() {
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
-          <button
+          <Button
+            variant="danger"
             onClick={signOut}
-            className="px-4 py-2 text-sm font-medium text-white bg-[var(--error)] rounded-md hover:bg-[var(--error)]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--error)]"
           >
             Sign Out
-          </button>
+          </Button>
         </div>
         
         <div className="border-t border-[var(--text-secondary)]/30 pt-6">
