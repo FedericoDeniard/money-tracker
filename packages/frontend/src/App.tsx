@@ -1,17 +1,17 @@
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { AppRoutes } from "./routes";
-import KBarAuth from "./components/ui/KBarAuth";
-import KBarGuest from "./components/ui/KBarGuest";
+import KBar from "./components/ui/KBar";
 import { useAuth } from "./hooks/useAuth";
+import "./i18n";
 
 export function App() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   return (
     <BrowserRouter>
       <AppRoutes />
-      {!loading && (user ? <KBarAuth /> : <KBarGuest />)}
+      {!loading && <KBar />}
     </BrowserRouter>
   );
 }

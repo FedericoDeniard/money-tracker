@@ -4,15 +4,17 @@ import { useAuth } from "../../hooks/useAuth";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { Button } from "../ui/Button";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { t } = useTranslation();
 
   const links = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-    { icon: Receipt, label: "Transacciones", path: "/emails" },
-    { icon: Settings, label: "Configuración", path: "/settings" },
+    { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/" },
+    { icon: Receipt, label: t("navigation.transactions"), path: "/emails" },
+    { icon: Settings, label: t("navigation.settings"), path: "/settings" },
   ];
 
   return (
@@ -68,7 +70,7 @@ export function Sidebar() {
           iconPosition="left"
           onClick={signOut}
         >
-          Cerrar Sesión
+          {t("navigation.logout")}
         </Button>
       </div>
     </aside>

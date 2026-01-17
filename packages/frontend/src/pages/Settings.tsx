@@ -4,9 +4,12 @@ import { Button } from '../components/ui/Button';
 import { Mail, CheckCircle, AlertCircle, Loader2, X } from "lucide-react";
 import { useSearchParams } from 'react-router-dom';
 import { gmailService, type GmailStatus } from "../services/gmail.service";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 
 export function Settings() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -23,15 +26,15 @@ export function Settings() {
 
     if (success === 'true') {
       setNotification({
-        type: 'success',
-        message: '¡Email configurado exitosamente! Ahora recibirás notificaciones de tus correos.',
+        type: "success",
+        message: t("settings.emailConfiguredSuccess"),
       });
       setSearchParams({});
       checkGmailStatus();
     } else if (error === 'auth_failed') {
       setNotification({
-        type: 'error',
-        message: 'Error al configurar el email. Por favor, intenta nuevamente.',
+        type: "error",
+        message: t("settings.emailConfigError"),
       });
       setSearchParams({});
     }
@@ -68,8 +71,8 @@ export function Settings() {
   const handleConnectEmail = async () => {
     if (!user?.id) {
       setNotification({
-        type: 'error',
-        message: 'Error: No se pudo obtener el ID de usuario.',
+        type: "error",
+        message: t("settings.userIdError"),
       });
       return;
     }
@@ -81,7 +84,7 @@ export function Settings() {
       console.error("Error connecting Gmail:", error);
       setNotification({
         type: "error",
-        message: "Error al conectar Gmail. Por favor, intenta nuevamente.",
+        message: t("settings.gmailConnectError"),
       });
       setIsConnecting(false);
     }
@@ -90,9 +93,7 @@ export function Settings() {
   const handleDisconnectEmail = async () => {
     if (!user?.id) return;
 
-    if (
-      !confirm("¿Estás seguro de que deseas desconectar tu cuenta de Gmail?")
-    ) {
+    if (!confirm(t("settings.confirmDisconnect"))) {
       return;
     }
 
@@ -103,7 +104,7 @@ export function Settings() {
       if (result.success) {
         setNotification({
           type: "success",
-          message: "Gmail desconectado exitosamente.",
+          message: t("settings.gmailDisconnectedSuccess"),
         });
         await checkGmailStatus();
       } else {
@@ -113,7 +114,7 @@ export function Settings() {
       console.error("Error disconnecting Gmail:", error);
       setNotification({
         type: "error",
-        message: "Error al desconectar Gmail. Por favor, intenta nuevamente.",
+        message: t("settings.gmailDisconnectError"),
       });
     } finally {
       setIsDisconnecting(false);
@@ -124,7 +125,7 @@ export function Settings() {
     <div className="max-w-4xl mx-auto p-8">
       <div className="bg-white shadow rounded-lg p-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
-          Configuración
+          {t("settings.title")}
         </h1>
 
         {notification && (
@@ -160,7 +161,7 @@ export function Settings() {
 
         <div className="border-t border-[var(--text-secondary)]/30 pt-6">
           <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
-            Notificaciones por Email
+            {t("settings.emailNotifications")}
           </h2>
 
           <div className="bg-[var(--bg-secondary)] rounded-lg p-6">
@@ -182,12 +183,12 @@ export function Settings() {
                   ) : gmailStatus?.connected ? (
                     <span className="flex items-center gap-1 text-sm text-green-600">
                       <CheckCircle size={16} />
-                      Conectado
+                      {t("settings.connected")}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)]">
                       <AlertCircle size={16} />
-                      No conectado
+                      {t("settings.notConnected")}
                     </span>
                   )}
                 </div>
@@ -195,14 +196,13 @@ export function Settings() {
                 {gmailStatus?.connected ? (
                   <>
                     <p className="text-sm text-[var(--text-secondary)] mb-2">
-                      Cuenta conectada:{" "}
+                      {t("settings.connectedAccount")}{" "}
                       <span className="font-medium">
                         {gmailStatus.gmail_email}
                       </span>
                     </p>
                     <p className="text-sm text-[var(--text-secondary)] mb-4">
-                      Recibirás notificaciones automáticas cuando lleguen nuevos
-                      correos a tu bandeja de entrada.
+                      {t("settings.notificationsDescription")}
                     </p>
                     <Button
                       variant="secondary"
@@ -218,17 +218,14 @@ export function Settings() {
                       disabled={isDisconnecting}
                     >
                       {isDisconnecting
-                        ? "Desconectando..."
-                        : "Desconectar Gmail"}
+                        ? t("settings.disconnecting")
+                        : t("settings.disconnectGmail")}
                     </Button>
                   </>
                 ) : (
                   <>
                     <p className="text-sm text-[var(--text-secondary)] mb-4">
-                      Conecta tu cuenta de Gmail para recibir notificaciones
-                      automáticas cuando lleguen nuevos correos a tu bandeja de
-                      entrada. Podrás procesar transacciones directamente desde
-                      tus emails.
+                      {t("settings.connectDescription")}
                     </p>
                     <Button
                       variant="primary"
@@ -243,7 +240,9 @@ export function Settings() {
                       onClick={handleConnectEmail}
                       disabled={isConnecting}
                     >
-                      {isConnecting ? "Conectando..." : "Conectar Gmail"}
+                      {isConnecting
+                        ? t("settings.connecting")
+                        : t("settings.connectGmail")}
                     </Button>
                   </>
                 )}
@@ -253,28 +252,48 @@ export function Settings() {
 
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Nota:</strong> Al conectar tu Gmail, se te pedirá permiso
-              para leer tus correos. Solo usaremos esta información para
-              procesar transacciones financieras y notificarte de nuevos correos
-              relevantes.
+              <strong>{t("common.note")}:</strong>{" "}
+              {t("settings.gmailPrivacyNote")}
             </p>
           </div>
         </div>
 
         <div className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6">
           <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
-            Información de la Cuenta
+            {t("settings.language")}
+          </h2>
+
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  {t("settings.selectLanguage")}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  {t("settings.languageDescription")}
+                </p>
+              </div>
+              <LanguageSwitcher />
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6">
+          <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
+            {t("settings.accountInfo")}
           </h2>
 
           <div className="bg-[var(--bg-secondary)] rounded-lg p-4 space-y-3">
             <div>
               <p className="text-sm text-[var(--text-secondary)]">
-                <span className="font-medium">Email:</span> {user?.email}
+                <span className="font-medium">{t("auth.email")}:</span>{" "}
+                {user?.email}
               </p>
             </div>
             <div>
               <p className="text-sm text-[var(--text-secondary)]">
-                <span className="font-medium">User ID:</span> {user?.id}
+                <span className="font-medium">{t("common.userId")}:</span>{" "}
+                {user?.id}
               </p>
             </div>
           </div>

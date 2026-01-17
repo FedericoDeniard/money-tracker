@@ -9,14 +9,20 @@ import {
 import type { Transaction } from "../../services/emails.service";
 import { getTransactionType } from "../../utils/transactionUtils";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useTranslateCategory } from "../../hooks/useTranslateCategory";
+import { useFormatDate } from "../../hooks/useFormatDate";
 
 interface TransactionDetailProps {
   transaction: Transaction;
 }
 
 export function TransactionDetail({ transaction }: TransactionDetailProps) {
+  const { t } = useTranslation();
   const { isIncome } = getTransactionType(transaction.transaction_type);
   const [copied, setCopied] = useState(false);
+  const { translateCategory } = useTranslateCategory();
+  const { formatDateTime } = useFormatDate();
 
   const handleCopyId = () => {
     if (typeof window !== "undefined" && window.navigator?.clipboard) {
@@ -29,15 +35,9 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
   const amountColor = "text-[var(--text-primary)]";
 
   // Format date and time
-  const dateObj = new Date(transaction.transaction_date || transaction.date);
-  const dateTimeStr = dateObj.toLocaleString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  const dateTimeStr = formatDateTime(
+    transaction.transaction_date || transaction.date,
+  );
 
   return (
     <div className="h-full flex flex-col bg-white rounded-3xl p-6 relative shadow-sm border border-gray-100">
@@ -71,35 +71,43 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
             className={`w-2 h-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
           />
           <span className="font-medium text-[var(--text-primary)]">
-            {transaction.merchant || "Desconocido"}
+            {transaction.merchant || t("transactions.unknown")}
           </span>
           <span className="text-gray-300 text-xs">•</span>
-          <span className="capitalize">{transaction.category}</span>
+          <span className="capitalize">
+            {translateCategory(transaction.category)}
+          </span>
         </div>
       </div>
 
       {/* Details List */}
       <div className="space-y-6 px-1">
-        <DetailRow label="Fecha y Hora" value={dateTimeStr} />
+        <DetailRow label={t("transactions.dateTime")} value={dateTimeStr} />
 
         <DetailRow
-          label="Tipo de transacción"
-          value={isIncome ? "Ingreso" : "Gasto"}
+          label={t("transactions.type")}
+          value={
+            isIncome ? t("transactions.income") : t("transactions.expense")
+          }
         />
 
         <DetailRow
-          label={isIncome ? "Recibido de" : "Comercio"}
-          value={transaction.merchant || "Desconocido"}
+          label={
+            isIncome
+              ? t("transactions.receivedFrom")
+              : t("transactions.merchant")
+          }
+          value={transaction.merchant || t("transactions.unknown")}
         />
 
         <DetailRow
-          label="Monto"
+          label={t("transactions.amount")}
           value={`${transaction.currency} ${transaction.amount.toLocaleString()}`}
         />
 
         <div className="flex items-center justify-between py-1">
           <span className="text-[var(--text-secondary)] text-sm">
-            Referencia
+            {t("transactions.reference")}
           </span>
           <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium text-sm text-right overflow-hidden pl-4">
             <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
@@ -108,7 +116,7 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
             <button
               onClick={handleCopyId}
               className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded"
-              title="Copiar ID"
+              title={t("common.copy")}
             >
               {copied ? (
                 <Check size={14} className="text-green-500" />
@@ -125,11 +133,11 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
         <div className="flex gap-3">
           <button className="flex-1 py-3.5 px-4 rounded-2xl bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
             <AlertCircle size={16} />
-            Reportar
+            {t("transactions.reportIssue")}
           </button>
           <button className="flex-1 py-3.5 px-4 rounded-2xl bg-gray-50 text-[var(--text-primary)] font-medium text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
             <Download size={16} />
-            Recibo
+            {t("transactions.receipt")}
           </button>
         </div>
       </div>

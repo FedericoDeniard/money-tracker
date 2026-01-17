@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import type { Transaction } from "../../services/emails.service";
-import {
-  getTransactionType,
-  formatCategory,
-  formatShortDate,
-} from "../../utils/transactionUtils";
+import { getTransactionType } from "../../utils/transactionUtils";
+import { useTranslateCategory } from "../../hooks/useTranslateCategory";
+import { useFormatDate } from "../../hooks/useFormatDate";
+import { useTranslation } from "react-i18next";
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -18,6 +17,9 @@ export function TransactionCard({
   onClick,
 }: TransactionCardProps) {
   const { sign, colorClass } = getTransactionType(transaction.transaction_type);
+  const { translateCategory } = useTranslateCategory();
+  const { formatShortDate } = useFormatDate();
+  const { t } = useTranslation();
 
   return (
     <motion.div
@@ -50,8 +52,8 @@ export function TransactionCard({
               isSelected ? "text-gray-200" : "text-[var(--text-secondary)]"
             }`}
           >
-            {formatCategory(transaction.category)} •{" "}
-            {transaction.merchant || "Desconocido"}
+            {translateCategory(transaction.category)} •{" "}
+            {transaction.merchant || t("transactions.unknown")}
           </p>
           <p
             className={`text-xs mt-0.5 ${
