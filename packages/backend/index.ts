@@ -329,7 +329,7 @@ app.post("/webhook", async (req, res) => {
       const parts = messageResponse.data.payload?.parts;
       if (parts) {
         const bodyPart = parts.find(
-          (part: { mimeType: string }) => part.mimeType === "text/plain",
+          (part) => part.mimeType === "text/plain",
         );
         if (bodyPart?.body?.data) {
           const body = Buffer.from(bodyPart.body.data, "base64").toString();
