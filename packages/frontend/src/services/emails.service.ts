@@ -1,33 +1,36 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
-export interface Email {
+export interface Transaction {
   id: string;
   user_id: string;
-  gmail_email: string;
-  gmail_message_id: string;
-  subject: string;
-  body_text: string;
-  date: string;
-  processed: boolean;
+  source_email: string;
+  source_message_id: string;
+  amount: number;
+  currency: string;
+  transaction_type: 'income' | 'expense';
+  transaction_description: string;
+  transaction_date: string;
+  merchant?: string;
+  extraction_confidence: number;
   created_at: string;
 }
 
-export class EmailsService {
+export class TransactionsService {
   constructor(private supabase: SupabaseClient) {}
 
-  async getEmails(): Promise<Email[]> {
+  async getTransactions(): Promise<Transaction[]> {
     const { data, error } = await this.supabase
-      .from('emails')
+      .from('transactions')
       .select('*')
-      .order('date', { ascending: false });
+      .order('transaction_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
   }
 
-  async getEmailById(id: string): Promise<Email | null> {
+  async getTransactionById(id: string): Promise<Transaction | null> {
     const { data, error } = await this.supabase
-      .from('emails')
+      .from('transactions')
       .select('*')
       .eq('id', id)
       .single();
@@ -36,26 +39,17 @@ export class EmailsService {
     return data;
   }
 
-  async markAsProcessed(emailId: string): Promise<void> {
+  async deleteTransaction(transactionId: string): Promise<void> {
     const { error } = await this.supabase
-      .from('emails')
-      .update({ processed: true })
-      .eq('id', emailId);
-
-    if (error) throw error;
-  }
-
-  async deleteEmail(emailId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('emails')
+      .from('transactions')
       .delete()
-      .eq('id', emailId);
+      .eq('id', transactionId);
 
     if (error) throw error;
   }
 }
 
 // Factory function to create service instance
-export function createEmailsService(supabase: SupabaseClient) {
-  return new EmailsService(supabase);
+export function createTransactionsService(supabase: SupabaseClient) {
+  return new TransactionsService(supabase);
 }

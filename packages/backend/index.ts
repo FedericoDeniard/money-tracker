@@ -2,8 +2,15 @@ import express from "express";
 import { google } from "googleapis";
 import fs from "fs";
 import path from "path";
-import { supabase } from "./lib/supabase";
+import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase with service role key for server-side operations
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 // Load environment variables with fallback to credentials.json
 const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -332,35 +339,57 @@ app.post("/webhook", async (req, res) => {
         bodyText = Buffer.from(messageResponse.data.payload.body.data, "base64").toString();
       }
 
-      console.log("\n=== GUARDANDO EMAIL ===");
+      console.log("\n=== PROCESANDO EMAIL CON IA ===");
       console.log("Usuario:", gmailEmail);
       console.log("Asunto:", subject);
       console.log("Fecha:", date);
       console.log("ID:", messageResponse.data.id);
       console.log("========================\n");
 
-      // Guardar en la base de datos
-      const { error: insertError } = await supabase
-        .from("emails")
-        .insert({
-          user_id: tokenData.user_id,
-          gmail_email: gmailEmail,
-          gmail_message_id: messageResponse.data.id,
-          subject: subject,
-          body_text: bodyText,
-          date: date,
-        })
-        .select();
+      // Extraer transacción usando IA
+      const aiResult = await extractTransactionFromEmail(bodyText);
 
-      if (insertError) {
-        // Si es un error de duplicado, no es problema
-        if (insertError.code === '23505') {
-          console.log("Email ya existe en la base de datos");
+      if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
+        // Es una transacción válida - guardar en la base de datos
+        const transaction = aiResult.data;
+        console.log("✓ Transacción extraída:", transaction);
+
+        const { error: insertError } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: tokenData.user_id,
+            source_email: gmailEmail,
+            source_message_id: messageResponse.data.id,
+            date: date, // Fecha en que se recibió el email
+            // Datos extraídos por IA
+            amount: transaction.amount,
+            currency: transaction.currency,
+            transaction_type: transaction.type,
+            transaction_description: transaction.description,
+            transaction_date: transaction.date || date.split('T')[0],
+            merchant: transaction.merchant,
+            extraction_confidence: transaction.confidence,
+          })
+          .select();
+
+        if (insertError) {
+          if (insertError.code === '23505') {
+            console.log("Transacción ya existe en la base de datos");
+          } else {
+            console.error("Error guardando transacción:", insertError);
+          }
         } else {
-          console.error("Error guardando email:", insertError);
+          console.log("✓ Transacción guardada exitosamente");
         }
       } else {
-        console.log("✓ Email guardado exitosamente");
+        // No se encontró transacción - no guardar nada
+        console.log("No se encontró transacción en el email - descartando");
+        console.log("--- Email descartado ---");
+        console.log("De:", gmailEmail);
+        console.log("Asunto:", subject);
+        console.log("Cuerpo (primeros 200 chars):", bodyText.substring(0, 200) + "...");
+        console.log("Razón:", (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción");
+        console.log("------------------------");
       }
     }
 

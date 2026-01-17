@@ -1,21 +1,33 @@
 import { useState } from "react";
-import { Mail, MailOpen, Calendar, User } from "lucide-react";
+import {
+  Calendar,
+  User,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Store,
+  Receipt,
+} from "lucide-react";
 import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
-import { createEmailsService, type Email } from "../services/emails.service";
+import {
+  createTransactionsService,
+  type Transaction,
+} from "../services/emails.service";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { EmptyState } from "../components/ui/EmptyState";
 
-export function Emails() {
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+export function Transactions() {
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
 
   const {
-    data: emails,
+    data: transactions,
     loading,
     error,
     refetch,
   } = useSupabaseQuery(async (supabase) => {
-    const service = createEmailsService(supabase);
-    return await service.getEmails();
+    const service = createTransactionsService(supabase);
+    return await service.getTransactions();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -54,54 +66,68 @@ export function Emails() {
 
   return (
     <div className="flex h-[calc(100vh-5rem)] gap-4">
-      {/* Email List */}
+      {/* Transaction List */}
       <div className="w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
         <div className="p-4 border-b border-[var(--text-secondary)]/20">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <Mail size={20} />
-            Emails recibidos ({emails?.length || 0})
+            <Receipt size={20} />
+            Transacciones ({transactions?.length || 0})
           </h2>
         </div>
         <div className="overflow-y-auto h-full">
-          {emails && emails.length === 0 ? (
+          {transactions && transactions.length === 0 ? (
             <EmptyState
-              icon={Mail}
-              title="No hay emails guardados"
-              description="Los emails que recibas aparecerán aquí"
+              icon={Receipt}
+              title="No hay transacciones"
+              description="Las transacciones extraídas de tus emails aparecerán aquí"
             />
           ) : (
-            emails?.map((email) => (
+            transactions?.map((transaction) => (
               <div
-                key={email.id}
-                onClick={() => setSelectedEmail(email)}
+                key={transaction.id}
+                onClick={() => setSelectedTransaction(transaction)}
                 className={`p-4 border-b border-[var(--text-secondary)]/10 cursor-pointer transition-colors hover:bg-[var(--bg-primary)] ${
-                  selectedEmail?.id === email.id ? "bg-[var(--bg-primary)]" : ""
+                  selectedTransaction?.id === transaction.id
+                    ? "bg-[var(--bg-primary)]"
+                    : ""
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
-                  <span className="text-sm font-medium text-[var(--text-primary)] truncate flex-1">
-                    {email.subject || "Sin asunto"}
-                  </span>
-                  {email.processed ? (
-                    <MailOpen
-                      size={16}
-                      className="text-green-500 ml-2 flex-shrink-0"
-                    />
-                  ) : (
-                    <Mail
-                      size={16}
-                      className="text-[var(--text-secondary)] ml-2 flex-shrink-0"
-                    />
-                  )}
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-[var(--text-primary)] block truncate">
+                      {transaction.transaction_description}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {transaction.transaction_type === "income" ? (
+                        <TrendingUp size={14} className="text-green-500" />
+                      ) : (
+                        <TrendingDown size={14} className="text-red-500" />
+                      )}
+                      <span
+                        className={`text-sm font-semibold ${
+                          transaction.transaction_type === "income"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {transaction.currency} ${transaction.amount}
+                      </span>
+                      {transaction.merchant && (
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          • {transaction.merchant}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="text-xs text-[var(--text-secondary)] space-y-1">
                   <div className="flex items-center gap-1">
-                    <User size={12} />
-                    <span>{email.gmail_email}</span>
+                    <Calendar size={12} />
+                    <span>{formatDate(transaction.transaction_date)}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Calendar size={12} />
-                    <span>{formatDate(email.date)}</span>
+                    <User size={12} />
+                    <span>{transaction.source_email}</span>
                   </div>
                 </div>
               </div>
@@ -110,54 +136,99 @@ export function Emails() {
         </div>
       </div>
 
-      {/* Email Detail */}
+      {/* Transaction Detail */}
       <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
-        {selectedEmail ? (
+        {selectedTransaction ? (
           <div className="h-full flex flex-col">
             <div className="p-4 border-b border-[var(--text-secondary)]/20">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-                {selectedEmail.subject || "Sin asunto"}
+                {selectedTransaction.transaction_description}
               </h3>
               <div className="text-sm text-[var(--text-secondary)] space-y-1">
-                <p>De: {selectedEmail.gmail_email}</p>
-                <p>Fecha: {formatDate(selectedEmail.date)}</p>
-                <p>ID: {selectedEmail.gmail_message_id}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                      selectedEmail.processed
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                    }`}
-                  >
-                    {selectedEmail.processed ? (
-                      <>
-                        <MailOpen size={12} />
-                        Procesado
-                      </>
-                    ) : (
-                      <>
-                        <Mail size={12} />
-                        No procesado
-                      </>
-                    )}
-                  </span>
-                </div>
+                <p>Fecha: {formatDate(selectedTransaction.transaction_date)}</p>
+                <p>Email de origen: {selectedTransaction.source_email}</p>
+                <p>ID del mensaje: {selectedTransaction.source_message_id}</p>
               </div>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="bg-[var(--bg-primary)] rounded-lg p-4">
-                <pre className="whitespace-pre-wrap text-sm text-[var(--text-primary)] font-mono">
-                  {selectedEmail.body_text || "Sin contenido"}
-                </pre>
+
+              {/* Transaction Information */}
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <DollarSign size={18} />
+                  Detalles de la Transacción
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-[var(--text-secondary)]">Monto:</span>
+                    <p
+                      className={`font-semibold text-lg ${
+                        selectedTransaction.transaction_type === "income"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedTransaction.currency} $
+                      {selectedTransaction.amount}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[var(--text-secondary)]">Tipo:</span>
+                    <p className="font-medium flex items-center gap-1">
+                      {selectedTransaction.transaction_type === "income" ? (
+                        <>
+                          <TrendingUp size={16} className="text-green-500" />
+                          Ingreso
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown size={16} className="text-red-500" />
+                          Egreso
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  {selectedTransaction.merchant && (
+                    <div className="col-span-2">
+                      <span className="text-[var(--text-secondary)]">
+                        Comercio:
+                      </span>
+                      <p className="font-medium flex items-center gap-1">
+                        <Store size={16} />
+                        {selectedTransaction.merchant}
+                      </p>
+                    </div>
+                  )}
+                  {selectedTransaction.extraction_confidence && (
+                    <div className="col-span-2">
+                      <span className="text-[var(--text-secondary)]">
+                        Confianza de extracción:
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{
+                              width: `${selectedTransaction.extraction_confidence * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-xs font-medium">
+                          {Math.round(
+                            selectedTransaction.extraction_confidence * 100,
+                          )}
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-[var(--text-secondary)]">
             <div className="text-center">
-              <Mail size={48} className="mx-auto mb-4 opacity-50" />
-              <p>Selecciona un email para ver su contenido</p>
+              <Receipt size={48} className="mx-auto mb-4 opacity-50" />
+              <p>Selecciona una transacción para ver sus detalles</p>
             </div>
           </div>
         )}
