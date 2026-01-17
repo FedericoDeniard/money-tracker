@@ -1,13 +1,14 @@
 import {
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Store,
-  Receipt,
+  Check,
+  Copy,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  AlertCircle,
 } from "lucide-react";
 import type { Transaction } from "../../services/emails.service";
-import { getTransactionType, formatDate } from "../../utils/transactionUtils";
+import { getTransactionType } from "../../utils/transactionUtils";
+import { useState } from "react";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -17,93 +18,138 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
   const { isExpense, isIncome } = getTransactionType(
     transaction.transaction_type,
   );
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(transaction.source_message_id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const amountColor = "text-[var(--text-primary)]";
+
+  // Format date and time
+  const dateObj = new Date(transaction.transaction_date || transaction.date);
+  const dateTimeStr = dateObj.toLocaleString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-[var(--text-secondary)]/20">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-          {transaction.transaction_description}
-        </h3>
-        <div className="text-sm text-[var(--text-secondary)] space-y-1">
-          <p>Fecha: {formatDate(transaction.transaction_date)}</p>
-          <p>Email de origen: {transaction.source_email}</p>
-          <p>ID del mensaje: {transaction.source_message_id}</p>
+    <div className="h-full flex flex-col bg-white rounded-3xl p-6 relative shadow-sm border border-gray-100">
+      {/* Header with Icon */}
+      <div className="flex justify-center mb-6 mt-2">
+        <div
+          className={`p-4 rounded-2xl ${
+            isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+          }`}
+        >
+          {isIncome ? (
+            <ArrowDown strokeWidth={3} size={32} />
+          ) : (
+            <ArrowUp strokeWidth={3} size={32} />
+          )}
         </div>
+      </div>
 
-        {/* Transaction Information */}
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-            <DollarSign size={18} />
-            Detalles de la Transacción
-          </h4>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-[var(--text-secondary)]">Monto:</span>
-              <span
-                className={`font-semibold text-lg ${
-                  isExpense
-                    ? "text-[var(--error)]"
-                    : isIncome
-                      ? "text-[var(--success)]"
-                      : "text-gray-900"
-                }`}
-              >
-                {transaction.currency} ${transaction.amount}
-              </span>
-            </div>
-            <div>
-              <span className="text-[var(--text-secondary)]">Fecha:</span>
-              <p className="font-medium flex items-center gap-1">
-                <Calendar size={16} />
-                {transaction.transaction_date ||
-                  new Date(transaction.date).toLocaleDateString("es-ES", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-              </p>
-            </div>
-            <div>
-              <span className="text-[var(--text-secondary)]">Tipo:</span>
-              <p className="font-medium flex items-center gap-1">
-                {isExpense ? (
-                  <>
-                    <TrendingDown size={16} className="text-[var(--error)]" />
-                    <span className="text-red-700 font-semibold">GASTO</span>
-                  </>
-                ) : isIncome ? (
-                  <>
-                    <TrendingUp size={16} className="text-[var(--success)]" />
-                    <span className="text-green-700 font-semibold">
-                      INGRESO
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Receipt size={16} className="text-gray-500" />
-                  </>
-                )}
-              </p>
-            </div>
-            <div className="col-span-2">
-              <span className="text-[var(--text-secondary)]">Comercio:</span>
-              <p className="font-medium flex items-center gap-1">
-                <Store size={16} />
-                {transaction.merchant}
-              </p>
-            </div>
-            <div className="col-span-2">
-              <span className="text-[var(--text-secondary)]">Categoría:</span>
-              <p className="font-medium flex items-center gap-1">
-                <Receipt size={16} />
-                <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm">
-                  {transaction.category}
-                </span>
-              </p>
-            </div>
+      {/* Amount */}
+      <div className="text-center mb-3">
+        <h1 className={`text-3xl font-bold ${amountColor} tracking-tight`}>
+          {isIncome ? "+" : "-"}
+          {transaction.currency} {transaction.amount.toLocaleString()}
+        </h1>
+      </div>
+
+      {/* Context Pill */}
+      <div className="flex justify-center mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
+          <div
+            className={`w-2 h-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
+          />
+          <span className="font-medium text-[var(--text-primary)]">
+            {transaction.merchant || "Desconocido"}
+          </span>
+          <span className="text-gray-300 text-xs">•</span>
+          <span className="capitalize">{transaction.category}</span>
+        </div>
+      </div>
+
+      {/* Details List */}
+      <div className="space-y-6 px-1">
+        <DetailRow label="Fecha y Hora" value={dateTimeStr} />
+
+        <DetailRow
+          label="Tipo de transacción"
+          value={isIncome ? "Ingreso" : "Gasto"}
+        />
+
+        <DetailRow
+          label={isIncome ? "Recibido de" : "Comercio"}
+          value={transaction.merchant || "Desconocido"}
+        />
+
+        <DetailRow
+          label="Monto"
+          value={`${transaction.currency} ${transaction.amount.toLocaleString()}`}
+        />
+
+        <div className="flex items-center justify-between py-1">
+          <span className="text-[var(--text-secondary)] text-sm">
+            Referencia
+          </span>
+          <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium text-sm text-right overflow-hidden pl-4">
+            <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
+              {transaction.source_message_id}
+            </span>
+            <button
+              onClick={handleCopyId}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded"
+              title="Copiar ID"
+            >
+              {copied ? (
+                <Check size={14} className="text-green-500" />
+              ) : (
+                <Copy size={14} />
+              )}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Footer Actions */}
+      <div className="mt-auto pt-8">
+        <div className="flex gap-3">
+          <button className="flex-1 py-3.5 px-4 rounded-2xl bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+            <AlertCircle size={16} />
+            Reportar
+          </button>
+          <button className="flex-1 py-3.5 px-4 rounded-2xl bg-gray-50 text-[var(--text-primary)] font-medium text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+            <Download size={16} />
+            Recibo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-[var(--text-secondary)] text-sm">{label}</span>
+      <span className="text-[var(--text-primary)] font-medium text-sm text-right">
+        {value}
+      </span>
     </div>
   );
 }

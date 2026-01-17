@@ -7,7 +7,7 @@ export const TransactionSchema = z.object({
   type: z.enum(['income', 'expense']).describe('Type of transaction'),
   description: z.string().describe('Description of what the transaction is for'),
   date: z.string().optional().describe('Date of the transaction in YYYY-MM-DD format if mentioned'),
-  merchant: z.string().optional().describe('Merchant or source of the transaction'),
+  merchant: z.string().describe('Merchant or source of the transaction'),
   category: z.enum([
     'salary',         // salary, wages, paycheck, work income
     'entertainment',  // entertainment, games, streaming

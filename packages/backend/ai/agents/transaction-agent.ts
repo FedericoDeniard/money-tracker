@@ -30,7 +30,12 @@ export async function extractTransactionFromEmail(emailContent: string) {
         });
 
         if (object.hasTransaction) {
-            return { success: true, data: object.data };
+            // Ensure merchant is never null
+            const transactionData = {
+                ...object.data,
+                merchant: object.data.merchant || 'Unknown'
+            };
+            return { success: true, data: transactionData };
         } else {
             return { success: true, data: { reason: object.reason } };
         }

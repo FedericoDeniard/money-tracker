@@ -23,6 +23,13 @@ Email to analyze:
 {emailContent}
 
 Response format:
-- If a transaction is found: Return a JSON object with amount, currency, type, description, date (optional), merchant (optional), and category (optional)
+- If a transaction is found: Return a JSON object with amount, currency, type, description, date (optional), merchant (REQUIRED - extract from email or use "Unknown" if not found), and category (optional)
 - If no transaction: Return a JSON object with transaction: null and reason
+
+IMPORTANT: The 'merchant' field is REQUIRED. If you cannot find a specific merchant name, use:
+- "Unknown" for general transactions
+- "Bank Transfer" for transfers between accounts
+- "Cash Withdrawal" for ATM withdrawals
+- "Payment Service" for payment processors
+- The email sender's name if it's a payment confirmation
 `;

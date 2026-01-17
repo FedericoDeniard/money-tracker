@@ -50,7 +50,8 @@ export function TransactionCard({
               isSelected ? "text-gray-200" : "text-[var(--text-secondary)]"
             }`}
           >
-            {formatCategory(transaction.category)} • {transaction.merchant}
+            {formatCategory(transaction.category)} •{" "}
+            {transaction.merchant || "Desconocido"}
           </p>
           <p
             className={`text-xs mt-0.5 ${
