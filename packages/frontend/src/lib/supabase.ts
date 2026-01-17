@@ -18,6 +18,7 @@ export async function getSupabase() {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
+        flowType: 'pkce', // Usar PKCE flow en lugar de implicit
       },
     },
   );

@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import fs from "fs";
 import path from "path";
 import { supabase } from "./lib/supabase";
+import { encryptToken, decryptToken } from "./lib/encryption";
 
 // Load environment variables with fallback to credentials.json
 const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -50,6 +51,46 @@ function decodeNotification(data: string) {
 // Set para evitar procesar el mismo mensaje múltiples veces
 const processedMessages = new Set<string>();
 
+// Endpoint to disconnect Gmail
+app.delete("/gmail-disconnect/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ error: "Missing userId parameter" });
+  }
+
+  try {
+    // Delete user's OAuth tokens
+    const { error: tokenError } = await supabase
+      .from("user_oauth_tokens")
+      .delete()
+      .eq("user_id", userId);
+
+    if (tokenError) {
+      console.error("Error deleting tokens:", tokenError);
+      return res.status(500).json({ error: "Failed to disconnect Gmail" });
+    }
+
+    // Delete user's Gmail watches
+    const { error: watchError } = await supabase
+      .from("gmail_watches")
+      .delete()
+      .eq("user_id", userId);
+
+    if (watchError) {
+      console.error("Error deleting watches:", watchError);
+    }
+
+    return res.json({
+      success: true,
+      message: "Gmail disconnected successfully",
+    });
+  } catch (error) {
+    console.error("Error disconnecting Gmail:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Endpoint to start OAuth
 app.get("/auth", (req, res) => {
   const { userId } = req.query;
@@ -93,14 +134,20 @@ app.get("/auth/callback", async (req, res) => {
       ? new Date(tokens.expiry_date).toISOString()
       : null;
 
-    // Save tokens to database
+    // Encrypt tokens before saving
+    const encryptedAccessToken = await encryptToken(tokens.access_token!);
+    const encryptedRefreshToken = tokens.refresh_token
+      ? await encryptToken(tokens.refresh_token)
+      : null;
+
+    // Save encrypted tokens to database
     const { error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .upsert(
         {
           user_id: userId,
-          access_token: tokens.access_token!,
-          refresh_token: tokens.refresh_token || null,
+          access_token_encrypted: encryptedAccessToken,
+          refresh_token_encrypted: encryptedRefreshToken,
           token_type: tokens.token_type || "Bearer",
           expires_at: expiresAt,
           scope: tokens.scope || null,
@@ -198,19 +245,28 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
+    // Decrypt tokens
+    const accessToken = await decryptToken(tokenData.access_token_encrypted);
+    const refreshToken = tokenData.refresh_token_encrypted
+      ? await decryptToken(tokenData.refresh_token_encrypted)
+      : null;
+
     // Check if token needs refresh
     const now = new Date();
     const expiresAt = tokenData.expires_at
       ? new Date(tokenData.expires_at)
       : null;
 
-    if (expiresAt && now >= expiresAt && tokenData.refresh_token) {
+    if (expiresAt && now >= expiresAt && refreshToken) {
       console.log("Token expirado, refrescando...");
       oAuth2Client.setCredentials({
-        refresh_token: tokenData.refresh_token,
+        refresh_token: refreshToken,
       });
 
       const { credentials } = await oAuth2Client.refreshAccessToken();
+
+      // Encrypt new access token
+      const newEncryptedAccessToken = await encryptToken(credentials.access_token!);
 
       // Update tokens in database
       const newExpiresAt = credentials.expiry_date
@@ -220,7 +276,7 @@ app.post("/webhook", async (req, res) => {
       await supabase
         .from("user_oauth_tokens")
         .update({
-          access_token: credentials.access_token!,
+          access_token_encrypted: newEncryptedAccessToken,
           expires_at: newExpiresAt,
           updated_at: new Date().toISOString(),
         })
@@ -229,8 +285,8 @@ app.post("/webhook", async (req, res) => {
       oAuth2Client.setCredentials(credentials);
     } else {
       oAuth2Client.setCredentials({
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || undefined,
+        access_token: accessToken,
+        refresh_token: refreshToken || undefined,
         token_type: tokenData.token_type || "Bearer",
       });
     }
