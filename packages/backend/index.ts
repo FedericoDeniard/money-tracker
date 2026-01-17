@@ -22,7 +22,6 @@ const redirectUri = process.env.OAUTH_REDIRECT_URI;
 // Fallback to credentials.json if environment variables are not set
 let credentials;
 if (!clientId || !clientSecret || !projectId) {
-  console.log("Loading credentials from credentials.json...");
   credentials = JSON.parse(
     fs.readFileSync(path.join(import.meta.dir, "credentials.json"), "utf8"),
   );
@@ -287,7 +286,7 @@ app.get("/auth/callback", async (req, res) => {
       console.error("Error saving watch:", watchError);
     }
 
-    console.log("Watch configurado exitosamente para usuario:", userId);
+    console.log("✓ Gmail watch configurado para:", userId);
 
     // Redirect to frontend settings page with success
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -301,12 +300,12 @@ app.get("/auth/callback", async (req, res) => {
 
 // Webhook for push notifications
 app.post("/webhook", async (req, res) => {
-  console.log("Webhook hit! Raw body:", JSON.stringify(req.body, null, 2));
+  // console.log("Webhook hit! Raw body:", JSON.stringify(req.body, null, 2)); // Debug only
 
   try {
     // Decodificar el mensaje base64
     const data = decodeNotification(req.body.message.data);
-    console.log("Datos decodificados:", data);
+    // console.log("Datos decodificados:", data); // Debug only
 
     const gmailEmail = data.emailAddress;
     const historyId = data.historyId;
@@ -314,11 +313,11 @@ app.post("/webhook", async (req, res) => {
     // Evitar procesar el mismo historyId múltiples veces
     const historyKey = `${gmailEmail}-${historyId}`;
     if (processedMessages.has(historyKey)) {
-      console.log("Notificación ya procesada, ignorando...");
+      // console.log("Notificación ya procesada, ignorando..."); // Debug only
       return res.sendStatus(200);
     }
     processedMessages.add(historyKey);
-    console.log("✓ Procesando nueva notificación para:", gmailEmail);
+    console.log("📧 Procesando notificación:", gmailEmail);
 
     // Find user tokens from database
     const { data: tokenData, error: tokenError } = await supabase
@@ -345,7 +344,7 @@ app.post("/webhook", async (req, res) => {
       : null;
 
     if (expiresAt && now >= expiresAt && refreshToken) {
-      console.log("Token expirado, refrescando...");
+      console.log("🔄 Refrescando token expirado...");
       oAuth2Client.setCredentials({
         refresh_token: refreshToken,
       });
@@ -402,7 +401,7 @@ app.post("/webhook", async (req, res) => {
     const history = historyResponse.data.history;
 
     if (!history || history.length === 0) {
-      console.log("No hay mensajes nuevos en el historial");
+      // console.log("No hay mensajes nuevos en el historial"); // Debug only
       return res.sendStatus(200);
     }
 
@@ -412,7 +411,7 @@ app.post("/webhook", async (req, res) => {
       .filter(m => m.message?.labelIds?.includes("INBOX"));
 
     if (addedMessages.length === 0) {
-      console.log("No hay mensajes nuevos en INBOX");
+      // console.log("No hay mensajes nuevos en INBOX"); // Debug only
       return res.sendStatus(200);
     }
 
@@ -423,7 +422,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     const messageId = latestMessage.message.id;
-    console.log("Procesando mensaje nuevo:", messageId);
+    console.log("📨 Procesando mensaje:", messageId);
 
     // Actualizar historyId en la base de datos
     await supabase
@@ -441,8 +440,8 @@ app.post("/webhook", async (req, res) => {
     // Verificar que el email esté en INBOX y no en SPAM
     const labelIds = messageResponse.data.labelIds || [];
     if (!labelIds.includes('INBOX') || labelIds.includes('SPAM') || labelIds.includes('TRASH')) {
-      console.log("Email no está en INBOX o está en SPAM/TRASH - ignorando");
-      console.log("Labels:", labelIds);
+      // console.log("Email no está en INBOX o está en SPAM/TRASH - ignorando");
+      // console.log("Labels:", labelIds); // Debug only
       return res.sendStatus(200);
     }
 
@@ -504,14 +503,8 @@ app.post("/webhook", async (req, res) => {
 
     const bodyText = messageResponse.data.payload ? extractBody(messageResponse.data.payload) : '';
 
-    console.log("\n=== PROCESANDO EMAIL CON IA ===");
-    console.log("Usuario receptor:", gmailEmail);
-    console.log("Remitente:", fromEmail);
-    console.log("Asunto:", subject);
-    console.log("Fecha:", date);
-    console.log("ID:", messageResponse.data.id);
-    console.log("Contenido extraído (primeros 500 chars):", bodyText.substring(0, 500));
-    console.log("========================\n");
+    console.log("🤖 Analizando email con IA...");
+    // console.log("Contenido:", bodyText.substring(0, 200) + "..."); // Debug only
 
     // Extraer transacción usando IA
     const aiResult = await extractTransactionFromEmail(bodyText);
