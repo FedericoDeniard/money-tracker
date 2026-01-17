@@ -1,53 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Mail, MailOpen, Calendar, User } from "lucide-react";
-import { getSupabase } from "../lib/supabase";
-import { SupabaseClient } from "@supabase/supabase-js";
-
-interface Email {
-  id: string;
-  user_id: string;
-  gmail_email: string;
-  gmail_message_id: string;
-  subject: string;
-  body_text: string;
-  date: string;
-  processed: boolean;
-  created_at: string;
-}
+import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
+import { createEmailsService, type Email } from "../services/emails.service";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { EmptyState } from "../components/ui/EmptyState";
 
 export function Emails() {
-  const [emails, setEmails] = useState<Email[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
 
-  useEffect(() => {
-    getSupabase().then(setSupabase);
+  const {
+    data: emails,
+    loading,
+    error,
+    refetch,
+  } = useSupabaseQuery(async (supabase) => {
+    const service = createEmailsService(supabase);
+    return await service.getEmails();
   }, []);
-
-  useEffect(() => {
-    if (supabase) {
-      fetchEmails();
-    }
-  }, [supabase]);
-
-  const fetchEmails = async () => {
-    if (!supabase) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from("emails")
-        .select("*")
-        .order("date", { ascending: false });
-
-      if (error) throw error;
-      setEmails(data || []);
-    } catch (error) {
-      console.error("Error fetching emails:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("es-ES", {
@@ -62,7 +31,23 @@ export function Emails() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)]"></div>
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Error loading emails</p>
+          <button
+            onClick={refetch}
+            className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary)]/90"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -74,17 +59,18 @@ export function Emails() {
         <div className="p-4 border-b border-[var(--text-secondary)]/20">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
             <Mail size={20} />
-            Emails recibidos ({emails.length})
+            Emails recibidos ({emails?.length || 0})
           </h2>
         </div>
         <div className="overflow-y-auto h-full">
-          {emails.length === 0 ? (
-            <div className="p-8 text-center text-[var(--text-secondary)]">
-              <Mail size={48} className="mx-auto mb-4 opacity-50" />
-              <p>No hay emails guardados</p>
-            </div>
+          {emails && emails.length === 0 ? (
+            <EmptyState
+              icon={Mail}
+              title="No hay emails guardados"
+              description="Los emails que recibas aparecerán aquí"
+            />
           ) : (
-            emails.map((email) => (
+            emails?.map((email) => (
               <div
                 key={email.id}
                 onClick={() => setSelectedEmail(email)}
