@@ -3,11 +3,15 @@ interface DecorativeSquareProps {
   className?: string;
 }
 
-export function DecorativeSquare({ size = 12, className = '' }: DecorativeSquareProps) {
+export function DecorativeSquare({ size = 100, className = '' }: DecorativeSquareProps) {
   return (
     <div 
-      className={`w-${size} h-${size} bg-[var(--accent)] rounded-[3rem] opacity-90 ${className}`}
-      style={{ transform: 'rotate(16deg)' }}
+      className={`bg-[var(--accent)] rounded-[3rem] opacity-90 ${className}`}
+      style={{ 
+        width: `${size}px`, 
+        height: `${size}px`,
+        transform: 'rotate(16deg)'
+      }}
     />
   );
 }

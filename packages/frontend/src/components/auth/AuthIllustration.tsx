@@ -7,7 +7,7 @@ export function AuthIllustration() {
       <div className="absolute inset-0 flex items-center justify-center p-20">
            <div className="relative w-full max-w-lg aspect-square flex items-center justify-center">
               {/* Decorative background shape - Rotated square */}
-              <DecorativeSquare size={100} className="absolute" />
+              <DecorativeSquare size={400} className="absolute" />
                
                {/* Logo Content */}
                <div className="relative z-10 flex flex-col items-center justify-center">
