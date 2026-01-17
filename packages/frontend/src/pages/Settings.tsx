@@ -12,7 +12,7 @@ export function Settings() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState<string | null>(null);
   const [gmailStatus, setGmailStatus] = useState<GmailStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [notification, setNotification] = useState<{
@@ -53,7 +53,7 @@ export function Settings() {
       setGmailStatus(status);
     } catch (error) {
       console.error("Error checking Gmail status:", error);
-      setGmailStatus({ connected: false, gmail_email: null });
+      setGmailStatus({ connections: [], total: 0 });
     } finally {
       setIsLoadingStatus(false);
     }
@@ -90,16 +90,14 @@ export function Settings() {
     }
   };
 
-  const handleDisconnectEmail = async () => {
-    if (!user?.id) return;
-
-    if (!confirm(t("settings.confirmDisconnect"))) {
+  const handleDisconnectEmail = async (connectionId: string, email: string) => {
+    if (!confirm(t("settings.confirmDisconnectEmail", { email }))) {
       return;
     }
 
     try {
-      setIsDisconnecting(true);
-      const result = await gmailService.disconnectGmail(user.id);
+      setIsDisconnecting(connectionId);
+      const result = await gmailService.disconnectGmail(connectionId);
 
       if (result.success) {
         setNotification({
@@ -117,7 +115,7 @@ export function Settings() {
         message: t("settings.gmailDisconnectError"),
       });
     } finally {
-      setIsDisconnecting(false);
+      setIsDisconnecting(null);
     }
   };
 
@@ -171,7 +169,7 @@ export function Settings() {
               </div>
 
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-4">
                   <h3 className="font-medium text-[var(--text-primary)]">
                     Gmail
                   </h3>
@@ -180,10 +178,12 @@ export function Settings() {
                       className="animate-spin text-[var(--text-secondary)]"
                       size={16}
                     />
-                  ) : gmailStatus?.connected ? (
+                  ) : gmailStatus && gmailStatus.total > 0 ? (
                     <span className="flex items-center gap-1 text-sm text-green-600">
                       <CheckCircle size={16} />
-                      {t("settings.connected")}
+                      {t("settings.connectedCount", {
+                        count: gmailStatus.total,
+                      })}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)]">
@@ -193,35 +193,76 @@ export function Settings() {
                   )}
                 </div>
 
-                {gmailStatus?.connected ? (
-                  <>
-                    <p className="text-sm text-[var(--text-secondary)] mb-2">
-                      {t("settings.connectedAccount")}{" "}
-                      <span className="font-medium">
-                        {gmailStatus.gmail_email}
-                      </span>
-                    </p>
-                    <p className="text-sm text-[var(--text-secondary)] mb-4">
+                {gmailStatus && gmailStatus.total > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-[var(--text-secondary)]">
                       {t("settings.notificationsDescription")}
                     </p>
-                    <Button
-                      variant="secondary"
-                      icon={
-                        isDisconnecting ? (
-                          <Loader2 className="animate-spin" size={20} />
-                        ) : (
-                          <X size={20} />
-                        )
-                      }
-                      iconPosition="left"
-                      onClick={handleDisconnectEmail}
-                      disabled={isDisconnecting}
-                    >
-                      {isDisconnecting
-                        ? t("settings.disconnecting")
-                        : t("settings.disconnectGmail")}
-                    </Button>
-                  </>
+
+                    {gmailStatus.connections.map((connection) => (
+                      <div
+                        key={connection.id}
+                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Mail className="text-gray-500" size={20} />
+                          <div>
+                            <p className="font-medium text-[var(--text-primary)]">
+                              {connection.gmail_email}
+                            </p>
+                            <p className="text-xs text-[var(--text-secondary)]">
+                              {t("settings.connectedAt")}{" "}
+                              {new Date(
+                                connection.connected_at,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={
+                            isDisconnecting === connection.id ? (
+                              <Loader2 className="animate-spin" size={16} />
+                            ) : (
+                              <X size={16} />
+                            )
+                          }
+                          onClick={() =>
+                            handleDisconnectEmail(
+                              connection.id,
+                              connection.gmail_email,
+                            )
+                          }
+                          disabled={isDisconnecting === connection.id}
+                        >
+                          {isDisconnecting === connection.id
+                            ? t("settings.disconnecting")
+                            : t("settings.disconnect")}
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="pt-3 border-t border-gray-200">
+                      <Button
+                        variant="primary"
+                        icon={
+                          isConnecting ? (
+                            <Loader2 className="animate-spin" size={20} />
+                          ) : (
+                            <Mail size={20} />
+                          )
+                        }
+                        iconPosition="left"
+                        onClick={handleConnectEmail}
+                        disabled={isConnecting}
+                      >
+                        {isConnecting
+                          ? t("settings.connecting")
+                          : t("settings.addAnotherAccount")}
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <p className="text-sm text-[var(--text-secondary)] mb-4">

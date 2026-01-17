@@ -2,7 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface Transaction {
   id: string;
-  user_id: string;
+  user_oauth_token_id: string | null; // Reference to which Gmail account received this
   source_email: string;
   source_message_id: string;
   date: string; // Fecha y hora cuando se recibió el email
@@ -14,6 +14,8 @@ export interface Transaction {
   merchant: string;
   category: 'salary' | 'entertainment' | 'investment' | 'food' | 'transport' | 'services' | 'health' | 'education' | 'housing' | 'clothing' | 'other';
   created_at: string;
+  // Joined from user_oauth_tokens
+  recipient_email?: string; // Gmail email that received this transaction
 }
 
 export class TransactionsService {
@@ -22,22 +24,45 @@ export class TransactionsService {
   async getTransactions(): Promise<Transaction[]> {
     const { data, error } = await this.supabase
       .from('transactions')
-      .select('*')
+      .select(`
+        *,
+        user_oauth_tokens!user_oauth_token_id (
+          gmail_email
+        )
+      `)
       .order('transaction_date', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    // Map the joined data to include recipient_email
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data || []).map((item: any) => ({
+      ...item,
+      recipient_email: item.user_oauth_tokens?.gmail_email || null,
+      user_oauth_tokens: undefined, // Remove the nested object
+    })) as Transaction[];
   }
 
   async getTransactionById(id: string): Promise<Transaction | null> {
     const { data, error } = await this.supabase
       .from('transactions')
-      .select('*')
+      .select(`
+        *,
+        user_oauth_tokens!user_oauth_token_id (
+          gmail_email
+        )
+      `)
       .eq('id', id)
       .single();
 
     if (error) throw error;
-    return data;
+
+    // Map the joined data to include recipient_email
+    return data ? {
+      ...data,
+      recipient_email: data.user_oauth_tokens?.gmail_email || null,
+      user_oauth_tokens: undefined,
+    } : null;
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {

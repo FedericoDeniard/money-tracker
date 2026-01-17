@@ -7,6 +7,9 @@ import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
 import { createClient } from "@supabase/supabase-js";
 
+// Bun provides fetch globally
+declare const fetch: typeof globalThis.fetch;
+
 // Initialize Supabase with service role key for server-side operations
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
@@ -136,33 +139,50 @@ app.post("/stop-all-watches", async (req, res) => {
 });
 
 // Endpoint to disconnect Gmail
-app.delete("/gmail-disconnect/:userId", async (req, res) => {
-  const { userId } = req.params;
+app.delete("/gmail-disconnect/:connectionId", async (req, res) => {
+  const { connectionId } = req.params;
 
-  if (!userId) {
-    return res.status(400).json({ error: "Missing userId parameter" });
+  if (!connectionId) {
+    return res.status(400).json({ error: "Missing connectionId parameter" });
   }
 
   try {
-    // Delete user's OAuth tokens
+    // Get the token data first to stop the watch
+    const { data: tokenData } = await supabase
+      .from("user_oauth_tokens")
+      .select("*")
+      .eq("id", connectionId)
+      .single();
+
+    if (tokenData) {
+      // Try to stop the Gmail watch if it exists
+      try {
+        const accessToken = await decryptToken(tokenData.access_token_encrypted);
+        oAuth2Client.setCredentials({ access_token: accessToken });
+        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+        await gmail.users.stop({ userId: "me" });
+        console.log(`✓ Watch stopped for ${tokenData.gmail_email}`);
+      } catch (error) {
+        console.log("Could not stop watch (may not exist):", error);
+      }
+
+      // Delete Gmail watches for this token
+      await supabase
+        .from("gmail_watches")
+        .delete()
+        .eq("gmail_email", tokenData.gmail_email)
+        .eq("user_id", tokenData.user_id);
+    }
+
+    // Delete the OAuth token
     const { error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .delete()
-      .eq("user_id", userId);
+      .eq("id", connectionId);
 
     if (tokenError) {
-      console.error("Error deleting tokens:", tokenError);
+      console.error("Error deleting token:", tokenError);
       return res.status(500).json({ error: "Failed to disconnect Gmail" });
-    }
-
-    // Delete user's Gmail watches
-    const { error: watchError } = await supabase
-      .from("gmail_watches")
-      .delete()
-      .eq("user_id", userId);
-
-    if (watchError) {
-      console.error("Error deleting watches:", watchError);
     }
 
     return res.json({
@@ -319,74 +339,115 @@ app.post("/webhook", async (req, res) => {
     processedMessages.add(historyKey);
     console.log("📧 Procesando notificación:", gmailEmail);
 
-    // Find user tokens from database
-    const { data: tokenData, error: tokenError } = await supabase
+    // Find ALL user tokens for this Gmail account (multiple users can have the same account)
+    const { data: allTokens, error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .select("*")
-      .eq("gmail_email", gmailEmail)
-      .single();
+      .eq("gmail_email", gmailEmail);
 
-    if (tokenError || !tokenData) {
+    if (tokenError || !allTokens || allTokens.length === 0) {
       console.error("No se encontraron tokens para:", gmailEmail);
       return res.sendStatus(200);
     }
 
-    // Decrypt tokens
-    const accessToken = await decryptToken(tokenData.access_token_encrypted);
-    const refreshToken = tokenData.refresh_token_encrypted
-      ? await decryptToken(tokenData.refresh_token_encrypted)
-      : null;
+    console.log(`📊 Encontrados ${allTokens.length} token(s) para ${gmailEmail}`);
 
-    // Check if token needs refresh
-    const now = new Date();
-    const expiresAt = tokenData.expires_at
-      ? new Date(tokenData.expires_at)
-      : null;
+    // Verify which tokens are valid
+    const validTokens = [];
 
-    if (expiresAt && now >= expiresAt && refreshToken) {
-      console.log("🔄 Refrescando token expirado...");
-      oAuth2Client.setCredentials({
-        refresh_token: refreshToken,
-      });
+    for (const tokenData of allTokens) {
+      try {
+        // Check if token is expired by date first (avoid unnecessary API calls)
+        const now = new Date();
+        const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null;
 
-      const { credentials } = await oAuth2Client.refreshAccessToken();
+        if (expiresAt && now >= expiresAt) {
+          // Try to refresh if we have refresh token
+          if (tokenData.refresh_token_encrypted) {
+            console.log(`🔄 Intentando refrescar token expirado para user ${tokenData.user_id}...`);
+            const refreshToken = await decryptToken(tokenData.refresh_token_encrypted);
 
-      // Encrypt new access token
-      const newEncryptedAccessToken = await encryptToken(credentials.access_token!);
+            oAuth2Client.setCredentials({
+              refresh_token: refreshToken,
+            });
 
-      // Update tokens in database
-      const newExpiresAt = credentials.expiry_date
-        ? new Date(credentials.expiry_date).toISOString()
-        : null;
+            const { credentials } = await oAuth2Client.refreshAccessToken();
+            const newEncryptedAccessToken = await encryptToken(credentials.access_token!);
+            const newExpiresAt = credentials.expiry_date
+              ? new Date(credentials.expiry_date).toISOString()
+              : null;
 
-      await supabase
-        .from("user_oauth_tokens")
-        .update({
-          access_token_encrypted: newEncryptedAccessToken,
-          expires_at: newExpiresAt,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", tokenData.id);
+            await supabase
+              .from("user_oauth_tokens")
+              .update({
+                access_token_encrypted: newEncryptedAccessToken,
+                expires_at: newExpiresAt,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", tokenData.id);
 
-      oAuth2Client.setCredentials(credentials);
-    } else {
-      oAuth2Client.setCredentials({
-        access_token: accessToken,
-        refresh_token: refreshToken || undefined,
-        token_type: tokenData.token_type || "Bearer",
-      });
+            // Update tokenData with new credentials
+            tokenData.access_token_encrypted = newEncryptedAccessToken;
+            tokenData.expires_at = newExpiresAt;
+
+            validTokens.push(tokenData);
+            console.log(`✓ Token refrescado exitosamente para user ${tokenData.user_id}`);
+          } else {
+            console.log(`❌ Token expirado sin refresh_token para user ${tokenData.user_id}`);
+            continue;
+          }
+        } else {
+          // Token not expired by date, verify with Google using lightweight call
+          const accessToken = await decryptToken(tokenData.access_token_encrypted);
+
+          const response = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?access_token=${accessToken}`
+          );
+
+          if (response.ok) {
+            validTokens.push(tokenData);
+            console.log(`✓ Token válido para user ${tokenData.user_id}`);
+          } else {
+            console.log(`❌ Token inválido para user ${tokenData.user_id}`);
+          }
+        }
+      } catch (error) {
+        console.log(`❌ Error verificando token para user ${tokenData.user_id}:`, error);
+      }
     }
+
+    if (validTokens.length === 0) {
+      console.error("No hay tokens válidos para procesar este email");
+      return res.sendStatus(200);
+    }
+
+    console.log(`✓ ${validTokens.length} token(s) válido(s) encontrado(s)`);
+
+    // Use the first valid token to read the message (only once)
+    const firstToken = validTokens[0];
+    const accessToken = await decryptToken(firstToken.access_token_encrypted);
+    const refreshToken = firstToken.refresh_token_encrypted
+      ? await decryptToken(firstToken.refresh_token_encrypted)
+      : null;
+
+    oAuth2Client.setCredentials({
+      access_token: accessToken,
+      refresh_token: refreshToken || undefined,
+      token_type: firstToken.token_type || "Bearer",
+    });
 
     // Usar History API para obtener solo mensajes nuevos
     const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-    // Obtener el último historyId guardado
+    // Obtener el último historyId guardado (puede haber múltiples watches para la misma cuenta)
     const { data: watchData } = await supabase
       .from("gmail_watches")
       .select("history_id")
       .eq("gmail_email", gmailEmail)
       .eq("is_active", true)
-      .single();
+      .order("history_id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const startHistoryId = watchData?.history_id || historyId;
 
@@ -401,7 +462,7 @@ app.post("/webhook", async (req, res) => {
     const history = historyResponse.data.history;
 
     if (!history || history.length === 0) {
-      // console.log("No hay mensajes nuevos en el historial"); // Debug only
+      console.log("No hay mensajes nuevos en el historial");
       return res.sendStatus(200);
     }
 
@@ -411,7 +472,7 @@ app.post("/webhook", async (req, res) => {
       .filter(m => m.message?.labelIds?.includes("INBOX"));
 
     if (addedMessages.length === 0) {
-      // console.log("No hay mensajes nuevos en INBOX"); // Debug only
+      console.log("No hay mensajes nuevos en INBOX");
       return res.sendStatus(200);
     }
 
@@ -514,33 +575,38 @@ app.post("/webhook", async (req, res) => {
       const transaction = aiResult.data;
       console.log("✓ Transacción extraída:", transaction);
 
-      const { error: insertError } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: tokenData.user_id,
-          source_email: fromEmail, // Email del remitente
-          source_message_id: messageResponse.data.id,
-          date: date, // Fecha en que se recibió el email
-          // Datos extraídos por IA
-          amount: transaction.amount,
-          currency: transaction.currency,
-          transaction_type: transaction.type,
-          transaction_description: transaction.description,
-          transaction_date: transaction.date || date.split('T')[0],
-          merchant: transaction.merchant,
-          category: transaction.category, // Category is now required
-        })
-        .select();
+      // Create one transaction for each user with valid token
+      for (const tokenData of validTokens) {
+        const { error: insertError } = await supabase
+          .from("transactions")
+          .insert({
+            user_oauth_token_id: tokenData.id, // Reference to the Gmail account that received this
+            source_email: fromEmail, // Email del remitente
+            source_message_id: messageResponse.data.id,
+            date: date, // Fecha en que se recibió el email
+            // Datos extraídos por IA
+            amount: transaction.amount,
+            currency: transaction.currency,
+            transaction_type: transaction.type,
+            transaction_description: transaction.description,
+            transaction_date: transaction.date || date.split('T')[0],
+            merchant: transaction.merchant,
+            category: transaction.category, // Category is now required
+          })
+          .select();
 
-      if (insertError) {
-        if (insertError.code === '23505') {
-          console.log("Transacción ya existe en la base de datos");
+        if (insertError) {
+          if (insertError.code === '23505') {
+            console.log(`Transacción ya existe para user ${tokenData.user_id}`);
+          } else {
+            console.error(`Error guardando transacción para user ${tokenData.user_id}:`, insertError);
+          }
         } else {
-          console.error("Error guardando transacción:", insertError);
+          console.log(`✓ Transacción guardada para user ${tokenData.user_id}`);
         }
-      } else {
-        console.log("✓ Transacción guardada exitosamente");
       }
+
+      console.log(`✓ Transacción procesada para ${validTokens.length} usuario(s)`);
     } else {
       // No se encontró transacción - no guardar nada
       console.log("No se encontró transacción en el email - descartando");

@@ -4,6 +4,9 @@ import { getTransactionType } from "../../utils/transactionUtils";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { useFormatDate } from "../../hooks/useFormatDate";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../../hooks/useAuth";
+import { gmailService } from "../../services/gmail.service";
+import { useEffect, useState } from "react";
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -20,6 +23,18 @@ export function TransactionCard({
   const { translateCategory } = useTranslateCategory();
   const { formatShortDate } = useFormatDate();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [gmailConnections, setGmailConnections] = useState(0);
+
+  useEffect(() => {
+    const checkConnections = async () => {
+      if (user?.id) {
+        const status = await gmailService.getConnectionStatus(user.id);
+        setGmailConnections(status.total);
+      }
+    };
+    checkConnections();
+  }, [user?.id]);
 
   return (
     <motion.div
@@ -61,6 +76,9 @@ export function TransactionCard({
             }`}
           >
             {formatShortDate(transaction.transaction_date)}
+            {gmailConnections > 1 && transaction.recipient_email && (
+              <> • {transaction.recipient_email}</>
+            )}
           </p>
         </div>
 
