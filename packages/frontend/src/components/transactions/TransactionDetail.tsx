@@ -15,15 +15,15 @@ interface TransactionDetailProps {
 }
 
 export function TransactionDetail({ transaction }: TransactionDetailProps) {
-  const { isExpense, isIncome } = getTransactionType(
-    transaction.transaction_type,
-  );
+  const { isIncome } = getTransactionType(transaction.transaction_type);
   const [copied, setCopied] = useState(false);
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(transaction.source_message_id);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (typeof window !== "undefined" && window.navigator?.clipboard) {
+      window.navigator.clipboard.writeText(transaction.source_message_id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const amountColor = "text-[var(--text-primary)]";
