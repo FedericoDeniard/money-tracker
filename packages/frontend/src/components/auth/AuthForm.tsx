@@ -21,17 +21,12 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
-    watch,
-    setValue,
-    getValues
+    formState: { errors },
   } = useForm<LoginFormData | RegisterFormData>({
     resolver: zodResolver(isSignUp ? registerSchema : loginSchema),
-    mode: 'onBlur'
+    mode: "onBlur",
   });
 
-  const password = watch('password');
-  const confirmPassword = watch('confirmPassword');
 
   const handleEmailAuth = async (data: LoginFormData | RegisterFormData) => {
     setLoading(true);
@@ -63,10 +58,11 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
         });
         if (error) throw error;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       setMessage({
-        type: 'error',
-        text: error.error_description || error.message
+        type: "error",
+        text: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -77,18 +73,20 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
     setLoading(true);
     try {
       const supabase = await getSupabase();
-      
+
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
       setMessage({
-        type: 'error',
-        text: error.error_description || error.message
+        type: "error",
+        text: errorMessage,
       });
       setLoading(false);
     }

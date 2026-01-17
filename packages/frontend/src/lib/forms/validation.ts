@@ -111,7 +111,7 @@ export class FormValidator {
       },
       password: {
         required: true,
-        custom: (value: string, formData?: { [key: string]: string }) => {
+        custom: (value: string) => {
           if (!isSignUp) return null; // Skip validation for login
 
           const minLength = value.length >= 8;

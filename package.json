@@ -1,9 +1,14 @@
 {
   "name": "money-tracker",
   "version": "1.0.0",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev" : "bun --filter '*' dev"
+    "dev": "bun --filter '*' dev",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
-
 }
