@@ -11,7 +11,7 @@ interface UseSupabaseQueryResult<T> {
 
 export function useSupabaseQuery<T>(
   queryFn: (supabase: SupabaseClient) => Promise<T>,
-  dependencies: any[] = []
+    dependencies: unknown[] = []
 ): UseSupabaseQueryResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
