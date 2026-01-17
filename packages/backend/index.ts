@@ -329,20 +329,52 @@ app.post("/webhook", async (req, res) => {
       const fromEmailMatch = fromHeader.match(/<(.+?)>/) || fromHeader.match(/([^\s]+@[^\s]+)/);
       const fromEmail = fromEmailMatch ? (fromEmailMatch[1] || fromEmailMatch[0]) : fromHeader;
 
-      // Extraer el cuerpo del email
-      let bodyText = '';
-      const parts = messageResponse.data.payload?.parts;
-      if (parts) {
-        const bodyPart = parts.find(
-          (part) => part.mimeType === "text/plain",
-        );
-        if (bodyPart?.body?.data) {
-          bodyText = Buffer.from(bodyPart.body.data, "base64").toString();
+      // Extraer el cuerpo del email (recursivamente para manejar multipart)
+      const extractBody = (payload: { body?: { data?: string }; parts?: Array<{ mimeType?: string; body?: { data?: string } }> }): string => {
+        let text = '';
+
+        // Si tiene body data directamente
+        if (payload.body?.data) {
+          text = Buffer.from(payload.body.data, "base64").toString();
         }
-      } else if (messageResponse.data.payload?.body?.data) {
-        // Email sin partes (single part)
-        bodyText = Buffer.from(messageResponse.data.payload.body.data, "base64").toString();
-      }
+
+        // Si tiene partes, buscar recursivamente
+        if (payload.parts) {
+          for (const part of payload.parts) {
+            // Priorizar text/plain
+            if (part.mimeType === "text/plain" && part.body?.data) {
+              const plainText = Buffer.from(part.body.data, "base64").toString();
+              if (plainText.trim()) {
+                text = plainText;
+                break;
+              }
+            }
+            // Si es multipart, buscar recursivamente
+            if (part.mimeType?.startsWith("multipart/")) {
+              const nestedText = extractBody(part);
+              if (nestedText.trim()) {
+                text = nestedText;
+              }
+            }
+          }
+
+          // Si no encontramos text/plain, intentar con text/html
+          if (!text.trim()) {
+            for (const part of payload.parts) {
+              if (part.mimeType === "text/html" && part.body?.data) {
+                const htmlText = Buffer.from(part.body.data, "base64").toString();
+                // Extraer texto básico del HTML (remover tags)
+                text = htmlText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                if (text) break;
+              }
+            }
+          }
+        }
+
+        return text;
+      };
+
+      const bodyText = extractBody(messageResponse.data.payload);
 
       console.log("\n=== PROCESANDO EMAIL CON IA ===");
       console.log("Usuario receptor:", gmailEmail);
@@ -350,6 +382,7 @@ app.post("/webhook", async (req, res) => {
       console.log("Asunto:", subject);
       console.log("Fecha:", date);
       console.log("ID:", messageResponse.data.id);
+      console.log("Contenido extraído (primeros 500 chars):", bodyText.substring(0, 500));
       console.log("========================\n");
 
       // Extraer transacción usando IA
