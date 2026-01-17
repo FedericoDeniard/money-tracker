@@ -67,16 +67,38 @@ export const gmailService = {
     return data || [];
   },
 
-  async connectGmail(userId: string): Promise<void> {
+  async connectGmail(): Promise<void> {
     const config = await getConfig();
-    window.location.href = `${config.backendUrl}/auth?userId=${userId}`;
+    const supabase = await getSupabase();
+
+    // Get the current session token
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error('No active session');
+    }
+
+    // Redirect to auth endpoint with token in URL (will be used by backend)
+    window.location.href = `${config.backendUrl}/auth?token=${session.access_token}`;
   },
 
   async disconnectGmail(connectionId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const config = await getConfig();
+      const supabase = await getSupabase();
+
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('No active session');
+      }
+
       const response = await fetch(`${config.backendUrl}/gmail-disconnect/${connectionId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
       });
 
       if (!response.ok) {

@@ -6,6 +6,7 @@ import path from "path";
 import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
 import { createClient } from "@supabase/supabase-js";
+import { requireAuth, type AuthRequest } from "./middleware/auth";
 
 // Bun provides fetch globally
 declare const fetch: typeof globalThis.fetch;
@@ -139,34 +140,61 @@ app.post("/stop-all-watches", async (req, res) => {
 });
 
 // Endpoint to disconnect Gmail
-app.delete("/gmail-disconnect/:connectionId", async (req, res) => {
+app.delete("/gmail-disconnect/:connectionId", requireAuth, async (req: AuthRequest, res) => {
   const { connectionId } = req.params;
+  const userId = req.userId;
 
   if (!connectionId) {
     return res.status(400).json({ error: "Missing connectionId parameter" });
   }
 
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
-    // Get the token data first to stop the watch
-    const { data: tokenData } = await supabase
+    // Get the token data first and verify ownership
+    const { data: tokenData, error: fetchError } = await supabase
       .from("user_oauth_tokens")
       .select("*")
       .eq("id", connectionId)
+      .eq("user_id", userId) // ✅ Verify ownership
       .single();
 
-    if (tokenData) {
-      // Try to stop the Gmail watch if it exists
+    if (fetchError || !tokenData) {
+      return res.status(404).json({ error: "Connection not found or unauthorized" });
+    }
+
+    // Check if there are other users with the same Gmail account
+    const { data: otherTokens } = await supabase
+      .from("user_oauth_tokens")
+      .select("id")
+      .eq("gmail_email", tokenData.gmail_email)
+      .neq("id", connectionId);
+
+    const hasOtherUsers = otherTokens && otherTokens.length > 0;
+
+    // Only stop the Gmail watch if this is the last user with this account
+    if (!hasOtherUsers) {
       try {
         const accessToken = await decryptToken(tokenData.access_token_encrypted);
         oAuth2Client.setCredentials({ access_token: accessToken });
         const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
         await gmail.users.stop({ userId: "me" });
-        console.log(`✓ Watch stopped for ${tokenData.gmail_email}`);
+        console.log(`✓ Watch stopped for ${tokenData.gmail_email} (last user)`);
       } catch (error) {
         console.log("Could not stop watch (may not exist):", error);
       }
 
-      // Delete Gmail watches for this token
+      // Delete ALL Gmail watches for this email (since we stopped the watch)
+      await supabase
+        .from("gmail_watches")
+        .delete()
+        .eq("gmail_email", tokenData.gmail_email);
+    } else {
+      console.log(`⏭️ Not stopping watch for ${tokenData.gmail_email} (${otherTokens.length} other user(s) still connected)`);
+
+      // Only delete watches for THIS user
       await supabase
         .from("gmail_watches")
         .delete()
@@ -174,11 +202,12 @@ app.delete("/gmail-disconnect/:connectionId", async (req, res) => {
         .eq("user_id", tokenData.user_id);
     }
 
-    // Delete the OAuth token
+    // Delete the OAuth token for this user
     const { error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .delete()
-      .eq("id", connectionId);
+      .eq("id", connectionId)
+      .eq("user_id", userId); // ✅ Double-check ownership
 
     if (tokenError) {
       console.error("Error deleting token:", tokenError);
@@ -196,20 +225,39 @@ app.delete("/gmail-disconnect/:connectionId", async (req, res) => {
 });
 
 // Endpoint to start OAuth
-app.get("/auth", (req, res) => {
-  const { userId } = req.query;
+app.get("/auth", async (req, res) => {
+  const { token } = req.query;
 
-  if (!userId) {
-    return res.status(400).send("Missing userId parameter");
+  if (!token) {
+    return res.status(401).send("Missing authentication token");
   }
 
-  const authUrl = oAuth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: ["https://www.googleapis.com/auth/gmail.readonly"],
-    state: userId as string, // Pass userId in state to retrieve it in callback
-    prompt: "consent", // Force consent to get refresh token
-  });
-  res.redirect(authUrl);
+  try {
+    // Verify token with Supabase anon client
+    const supabaseAnon = createClient(
+      process.env.SUPABASE_URL || '',
+      process.env.SUPABASE_ANON_KEY || ''
+    );
+
+    const { data: { user }, error } = await supabaseAnon.auth.getUser(token as string);
+
+    if (error || !user) {
+      return res.status(401).send("Invalid or expired token");
+    }
+
+    const userId = user.id;
+
+    const authUrl = oAuth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: ["https://www.googleapis.com/auth/gmail.readonly"],
+      state: userId, // Pass userId in state to retrieve it in callback
+      prompt: "consent", // Force consent to get refresh token
+    });
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error("Auth error:", error);
+    return res.status(500).send("Internal server error");
+  }
 });
 
 // OAuth callback
@@ -318,8 +366,25 @@ app.get("/auth/callback", async (req, res) => {
   }
 });
 
-// Webhook for push notifications
+// Webhook endpoint for Gmail notifications
 app.post("/webhook", async (req, res) => {
+  // Verify the request is from Google Pub/Sub
+  const authHeader = req.headers.authorization;
+
+  // Google Pub/Sub sends a Bearer token in the Authorization header
+  // In production, you should verify this token
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.warn('⚠️ Webhook received without proper authorization header');
+    // For now, we'll allow it, but in production you should reject it
+    // return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Verify the message has the expected structure
+  if (!req.body || !req.body.message || !req.body.message.data) {
+    console.error('❌ Invalid webhook payload structure');
+    return res.status(400).json({ error: 'Invalid payload' });
+  }
+
   // console.log("Webhook hit! Raw body:", JSON.stringify(req.body, null, 2)); // Debug only
 
   try {

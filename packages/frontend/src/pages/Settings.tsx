@@ -79,7 +79,7 @@ export function Settings() {
 
     try {
       setIsConnecting(true);
-      await gmailService.connectGmail(user.id);
+      await gmailService.connectGmail();
     } catch (error) {
       console.error("Error connecting Gmail:", error);
       setNotification({
