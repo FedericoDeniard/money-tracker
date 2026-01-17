@@ -313,29 +313,54 @@ app.post("/webhook", async (req, res) => {
 
       // Extraer headers importantes
       const headers = messageResponse.data.payload?.headers;
-      const subject = headers?.find((h) => h.name === "Subject")?.value;
-      const from = headers?.find((h) => h.name === "From")?.value;
-      const date = headers?.find((h) => h.name === "Date")?.value;
-
-      console.log("\n=== NUEVO EMAIL ===");
-      console.log("Usuario:", gmailEmail);
-      console.log("De:", from);
-      console.log("Asunto:", subject);
-      console.log("Fecha:", date);
-      console.log("ID:", messageResponse.data.id);
-      console.log("==================\n");
+      const subject = headers?.find((h) => h.name === "Subject")?.value || '';
+      const dateHeader = headers?.find((h) => h.name === "Date")?.value;
+      const date = dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString();
 
       // Extraer el cuerpo del email
+      let bodyText = '';
       const parts = messageResponse.data.payload?.parts;
       if (parts) {
         const bodyPart = parts.find(
           (part) => part.mimeType === "text/plain",
         );
         if (bodyPart?.body?.data) {
-          const body = Buffer.from(bodyPart.body.data, "base64").toString();
-          console.log("Cuerpo del email:");
-          console.log(body);
+          bodyText = Buffer.from(bodyPart.body.data, "base64").toString();
         }
+      } else if (messageResponse.data.payload?.body?.data) {
+        // Email sin partes (single part)
+        bodyText = Buffer.from(messageResponse.data.payload.body.data, "base64").toString();
+      }
+
+      console.log("\n=== GUARDANDO EMAIL ===");
+      console.log("Usuario:", gmailEmail);
+      console.log("Asunto:", subject);
+      console.log("Fecha:", date);
+      console.log("ID:", messageResponse.data.id);
+      console.log("========================\n");
+
+      // Guardar en la base de datos
+      const { error: insertError } = await supabase
+        .from("emails")
+        .insert({
+          user_id: tokenData.user_id,
+          gmail_email: gmailEmail,
+          gmail_message_id: messageResponse.data.id,
+          subject: subject,
+          body_text: bodyText,
+          date: date,
+        })
+        .select();
+
+      if (insertError) {
+        // Si es un error de duplicado, no es problema
+        if (insertError.code === '23505') {
+          console.log("Email ya existe en la base de datos");
+        } else {
+          console.error("Error guardando email:", insertError);
+        }
+      } else {
+        console.log("✓ Email guardado exitosamente");
       }
     }
 
