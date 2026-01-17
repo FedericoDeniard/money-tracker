@@ -119,7 +119,7 @@ app.get("/auth", (req, res) => {
 app.get("/auth/callback", async (req, res) => {
   const { code, state } = req.query;
   const userId = state as string;
-  
+
   if (!code) return res.status(400).send("No code");
   if (!userId) return res.status(400).send("No userId in state");
 
@@ -330,7 +330,7 @@ app.post("/webhook", async (req, res) => {
       const fromEmail = fromEmailMatch ? (fromEmailMatch[1] || fromEmailMatch[0]) : fromHeader;
 
       // Extraer el cuerpo del email (recursivamente para manejar multipart)
-      const extractBody = (payload: { body?: { data?: string }; parts?: Array<{ mimeType?: string; body?: { data?: string } }> }): string => {
+      const extractBody = (payload: { body?: { data?: string | null }; parts?: Array<{ mimeType?: string | null; body?: { data?: string | null } }> }): string => {
         let text = '';
 
         // Si tiene body data directamente
@@ -374,7 +374,7 @@ app.post("/webhook", async (req, res) => {
         return text;
       };
 
-      const bodyText = extractBody(messageResponse.data.payload);
+      const bodyText = messageResponse.data.payload ? extractBody(messageResponse.data.payload) : '';
 
       console.log("\n=== PROCESANDO EMAIL CON IA ===");
       console.log("Usuario receptor:", gmailEmail);
