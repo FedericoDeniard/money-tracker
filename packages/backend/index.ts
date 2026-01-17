@@ -321,8 +321,13 @@ app.post("/webhook", async (req, res) => {
       // Extraer headers importantes
       const headers = messageResponse.data.payload?.headers;
       const subject = headers?.find((h) => h.name === "Subject")?.value || '';
+      const fromHeader = headers?.find((h) => h.name === "From")?.value || '';
       const dateHeader = headers?.find((h) => h.name === "Date")?.value;
       const date = dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString();
+
+      // Extraer el email del remitente del header From
+      const fromEmailMatch = fromHeader.match(/<(.+?)>/) || fromHeader.match(/([^\s]+@[^\s]+)/);
+      const fromEmail = fromEmailMatch ? (fromEmailMatch[1] || fromEmailMatch[0]) : fromHeader;
 
       // Extraer el cuerpo del email
       let bodyText = '';
@@ -340,7 +345,8 @@ app.post("/webhook", async (req, res) => {
       }
 
       console.log("\n=== PROCESANDO EMAIL CON IA ===");
-      console.log("Usuario:", gmailEmail);
+      console.log("Usuario receptor:", gmailEmail);
+      console.log("Remitente:", fromEmail);
       console.log("Asunto:", subject);
       console.log("Fecha:", date);
       console.log("ID:", messageResponse.data.id);
@@ -358,7 +364,7 @@ app.post("/webhook", async (req, res) => {
           .from("transactions")
           .insert({
             user_id: tokenData.user_id,
-            source_email: gmailEmail,
+            source_email: fromEmail, // Email del remitente
             source_message_id: messageResponse.data.id,
             date: date, // Fecha en que se recibió el email
             // Datos extraídos por IA
@@ -385,7 +391,7 @@ app.post("/webhook", async (req, res) => {
         // No se encontró transacción - no guardar nada
         console.log("No se encontró transacción en el email - descartando");
         console.log("--- Email descartado ---");
-        console.log("De:", gmailEmail);
+        console.log("Remitente:", fromEmail);
         console.log("Asunto:", subject);
         console.log("Cuerpo (primeros 200 chars):", bodyText.substring(0, 200) + "...");
         console.log("Razón:", (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción");
