@@ -1,0 +1,9 @@
+{
+  "name": "money-tracker",
+  "version": "1.0.0",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev" : "bun --filter '*' dev"
+  }
+
+}
