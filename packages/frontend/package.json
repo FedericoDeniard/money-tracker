@@ -9,12 +9,16 @@
     "build": "bun run build.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.90.1",
     "bun-plugin-tailwind": "^0.0.15",
+    "lucide-react": "^0.562.0",
     "react": "^19",
     "react-dom": "^19",
+    "react-hook-form": "^7.71.1",
     "react-router-dom": "^7.12.0",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/react": "^19",

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "../pages/Home";
-import { Auth } from "../components/Auth";
+import { Login } from "../pages/Login";
+import { Register } from "../pages/Register";
 import { useAuth } from "../hooks/useAuth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,8 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
       <Route
         path="/"
         element={
