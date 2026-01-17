@@ -1,13 +1,13 @@
 import { useState } from "react";
 import {
   Calendar,
-  User,
   DollarSign,
   TrendingUp,
   TrendingDown,
   Store,
   Receipt,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
 import {
   createTransactionsService,
@@ -67,14 +67,14 @@ export function Transactions() {
   return (
     <div className="flex h-[calc(100vh-5rem)] gap-4">
       {/* Transaction List */}
-      <div className="w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
+      <div className="w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col">
         <div className="p-4 border-b border-[var(--text-secondary)]/20">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
             <Receipt size={20} />
             Transacciones ({transactions?.length || 0})
           </h2>
         </div>
-        <div className="overflow-y-auto h-full">
+        <div className="overflow-y-auto flex-1 p-4 space-y-3">
           {transactions && transactions.length === 0 ? (
             <EmptyState
               icon={Receipt}
@@ -82,84 +82,94 @@ export function Transactions() {
               description="Las transacciones extraídas de tus emails aparecerán aquí"
             />
           ) : (
-            transactions?.map((transaction) => (
-              <div
-                key={transaction.id}
-                onClick={() => setSelectedTransaction(transaction)}
-                className={`p-4 border-b border-[var(--text-secondary)]/10 cursor-pointer transition-colors hover:bg-[var(--bg-primary)] ${
-                  selectedTransaction?.id === transaction.id
-                    ? "bg-[var(--bg-primary)]"
-                    : ""
-                } ${
-                  transaction.transaction_type === "egreso" ||
-                  transaction.transaction_type === "expense"
-                    ? "border-l-4 border-l-red-500"
-                    : transaction.transaction_type === "ingreso" ||
-                        transaction.transaction_type === "income"
-                      ? "border-l-4 border-l-green-500"
-                      : "border-l-4 border-l-gray-300"
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-[var(--text-primary)] block truncate">
-                      {transaction.transaction_description}
-                    </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      {transaction.transaction_type === "egreso" ||
-                      transaction.transaction_type === "expense" ? (
-                        <TrendingDown size={14} className="text-red-600" />
-                      ) : transaction.transaction_type === "ingreso" ||
-                        transaction.transaction_type === "income" ? (
-                        <TrendingUp size={14} className="text-green-600" />
-                      ) : (
-                        <Receipt size={14} className="text-gray-500" />
-                      )}
-                      <span
-                        className={`text-sm font-bold ${
-                          transaction.transaction_type === "egreso" ||
-                          transaction.transaction_type === "expense"
-                            ? "text-red-700 bg-red-50 px-2 py-1 rounded"
-                            : transaction.transaction_type === "ingreso" ||
-                                transaction.transaction_type === "income"
-                              ? "text-green-700 bg-green-50 px-2 py-1 rounded"
-                              : "text-gray-600"
+            transactions?.map((transaction) => {
+              const isExpense =
+                transaction.transaction_type === "egreso" ||
+                transaction.transaction_type === "expense";
+              const isIncome =
+                transaction.transaction_type === "ingreso" ||
+                transaction.transaction_type === "income";
+
+              return (
+                <motion.div
+                  key={transaction.id}
+                  onClick={() => setSelectedTransaction(transaction)}
+                  className={`relative p-4 rounded-2xl transition-all cursor-pointer shadow-sm hover:shadow-md ${
+                    selectedTransaction?.id === transaction.id
+                      ? "text-white"
+                      : "bg-white hover:bg-gray-50"
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {selectedTransaction?.id === transaction.id && (
+                    <motion.div
+                      layoutId="activeTransaction"
+                      className="absolute inset-0 bg-[var(--primary)] rounded-2xl shadow-md"
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  <div className="relative flex items-center gap-4">
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`font-bold truncate ${
+                          selectedTransaction?.id === transaction.id
+                            ? "text-white"
+                            : "text-gray-900"
                         }`}
                       >
-                        {transaction.currency} ${transaction.amount}
-                      </span>
-                      <span className="text-xs text-[var(--text-secondary)]">
-                        (
-                        {transaction.transaction_type === "egreso" ||
-                        transaction.transaction_type === "expense"
-                          ? "Gasto"
-                          : transaction.transaction_type === "ingreso" ||
-                              transaction.transaction_type === "income"
-                            ? "Ingreso"
-                            : transaction.transaction_type}
-                        )
-                      </span>
-                      <span className="text-xs text-[var(--text-secondary)]">
+                        {transaction.transaction_description}
+                      </h3>
+                      <p
+                        className={`text-sm truncate ${
+                          selectedTransaction?.id === transaction.id
+                            ? "text-gray-200"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {transaction.category.charAt(0).toUpperCase() +
+                          transaction.category.slice(1)}{" "}
                         • {transaction.merchant}
-                      </span>
-                      <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                        {transaction.category}
+                      </p>
+                      <p
+                        className={`text-xs mt-0.5 ${
+                          selectedTransaction?.id === transaction.id
+                            ? "text-gray-300"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {new Date(
+                          transaction.transaction_date,
+                        ).toLocaleDateString("es-ES", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </p>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="text-right shrink-0">
+                      <span
+                        className={`text-lg font-bold block ${
+                          isExpense
+                            ? "text-red-600"
+                            : isIncome
+                              ? "text-green-600"
+                              : "text-gray-900"
+                        }`}
+                      >
+                        {isExpense ? "-" : "+"}${transaction.amount}
                       </span>
                     </div>
                   </div>
-                </div>
-                <div className="text-xs text-[var(--text-secondary)] space-y-1">
-                  <div className="flex items-center gap-1">
-                    <Calendar size={12} />
-                    <span>{formatDate(transaction.transaction_date)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <User size={12} />
-                    <span>{transaction.source_email}</span>
-                  </div>
-                </div>
-              </div>
-            ))
+                </motion.div>
+              );
+            })
           )}
         </div>
       </div>
