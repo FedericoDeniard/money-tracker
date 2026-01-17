@@ -3,20 +3,39 @@ import { google } from "googleapis";
 import fs from "fs";
 import path from "path";
 
-// Load environment variables
+// Load environment variables with fallback to credentials.json
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const projectId = process.env.GOOGLE_PROJECT_ID;
-const redirectUri = process.env.OAUTH_REDIRECT_URI || "http://localhost:3001/auth/callback";
+const redirectUri = process.env.OAUTH_REDIRECT_URI;
 
+// Fallback to credentials.json if environment variables are not set
+let credentials;
 if (!clientId || !clientSecret || !projectId) {
-  throw new Error("Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_PROJECT_ID");
+  console.log("Loading credentials from credentials.json...");
+  credentials = JSON.parse(
+    fs.readFileSync(path.join(import.meta.dir, "credentials.json"), "utf8"),
+  );
+}
+
+const finalClientId = clientId || credentials?.installed?.client_id;
+const finalClientSecret = clientSecret || credentials?.installed?.client_secret;
+const finalProjectId = projectId || credentials?.installed?.project_id;
+const finalRedirectUri =
+  redirectUri ||
+  credentials?.installed?.redirect_uris?.[0] ||
+  "http://localhost:3001/auth/callback";
+
+if (!finalClientId || !finalClientSecret || !finalProjectId) {
+  throw new Error(
+    "Missing required credentials. Set environment variables or ensure credentials.json exists.",
+  );
 }
 
 const oAuth2Client = new google.auth.OAuth2(
-  clientId,
-  clientSecret,
-  redirectUri,
+  finalClientId,
+  finalClientSecret,
+  finalRedirectUri,
 );
 
 const app = express();
