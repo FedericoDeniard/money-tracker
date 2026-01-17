@@ -5,6 +5,7 @@ import index from "./index.html";
 console.log('Environment variables loaded:');
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✓' : '✗');
 console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✓' : '✗');
+console.log('BACKEND_URL:', process.env.BACKEND_URL ? '✓' : '✗');
 
 const server = serve({
   routes: {
@@ -15,6 +16,7 @@ const server = serve({
           url: process.env.SUPABASE_URL,
           anonKey: process.env.SUPABASE_ANON_KEY,
         },
+        backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
       };
       
       if (!config.supabase.url || !config.supabase.anonKey) {

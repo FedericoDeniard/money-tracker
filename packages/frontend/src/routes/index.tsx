@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "../pages/Home";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
+import { Settings } from "../pages/Settings";
 import { NotFound } from "../pages/NotFound";
 import { useAuth } from "../hooks/useAuth";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
@@ -37,6 +38,7 @@ export function AppRoutes() {
         }
       >
         <Route index element={<Home />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 

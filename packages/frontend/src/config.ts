@@ -1,7 +1,10 @@
 // Configuration fetched from server API endpoint
 // Server reads from .env and exposes public config
 
-let configCache: { supabase: { url: string; anonKey: string } } | null = null;
+let configCache: {
+  supabase: { url: string; anonKey: string };
+  backendUrl: string;
+} | null = null;
 
 export async function getConfig() {
   if (configCache) {
@@ -17,6 +20,10 @@ export async function getConfig() {
 
   if (!configCache?.supabase?.url || !configCache?.supabase?.anonKey) {
     throw new Error("Invalid configuration received from server");
+  }
+
+  if (!configCache?.backendUrl) {
+    throw new Error("Invalid configuration: missing backendUrl");
   }
 
   return configCache;
