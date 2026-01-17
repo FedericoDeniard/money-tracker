@@ -93,7 +93,7 @@ app.get("/auth/callback", async (req, res) => {
 
 // Webhook for push notifications
 app.post("/webhook", async (req, res) => {
-  console.log("Notificación de Gmail:", req.body);
+  console.log("Webhook hit! Raw body:", JSON.stringify(req.body, null, 2));
 
   try {
     // Decodificar el mensaje base64
@@ -124,17 +124,19 @@ app.post("/webhook", async (req, res) => {
     });
 
     if (messages.data.messages && messages.data.messages.length > 0) {
-      const messageId = messages.data.messages[0].id;
-      if (!messageId) return res.sendStatus(200);
+      const latestMessageSummary = messages.data.messages[0];
+      if (!latestMessageSummary || !latestMessageSummary.id)
+        return res.sendStatus(200);
+      const messageId = latestMessageSummary.id;
 
-      const message = await gmail.users.messages.get({
+      const messageResponse = await gmail.users.messages.get({
         userId: "me",
         id: messageId,
         format: "full",
       });
 
       // Extraer headers importantes
-      const headers = message.data.payload?.headers;
+      const headers = messageResponse.data.payload?.headers;
       const subject = headers?.find((h) => h.name === "Subject")?.value;
       const from = headers?.find((h) => h.name === "From")?.value;
       const date = headers?.find((h) => h.name === "Date")?.value;
@@ -143,13 +145,15 @@ app.post("/webhook", async (req, res) => {
       console.log("De:", from);
       console.log("Asunto:", subject);
       console.log("Fecha:", date);
-      console.log("ID:", message.data.id);
+      console.log("ID:", messageResponse.data.id);
       console.log("==================\n");
 
       // Extraer el cuerpo del email
-      const parts = message.data.payload?.parts;
+      const parts = messageResponse.data.payload?.parts;
       if (parts) {
-        const bodyPart = parts.find((part) => part.mimeType === "text/plain");
+        const bodyPart = parts.find(
+          (part: any) => part.mimeType === "text/plain",
+        );
         if (bodyPart?.body?.data) {
           const body = Buffer.from(bodyPart.body.data, "base64").toString();
           console.log("Cuerpo del email:");
