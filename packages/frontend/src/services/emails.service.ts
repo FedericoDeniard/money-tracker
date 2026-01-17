@@ -11,7 +11,8 @@ export interface Transaction {
   transaction_type: 'ingreso' | 'egreso' | 'income' | 'expense';
   transaction_description: string;
   transaction_date: string; // Fecha de la transacción extraída por IA
-  merchant?: string;
+  merchant: string;
+  category: 'salary' | 'entertainment' | 'investment' | 'food' | 'transport' | 'services' | 'health' | 'education' | 'housing' | 'clothing' | 'other';
   created_at: string;
 }
 

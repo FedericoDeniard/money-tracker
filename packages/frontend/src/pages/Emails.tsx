@@ -139,11 +139,12 @@ export function Transactions() {
                             : transaction.transaction_type}
                         )
                       </span>
-                      {transaction.merchant && (
-                        <span className="text-xs text-[var(--text-secondary)]">
-                          • {transaction.merchant}
-                        </span>
-                      )}
+                      <span className="text-xs text-[var(--text-secondary)]">
+                        • {transaction.merchant}
+                      </span>
+                      <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                        {transaction.category}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -239,17 +240,26 @@ export function Transactions() {
                       )}
                     </p>
                   </div>
-                  {selectedTransaction.merchant && (
-                    <div className="col-span-2">
-                      <span className="text-[var(--text-secondary)]">
-                        Comercio:
+                  <div className="col-span-2">
+                    <span className="text-[var(--text-secondary)]">
+                      Comercio:
+                    </span>
+                    <p className="font-medium flex items-center gap-1">
+                      <Store size={16} />
+                      {selectedTransaction.merchant}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[var(--text-secondary)]">
+                      Categoría:
+                    </span>
+                    <p className="font-medium flex items-center gap-1">
+                      <Receipt size={16} />
+                      <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm">
+                        {selectedTransaction.category}
                       </span>
-                      <p className="font-medium flex items-center gap-1">
-                        <Store size={16} />
-                        {selectedTransaction.merchant}
-                      </p>
-                    </div>
-                  )}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

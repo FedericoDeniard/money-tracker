@@ -374,6 +374,7 @@ app.post("/webhook", async (req, res) => {
             transaction_description: transaction.description,
             transaction_date: transaction.date || date.split('T')[0],
             merchant: transaction.merchant,
+            category: transaction.category, // Category is now required
           })
           .select();
 
