@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { authLogger } from "../src/config/logger";
 
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
@@ -35,7 +36,7 @@ export async function requireAuth(
         req.userId = user.id;
         next();
     } catch (error) {
-        console.error('Auth middleware error:', error);
+        authLogger.error('Auth middleware error', { error });
         return res.status(500).json({ error: 'Internal server error' });
     }
 }

@@ -3,6 +3,7 @@ import { aiModel } from '../index';
 import { TransactionSchema } from '../types/schemas';
 import { EMAIL_EXTRACTION_PROMPT } from '../prompts/email-extraction';
 import { z } from 'zod';
+import { gmailLogger } from '../../src/config/logger';
 
 // Combined schema for the response
 export const TransactionResponseSchema = z.discriminatedUnion('hasTransaction', [
@@ -42,7 +43,7 @@ export async function extractTransactionFromEmail(emailContent: string) {
 
         return { success: true, data: { reason: output.reason } };
     } catch (error) {
-        console.error('Error in extractTransactionFromEmail:', error);
+        gmailLogger.error('Error in extractTransactionFromEmail', { error });
         return {
             success: false,
             error: 'Failed to extract transaction from email',

@@ -7,6 +7,7 @@ import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
+import { gmailLogger, authLogger, apiLogger } from "./src/config/logger";
 
 // Bun provides fetch globally
 declare const fetch: typeof globalThis.fetch;
@@ -134,7 +135,7 @@ app.post("/stop-all-watches", async (req, res) => {
 
     res.json({ message: "Watches processed", results });
   } catch (error) {
-    console.error("Error stopping watches:", error);
+    gmailLogger.error("Error stopping watches", { error });
     res.status(500).json({ error: "Failed to stop watches" });
   }
 });
@@ -182,9 +183,9 @@ app.delete("/gmail-disconnect/:connectionId", requireAuth, async (req: AuthReque
         oAuth2Client.setCredentials({ access_token: accessToken });
         const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
         await gmail.users.stop({ userId: "me" });
-        console.log(`✓ Watch stopped for ${tokenData.gmail_email} (last user)`);
+        gmailLogger.info(`Watch stopped for ${tokenData.gmail_email} (last user)`);
       } catch (error) {
-        console.log("Could not stop watch (may not exist):", error);
+        gmailLogger.warn("Could not stop watch (may not exist)", { error });
       }
 
       // Delete ALL Gmail watches for this email (since we stopped the watch)
@@ -193,7 +194,7 @@ app.delete("/gmail-disconnect/:connectionId", requireAuth, async (req: AuthReque
         .delete()
         .eq("gmail_email", tokenData.gmail_email);
     } else {
-      console.log(`⏭️ Not stopping watch for ${tokenData.gmail_email} (${otherTokens.length} other user(s) still connected)`);
+      gmailLogger.info(`Not stopping watch for ${tokenData.gmail_email} (${otherTokens.length} other user(s) still connected)`);
 
       // Only delete watches for THIS user
       await supabase
@@ -215,18 +216,18 @@ app.delete("/gmail-disconnect/:connectionId", requireAuth, async (req: AuthReque
       .eq("user_id", userId); // ✅ Double-check ownership
 
     if (updateError) {
-      console.error("Error deactivating token:", updateError);
+      gmailLogger.error("Error deactivating token", { error: updateError });
       return res.status(500).json({ error: "Failed to disconnect Gmail" });
     }
 
-    console.log(`✓ Token deactivated for user ${userId}, transactions preserved`);
+    gmailLogger.info(`Token deactivated for user ${userId}, transactions preserved`);
 
     return res.json({
       success: true,
       message: "Gmail disconnected successfully",
     });
   } catch (error) {
-    console.error("Error disconnecting Gmail:", error);
+    gmailLogger.error("Error disconnecting Gmail", { error });
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -262,7 +263,7 @@ app.get("/auth", async (req, res) => {
     });
     res.redirect(authUrl);
   } catch (error) {
-    console.error("Auth error:", error);
+    authLogger.error("Auth error", { error });
     return res.status(500).send("Internal server error");
   }
 });
@@ -323,11 +324,11 @@ app.get("/auth/callback", async (req, res) => {
         .eq("id", existingToken.id);
 
       if (updateError) {
-        console.error("Error updating token:", updateError);
+        gmailLogger.error("Error updating token", { error: updateError });
         throw updateError;
       }
 
-      console.log(`✓ Reactivated existing token for ${gmailEmail}`);
+      gmailLogger.info(`Reactivated existing token for ${gmailEmail}`);
     } else {
       // Create new token
       const { error: insertError } = await supabase
@@ -344,11 +345,11 @@ app.get("/auth/callback", async (req, res) => {
         });
 
       if (insertError) {
-        console.error("Error saving tokens:", insertError);
+        gmailLogger.error("Error saving tokens", { error: insertError });
         throw insertError;
       }
 
-      console.log(`✓ Created new token for ${gmailEmail}`);
+      gmailLogger.info(`Created new token for ${gmailEmail}`);
     }
 
     // Set up Gmail watch
@@ -386,16 +387,16 @@ app.get("/auth/callback", async (req, res) => {
     );
 
     if (watchError) {
-      console.error("Error saving watch:", watchError);
+      gmailLogger.error("Error saving watch", { error: watchError });
     }
 
-    console.log("✓ Gmail watch configurado para:", userId);
+    gmailLogger.info("Gmail watch configurado para", { userId });
 
     // Redirect to frontend settings page with success
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     res.redirect(`${frontendUrl}/settings?success=true`);
   } catch (error) {
-    console.error("Error en auth:", error);
+    gmailLogger.error("Error en auth", { error });
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     res.redirect(`${frontendUrl}/settings?error=auth_failed`);
   }
@@ -409,14 +410,14 @@ app.post("/webhook", async (req, res) => {
   // Google Pub/Sub sends a Bearer token in the Authorization header
   // In production, you should verify this token
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.warn('⚠️ Webhook received without proper authorization header');
+    gmailLogger.warn('Webhook received without proper authorization header');
     // For now, we'll allow it, but in production you should reject it
     // return res.status(401).json({ error: 'Unauthorized' });
   }
 
   // Verify the message has the expected structure
   if (!req.body || !req.body.message || !req.body.message.data) {
-    console.error('❌ Invalid webhook payload structure');
+    gmailLogger.error('Invalid webhook payload structure');
     return res.status(400).json({ error: 'Invalid payload' });
   }
 
@@ -433,11 +434,11 @@ app.post("/webhook", async (req, res) => {
     // Evitar procesar el mismo historyId múltiples veces
     const historyKey = `${gmailEmail}-${historyId}`;
     if (processedMessages.has(historyKey)) {
-      // console.log("Notificación ya procesada, ignorando..."); // Debug only
+      // gmailLogger.debug("Notificación ya procesada, ignorando..."); // Debug only
       return res.sendStatus(200);
     }
     processedMessages.add(historyKey);
-    console.log("📧 Procesando notificación:", gmailEmail);
+    gmailLogger.info("Procesando notificación", { gmailEmail });
 
     // Find ALL user tokens for this Gmail account (multiple users can have the same account)
     const { data: allTokens, error: tokenError } = await supabase
@@ -447,11 +448,11 @@ app.post("/webhook", async (req, res) => {
       .eq("is_active", true); // Only process active tokens
 
     if (tokenError || !allTokens || allTokens.length === 0) {
-      console.error("No se encontraron tokens activos para:", gmailEmail);
+      gmailLogger.error("No se encontraron tokens activos para", { gmailEmail });
       return res.sendStatus(200);
     }
 
-    console.log(`📊 Encontrados ${allTokens.length} token(s) activo(s) para ${gmailEmail}`);
+    gmailLogger.info(`Encontrados ${allTokens.length} token(s) activo(s) para ${gmailEmail}`);
 
     // Verify which tokens are valid
     const validTokens = [];
@@ -465,7 +466,7 @@ app.post("/webhook", async (req, res) => {
         if (expiresAt && now >= expiresAt) {
           // Try to refresh if we have refresh token
           if (tokenData.refresh_token_encrypted) {
-            console.log(`🔄 Intentando refrescar token expirado para user ${tokenData.user_id}...`);
+            gmailLogger.info(`Intentando refrescar token expirado para user ${tokenData.user_id}`);
             const refreshToken = await decryptToken(tokenData.refresh_token_encrypted);
 
             oAuth2Client.setCredentials({
@@ -492,9 +493,9 @@ app.post("/webhook", async (req, res) => {
             tokenData.expires_at = newExpiresAt;
 
             validTokens.push(tokenData);
-            console.log(`✓ Token refrescado exitosamente para user ${tokenData.user_id}`);
+            gmailLogger.info(`Token refrescado exitosamente para user ${tokenData.user_id}`);
           } else {
-            console.log(`❌ Token expirado sin refresh_token para user ${tokenData.user_id}`);
+            gmailLogger.warn(`Token expirado sin refresh_token para user ${tokenData.user_id}`);
             continue;
           }
         } else {
@@ -507,22 +508,22 @@ app.post("/webhook", async (req, res) => {
 
           if (response.ok) {
             validTokens.push(tokenData);
-            console.log(`✓ Token válido para user ${tokenData.user_id}`);
+            gmailLogger.info(`Token válido para user ${tokenData.user_id}`);
           } else {
-            console.log(`❌ Token inválido para user ${tokenData.user_id}`);
+            gmailLogger.warn(`Token inválido para user ${tokenData.user_id}`);
           }
         }
       } catch (error) {
-        console.log(`❌ Error verificando token para user ${tokenData.user_id}:`, error);
+        gmailLogger.error(`Error verificando token para user ${tokenData.user_id}`, { error });
       }
     }
 
     if (validTokens.length === 0) {
-      console.error("No hay tokens válidos para procesar este email");
+      gmailLogger.error("No hay tokens válidos para procesar este email");
       return res.sendStatus(200);
     }
 
-    console.log(`✓ ${validTokens.length} token(s) válido(s) encontrado(s)`);
+    gmailLogger.info(`${validTokens.length} token(s) válido(s) encontrado(s)`);
 
     // Use the first valid token to read the message (only once)
     const firstToken = validTokens[0];
@@ -563,7 +564,7 @@ app.post("/webhook", async (req, res) => {
     const history = historyResponse.data.history;
 
     if (!history || history.length === 0) {
-      console.log("No hay mensajes nuevos en el historial");
+      gmailLogger.info("No hay mensajes nuevos en el historial");
       return res.sendStatus(200);
     }
 
@@ -573,7 +574,7 @@ app.post("/webhook", async (req, res) => {
       .filter(m => m.message?.labelIds?.includes("INBOX"));
 
     if (addedMessages.length === 0) {
-      console.log("No hay mensajes nuevos en INBOX");
+      gmailLogger.info("No hay mensajes nuevos en INBOX");
       return res.sendStatus(200);
     }
 
@@ -584,7 +585,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     const messageId = latestMessage.message.id;
-    console.log("📨 Procesando mensaje:", messageId);
+    gmailLogger.info("Procesando mensaje", { messageId });
 
     // Actualizar historyId en la base de datos
     await supabase
@@ -602,8 +603,8 @@ app.post("/webhook", async (req, res) => {
     // Verificar que el email esté en INBOX y no en SPAM
     const labelIds = messageResponse.data.labelIds || [];
     if (!labelIds.includes('INBOX') || labelIds.includes('SPAM') || labelIds.includes('TRASH')) {
-      // console.log("Email no está en INBOX o está en SPAM/TRASH - ignorando");
-      // console.log("Labels:", labelIds); // Debug only
+      // gmailLogger.debug("Email no está en INBOX o está en SPAM/TRASH - ignorando");
+      // gmailLogger.debug("Labels", { labelIds }); // Debug only
       return res.sendStatus(200);
     }
 
@@ -665,8 +666,8 @@ app.post("/webhook", async (req, res) => {
 
     const bodyText = messageResponse.data.payload ? extractBody(messageResponse.data.payload) : '';
 
-    console.log("🤖 Analizando email con IA...");
-    // console.log("Contenido:", bodyText.substring(0, 200) + "..."); // Debug only
+    gmailLogger.info("Analizando email con IA...");
+    // gmailLogger.debug("Contenido", { bodyText: bodyText.substring(0, 200) + "..." }); // Debug only
 
     // Extraer transacción usando IA
     const aiResult = await extractTransactionFromEmail(bodyText);
@@ -674,7 +675,7 @@ app.post("/webhook", async (req, res) => {
     if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
       // Es una transacción válida - guardar en la base de datos
       const transaction = aiResult.data;
-      console.log("✓ Transacción extraída:", transaction);
+      gmailLogger.info("Transacción extraída", { transaction });
 
       // Create one transaction for each user with valid token
       for (const tokenData of validTokens) {
@@ -698,34 +699,34 @@ app.post("/webhook", async (req, res) => {
 
         if (insertError) {
           if (insertError.code === '23505') {
-            console.log(`Transacción ya existe para user ${tokenData.user_id}`);
+            gmailLogger.info(`Transacción ya existe para user ${tokenData.user_id}`);
           } else {
-            console.error(`Error guardando transacción para user ${tokenData.user_id}:`, insertError);
+            gmailLogger.error(`Error guardando transacción para user ${tokenData.user_id}`, { error: insertError });
           }
         } else {
-          console.log(`✓ Transacción guardada para user ${tokenData.user_id}`);
+          gmailLogger.info(`Transacción guardada para user ${tokenData.user_id}`);
         }
       }
 
-      console.log(`✓ Transacción procesada para ${validTokens.length} usuario(s)`);
+      gmailLogger.info(`Transacción procesada para ${validTokens.length} usuario(s)`);
     } else {
       // No se encontró transacción - no guardar nada
-      console.log("No se encontró transacción en el email - descartando");
-      console.log("--- Email descartado ---");
-      console.log("Remitente:", fromEmail);
-      console.log("Asunto:", subject);
-      console.log("Cuerpo (primeros 200 chars):", bodyText.substring(0, 200) + "...");
-      console.log("Razón:", (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción");
-      console.log("------------------------");
+      gmailLogger.info("No se encontró transacción en el email - descartando");
+      gmailLogger.debug("Email descartado", {
+        remitente: fromEmail,
+        asunto: subject,
+        cuerpo: bodyText.substring(0, 200) + "...",
+        razón: (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción"
+      });
     }
 
     res.sendStatus(200);
   } catch (error) {
-    console.error("Error procesando webhook:", error);
+    gmailLogger.error("Error procesando webhook", { error });
     res.sendStatus(500);
   }
 });
 
 app.listen(3001, () =>
-  console.log("Servidor backend corriendo en http://localhost:3001"),
+  apiLogger.info("Servidor backend corriendo en http://localhost:3001"),
 );
