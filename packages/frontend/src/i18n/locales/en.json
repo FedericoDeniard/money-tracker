@@ -49,7 +49,8 @@
     "signUpDescription": "Enter your details to register.",
     "signInDescription": "Sign in to your account.",
     "registerSuccess": "Registration successful! Please check your email to confirm your account.",
-    "continueWithGoogle": "Continue with Google"
+    "continueWithGoogle": "Continue with Google",
+    "completingAuth": "Completing authentication..."
   },
   "dashboard": {
     "welcome": "Welcome",
