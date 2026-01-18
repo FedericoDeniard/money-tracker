@@ -326,8 +326,6 @@ export function Metrics() {
       value: `${getCurrencySymbol(displayCurrency)}${metrics.totalIncome.toFixed(2)}`,
       change: metrics.changes.income,
       icon: <TrendingUp className="w-5 h-5" />,
-      color: "text-green-600 bg-green-50 border-green-200",
-      index: 0,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
@@ -335,8 +333,6 @@ export function Metrics() {
       value: `${getCurrencySymbol(displayCurrency)}${metrics.totalExpense.toFixed(2)}`,
       change: metrics.changes.expense,
       icon: <TrendingDown className="w-5 h-5" />,
-      color: "text-red-600 bg-red-50 border-red-200",
-      index: 1,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
@@ -344,11 +340,6 @@ export function Metrics() {
       value: `${getCurrencySymbol(displayCurrency)}${metrics.netBalance.toFixed(2)}`,
       change: metrics.changes.netBalance,
       icon: <DollarSign className="w-5 h-5" />,
-      color:
-        metrics.netBalance >= 0
-          ? "text-blue-600 bg-blue-50 border-blue-200"
-          : "text-red-600 bg-red-50 border-red-200",
-      index: 2,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
@@ -356,8 +347,6 @@ export function Metrics() {
       value: `${getCurrencySymbol(displayCurrency)}${metrics.averageTransaction.toFixed(2)}`,
       change: metrics.changes.averageTransaction,
       icon: <CreditCard className="w-5 h-5" />,
-      color: "text-purple-600 bg-purple-50 border-purple-200",
-      index: 3,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
   ];
@@ -452,8 +441,6 @@ export function Metrics() {
             value={card.value}
             change={card.change}
             icon={card.icon}
-            color={card.color}
-            index={index}
             currency={card.currency}
           />
         ))}
