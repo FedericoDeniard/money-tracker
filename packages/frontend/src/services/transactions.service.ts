@@ -23,6 +23,8 @@ export interface TransactionFilters {
   email?: string;
   category?: string;
   type?: 'income' | 'expense' | 'ingreso' | 'egreso' | 'all';
+  startDate?: string;
+  endDate?: string;
 }
 
 export class TransactionsService {
@@ -74,6 +76,14 @@ export class TransactionsService {
       } else if (filters.type === 'expense' || filters.type === 'egreso') {
         query = query.in('transaction_type', ['expense', 'egreso']);
       }
+    }
+
+    if (filters?.startDate) {
+      query = query.gte('transaction_date', filters.startDate);
+    }
+
+    if (filters?.endDate) {
+      query = query.lte('transaction_date', filters.endDate);
     }
 
     const { data, error } = await query.order('transaction_date', { ascending: false });

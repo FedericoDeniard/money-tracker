@@ -96,7 +96,12 @@
     "allCurrencies": "All Currencies",
     "allEmails": "All Accounts",
     "allCategories": "All Categories",
-    "allTypes": "All Types"
+    "allTypes": "All Types",
+    "dateRange": "Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "apply": "Apply",
+    "customRange": "Custom Range"
   },
   "metrics": {
     "title": "Financial Metrics",
