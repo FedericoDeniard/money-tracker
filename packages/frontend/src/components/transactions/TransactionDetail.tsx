@@ -1,8 +1,8 @@
 import {
   Check,
   Copy,
-  Download,
-  AlertCircle,
+  Edit,
+  Trash2,
   ArrowDown,
   ArrowUp,
 } from "lucide-react";
@@ -12,15 +12,22 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { useFormatDate } from "../../hooks/useFormatDate";
+import { ConfirmModal } from "../ui/ConfirmModal";
+import { EditTransactionModal } from "./EditTransactionModal";
 
 interface TransactionDetailProps {
   transaction: Transaction;
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<Transaction>) => void;
 }
 
-export function TransactionDetail({ transaction }: TransactionDetailProps) {
+export function TransactionDetail({ transaction, onDelete, onUpdate }: TransactionDetailProps) {
   const { t } = useTranslation();
   const { isIncome } = getTransactionType(transaction.transaction_type);
   const [copied, setCopied] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { translateCategory } = useTranslateCategory();
   const { formatDateTime } = useFormatDate();
 
@@ -30,6 +37,25 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete(transaction.id);
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleUpdate = async (updates: Partial<Transaction>) => {
+    if (!onUpdate) return;
+    await onUpdate(transaction.id, updates);
   };
 
   const amountColor = "text-[var(--text-primary)]";
@@ -131,16 +157,42 @@ export function TransactionDetail({ transaction }: TransactionDetailProps) {
       {/* Footer Actions */}
       <div className="mt-auto pt-8">
         <div className="flex gap-3">
-          <button className="flex-1 py-3.5 px-4 rounded-2xl bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-            <AlertCircle size={16} />
-            {t("transactions.reportIssue")}
+          <button 
+            onClick={() => setShowDeleteModal(true)}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+          >
+            <Trash2 size={16} />
+            {t("transactions.delete")}
           </button>
-          <button className="flex-1 py-3.5 px-4 rounded-2xl bg-gray-50 text-[var(--text-primary)] font-medium text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
-            <Download size={16} />
-            {t("transactions.receipt")}
+          <button 
+            onClick={() => setShowEditModal(true)}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-gray-50 text-[var(--text-primary)] font-medium text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+          >
+            <Edit size={16} />
+            {t("transactions.edit")}
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title={t("transactions.deleteTransaction")}
+        message={t("transactions.deleteConfirmation")}
+        confirmText={t("transactions.delete")}
+        isDestructive={true}
+        isLoading={isDeleting}
+      />
+
+      {/* Edit Modal */}
+      <EditTransactionModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleUpdate}
+        transaction={transaction}
+      />
     </div>
   );
 }

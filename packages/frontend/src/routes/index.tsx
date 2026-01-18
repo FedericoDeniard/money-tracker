@@ -6,6 +6,7 @@ import { Settings } from "../pages/Settings";
 import { Transactions } from "../pages/Transactions";
 import { Metrics } from "../pages/Metrics";
 import { NotFound } from "../pages/NotFound";
+import { AuthCallback } from "../pages/AuthCallback";
 import { useAuth } from "../hooks/useAuth";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 
@@ -36,6 +37,7 @@ export function AppRoutes() {
         path="/register"
         element={user ? <Navigate to="/" replace /> : <Register />}
       />
+      <Route path="/auth/callback" element={<AuthCallback />} />
 
       <Route
         path="/"

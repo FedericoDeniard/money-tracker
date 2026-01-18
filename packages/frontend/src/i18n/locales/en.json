@@ -49,7 +49,8 @@
     "signUpDescription": "Enter your details to register.",
     "signInDescription": "Sign in to your account.",
     "registerSuccess": "Registration successful! Please check your email to confirm your account.",
-    "continueWithGoogle": "Continue with Google"
+    "continueWithGoogle": "Continue with Google",
+    "completingAuth": "Completing authentication..."
   },
   "dashboard": {
     "welcome": "Welcome",
@@ -86,6 +87,15 @@
     "unknown": "Unknown",
     "reportIssue": "Report Issue",
     "receipt": "Receipt",
+    "delete": "Delete",
+    "edit": "Edit",
+    "deleteTransaction": "Delete Transaction",
+    "editTransaction": "Edit Transaction",
+    "deleteConfirmation": "This action is permanent and cannot be undone. Are you sure you want to delete this transaction?",
+    "deleteSuccess": "Transaction deleted successfully",
+    "deleteError": "Error deleting transaction",
+    "updateSuccess": "Transaction updated successfully",
+    "updateError": "Error updating transaction",
     "noAccountsConnected": "No Gmail accounts connected",
     "noAccountsDescription": "You won't receive new transactions automatically. Connect a Gmail account in settings to start receiving notifications.",
     "connectAccount": "Go to Settings →",

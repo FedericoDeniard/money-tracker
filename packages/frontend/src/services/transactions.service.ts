@@ -29,7 +29,7 @@ export interface TransactionFilters {
 }
 
 export class TransactionsService {
-  constructor(private supabase: SupabaseClient) {}
+  constructor(private supabase: SupabaseClient) { }
 
   async getTransactions(filters?: TransactionFilters): Promise<Transaction[]> {
     let query = this.supabase
@@ -152,6 +152,15 @@ export class TransactionsService {
     const { error } = await this.supabase
       .from('transactions')
       .delete()
+      .eq('id', transactionId);
+
+    if (error) throw error;
+  }
+
+  async updateTransaction(transactionId: string, updates: Partial<Transaction>): Promise<void> {
+    const { error } = await this.supabase
+      .from('transactions')
+      .update(updates)
       .eq('id', transactionId);
 
     if (error) throw error;

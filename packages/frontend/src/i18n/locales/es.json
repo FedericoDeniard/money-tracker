@@ -49,7 +49,8 @@
     "signUpDescription": "Ingresa tus datos para registrarte.",
     "signInDescription": "Inicia sesión en tu cuenta.",
     "registerSuccess": "¡Registro exitoso! Por favor verifica tu email para confirmar tu cuenta.",
-    "continueWithGoogle": "Continuar con Google"
+    "continueWithGoogle": "Continuar con Google",
+    "completingAuth": "Completando autenticación..."
   },
   "dashboard": {
     "welcome": "Bienvenido",
@@ -86,6 +87,15 @@
     "unknown": "Desconocido",
     "reportIssue": "Reportar problema",
     "receipt": "Recibo",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "deleteTransaction": "Eliminar Transacción",
+    "editTransaction": "Editar Transacción",
+    "deleteConfirmation": "Esta acción es permanente y no se puede deshacer. ¿Estás seguro de que deseas eliminar esta transacción?",
+    "deleteSuccess": "Transacción eliminada exitosamente",
+    "deleteError": "Error al eliminar la transacción",
+    "updateSuccess": "Transacción actualizada exitosamente",
+    "updateError": "Error al actualizar la transacción",
     "noAccountsConnected": "No tienes cuentas de Gmail conectadas",
     "noAccountsDescription": "No recibirás nuevas transacciones automáticamente. Conecta una cuenta de Gmail en la configuración para empezar a recibir notificaciones.",
     "connectAccount": "Ir a Configuración →",
