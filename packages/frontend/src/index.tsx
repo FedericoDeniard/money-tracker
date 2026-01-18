@@ -8,7 +8,7 @@ console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✓' : '✗')
 console.log('BACKEND_URL:', process.env.BACKEND_URL ? '✓' : '✗');
 
 const server = serve({
-  port: process.env.PORT || 8080,
+  port: process.env.PORT || 3000,
   hostname: '0.0.0.0', // Listen on all network interfaces for Railway
   
   routes: {
