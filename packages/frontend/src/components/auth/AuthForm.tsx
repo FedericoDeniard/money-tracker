@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { getSupabase } from '../../lib/supabase';
 import { loginSchema, registerSchema } from '../../lib/forms/schemas';
 import type { LoginFormData, RegisterFormData } from '../../lib/forms/schemas';
@@ -262,12 +263,12 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
 
           {!isSignUp && (
             <div className="flex items-center justify-end">
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-sm font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
               >
                 {t("auth.forgotPassword")}
-              </button>
+              </Link>
             </div>
           )}
 
