@@ -19,6 +19,13 @@ export interface Transaction {
   recipient_email?: string; // Gmail email that received this transaction
 }
 
+// Type for database query result with joined user_oauth_tokens
+interface TransactionWithTokens extends Omit<Transaction, 'recipient_email'> {
+  user_oauth_tokens?: {
+    gmail_email: string;
+  } | null;
+}
+
 export interface TransactionFilters {
   currency?: string;
   email?: string;
@@ -92,12 +99,13 @@ export class TransactionsService {
     if (error) throw error;
 
     // Map the joined data to include recipient_email
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data || []).map((item: any) => ({
-      ...item,
-      recipient_email: item.user_oauth_tokens?.gmail_email || null,
-      user_oauth_tokens: undefined, // Remove the nested object
-    })) as Transaction[];
+    return (data || []).map((item: TransactionWithTokens): Transaction => {
+      const { user_oauth_tokens, ...transaction } = item;
+      return {
+        ...transaction,
+        recipient_email: user_oauth_tokens?.gmail_email || undefined,
+      };
+    });
   }
 
   async getTransactionById(id: string): Promise<Transaction | null> {
