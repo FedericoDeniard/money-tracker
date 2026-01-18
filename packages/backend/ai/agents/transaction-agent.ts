@@ -19,9 +19,16 @@ export const TransactionResponseSchema = z.discriminatedUnion('hasTransaction', 
 
 export type TransactionResponse = z.infer<typeof TransactionResponseSchema>;
 
-export async function extractTransactionFromEmail(emailContent: string) {
+export async function extractTransactionFromEmail(emailContent: string, userFullName?: string) {
     try {
-        const prompt = EMAIL_EXTRACTION_PROMPT.replace('{emailContent}', emailContent);
+        let prompt = EMAIL_EXTRACTION_PROMPT.replace('{emailContent}', emailContent);
+        
+        // Agregar contexto del usuario si está disponible
+        if (userFullName) {
+            prompt = prompt.replace('{userContext}', `\n\nIMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).`);
+        } else {
+            prompt = prompt.replace('{userContext}', '');
+        }
 
         const { output } = await generateText({
             model: aiModel,
