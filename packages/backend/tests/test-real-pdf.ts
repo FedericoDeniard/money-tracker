@@ -8,8 +8,8 @@
  * Ejecutar con: bun run test-real-pdf.ts
  */
 
-import './ai/config/langsmith';
-import { extractTransactionFromEmail } from './ai/agents/transaction-agent';
+import '../ai/config/langsmith';
+import { extractTransactionFromEmail } from '../ai/agents/transaction-agent';
 import fs from 'fs';
 import path from 'path';
 import { PDFParse } from 'pdf-parse';

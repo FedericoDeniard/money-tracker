@@ -4,8 +4,8 @@
  * Ejecutar con: bun run test-langsmith.ts
  */
 
-import './ai/config/langsmith'; // Initialize LangSmith configuration
-import { extractTransactionFromEmail } from './ai/agents/transaction-agent';
+import '../ai/config/langsmith'; // Initialize LangSmith configuration
+import { extractTransactionFromEmail } from '../ai/agents/transaction-agent';
 
 // Email de prueba con una transacción
 const testEmail = `

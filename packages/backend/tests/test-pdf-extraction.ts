@@ -10,8 +10,8 @@
  * Ejecutar con: bun run test-pdf-extraction.ts
  */
 
-import './ai/config/langsmith'; // Initialize LangSmith configuration
-import { extractTransactionFromEmail } from './ai/agents/transaction-agent';
+import '../ai/config/langsmith'; // Initialize LangSmith configuration
+import { extractTransactionFromEmail } from '../ai/agents/transaction-agent';
 
 // Caso 1: Email con contenido de PDF de un recibo
 const emailWithPdfContent = `

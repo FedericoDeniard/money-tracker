@@ -8,8 +8,8 @@
  * Ejecutar con: bun run test-image-ocr.ts
  */
 
-import './ai/config/langsmith';
-import { extractTransactionFromEmail } from './ai/agents/transaction-agent';
+import '../ai/config/langsmith';
+import { extractTransactionFromEmail } from '../ai/agents/transaction-agent';
 import Tesseract from 'tesseract.js';
 import fs from 'fs';
 import path from 'path';

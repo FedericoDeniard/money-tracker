@@ -1,4 +1,4 @@
-import { extractTransactionFromEmail } from './ai/agents/transaction-agent';
+import { extractTransactionFromEmail } from '../ai/agents/transaction-agent';
 
 // Simular el email de transferencia de Mercado Pago (como el de la imagen)
 const mercadoPagoTransferEmail = `
