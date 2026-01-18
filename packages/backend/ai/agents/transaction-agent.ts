@@ -72,10 +72,12 @@ export const extractTransactionFromEmail = traceable(
     {
         name: 'extract-transaction',
         run_type: 'llm',
+        project_name: 'My First App', // Hardcoded to match LangSmith project
         tags: ['email-extraction', 'transaction', 'deepseek'],
         metadata: {
             model: 'deepseek-chat',
-            provider: 'deepseek'
+            provider: 'deepseek',
+            workspace_id: process.env.LANGSMITH_WORKSPACE_ID
         }
     }
 );

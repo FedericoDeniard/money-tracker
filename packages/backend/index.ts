@@ -8,6 +8,7 @@ import { encryptToken, decryptToken } from "./lib/encryption";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { gmailLogger, authLogger, apiLogger } from "./src/config/logger";
+import "./ai/config/langsmith"; // Initialize LangSmith configuration
 
 // Bun provides fetch globally
 declare const fetch: typeof globalThis.fetch;
