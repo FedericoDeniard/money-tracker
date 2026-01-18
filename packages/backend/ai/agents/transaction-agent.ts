@@ -1,5 +1,5 @@
-import { generateText, Output } from '../wrapped-ai';
-import { aiModel } from '../index';
+import { generateText, Output, type LangSmithOptions } from '../wrapped-ai';
+import { aiModel, getModelName } from '../index';
 import { TransactionSchema } from '../types/schemas';
 import { EMAIL_EXTRACTION_PROMPT } from '../prompts/email-extraction';
 import { z } from 'zod';
@@ -30,6 +30,14 @@ export async function extractTransactionFromEmail(emailContent: string, userFull
             prompt = prompt.replace('{userContext}', '');
         }
 
+        const langsmithOptions: LangSmithOptions = {
+            tags: [getModelName(aiModel), 'extract-transaction'],
+            metadata: {
+                model: getModelName(aiModel),
+                hasUserContext: !!userFullName,
+            }
+        };
+
         const { output } = await generateText({
             model: aiModel,
             prompt: prompt,
@@ -37,6 +45,9 @@ export async function extractTransactionFromEmail(emailContent: string, userFull
             output: Output.object({
                 schema: TransactionResponseSchema,
             }),
+            providerOptions: {
+                langsmith: langsmithOptions
+            }
         });
 
         if (output.hasTransaction) {
