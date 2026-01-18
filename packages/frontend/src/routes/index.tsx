@@ -3,6 +3,8 @@ import { Home } from "../pages/Home";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
 import { Settings } from "../pages/Settings";
+import { Transactions } from "../pages/Transactions";
+import { Metrics } from "../pages/Metrics";
 import { NotFound } from "../pages/NotFound";
 import { useAuth } from "../hooks/useAuth";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
@@ -26,9 +28,15 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
-      
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/" replace /> : <Login />}
+      />
+      <Route
+        path="/register"
+        element={user ? <Navigate to="/" replace /> : <Register />}
+      />
+
       <Route
         path="/"
         element={
@@ -39,6 +47,8 @@ export function AppRoutes() {
       >
         <Route index element={<Home />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="emails" element={<Transactions />} />
+        <Route path="metrics" element={<Metrics />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 

@@ -1,18 +1,27 @@
-import { LayoutDashboard, Receipt, Settings, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { DecorativeSquare } from '../ui/DecorativeSquare';
-import { Button } from '../ui/Button';
-import { motion } from 'framer-motion';
+import {
+  Settings,
+  Receipt,
+  LayoutDashboard,
+  LogOut,
+  TrendingUp,
+} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { DecorativeSquare } from "../ui/DecorativeSquare";
+import { Button } from "../ui/Button";
+import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export function Sidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { t } = useTranslation();
 
   const links = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: Receipt, label: 'Transacciones', path: '/transactions' },
-    { icon: Settings, label: 'Configuración', path: '/settings' },
+    { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/" },
+    { icon: Receipt, label: t("navigation.transactions"), path: "/emails" },
+    { icon: TrendingUp, label: t("navigation.metrics"), path: "/metrics" },
+    { icon: Settings, label: t("navigation.settings"), path: "/settings" },
   ];
 
   return (
@@ -24,9 +33,11 @@ export function Sidebar() {
             $
           </span>
         </div>
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">Money Tracker</h1>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">
+          Money Tracker
+        </h1>
       </div>
-      
+
       <nav className="flex-1 px-4 py-4 space-y-2">
         {links.map((link) => {
           const isActive = location.pathname === link.path;
@@ -35,9 +46,9 @@ export function Sidebar() {
               key={link.path}
               to={link.path}
               className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${
-                isActive 
-                  ? 'text-white' 
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                isActive
+                  ? "text-white"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
               {isActive && (
@@ -48,7 +59,10 @@ export function Sidebar() {
                 />
               )}
               <div className="relative flex items-center gap-3 z-10">
-                <link.icon size={20} className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <link.icon
+                  size={20}
+                  className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`}
+                />
                 <span className="font-medium">{link.label}</span>
               </div>
             </Link>
@@ -63,7 +77,7 @@ export function Sidebar() {
           iconPosition="left"
           onClick={signOut}
         >
-          Cerrar Sesión
+          {t("navigation.logout")}
         </Button>
       </div>
     </aside>

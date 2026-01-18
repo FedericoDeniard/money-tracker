@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { supabaseLogger } from '../src/config/logger';
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
@@ -13,7 +14,7 @@ export async function encryptToken(token: string): Promise<string> {
   });
 
   if (error) {
-    console.error('Error encrypting token:', error);
+    supabaseLogger.error('Error encrypting token', { error });
     throw new Error('Failed to encrypt token');
   }
 
@@ -27,7 +28,7 @@ export async function decryptToken(encryptedToken: string): Promise<string> {
   });
 
   if (error) {
-    console.error('Error decrypting token:', error);
+    supabaseLogger.error('Error decrypting token', { error });
     throw new Error('Failed to decrypt token');
   }
 

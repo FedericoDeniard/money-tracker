@@ -1,11 +1,16 @@
 import { getSupabase } from '../lib/supabase';
 import { getConfig } from '../config';
 
-export interface GmailStatus {
-  connected: boolean;
-  gmail_email: string | null;
-  connected_at?: string;
+export interface GmailConnection {
+  id: string;
+  gmail_email: string;
+  connected_at: string;
   expires_at?: string;
+}
+
+export interface GmailStatus {
+  connections: GmailConnection[];
+  total: number;
 }
 
 export interface GmailWatch {
@@ -23,24 +28,26 @@ export const gmailService = {
 
     const { data, error } = await supabase
       .from('user_oauth_tokens')
-      .select('gmail_email, created_at, expires_at')
+      .select('id, gmail_email, created_at, expires_at')
       .eq('user_id', userId)
-      .maybeSingle();
+      .eq('is_active', true) // Only show active connections
+      .order('created_at', { ascending: false });
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error checking Gmail status:', error);
-      return { connected: false, gmail_email: null };
+      return { connections: [], total: 0 };
     }
 
-    if (!data) {
-      return { connected: false, gmail_email: null };
-    }
+    const connections: GmailConnection[] = (data || []).map(item => ({
+      id: item.id,
+      gmail_email: item.gmail_email,
+      connected_at: item.created_at,
+      expires_at: item.expires_at,
+    }));
 
     return {
-      connected: true,
-      gmail_email: data.gmail_email,
-      connected_at: data.created_at,
-      expires_at: data.expires_at,
+      connections,
+      total: connections.length,
     };
   },
 
@@ -61,16 +68,38 @@ export const gmailService = {
     return data || [];
   },
 
-  async connectGmail(userId: string): Promise<void> {
+  async connectGmail(): Promise<void> {
     const config = await getConfig();
-    window.location.href = `${config.backendUrl}/auth?userId=${userId}`;
+    const supabase = await getSupabase();
+
+    // Get the current session token
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error('No active session');
+    }
+
+    // Redirect to auth endpoint with token in URL (will be used by backend)
+    window.location.href = `${config.backendUrl}/auth?token=${session.access_token}`;
   },
 
-  async disconnectGmail(userId: string): Promise<{ success: boolean; error?: string }> {
+  async disconnectGmail(connectionId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const config = await getConfig();
-      const response = await fetch(`${config.backendUrl}/gmail-disconnect/${userId}`, {
+      const supabase = await getSupabase();
+
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('No active session');
+      }
+
+      const response = await fetch(`${config.backendUrl}/gmail-disconnect/${connectionId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
       });
 
       if (!response.ok) {

@@ -2,9 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { Home, ArrowLeft } from 'lucide-react';
 import { DecorativeSquare } from '../components/ui/DecorativeSquare';
 import { Button } from '../components/ui/Button';
+import { useTranslation } from "react-i18next";
 
 export function NotFound() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -13,14 +15,16 @@ export function NotFound() {
           <div className="relative w-32 h-32 mx-auto mb-6">
             <DecorativeSquare size={128} className="absolute inset-0" />
             <div className="relative z-10 flex items-center justify-center w-full h-full">
-              <span className="text-5xl font-bold text-[var(--primary)]">404</span>
+              <span className="text-5xl font-bold text-[var(--primary)]">
+                404
+              </span>
             </div>
           </div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-4">
-            Página no encontrada
+            {t("errors.pageNotFound")}
           </h1>
           <p className="text-[var(--text-secondary)] mb-8">
-            La página que estás buscando no existe o ha sido movida.
+            {t("errors.pageNotFoundDescription")}
           </p>
         </div>
 
@@ -31,15 +35,15 @@ export function NotFound() {
             iconPosition="left"
             onClick={() => navigate(-1)}
           >
-            Volver atrás
+            {t("common.back")}
           </Button>
-          
+
           <Button
             icon={<Home size={20} />}
             iconPosition="left"
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
           >
-            Ir al Dashboard
+            {t("errors.goHome")}
           </Button>
         </div>
       </div>
