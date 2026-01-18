@@ -4,16 +4,22 @@ import {
   LayoutDashboard,
   LogOut,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { Button } from "../ui/Button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import logo from "../../logo.svg";
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const { signOut } = useAuth();
   const { t } = useTranslation();
@@ -25,29 +31,40 @@ export function Sidebar() {
     { icon: Settings, label: t("navigation.settings"), path: "/settings" },
   ];
 
-  return (
-    <aside className="w-64 bg-[var(--bg-primary)] border-r border-[var(--text-secondary)]/20 min-h-screen flex flex-col fixed left-0 top-0 h-full z-10">
-      <div className="p-6 flex items-center gap-3">
-        <div className="relative w-10 h-10">
-          <DecorativeSquare size={40} className="absolute" />
-          <img
-            src={logo}
-            alt="Money Tracker Logo"
-            className="absolute inset-0 w-full h-full object-contain"
-          />
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-[var(--bg-primary)] border-r border-[var(--text-secondary)]/20">
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10">
+            <DecorativeSquare size={40} className="absolute" />
+            <img
+              src={logo}
+              alt="Money Tracker Logo"
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          </div>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+            Money Tracker
+          </h1>
         </div>
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">
-          Money Tracker
-        </h1>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded-lg"
+          >
+            <X size={24} />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 px-4 py-4 space-y-2">
+      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
         {links.map((link) => {
           const isActive = location.pathname === link.path;
           return (
             <Link
               key={link.path}
               to={link.path}
+              onClick={onClose}
               className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${
                 isActive
                   ? "text-white"
@@ -64,7 +81,9 @@ export function Sidebar() {
               <div className="relative flex items-center gap-3 z-10">
                 <link.icon
                   size={20}
-                  className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"}`}
+                  className={`transition-transform duration-200 ${
+                    isActive ? "scale-110" : "group-hover:scale-110"
+                  }`}
                 />
                 <span className="font-medium">{link.label}</span>
               </div>
@@ -73,16 +92,50 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-[var(--text-secondary)]/20">
+      <div className="p-4 border-t border-[var(--text-secondary)]/20 mt-auto">
         <Button
           variant="ghost"
           icon={<LogOut size={20} />}
           iconPosition="left"
           onClick={signOut}
+          className="w-full justify-start"
         >
           {t("navigation.logout")}
         </Button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-64 min-h-screen flex-col fixed left-0 top-0 h-full z-10">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black z-40 lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 left-0 w-64 bg-[var(--bg-primary)] z-50 lg:hidden shadow-xl"
+            >
+              {sidebarContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

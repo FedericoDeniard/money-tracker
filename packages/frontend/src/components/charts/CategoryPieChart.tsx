@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import type { PieLabelRenderProps, LegendPayload } from "recharts";
 import { useTranslation } from "react-i18next";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 interface CategoryData {
   category: string;
@@ -40,6 +41,7 @@ const COLORS = [
 
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
   const { t } = useTranslation();
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   if (!data.length) {
     return (
@@ -67,7 +69,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     if (active && payload && payload.length > 0 && payload[0]) {
       const data = payload[0].payload;
       return (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--text-secondary)/20 rounded-lg p-3">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--text-secondary)/20 rounded-lg p-3 shadow-lg z-50">
           <p className="text-[var(--text-primary)] font-medium">{data.name}</p>
           <p className="text-[var(--text-secondary)]">
             ${data.value.toFixed(2)} ({data.percentage.toFixed(1)}%)
@@ -85,7 +87,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
   };
 
   return (
-    <ResponsiveContainer width="100%" height={256}>
+    <ResponsiveContainer width="100%" height={isMobile ? 350 : 256}>
       <PieChart>
         <Pie
           key={`pie-${data.length}-${data.map((d) => d.amount).join("-")}`}
@@ -94,7 +96,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
           cy="50%"
           labelLine={false}
           label={renderCustomLabel}
-          outerRadius={80}
+          outerRadius={isMobile ? 80 : 80}
           fill="#8884d8"
           dataKey="value"
           animationBegin={0}
@@ -110,12 +112,12 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
         </Pie>
         <Tooltip content={<CustomTooltip />} />
         <Legend
-          verticalAlign="middle"
-          align="right"
-          layout="vertical"
-          wrapperStyle={{ paddingLeft: "20px" }}
+          verticalAlign={isMobile ? "bottom" : "middle"}
+          align={isMobile ? "center" : "right"}
+          layout={isMobile ? "horizontal" : "vertical"}
+          wrapperStyle={isMobile ? { paddingTop: "20px" } : { paddingLeft: "20px" }}
           formatter={(value: string, entry: LegendPayload) => (
-            <span style={{ color: "var(--text-primary)" }}>
+            <span style={{ color: "var(--text-primary)", fontSize: "12px", marginRight: isMobile ? "10px" : "0" }}>
               {value}{" "}
               {entry.payload && typeof entry.payload.value === "number"
                 ? `($${entry.payload.value.toFixed(2)})`

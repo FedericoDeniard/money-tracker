@@ -139,9 +139,9 @@ export function Settings() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <div className="bg-white shadow rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
+    <div className="max-w-4xl mx-auto p-4 sm:p-8">
+      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-6">
           {t("settings.title")}
         </h1>
 
@@ -181,14 +181,14 @@ export function Settings() {
             {t("settings.emailNotifications")}
           </h2>
 
-          <div className="bg-[var(--bg-secondary)] rounded-lg p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-[var(--primary)]/10 rounded-lg">
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="p-3 bg-[var(--primary)]/10 rounded-lg shrink-0">
                 <Mail className="text-[var(--primary)]" size={24} />
               </div>
 
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 w-full min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-4">
                   <h3 className="font-medium text-[var(--text-primary)]">
                     Gmail
                   </h3>
@@ -221,12 +221,12 @@ export function Settings() {
                     {gmailStatus.connections.map((connection) => (
                       <div
                         key={connection.id}
-                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-gray-200 gap-3"
                       >
-                        <div className="flex items-center gap-3">
-                          <Mail className="text-gray-500" size={20} />
-                          <div>
-                            <p className="font-medium text-[var(--text-primary)]">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Mail className="text-gray-500 shrink-0" size={20} />
+                          <div className="min-w-0">
+                            <p className="font-medium text-[var(--text-primary)] truncate">
                               {connection.gmail_email}
                             </p>
                             <p className="text-xs text-[var(--text-secondary)]">
@@ -240,6 +240,7 @@ export function Settings() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="self-end sm:self-auto shrink-0"
                           icon={
                             isDisconnecting === connection.id ? (
                               <Loader2 className="animate-spin" size={16} />
@@ -328,7 +329,7 @@ export function Settings() {
           </h2>
 
           <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-[var(--text-primary)]">
                   {t("settings.selectLanguage")}

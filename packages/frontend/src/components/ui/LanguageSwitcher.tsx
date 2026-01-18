@@ -24,8 +24,8 @@ export function LanguageSwitcher() {
       title={currentLanguage?.name || "Language"}
     >
       <Globe size={16} />
-      <span className="hidden sm:inline">{currentLanguage?.flag || "🌐"}</span>
-      <span className="hidden md:inline">
+      <span>{currentLanguage?.flag || "🌐"}</span>
+      <span>
         {currentLanguage?.name || "Language"}
       </span>
     </button>
