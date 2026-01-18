@@ -27,10 +27,6 @@ export function Home() {
               <span className="font-medium">{t("auth.email")}:</span>{" "}
               {user?.email}
             </p>
-            <p className="text-sm text-[var(--text-secondary)] mt-2">
-              <span className="font-medium">{t("common.userId")}:</span>{" "}
-              {user?.id}
-            </p>
           </div>
         </div>
       </div>
