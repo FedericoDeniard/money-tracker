@@ -4,6 +4,7 @@ import { AppRoutes } from "./routes";
 import KBar from "./components/ui/KBar";
 import { useAuth } from "./hooks/useAuth";
 import "./i18n";
+import { Toaster } from "sonner";
 
 export function App() {
   const { loading } = useAuth();
@@ -12,6 +13,7 @@ export function App() {
     <BrowserRouter>
       <AppRoutes />
       {!loading && <KBar />}
+      <Toaster />
     </BrowserRouter>
   );
 }
