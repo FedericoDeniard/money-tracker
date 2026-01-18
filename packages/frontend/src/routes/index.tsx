@@ -3,7 +3,7 @@ import { Home } from "../pages/Home";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
 import { Settings } from "../pages/Settings";
-import { Transactions } from "../pages/Emails";
+import { Transactions } from "../pages/Transactions";
 import { NotFound } from "../pages/NotFound";
 import { useAuth } from "../hooks/useAuth";
 import { DashboardLayout } from "../components/layout/DashboardLayout";

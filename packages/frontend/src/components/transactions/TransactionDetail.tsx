@@ -1,12 +1,13 @@
 import {
   Check,
   Copy,
-  ArrowUp,
-  ArrowDown,
+  ExternalLink,
   Download,
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
 } from "lucide-react";
-import type { Transaction } from "../../services/emails.service";
+import type { Transaction } from "../../services/transactions.service";
 import { getTransactionType } from "../../utils/transactionUtils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,5 +1,5 @@
 import { Receipt } from "lucide-react";
-import type { Transaction } from "../../services/emails.service";
+import type { Transaction } from "../../services/transactions.service";
 import { TransactionCard } from "./TransactionCard";
 import { EmptyState } from "../ui/EmptyState";
 

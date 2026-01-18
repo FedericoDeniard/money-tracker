@@ -63,7 +63,7 @@
     "title": "Transacciones",
     "noTransactions": "No hay transacciones",
     "noTransactionsDescription": "Las transacciones extraídas de tus emails aparecerán aquí",
-    "selectTransaction": "Selecciona una transacción para ver sus detalles",
+    "selectTransaction": "Selecciona una transacción para ver los detalles",
     "transactionDetails": "Detalles de la Transacción",
     "amount": "Monto",
     "date": "Fecha",
@@ -84,7 +84,10 @@
     "paidTo": "Pagado a",
     "unknown": "Desconocido",
     "reportIssue": "Reportar problema",
-    "receipt": "Recibo"
+    "receipt": "Recibo",
+    "noAccountsConnected": "No tienes cuentas de Gmail conectadas",
+    "noAccountsDescription": "No recibirás nuevas transacciones automáticamente. Conecta una cuenta de Gmail en la configuración para empezar a recibir notificaciones.",
+    "connectAccount": "Ir a Configuración →"
   },
   "categories": {
     "salary": "Salario",

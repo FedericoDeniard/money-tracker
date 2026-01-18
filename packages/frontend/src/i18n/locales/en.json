@@ -84,7 +84,10 @@
     "paidTo": "Paid to",
     "unknown": "Unknown",
     "reportIssue": "Report Issue",
-    "receipt": "Receipt"
+    "receipt": "Receipt",
+    "noAccountsConnected": "No Gmail accounts connected",
+    "noAccountsDescription": "You won't receive new transactions automatically. Connect a Gmail account in settings to start receiving notifications.",
+    "connectAccount": "Go to Settings →"
   },
   "categories": {
     "salary": "Salary",

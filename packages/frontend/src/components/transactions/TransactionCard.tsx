@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import type { Transaction } from "../../services/emails.service";
+import type { Transaction } from "../../services/transactions.service";
 import { getTransactionType } from "../../utils/transactionUtils";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { useFormatDate } from "../../hooks/useFormatDate";
