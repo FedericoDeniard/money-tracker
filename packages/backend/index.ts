@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
+import { extractPdfAttachments } from "./lib/pdf-extractor";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { gmailLogger, authLogger, apiLogger } from "./src/config/logger";
@@ -686,11 +687,28 @@ app.post("/webhook", async (req, res) => {
 
     const bodyText = messageResponse.data.payload ? extractBody(messageResponse.data.payload) : '';
 
-    gmailLogger.info("Analizando email con IA...");
+    // Extraer texto de PDFs adjuntos (si existen)
+    const pdfTexts = await extractPdfAttachments(gmail, messageId);
+
+    // Combinar el texto del email con el contenido de los PDFs
+    const contentParts = [bodyText];
+    if (pdfTexts.length > 0) {
+      for (const pdfText of pdfTexts) {
+        contentParts.push('--- PDF ATTACHMENT ---');
+        contentParts.push(pdfText);
+      }
+    }
+    const fullContent = contentParts.filter(t => t.trim()).join('\n\n');
+
+    gmailLogger.info("Analizando email con IA...", {
+      bodyTextLength: bodyText.length,
+      pdfCount: pdfTexts.length,
+      totalContentLength: fullContent.length,
+    });
     // gmailLogger.debug("Contenido", { bodyText: bodyText.substring(0, 200) + "..." }); // Debug only
 
-    // Extraer transacción usando IA
-    const aiResult = await extractTransactionFromEmail(bodyText);
+    // Extraer transacción usando IA (con contenido completo: email + PDFs)
+    const aiResult = await extractTransactionFromEmail(fullContent);
 
     if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
       // Es una transacción válida - guardar en la base de datos
