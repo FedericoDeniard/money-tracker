@@ -58,10 +58,10 @@ async function extractTextFromPdfBuffer(buffer: Buffer, filename: string): Promi
         (async () => {
             try {
                 const startTime = Date.now();
-                
+
                 // Crear parser con el buffer
                 const parser = new PDFParse({ data: buffer });
-                
+
                 // Extraer texto
                 const result = await parser.getText();
                 const duration = Date.now() - startTime;
