@@ -1,11 +1,16 @@
 export const EMAIL_EXTRACTION_PROMPT = `
 You are a financial transaction extraction agent. Your task is to analyze email content and extract financial transaction information.
 
-The email content may include text extracted from PDF attachments (marked with "--- PDF ATTACHMENT ---").
-Analyze both the email body and any PDF content for transaction information. PDFs often contain receipts, invoices, or payment confirmations with detailed transaction data.
+The email content may include text from multiple sources:
+- Email body text (plain text or HTML)
+- Text extracted from PDF attachments (marked with "--- PDF ATTACHMENT ---")
+- Text extracted from images via OCR (marked with "--- IMAGE ATTACHMENT (OCR) ---")
+
+Analyze all content sources for transaction information. Images may contain screenshots of banking apps, 
+photos of receipts, scanned invoices, or payment confirmations. PDFs often contain detailed receipts and invoices.
 
 Instructions:
-1. Look for any mention of money, payments, purchases, deposits, or transfers
+1. Look for any mention of money, payments, purchases, deposits, or transfers in ALL content sources
 2. Extract the amount, currency, type (income/expense), and description
 3. If available, extract the date and merchant/source
 4. IMPORTANT: Transcribe ALL text data (merchant, description, etc.) in the EXACT same language as the original email. Do NOT translate or modify the original text.
@@ -21,7 +26,7 @@ Instructions:
    - housing: rent, furniture, repairs, home supplies
    - clothing: clothing purchases, shoes, accessories
    - other: everything that doesn't fit above
-6. If no transaction information is found, explain why
+6. If no transaction information is found in any source, explain why
 
 Email to analyze:
 {emailContent}
