@@ -1,7 +1,7 @@
 import { generateText, Output, type LangSmithOptions } from '../ai/wrapped-ai';
 import { aiModel, aiModelReasoner, getModelName } from '../ai/index';
 import { TransactionResponseSchema } from '../ai/agents/transaction-agent';
-import { EMAIL_EXTRACTION_PROMPT } from '../ai/prompts/email-extraction';
+import { EMAIL_EXTRACTION_SYSTEM } from '../ai/prompts/email-extraction';
 
 // ============================================================================
 // DATOS DE PRUEBA
@@ -141,16 +141,17 @@ interface TestResult {
 
 async function testWithModel(emailContent: string, model: typeof aiModel | typeof aiModelReasoner, modelName: string, userFullName?: string): Promise<TestResult> {
     const startTime = Date.now();
-    let prompt = EMAIL_EXTRACTION_PROMPT.replace('{emailContent}', emailContent);
+
+    // Construir el prompt dinámico con el contenido del email y contexto del usuario
+    let dynamicPrompt = '';
 
     // Agregar contexto del usuario si está disponible
     if (userFullName) {
-        prompt = prompt.replace('{userContext}',
-            `\n\nIMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).`
-        );
-    } else {
-        prompt = prompt.replace('{userContext}', '');
+        dynamicPrompt += `IMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).\n\n`;
     }
+
+    // Agregar el contenido del email
+    dynamicPrompt += `Email to analyze:\n${emailContent}`;
 
     const langsmithOptions: LangSmithOptions = {
         tags: [getModelName(model), 'test'],
@@ -163,7 +164,8 @@ async function testWithModel(emailContent: string, model: typeof aiModel | typeo
     try {
         const { output } = await generateText({
             model: model,
-            prompt: prompt,
+            system: EMAIL_EXTRACTION_SYSTEM, // Parte estática - permite input caching
+            prompt: dynamicPrompt,            // Parte dinámica - varía en cada llamada
             temperature: 0.1,
             output: Output.object({
                 schema: TransactionResponseSchema,
@@ -178,8 +180,8 @@ async function testWithModel(emailContent: string, model: typeof aiModel | typeo
         return {
             testName: 'Current Prompt (Production)',
             modelName: modelName,
-            promptLength: prompt.length,
-            inputLength: emailContent.length,
+            promptLength: EMAIL_EXTRACTION_SYSTEM.length,
+            inputLength: dynamicPrompt.length,
             latency: endTime - startTime,
             success: true,
             hasTransaction: output.hasTransaction,
@@ -189,8 +191,8 @@ async function testWithModel(emailContent: string, model: typeof aiModel | typeo
         return {
             testName: 'Current Prompt (Production)',
             modelName: modelName,
-            promptLength: prompt.length,
-            inputLength: emailContent.length,
+            promptLength: EMAIL_EXTRACTION_SYSTEM.length,
+            inputLength: dynamicPrompt.length,
             latency: Date.now() - startTime,
             success: false,
             hasTransaction: false,
