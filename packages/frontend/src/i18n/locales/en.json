@@ -21,6 +21,7 @@
   "navigation": {
     "dashboard": "Dashboard",
     "transactions": "Transactions",
+    "metrics": "Metrics",
     "settings": "Settings",
     "logout": "Logout",
     "home": "Home",
@@ -89,6 +90,27 @@
     "noAccountsDescription": "You won't receive new transactions automatically. Connect a Gmail account in settings to start receiving notifications.",
     "connectAccount": "Go to Settings →"
   },
+  "metrics": {
+    "title": "Financial Metrics",
+    "description": "Detailed analysis of your transactions and financial trends",
+    "totalIncome": "Total Income",
+    "totalExpense": "Total Expenses",
+    "netBalance": "Net Balance",
+    "averageTransaction": "Average Transaction",
+    "last30Days": "Last 30 days",
+    "last90Days": "Last 90 days",
+    "lastYear": "Last year",
+    "monthlyTrend": "Monthly Trend",
+    "categoryBreakdown": "Category Breakdown",
+    "insights": "Financial Insights",
+    "topSpendingCategory": "Top Spending Category",
+    "totalTransactions": "Total Transactions",
+    "savingsRate": "Savings Rate",
+    "inLastPeriod": "in the last {{days}} days",
+    "ofIncome": "of income",
+    "transactions": "transactions",
+    "noData": "No data"
+  },
   "categories": {
     "salary": "Salary",
     "entertainment": "Entertainment",
@@ -148,10 +170,11 @@
     "quickActions": "Quick Actions",
     "account": "Account",
     "keywords": {
-      "dashboard": "home dashboard main principal",
+      "dashboard": "home dashboard main panel",
       "transactions": "transactions emails movements finances",
-      "settings": "configuration preferences adjustments",
-      "logout": "exit sign out logout"
+      "metrics": "metrics statistics analysis charts reports finances",
+      "settings": "configuration preferences settings",
+      "logout": "sign out exit logout"
     }
   },
   "errors": {

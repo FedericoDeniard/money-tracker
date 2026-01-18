@@ -1,4 +1,10 @@
-import { Settings, Receipt, LayoutDashboard, LogOut } from "lucide-react";
+import {
+  Settings,
+  Receipt,
+  LayoutDashboard,
+  LogOut,
+  TrendingUp,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
@@ -14,6 +20,7 @@ export function Sidebar() {
   const links = [
     { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/" },
     { icon: Receipt, label: t("navigation.transactions"), path: "/emails" },
+    { icon: TrendingUp, label: t("navigation.metrics"), path: "/metrics" },
     { icon: Settings, label: t("navigation.settings"), path: "/settings" },
   ];
 
