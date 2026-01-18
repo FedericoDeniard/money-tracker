@@ -3,22 +3,22 @@ import { useTranslation } from "react-i18next";
 import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
 import { createTransactionsService } from "../services/transactions.service";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  CreditCard,
-  PiggyBank,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, CreditCard } from "lucide-react";
 import { MonthlyTrendChart } from "../components/charts/MonthlyTrendChart";
 import { CategoryPieChart } from "../components/charts/CategoryPieChart";
+import {
+  MetricCard,
+  FilterBar,
+  InsightsSection,
+  CurrencyComparison,
+  type MetricCardProps,
+} from "../components/metrics";
 
-interface MetricCard {
-  title: string;
-  value: string;
-  change: number;
-  icon: React.ReactNode;
-  color: string;
+interface CategoryData {
+  category: string;
+  amount: number;
+  percentage: number;
+  count: number;
 }
 
 interface MonthlyData {
@@ -28,18 +28,12 @@ interface MonthlyData {
   net: number;
 }
 
-interface CategoryData {
-  category: string;
-  amount: number;
-  percentage: number;
-  count: number;
-}
-
 export function Metrics() {
   const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<"30" | "90" | "365">(
     "30",
   );
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
 
   const {
     data: transactions,
@@ -50,7 +44,16 @@ export function Metrics() {
     return await service.getTransactions();
   }, []);
 
-  // Filter transactions based on selected period
+  // Get available currencies from transactions
+  const availableCurrencies = useMemo(() => {
+    if (!transactions) return [];
+    const currencies = [
+      ...new Set(transactions.map((tx) => tx.currency)),
+    ].sort();
+    return currencies;
+  }, [transactions]);
+
+  // Filter transactions based on selected period and currency
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
 
@@ -58,10 +61,15 @@ export function Metrics() {
     const daysAgo = parseInt(selectedPeriod);
     const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
 
-    return transactions.filter((tx) => new Date(tx.created_at) >= cutoffDate);
-  }, [transactions, selectedPeriod]);
+    return transactions.filter((tx) => {
+      const dateMatch = new Date(tx.created_at) >= cutoffDate;
+      const currencyMatch =
+        selectedCurrency === "all" || tx.currency === selectedCurrency;
+      return dateMatch && currencyMatch;
+    });
+  }, [transactions, selectedPeriod, selectedCurrency]);
 
-  // Calculate metrics
+  // Calculate metrics for current and previous period
   const metrics = useMemo(() => {
     if (!filteredTransactions.length) {
       return {
@@ -71,6 +79,12 @@ export function Metrics() {
         transactionCount: 0,
         averageTransaction: 0,
         topCategory: null,
+        changes: {
+          income: null,
+          expense: null,
+          netBalance: null,
+          averageTransaction: null,
+        },
       };
     }
 
@@ -95,19 +109,84 @@ export function Metrics() {
       ([, a], [, b]) => b - a,
     )[0];
 
+    const averageTransaction =
+      filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
+      filteredTransactions.length;
+
+    // Calculate previous period metrics for comparison
+    const now = new Date();
+    const daysAgo = parseInt(selectedPeriod);
+    const currentPeriodStart = new Date(
+      now.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+    );
+    const previousPeriodStart = new Date(
+      currentPeriodStart.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+    );
+
+    const previousPeriodTransactions =
+      transactions?.filter((tx) => {
+        const txDate = new Date(tx.created_at);
+        const currencyMatch =
+          selectedCurrency === "all" || tx.currency === selectedCurrency;
+        return (
+          txDate >= previousPeriodStart &&
+          txDate < currentPeriodStart &&
+          currencyMatch
+        );
+      }) || [];
+
+    let changes = {
+      income: null as number | null,
+      expense: null as number | null,
+      netBalance: null as number | null,
+      averageTransaction: null as number | null,
+    };
+
+    if (previousPeriodTransactions.length > 0) {
+      const prevIncome = previousPeriodTransactions
+        .filter((tx) => tx.transaction_type === "income")
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      const prevExpense = previousPeriodTransactions
+        .filter((tx) => tx.transaction_type === "expense")
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      const prevAverage =
+        previousPeriodTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
+        previousPeriodTransactions.length;
+
+      changes = {
+        income:
+          prevIncome > 0 ? ((income - prevIncome) / prevIncome) * 100 : null,
+        expense:
+          prevExpense > 0
+            ? ((expense - prevExpense) / prevExpense) * 100
+            : null,
+        netBalance:
+          prevIncome - prevExpense !== 0
+            ? ((income - expense - (prevIncome - prevExpense)) /
+                Math.abs(prevIncome - prevExpense)) *
+              100
+            : null,
+        averageTransaction:
+          prevAverage > 0
+            ? ((averageTransaction - prevAverage) / prevAverage) * 100
+            : null,
+      };
+    }
+
     return {
       totalIncome: income,
       totalExpense: expense,
       netBalance: income - expense,
       transactionCount: filteredTransactions.length,
-      averageTransaction:
-        filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
-        filteredTransactions.length,
+      averageTransaction,
       topCategory: topCategory
         ? { name: topCategory[0], amount: topCategory[1] }
         : null,
+      changes,
     };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, transactions, selectedPeriod, selectedCurrency]);
 
   // Calculate monthly data for charts
   const monthlyData = useMemo((): MonthlyData[] => {
@@ -173,37 +252,113 @@ export function Metrics() {
       .sort((a, b) => b.amount - a.amount);
   }, [filteredTransactions, metrics.totalExpense]);
 
-  const metricCards: MetricCard[] = [
+  // Get currency symbol for display
+  const getCurrencySymbol = (currency: string): string => {
+    const symbols: Record<string, string> = {
+      USD: "$",
+      EUR: "€",
+      GBP: "£",
+      JPY: "¥",
+      CNY: "¥",
+      INR: "₹",
+      AUD: "A$",
+      CAD: "C$",
+      CHF: "CHF",
+      SEK: "kr",
+      NOK: "kr",
+      DKK: "kr",
+      PLN: "zł",
+      CZK: "Kč",
+      HUF: "Ft",
+      RON: "lei",
+      BGN: "лв",
+      HRK: "kn",
+      RUB: "₽",
+      TRY: "₺",
+      MXN: "$",
+      ARS: "$",
+      CLP: "$",
+      COP: "$",
+      PEN: "S/",
+      UYU: "$",
+      BOB: "Bs",
+      PYG: "₲",
+      ILS: "₪",
+      KRW: "₩",
+      THB: "฿",
+      VND: "₫",
+      IDR: "Rp",
+      MYR: "RM",
+      PHP: "₱",
+      SGD: "S$",
+      HKD: "HK$",
+      NZD: "NZ$",
+      ZAR: "R",
+      NGN: "₦",
+      GHS: "₵",
+      KES: "KSh",
+      EGP: "E£",
+      MAD: "DH",
+      TND: "DT",
+      DZD: "DA",
+      LBP: "ل.ل",
+      JOD: "JD",
+      IQD: "ع.د",
+      BHD: "BD",
+      KWD: "KD",
+      QAR: "QR",
+      SAR: "SR",
+      AED: "DH",
+      OMR: "RO",
+    };
+    return symbols[currency] || currency + " ";
+  };
+
+  // Get display currency for metrics
+  const displayCurrency =
+    selectedCurrency === "all"
+      ? filteredTransactions[0]?.currency || "USD"
+      : selectedCurrency;
+
+  const metricCards: MetricCardProps[] = [
     {
       title: t("metrics.totalIncome"),
-      value: `$${metrics.totalIncome.toFixed(2)}`,
-      change: 12.5, // TODO: Calculate actual change
+      value: `${getCurrencySymbol(displayCurrency)}${metrics.totalIncome.toFixed(2)}`,
+      change: metrics.changes.income,
       icon: <TrendingUp className="w-5 h-5" />,
       color: "text-green-600 bg-green-50 border-green-200",
+      index: 0,
+      currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
       title: t("metrics.totalExpense"),
-      value: `$${metrics.totalExpense.toFixed(2)}`,
-      change: -8.3, // TODO: Calculate actual change
+      value: `${getCurrencySymbol(displayCurrency)}${metrics.totalExpense.toFixed(2)}`,
+      change: metrics.changes.expense,
       icon: <TrendingDown className="w-5 h-5" />,
       color: "text-red-600 bg-red-50 border-red-200",
+      index: 1,
+      currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
       title: t("metrics.netBalance"),
-      value: `$${metrics.netBalance.toFixed(2)}`,
-      change: 15.2, // TODO: Calculate actual change
+      value: `${getCurrencySymbol(displayCurrency)}${metrics.netBalance.toFixed(2)}`,
+      change: metrics.changes.netBalance,
       icon: <DollarSign className="w-5 h-5" />,
       color:
         metrics.netBalance >= 0
           ? "text-blue-600 bg-blue-50 border-blue-200"
           : "text-red-600 bg-red-50 border-red-200",
+      index: 2,
+      currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
       title: t("metrics.averageTransaction"),
-      value: `$${metrics.averageTransaction.toFixed(2)}`,
-      change: 2.1, // TODO: Calculate actual change
+      value: `${getCurrencySymbol(displayCurrency)}${metrics.averageTransaction.toFixed(2)}`,
+      change: metrics.changes.averageTransaction,
       icon: <CreditCard className="w-5 h-5" />,
       color: "text-purple-600 bg-purple-50 border-purple-200",
+      index: 3,
+      currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
   ];
 
@@ -228,6 +383,43 @@ export function Metrics() {
     );
   }
 
+  // Check if multiple currencies are detected
+  if (selectedCurrency === "all" && availableCurrencies.length > 1) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+              {t("metrics.title")}
+            </h1>
+            <p className="text-[var(--text-secondary)] mt-1">
+              {t("metrics.description")}
+            </p>
+          </div>
+
+          {/* Filters */}
+          <FilterBar
+            selectedPeriod={selectedPeriod}
+            selectedCurrency={selectedCurrency}
+            availableCurrencies={availableCurrencies}
+            onPeriodChange={setSelectedPeriod}
+            onCurrencyChange={setSelectedCurrency}
+          />
+        </div>
+
+        {/* Currency Comparison */}
+        <div>
+          <CurrencyComparison
+            transactions={filteredTransactions}
+            selectedPeriod={selectedPeriod}
+            getCurrencySymbol={getCurrencySymbol}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -241,66 +433,45 @@ export function Metrics() {
           </p>
         </div>
 
-        {/* Period Selector */}
-        <div className="flex gap-2">
-          {[
-            { value: "30", label: t("metrics.last30Days") },
-            { value: "90", label: t("metrics.last90Days") },
-            { value: "365", label: t("metrics.lastYear") },
-          ].map((period) => (
-            <button
-              key={period.value}
-              onClick={() =>
-                setSelectedPeriod(period.value as "30" | "90" | "365")
-              }
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === period.value
-                  ? "bg-[var(--primary)] text-white"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
-              }`}
-            >
-              {period.label}
-            </button>
-          ))}
-        </div>
+        {/* Filters */}
+        <FilterBar
+          selectedPeriod={selectedPeriod}
+          selectedCurrency={selectedCurrency}
+          availableCurrencies={availableCurrencies}
+          onPeriodChange={setSelectedPeriod}
+          onCurrencyChange={setSelectedCurrency}
+        />
       </div>
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metricCards.map((card, index) => (
-          <div key={index} className={`p-4 rounded-lg border ${card.color}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium opacity-80">{card.title}</p>
-                <p className="text-2xl font-bold mt-1">{card.value}</p>
-                <div className="flex items-center mt-2 text-sm">
-                  {card.change >= 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
-                  )}
-                  <span>{Math.abs(card.change)}%</span>
-                </div>
-              </div>
-              <div className="p-2 rounded-lg bg-white/20">{card.icon}</div>
-            </div>
-          </div>
+          <MetricCard
+            key={index}
+            title={card.title}
+            value={card.value}
+            change={card.change}
+            icon={card.icon}
+            color={card.color}
+            index={index}
+            currency={card.currency}
+          />
         ))}
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Trend Chart */}
-        <div className="bg-[var(--bg-secondary)] p-6 rounded-lg">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+        <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
             {t("metrics.monthlyTrend")}
           </h2>
           <MonthlyTrendChart data={monthlyData} />
         </div>
 
         {/* Category Breakdown */}
-        <div className="bg-[var(--bg-secondary)] p-6 rounded-lg">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+        <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
             {t("metrics.categoryBreakdown")}
           </h2>
           <CategoryPieChart data={categoryData} />
@@ -308,55 +479,17 @@ export function Metrics() {
       </div>
 
       {/* Top Insights */}
-      <div className="bg-[var(--bg-secondary)] p-6 rounded-lg">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-          <PiggyBank className="w-5 h-5" />
-          {t("metrics.insights")}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-[var(--bg-tertiary)] rounded-lg">
-            <p className="text-sm text-[var(--text-secondary)] mb-1">
-              {t("metrics.topSpendingCategory")}
-            </p>
-            <p className="text-lg font-semibold text-[var(--text-primary)]">
-              {metrics.topCategory
-                ? t(`categories.${metrics.topCategory.name}`)
-                : t("metrics.noData")}
-            </p>
-            {metrics.topCategory && (
-              <p className="text-sm text-[var(--text-secondary)]">
-                ${metrics.topCategory.amount.toFixed(2)}
-              </p>
-            )}
-          </div>
-
-          <div className="p-4 bg-[var(--bg-tertiary)] rounded-lg">
-            <p className="text-sm text-[var(--text-secondary)] mb-1">
-              {t("metrics.totalTransactions")}
-            </p>
-            <p className="text-lg font-semibold text-[var(--text-primary)]">
-              {metrics.transactionCount}
-            </p>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {t("metrics.inLastPeriod", { days: selectedPeriod })}
-            </p>
-          </div>
-
-          <div className="p-4 bg-[var(--bg-tertiary)] rounded-lg">
-            <p className="text-sm text-[var(--text-secondary)] mb-1">
-              {t("metrics.savingsRate")}
-            </p>
-            <p className="text-lg font-semibold text-[var(--text-primary)]">
-              {metrics.totalIncome > 0
-                ? `${(((metrics.totalIncome - metrics.totalExpense) / metrics.totalIncome) * 100).toFixed(1)}%`
-                : "0%"}
-            </p>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {t("metrics.ofIncome")}
-            </p>
-          </div>
-        </div>
-      </div>
+      <InsightsSection
+        data={{
+          topCategory: metrics.topCategory,
+          transactionCount: metrics.transactionCount,
+          totalIncome: metrics.totalIncome,
+          totalExpense: metrics.totalExpense,
+        }}
+        selectedPeriod={selectedPeriod}
+        getCurrencySymbol={getCurrencySymbol}
+        displayCurrency={displayCurrency}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { InsufficientData } from "../ui/InsufficientData";
 
 interface MonthlyData {
   month: string;
@@ -32,6 +33,10 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
         </div>
       </div>
     );
+  }
+
+  if (data.length < 2) {
+    return <InsufficientData />;
   }
 
   return (
@@ -76,28 +81,40 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           }}
         />
         <Line
+          key={`income-${data.length}-${data.map((d) => d.income).join("-")}`}
           type="monotone"
           dataKey="income"
           stroke="#10b981"
           strokeWidth={2}
           dot={{ fill: "#10b981", r: 4 }}
           activeDot={{ r: 6 }}
+          animationBegin={0}
+          animationDuration={500}
+          animationEasing="ease-out"
         />
         <Line
+          key={`expense-${data.length}-${data.map((d) => d.expense).join("-")}`}
           type="monotone"
           dataKey="expense"
           stroke="#ef4444"
           strokeWidth={2}
           dot={{ fill: "#ef4444", r: 4 }}
           activeDot={{ r: 6 }}
+          animationBegin={0}
+          animationDuration={500}
+          animationEasing="ease-out"
         />
         <Line
+          key={`net-${data.length}-${data.map((d) => d.net).join("-")}`}
           type="monotone"
           dataKey="net"
           stroke="#3b82f6"
           strokeWidth={2}
           dot={{ fill: "#3b82f6", r: 4 }}
           activeDot={{ r: 6 }}
+          animationBegin={0}
+          animationDuration={500}
+          animationEasing="ease-out"
         />
       </LineChart>
     </ResponsiveContainer>
