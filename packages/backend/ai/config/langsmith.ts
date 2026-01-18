@@ -13,7 +13,7 @@ if (process.env.LANGSMITH_TRACING) {
     const projectName = process.env.LANGSMITH_PROJECT?.replace(/['"]/g, '') || 'My First App';
     process.env.LANGCHAIN_PROJECT = projectName;
     process.env.LANGSMITH_PROJECT = projectName; // Also set the normalized version
-    
+
     console.log('[LangSmith] Tracing enabled for project:', projectName);
     console.log('[LangSmith] Workspace ID:', process.env.LANGSMITH_WORKSPACE_ID);
 }
