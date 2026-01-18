@@ -123,15 +123,15 @@ Sección 2: Objetivos generales
 
 async function testPdfExtraction() {
     console.log('🧪 Iniciando pruebas de extracción de PDFs...\n');
-    console.log('=' .repeat(80));
+    console.log('='.repeat(80));
 
     // Test 1: Email con PDF de factura
     console.log('\n📄 Test 1: Email con PDF de factura (MercadoLibre)');
-    console.log('-' .repeat(80));
+    console.log('-'.repeat(80));
     try {
         const result1 = await extractTransactionFromEmail(emailWithPdfContent);
         console.log('Resultado:', JSON.stringify(result1, null, 2));
-        
+
         if (result1.success && 'amount' in result1.data!) {
             console.log('✅ ÉXITO: Transacción extraída del PDF');
             console.log(`   Monto: ${result1.data.amount} ${result1.data.currency}`);
@@ -146,11 +146,11 @@ async function testPdfExtraction() {
 
     // Test 2: Email sin PDF
     console.log('\n\n📧 Test 2: Email simple sin PDF (Netflix)');
-    console.log('-' .repeat(80));
+    console.log('-'.repeat(80));
     try {
         const result2 = await extractTransactionFromEmail(emailWithoutPdf);
         console.log('Resultado:', JSON.stringify(result2, null, 2));
-        
+
         if (result2.success && 'amount' in result2.data!) {
             console.log('✅ ÉXITO: Transacción extraída del email');
             console.log(`   Monto: ${result2.data.amount} ${result2.data.currency}`);
@@ -164,12 +164,12 @@ async function testPdfExtraction() {
 
     // Test 3: Email con múltiples PDFs
     console.log('\n\n📑 Test 3: Email con múltiples PDFs (Banco Galicia)');
-    console.log('-' .repeat(80));
+    console.log('-'.repeat(80));
     console.log('Nota: El agente debería detectar la primera transacción más relevante');
     try {
         const result3 = await extractTransactionFromEmail(emailWithMultiplePdfs);
         console.log('Resultado:', JSON.stringify(result3, null, 2));
-        
+
         if (result3.success && 'amount' in result3.data!) {
             console.log('✅ ÉXITO: Transacción extraída de los PDFs');
             console.log(`   Monto: ${result3.data.amount} ${result3.data.currency}`);
@@ -184,11 +184,11 @@ async function testPdfExtraction() {
 
     // Test 4: PDF sin contenido financiero
     console.log('\n\n📄 Test 4: PDF sin información financiera');
-    console.log('-' .repeat(80));
+    console.log('-'.repeat(80));
     try {
         const result4 = await extractTransactionFromEmail(emailWithInvalidPdf);
         console.log('Resultado:', JSON.stringify(result4, null, 2));
-        
+
         if (result4.success && 'amount' in result4.data!) {
             console.log('⚠️  ATENCIÓN: Se extrajo una transacción (no debería)');
             console.log(`   Monto: ${result4.data.amount} ${result4.data.currency}`);
@@ -203,9 +203,9 @@ async function testPdfExtraction() {
     }
 
     // Resumen
-    console.log('\n\n' + '=' .repeat(80));
+    console.log('\n\n' + '='.repeat(80));
     console.log('📊 Resumen de pruebas completado');
-    console.log('=' .repeat(80));
+    console.log('='.repeat(80));
     console.log('\nVerifica los resultados en LangSmith:');
     console.log('   https://smith.langchain.com/');
     console.log('   Proyecto: Money Tracker');

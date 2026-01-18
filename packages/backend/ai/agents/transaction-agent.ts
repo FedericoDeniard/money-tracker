@@ -1,7 +1,7 @@
-import { generateText, Output } from '../wrapped-ai';
-import { aiModel } from '../index';
+import { generateText, Output, type LangSmithOptions } from '../wrapped-ai';
+import { aiModel, getModelName } from '../index';
 import { TransactionSchema } from '../types/schemas';
-import { EMAIL_EXTRACTION_PROMPT } from '../prompts/email-extraction';
+import { EMAIL_EXTRACTION_SYSTEM } from '../prompts/email-extraction';
 import { z } from 'zod';
 import { gmailLogger } from '../../src/config/logger';
 
@@ -21,22 +21,36 @@ export type TransactionResponse = z.infer<typeof TransactionResponseSchema>;
 
 export async function extractTransactionFromEmail(emailContent: string, userFullName?: string) {
     try {
-        let prompt = EMAIL_EXTRACTION_PROMPT.replace('{emailContent}', emailContent);
+        // Construir el prompt dinámico con el contenido del email y contexto del usuario
+        let dynamicPrompt = '';
 
         // Agregar contexto del usuario si está disponible
         if (userFullName) {
-            prompt = prompt.replace('{userContext}', `\n\nIMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).`);
-        } else {
-            prompt = prompt.replace('{userContext}', '');
+            dynamicPrompt += `IMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).\n\n`;
         }
+
+        // Agregar el contenido del email
+        dynamicPrompt += `Email to analyze:\n${emailContent}`;
+
+        const langsmithOptions: LangSmithOptions = {
+            tags: [getModelName(aiModel), 'extract-transaction'],
+            metadata: {
+                model: getModelName(aiModel),
+                hasUserContext: !!userFullName,
+            }
+        };
 
         const { output } = await generateText({
             model: aiModel,
-            prompt: prompt,
+            system: EMAIL_EXTRACTION_SYSTEM, // Parte estática - permite input caching
+            prompt: dynamicPrompt,            // Parte dinámica - varía en cada llamada
             temperature: 0.1,
             output: Output.object({
                 schema: TransactionResponseSchema,
             }),
+            providerOptions: {
+                langsmith: langsmithOptions
+            }
         });
 
         if (output.hasTransaction) {
@@ -54,10 +68,11 @@ export async function extractTransactionFromEmail(emailContent: string, userFull
                 };
             }
 
-            // Ensure merchant is never null
+            // Clean up the data: convert null to undefined for optional fields
             const transactionData = {
                 ...output.data,
-                merchant: output.data.merchant || 'Unknown'
+                merchant: output.data.merchant || 'Unknown',
+                date: output.data.date || undefined, // Remove null, keep only string or undefined
             };
             return { success: true, data: transactionData };
         }
