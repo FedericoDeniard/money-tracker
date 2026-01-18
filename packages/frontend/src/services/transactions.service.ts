@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface Transaction {
   id: string;
+  user_id: string; // User who owns this transaction
   user_oauth_token_id: string | null; // Reference to which Gmail account received this
   source_email: string;
   source_message_id: string;

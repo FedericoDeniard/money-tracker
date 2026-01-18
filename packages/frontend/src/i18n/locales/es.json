@@ -101,7 +101,9 @@
     "startDate": "Fecha Inicio",
     "endDate": "Fecha Fin",
     "apply": "Aplicar",
-    "customRange": "Rango Personalizado"
+    "customRange": "Rango Personalizado",
+    "newIncomeReceived": "💰 Nuevo Ingreso Recibido",
+    "newExpenseReceived": "💸 Nuevo Gasto Registrado"
   },
   "metrics": {
     "title": "Métricas Financieras",

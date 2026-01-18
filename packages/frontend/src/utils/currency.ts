@@ -59,3 +59,8 @@ export const getCurrencySymbol = (currency: string): string => {
 
     return symbols[currency] || currency + " ";
 };
+
+export const formatCurrency = (amount: number, currency: string): string => {
+    const symbol = getCurrencySymbol(currency);
+    return `${symbol}${amount.toFixed(2)}`;
+};
