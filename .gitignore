@@ -32,7 +32,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
-*.pdf
 
+# Test files and assets
+*.pdf
 *.traineddata
 *.png
+*.jpg

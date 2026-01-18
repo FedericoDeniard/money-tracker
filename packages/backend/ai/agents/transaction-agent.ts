@@ -1,4 +1,4 @@
-import { generateText, Output } from 'ai';
+import { generateText, Output } from '../wrapped-ai';
 import { aiModel } from '../index';
 import { TransactionSchema } from '../types/schemas';
 import { EMAIL_EXTRACTION_PROMPT } from '../prompts/email-extraction';
@@ -22,7 +22,7 @@ export type TransactionResponse = z.infer<typeof TransactionResponseSchema>;
 export async function extractTransactionFromEmail(emailContent: string, userFullName?: string) {
     try {
         let prompt = EMAIL_EXTRACTION_PROMPT.replace('{emailContent}', emailContent);
-        
+
         // Agregar contexto del usuario si está disponible
         if (userFullName) {
             prompt = prompt.replace('{userContext}', `\n\nIMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).`);
