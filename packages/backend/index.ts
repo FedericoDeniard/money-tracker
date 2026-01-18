@@ -69,7 +69,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -746,6 +746,8 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(3001, () =>
-  apiLogger.info("Servidor backend corriendo en http://localhost:3001"),
+const PORT = Number(process.env.PORT) || 3001;
+
+app.listen(PORT, '0.0.0.0', () =>
+  apiLogger.info(`Servidor backend corriendo en puerto ${PORT}`),
 );
