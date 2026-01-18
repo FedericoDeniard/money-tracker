@@ -88,7 +88,15 @@
     "receipt": "Recibo",
     "noAccountsConnected": "No tienes cuentas de Gmail conectadas",
     "noAccountsDescription": "No recibirás nuevas transacciones automáticamente. Conecta una cuenta de Gmail en la configuración para empezar a recibir notificaciones.",
-    "connectAccount": "Ir a Configuración →"
+    "connectAccount": "Ir a Configuración →",
+    "filters": "Filtros",
+    "clearFilters": "Limpiar Filtros",
+    "currency": "Moneda",
+    "email": "Cuenta de Email",
+    "allCurrencies": "Todas las Monedas",
+    "allEmails": "Todas las Cuentas",
+    "allCategories": "Todas las Categorías",
+    "allTypes": "Todos los Tipos"
   },
   "metrics": {
     "title": "Métricas Financieras",

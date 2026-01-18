@@ -88,7 +88,15 @@
     "receipt": "Receipt",
     "noAccountsConnected": "No Gmail accounts connected",
     "noAccountsDescription": "You won't receive new transactions automatically. Connect a Gmail account in settings to start receiving notifications.",
-    "connectAccount": "Go to Settings →"
+    "connectAccount": "Go to Settings →",
+    "filters": "Filters",
+    "clearFilters": "Clear Filters",
+    "currency": "Currency",
+    "email": "Email Account",
+    "allCurrencies": "All Currencies",
+    "allEmails": "All Accounts",
+    "allCategories": "All Categories",
+    "allTypes": "All Types"
   },
   "metrics": {
     "title": "Financial Metrics",
