@@ -16,7 +16,8 @@
     "copied": "Copiado",
     "or": "o",
     "userId": "ID de Usuario",
-    "note": "Nota"
+    "note": "Nota",
+    "refresh": "Actualizar"
   },
   "navigation": {
     "dashboard": "Panel Principal",

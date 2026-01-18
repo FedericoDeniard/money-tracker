@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Receipt, AlertCircle } from "lucide-react";
+import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { getSupabase } from "../lib/supabase";
 import {
   createTransactionsService,
@@ -215,11 +215,21 @@ export function Transactions() {
         {/* Transaction List */}
         <div className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? 'hidden' : 'block'}`}>
           <div className="p-4 border-b border-[var(--text-secondary)]/20">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <Receipt size={20} />
-              {t("navigation.transactions")} ({transactions?.length || 0})
-              {loading && <LoadingSpinner size="sm" className="ml-2" />}
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                <Receipt size={20} />
+                {t("navigation.transactions")} ({transactions?.length || 0})
+                {loading && <LoadingSpinner size="sm" className="ml-2" />}
+              </h2>
+              <button
+                onClick={loadTransactions}
+                disabled={loading}
+                className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={t("common.refresh") || "Actualizar"}
+              >
+                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+              </button>
+            </div>
           </div>
           <div className="overflow-y-auto flex-1 p-4">
             <TransactionList
