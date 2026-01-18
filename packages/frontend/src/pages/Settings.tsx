@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { gmailService, type GmailStatus } from "../services/gmail.service";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 export function Settings() {
   const { user } = useAuth();
@@ -19,6 +20,11 @@ export function Settings() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [disconnectModal, setDisconnectModal] = useState<{
+    isOpen: boolean;
+    connectionId: string;
+    email: string;
+  }>({ isOpen: false, connectionId: '', email: '' });
 
   useEffect(() => {
     const success = searchParams.get('success');
@@ -91,12 +97,16 @@ export function Settings() {
   };
 
   const handleDisconnectEmail = async (connectionId: string, email: string) => {
-    if (!confirm(t("settings.confirmDisconnectEmail", { email }))) {
-      return;
-    }
+    setDisconnectModal({ isOpen: true, connectionId, email });
+  };
+
+  const confirmDisconnect = async () => {
+    const { connectionId } = disconnectModal;
 
     try {
       setIsDisconnecting(connectionId);
+      setDisconnectModal({ isOpen: false, connectionId: '', email: '' });
+      
       const result = await gmailService.disconnectGmail(connectionId);
 
       if (result.success) {
@@ -334,6 +344,17 @@ export function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Disconnect Gmail Confirmation Modal */}
+      <ConfirmModal
+        isOpen={disconnectModal.isOpen}
+        onClose={() => setDisconnectModal({ isOpen: false, connectionId: '', email: '' })}
+        onConfirm={confirmDisconnect}
+        title={t("settings.disconnectGmail")}
+        message={t("settings.confirmDisconnectEmail", { email: disconnectModal.email })}
+        confirmText={t("settings.disconnect")}
+        isDestructive
+      />
     </div>
   );
 }
