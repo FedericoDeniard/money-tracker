@@ -723,8 +723,20 @@ app.post("/webhook", async (req, res) => {
     });
     // gmailLogger.debug("Contenido", { bodyText: bodyText.substring(0, 200) + "..." }); // Debug only
 
-    // Extraer transacción usando IA (con contenido completo: email + PDFs + imágenes)
-    const aiResult = await extractTransactionFromEmail(fullContent);
+    // Obtener nombre completo del primer usuario válido para contexto
+    let userFullName: string | undefined;
+    if (validTokens.length > 0) {
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
+        validTokens[0].user_id
+      );
+      if (!userError && userData?.user?.user_metadata?.full_name) {
+        userFullName = userData.user.user_metadata.full_name;
+        gmailLogger.info('User context for AI', { userFullName });
+      }
+    }
+
+    // Extraer transacción usando IA (con contenido completo: email + PDFs + imágenes + contexto de usuario)
+    const aiResult = await extractTransactionFromEmail(fullContent, userFullName);
 
     if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
       // Es una transacción válida - guardar en la base de datos
