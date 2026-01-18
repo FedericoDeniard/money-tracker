@@ -1,6 +1,9 @@
 export const EMAIL_EXTRACTION_PROMPT = `
 You are a financial transaction extraction agent. Your task is to analyze email content and extract financial transaction information.
 
+The email content may include text extracted from PDF attachments (marked with "--- PDF ATTACHMENT ---").
+Analyze both the email body and any PDF content for transaction information. PDFs often contain receipts, invoices, or payment confirmations with detailed transaction data.
+
 Instructions:
 1. Look for any mention of money, payments, purchases, deposits, or transfers
 2. Extract the amount, currency, type (income/expense), and description
