@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../hooks/useAuth";
 import { gmailService } from "../services/gmail.service";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 export function Transactions() {
   const { t } = useTranslation();
@@ -101,6 +102,50 @@ export function Transactions() {
     checkConnections();
   }, [user?.id]);
 
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      const supabase = await getSupabase();
+      const service = createTransactionsService(supabase);
+      await service.deleteTransaction(id);
+      
+      // Refresh transactions list
+      await loadTransactions();
+      
+      // Clear selection if the deleted transaction was selected
+      if (selectedTransaction?.id === id) {
+        setSelectedTransaction(null);
+      }
+      
+      toast.success(t("transactions.deleteSuccess"));
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error(t("transactions.deleteError"));
+      throw error;
+    }
+  };
+
+  const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    try {
+      const supabase = await getSupabase();
+      const service = createTransactionsService(supabase);
+      await service.updateTransaction(id, updates);
+      
+      // Refresh transactions list
+      await loadTransactions();
+      
+      // Update selected transaction
+      if (selectedTransaction?.id === id) {
+        setSelectedTransaction({ ...selectedTransaction, ...updates });
+      }
+      
+      toast.success(t("transactions.updateSuccess"));
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast.error(t("transactions.updateError"));
+      throw error;
+    }
+  };
+
   if (loadingFilters) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -185,7 +230,11 @@ export function Transactions() {
         {/* Transaction Detail */}
         <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
           {selectedTransaction ? (
-            <TransactionDetail transaction={selectedTransaction} />
+            <TransactionDetail 
+              transaction={selectedTransaction} 
+              onDelete={handleDeleteTransaction}
+              onUpdate={handleUpdateTransaction}
+            />
           ) : (
             <div className="h-full flex items-center justify-center text-[var(--text-secondary)]">
               <div className="text-center">
