@@ -1,7 +1,6 @@
 import {
   Check,
   Copy,
-  ExternalLink,
   Download,
   AlertCircle,
   ArrowDown,
