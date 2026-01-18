@@ -13,6 +13,7 @@ import {
   CurrencyComparison,
   type MetricCardProps,
 } from "../components/metrics";
+import { getCurrencySymbol } from "../utils/currency";
 
 interface CategoryData {
   category: string;
@@ -251,68 +252,6 @@ export function Metrics() {
       }))
       .sort((a, b) => b.amount - a.amount);
   }, [filteredTransactions, metrics.totalExpense]);
-
-  // Get currency symbol for display
-  const getCurrencySymbol = (currency: string): string => {
-    const symbols: Record<string, string> = {
-      USD: "$",
-      EUR: "€",
-      GBP: "£",
-      JPY: "¥",
-      CNY: "¥",
-      INR: "₹",
-      AUD: "A$",
-      CAD: "C$",
-      CHF: "CHF",
-      SEK: "kr",
-      NOK: "kr",
-      DKK: "kr",
-      PLN: "zł",
-      CZK: "Kč",
-      HUF: "Ft",
-      RON: "lei",
-      BGN: "лв",
-      HRK: "kn",
-      RUB: "₽",
-      TRY: "₺",
-      MXN: "$",
-      ARS: "$",
-      CLP: "$",
-      COP: "$",
-      PEN: "S/",
-      UYU: "$",
-      BOB: "Bs",
-      PYG: "₲",
-      ILS: "₪",
-      KRW: "₩",
-      THB: "฿",
-      VND: "₫",
-      IDR: "Rp",
-      MYR: "RM",
-      PHP: "₱",
-      SGD: "S$",
-      HKD: "HK$",
-      NZD: "NZ$",
-      ZAR: "R",
-      NGN: "₦",
-      GHS: "₵",
-      KES: "KSh",
-      EGP: "E£",
-      MAD: "DH",
-      TND: "DT",
-      DZD: "DA",
-      LBP: "ل.ل",
-      JOD: "JD",
-      IQD: "ع.د",
-      BHD: "BD",
-      KWD: "KD",
-      QAR: "QR",
-      SAR: "SR",
-      AED: "DH",
-      OMR: "RO",
-    };
-    return symbols[currency] || currency + " ";
-  };
 
   // Get display currency for metrics
   const displayCurrency =

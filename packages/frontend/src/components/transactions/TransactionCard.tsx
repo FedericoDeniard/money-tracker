@@ -6,6 +6,7 @@ import { useFormatDate } from "../../hooks/useFormatDate";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
 import { gmailService } from "../../services/gmail.service";
+import { getCurrencySymbol } from "../../utils/currency";
 import { useEffect, useState } from "react";
 
 interface TransactionCardProps {
@@ -85,7 +86,16 @@ export function TransactionCard({
         {/* Amount */}
         <div className="text-right shrink-0">
           <span className={`text-lg font-bold block ${colorClass}`}>
-            {sign}${transaction.amount}
+            {sign}
+            {getCurrencySymbol(transaction.currency)}
+            {transaction.amount}
+          </span>
+          <span
+            className={`text-xs block ${
+              isSelected ? "text-gray-300" : "text-gray-400"
+            }`}
+          >
+            {transaction.currency}
           </span>
         </div>
       </div>
