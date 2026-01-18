@@ -331,12 +331,6 @@ export function Settings() {
                 {user?.email}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-[var(--text-secondary)]">
-                <span className="font-medium">{t("common.userId")}:</span>{" "}
-                {user?.id}
-              </p>
-            </div>
           </div>
         </div>
       </div>
