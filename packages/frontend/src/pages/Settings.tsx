@@ -9,7 +9,7 @@ import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 export function Settings() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -83,9 +83,12 @@ export function Settings() {
       return;
     }
 
+    // Disable the button immediately to prevent double clicks
+    setIsConnecting(true);
+
     try {
-      setIsConnecting(true);
       await gmailService.connectGmail();
+      // Note: user will be redirected, so setIsConnecting(false) won't be called
     } catch (error) {
       console.error("Error connecting Gmail:", error);
       setNotification({
@@ -95,6 +98,12 @@ export function Settings() {
       setIsConnecting(false);
     }
   };
+
+  // Check if the button should be enabled
+  // - Not loading auth state
+  // - User is authenticated
+  // - Not currently connecting
+  const isConnectButtonEnabled = !loading && !!user?.id && !isConnecting;
 
   const handleDisconnectEmail = async (connectionId: string, email: string) => {
     setDisconnectModal({ isOpen: true, connectionId, email });
@@ -257,7 +266,7 @@ export function Settings() {
                       <Button
                         variant="primary"
                         icon={
-                          isConnecting ? (
+                          isConnecting || loading ? (
                             <Loader2 className="animate-spin" size={20} />
                           ) : (
                             <Mail size={20} />
@@ -265,9 +274,11 @@ export function Settings() {
                         }
                         iconPosition="left"
                         onClick={handleConnectEmail}
-                        disabled={isConnecting}
+                        disabled={!isConnectButtonEnabled}
                       >
-                        {isConnecting
+                        {loading
+                          ? t("common.loading")
+                          : isConnecting
                           ? t("settings.connecting")
                           : t("settings.addAnotherAccount")}
                       </Button>
@@ -281,7 +292,7 @@ export function Settings() {
                     <Button
                       variant="primary"
                       icon={
-                        isConnecting ? (
+                        isConnecting || loading ? (
                           <Loader2 className="animate-spin" size={20} />
                         ) : (
                           <Mail size={20} />
@@ -289,9 +300,11 @@ export function Settings() {
                       }
                       iconPosition="left"
                       onClick={handleConnectEmail}
-                      disabled={isConnecting}
+                      disabled={!isConnectButtonEnabled}
                     >
-                      {isConnecting
+                      {loading
+                        ? t("common.loading")
+                        : isConnecting
                         ? t("settings.connecting")
                         : t("settings.connectGmail")}
                     </Button>
