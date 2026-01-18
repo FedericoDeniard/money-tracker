@@ -170,6 +170,7 @@ app.delete("/gmail-disconnect/:connectionId", requireAuth, async (req: AuthReque
       .from("user_oauth_tokens")
       .select("id")
       .eq("gmail_email", tokenData.gmail_email)
+      .eq("is_active", true) // Only count active tokens
       .neq("id", connectionId);
 
     const hasOtherUsers = otherTokens && otherTokens.length > 0;
@@ -202,17 +203,23 @@ app.delete("/gmail-disconnect/:connectionId", requireAuth, async (req: AuthReque
         .eq("user_id", tokenData.user_id);
     }
 
-    // Delete the OAuth token for this user
-    const { error: tokenError } = await supabase
+    // Soft delete: Mark token as inactive instead of deleting it
+    // This preserves transaction history and allows reactivation
+    const { error: updateError } = await supabase
       .from("user_oauth_tokens")
-      .delete()
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", connectionId)
       .eq("user_id", userId); // ✅ Double-check ownership
 
-    if (tokenError) {
-      console.error("Error deleting token:", tokenError);
+    if (updateError) {
+      console.error("Error deactivating token:", updateError);
       return res.status(500).json({ error: "Failed to disconnect Gmail" });
     }
+
+    console.log(`✓ Token deactivated for user ${userId}, transactions preserved`);
 
     return res.json({
       success: true,
@@ -292,11 +299,40 @@ app.get("/auth/callback", async (req, res) => {
       ? await encryptToken(tokens.refresh_token)
       : null;
 
-    // Save encrypted tokens to database
-    const { error: tokenError } = await supabase
+    // Check if this user already has a token for this Gmail account (active or inactive)
+    const { data: existingToken } = await supabase
       .from("user_oauth_tokens")
-      .upsert(
-        {
+      .select("id, is_active")
+      .eq("user_id", userId)
+      .eq("gmail_email", gmailEmail)
+      .maybeSingle();
+
+    if (existingToken) {
+      // Reactivate and update existing token
+      const { error: updateError } = await supabase
+        .from("user_oauth_tokens")
+        .update({
+          access_token_encrypted: encryptedAccessToken,
+          refresh_token_encrypted: encryptedRefreshToken,
+          token_type: tokens.token_type || "Bearer",
+          expires_at: expiresAt,
+          scope: tokens.scope || null,
+          is_active: true, // Reactivate if it was inactive
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingToken.id);
+
+      if (updateError) {
+        console.error("Error updating token:", updateError);
+        throw updateError;
+      }
+
+      console.log(`✓ Reactivated existing token for ${gmailEmail}`);
+    } else {
+      // Create new token
+      const { error: insertError } = await supabase
+        .from("user_oauth_tokens")
+        .insert({
           user_id: userId,
           access_token_encrypted: encryptedAccessToken,
           refresh_token_encrypted: encryptedRefreshToken,
@@ -304,16 +340,15 @@ app.get("/auth/callback", async (req, res) => {
           expires_at: expiresAt,
           scope: tokens.scope || null,
           gmail_email: gmailEmail,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id,gmail_email",
-        },
-      );
+          is_active: true,
+        });
 
-    if (tokenError) {
-      console.error("Error saving tokens:", tokenError);
-      throw tokenError;
+      if (insertError) {
+        console.error("Error saving tokens:", insertError);
+        throw insertError;
+      }
+
+      console.log(`✓ Created new token for ${gmailEmail}`);
     }
 
     // Set up Gmail watch
@@ -408,14 +443,15 @@ app.post("/webhook", async (req, res) => {
     const { data: allTokens, error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .select("*")
-      .eq("gmail_email", gmailEmail);
+      .eq("gmail_email", gmailEmail)
+      .eq("is_active", true); // Only process active tokens
 
     if (tokenError || !allTokens || allTokens.length === 0) {
-      console.error("No se encontraron tokens para:", gmailEmail);
+      console.error("No se encontraron tokens activos para:", gmailEmail);
       return res.sendStatus(200);
     }
 
-    console.log(`📊 Encontrados ${allTokens.length} token(s) para ${gmailEmail}`);
+    console.log(`📊 Encontrados ${allTokens.length} token(s) activo(s) para ${gmailEmail}`);
 
     // Verify which tokens are valid
     const validTokens = [];

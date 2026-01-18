@@ -30,6 +30,7 @@ export const gmailService = {
       .from('user_oauth_tokens')
       .select('id, gmail_email, created_at, expires_at')
       .eq('user_id', userId)
+      .eq('is_active', true) // Only show active connections
       .order('created_at', { ascending: false });
 
     if (error) {
