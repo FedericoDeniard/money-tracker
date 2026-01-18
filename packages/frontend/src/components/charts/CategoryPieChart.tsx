@@ -5,8 +5,9 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
-} from 'recharts';
-import { useTranslation } from 'react-i18next';
+} from "recharts";
+import type { PieLabelRenderProps, LegendPayload } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface CategoryData {
   category: string;
@@ -19,15 +20,22 @@ interface CategoryPieChartProps {
   data: CategoryData[];
 }
 
+interface ChartDataItem {
+  name: string;
+  value: number;
+  percentage: number;
+  [key: string]: string | number;
+}
+
 const COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f97316', // orange
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // purple
+  "#ec4899", // pink
+  "#14b8a6", // teal
+  "#f97316", // orange
 ];
 
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
@@ -43,7 +51,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     );
   }
 
-  const chartData = data.slice(0, 8).map(item => ({
+  const chartData: ChartDataItem[] = data.slice(0, 8).map((item) => ({
     name: t(`categories.${item.category}`),
     value: item.amount,
     percentage: item.percentage,
@@ -54,11 +62,9 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     payload,
   }: {
     active?: boolean;
-    payload?: Array<{
-      payload: { name: string; value: number; percentage: number };
-    }>;
+    payload?: Array<{ payload: ChartDataItem }>;
   }) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length > 0 && payload[0]) {
       const data = payload[0].payload;
       return (
         <div className="bg-[var(--bg-secondary)] border border-[var(--text-secondary)/20 rounded-lg p-3">
@@ -72,8 +78,10 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     return null;
   };
 
-  const renderCustomLabel = (entry: { percentage: number }) => {
-    return `${entry.percentage.toFixed(0)}%`;
+  const renderCustomLabel = (
+    props: PieLabelRenderProps & { percentage?: number },
+  ) => {
+    return props.percentage ? `${props.percentage.toFixed(0)}%` : "";
   };
 
   return (
@@ -99,9 +107,12 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
           align="right"
           layout="vertical"
           wrapperStyle={{ paddingLeft: "20px" }}
-          formatter={(value: string, entry: { payload: { value: number } }) => (
+          formatter={(value: string, entry: LegendPayload) => (
             <span style={{ color: "var(--text-primary)" }}>
-              {value} (${entry.payload.value.toFixed(2)})
+              {value}{" "}
+              {entry.payload && typeof entry.payload.value === "number"
+                ? `($${entry.payload.value.toFixed(2)})`
+                : ""}
             </span>
           )}
         />
