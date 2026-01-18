@@ -73,10 +73,17 @@ export const gmailService = {
     const supabase = await getSupabase();
 
     // Get the current session token
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
 
-    if (!session?.access_token) {
-      throw new Error('No active session');
+    if (error || !session?.access_token) {
+      throw new Error('No active session. Please refresh the page and try again.');
+    }
+
+    // Verify we can get the user
+    const { data: { user }, error: userError } = await supabase.auth.getUser(session.access_token);
+    
+    if (userError || !user) {
+      throw new Error('Could not get user. Please refresh the page and try again.');
     }
 
     // Redirect to auth endpoint with token in URL (will be used by backend)
