@@ -38,9 +38,9 @@ export async function extractTransactionFromEmail(emailContent: string) {
                 merchant: output.data.merchant || 'Unknown'
             };
             return { success: true, data: transactionData };
-        } else {
-            return { success: true, data: { reason: output.reason } };
         }
+
+        return { success: true, data: { reason: output.reason } };
     } catch (error) {
         console.error('Error in extractTransactionFromEmail:', error);
         return {
