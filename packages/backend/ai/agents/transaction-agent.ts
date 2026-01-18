@@ -1,4 +1,4 @@
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { aiModel } from '../index';
 import { TransactionSchema } from '../types/schemas';
 import { EMAIL_EXTRACTION_PROMPT } from '../prompts/email-extraction';
@@ -22,22 +22,24 @@ export async function extractTransactionFromEmail(emailContent: string) {
     try {
         const prompt = EMAIL_EXTRACTION_PROMPT.replace('{emailContent}', emailContent);
 
-        const { object } = await generateObject({
+        const { output } = await generateText({
             model: aiModel,
             prompt: prompt,
             temperature: 0.1,
-            schema: TransactionResponseSchema,
+            output: Output.object({
+                schema: TransactionResponseSchema,
+            }),
         });
 
-        if (object.hasTransaction) {
+        if (output.hasTransaction) {
             // Ensure merchant is never null
             const transactionData = {
-                ...object.data,
-                merchant: object.data.merchant || 'Unknown'
+                ...output.data,
+                merchant: output.data.merchant || 'Unknown'
             };
             return { success: true, data: transactionData };
         } else {
-            return { success: true, data: { reason: object.reason } };
+            return { success: true, data: { reason: output.reason } };
         }
     } catch (error) {
         console.error('Error in extractTransactionFromEmail:', error);
