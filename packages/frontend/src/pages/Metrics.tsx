@@ -318,7 +318,7 @@ export function Metrics() {
     return (
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">
               {t("metrics.title")}
@@ -353,7 +353,7 @@ export function Metrics() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             {t("metrics.title")}
@@ -374,7 +374,7 @@ export function Metrics() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {metricCards.map((card, index) => (
           <MetricCard
             key={index}
@@ -388,7 +388,7 @@ export function Metrics() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Monthly Trend Chart */}
         <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">

@@ -5,6 +5,7 @@ import {
   Trash2,
   ArrowDown,
   ArrowUp,
+  X,
 } from "lucide-react";
 import type { Transaction } from "../../services/transactions.service";
 import { getTransactionType } from "../../utils/transactionUtils";
@@ -19,9 +20,10 @@ interface TransactionDetailProps {
   transaction: Transaction;
   onDelete?: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Transaction>) => void;
+  onClose?: () => void;
 }
 
-export function TransactionDetail({ transaction, onDelete, onUpdate }: TransactionDetailProps) {
+export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: TransactionDetailProps) {
   const { t } = useTranslation();
   const { isIncome } = getTransactionType(transaction.transaction_type);
   const [copied, setCopied] = useState(false);
@@ -46,6 +48,7 @@ export function TransactionDetail({ transaction, onDelete, onUpdate }: Transacti
     try {
       await onDelete(transaction.id);
       setShowDeleteModal(false);
+      onClose?.();
     } catch (error) {
       console.error("Error deleting transaction:", error);
     } finally {
@@ -66,7 +69,17 @@ export function TransactionDetail({ transaction, onDelete, onUpdate }: Transacti
   );
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-3xl p-6 relative shadow-sm border border-gray-100">
+    <div className="h-full flex flex-col bg-white lg:rounded-3xl p-6 relative lg:shadow-sm lg:border border-gray-100">
+      {/* Mobile Close Button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="lg:hidden absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X size={20} />
+        </button>
+      )}
+
       {/* Header with Icon */}
       <div className="flex justify-center mb-6 mt-2">
         <div

@@ -68,7 +68,7 @@ export function TransactionFiltersComponent({
   }) => (
     <div className="relative group">
       <div
-        className={`flex items-center gap-2 px-3 py-1.5 bg-white border rounded-lg transition-all ${
+        className={`flex items-center gap-2 px-3 py-1.5 bg-white border rounded-lg transition-all w-full sm:w-auto justify-between sm:justify-start ${
           value && value !== "all"
             ? "border-[var(--primary)] text-[var(--primary)] bg-blue-50/50"
             : "border-gray-200 text-gray-700 hover:border-gray-300"
@@ -112,9 +112,9 @@ export function TransactionFiltersComponent({
       }`}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col xl:flex-row xl:items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Type Filter - Segmented Control Style */}
-          <div className="bg-gray-100/80 p-1 rounded-lg flex items-center self-start xl:self-auto">
+          <div className="bg-gray-100/80 p-1 rounded-lg flex items-center w-full lg:w-auto overflow-x-auto">
             {[
               {
                 id: "all",
@@ -138,7 +138,7 @@ export function TransactionFiltersComponent({
                   key={type.id}
                   onClick={() => updateFilter("type", type.id)}
                   className={`
-                    relative px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2
+                    relative flex-1 lg:flex-none px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap
                     ${
                       isActive
                         ? "bg-white text-[var(--text-primary)] shadow-sm"
@@ -178,47 +178,53 @@ export function TransactionFiltersComponent({
             })}
           </div>
 
-          <div className="h-6 w-px bg-gray-200 hidden xl:block" />
+          <div className="h-6 w-px bg-gray-200 hidden lg:block" />
 
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 flex-1">
             {/* Currency */}
-            <FilterDropdown
-              icon={Wallet}
-              label={t("transactions.currency")}
-              value={filters.currency}
-              allLabel={t("transactions.allCurrencies")}
-              onChange={(val) => updateFilter("currency", val)}
-              options={availableCurrencies.map((c) => ({ value: c, label: c }))}
-            />
+            <div className="flex-1 min-w-[140px] sm:flex-none">
+              <FilterDropdown
+                icon={Wallet}
+                label={t("transactions.currency")}
+                value={filters.currency}
+                allLabel={t("transactions.allCurrencies")}
+                onChange={(val) => updateFilter("currency", val)}
+                options={availableCurrencies.map((c) => ({ value: c, label: c }))}
+              />
+            </div>
 
             {/* Email */}
-            <FilterDropdown
-              icon={Mail}
-              label={t("transactions.email")}
-              value={filters.email}
-              allLabel={t("transactions.allEmails")}
-              onChange={(val) => updateFilter("email", val)}
-              options={availableEmails.map((e) => ({ value: e, label: e }))}
-            />
+            <div className="flex-1 min-w-[140px] sm:flex-none">
+              <FilterDropdown
+                icon={Mail}
+                label={t("transactions.email")}
+                value={filters.email}
+                allLabel={t("transactions.allEmails")}
+                onChange={(val) => updateFilter("email", val)}
+                options={availableEmails.map((e) => ({ value: e, label: e }))}
+              />
+            </div>
 
             {/* Category */}
-            <FilterDropdown
-              icon={Tag}
-              label={t("transactions.category")}
-              value={filters.category}
-              allLabel={t("transactions.allCategories")}
-              onChange={(val) => updateFilter("category", val)}
-              options={categories.map((c) => ({
-                value: c,
-                label: t(`categories.${c}`),
-              }))}
-            />
+            <div className="flex-1 min-w-[140px] sm:flex-none">
+              <FilterDropdown
+                icon={Tag}
+                label={t("transactions.category")}
+                value={filters.category}
+                allLabel={t("transactions.allCategories")}
+                onChange={(val) => updateFilter("category", val)}
+                options={categories.map((c) => ({
+                  value: c,
+                  label: t(`categories.${c}`),
+                }))}
+              />
+            </div>
 
             {/* Date Range Button */}
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`flex items-center gap-2 px-3 py-1.5 bg-white border rounded-lg transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-white border rounded-lg transition-all ${
                 filters.startDate || filters.endDate || showDatePicker
                   ? "border-[var(--primary)] text-[var(--primary)] bg-blue-50/50"
                   : "border-gray-200 text-gray-700 hover:border-gray-300"
@@ -247,7 +253,7 @@ export function TransactionFiltersComponent({
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="ml-auto xl:ml-2 flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="w-full sm:w-auto ml-auto lg:ml-2 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <X size={14} />
                 <span>{t("transactions.clearFilters")}</span>

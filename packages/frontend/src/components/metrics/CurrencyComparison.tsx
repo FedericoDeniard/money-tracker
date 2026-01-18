@@ -112,7 +112,7 @@ export function CurrencyComparison({
   return (
     <div className="space-y-6">
       {/* Currency Comparison Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {currencyMetrics.map((metrics) => (
           <div
             key={metrics.currency}
@@ -222,7 +222,7 @@ export function CurrencyComparison({
         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
           {t("metrics.currencyInsights")}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="text-center p-4 bg-[var(--bg-primary)] rounded-xl border border-transparent hover:border-[var(--border)] transition-all">
             <p className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">
               {currencyMetrics.length}
@@ -302,7 +302,7 @@ export function CurrencyComparison({
         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
           {t("metrics.behavioralInsights")}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Best Saver */}
           <div className="p-5 bg-[var(--bg-primary)] rounded-xl border border-transparent hover:border-[var(--border)] transition-all">
             <p className="text-sm font-medium text-[var(--text-secondary)] mb-2">

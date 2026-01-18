@@ -15,10 +15,13 @@ import { useAuth } from "../hooks/useAuth";
 import { gmailService } from "../services/gmail.service";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const isMobile = useMediaQuery("(max-width: 1024px)");
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [hasConnections, setHasConnections] = useState<boolean | null>(null);
@@ -208,9 +211,9 @@ export function Transactions() {
         isLoading={loading}
       />
 
-      <div className="flex flex-1 gap-4 min-h-0">
+      <div className="flex flex-1 gap-4 min-h-0 relative">
         {/* Transaction List */}
-        <div className="w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col">
+        <div className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? 'hidden' : 'block'}`}>
           <div className="p-4 border-b border-[var(--text-secondary)]/20">
             <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <Receipt size={20} />
@@ -227,23 +230,45 @@ export function Transactions() {
           </div>
         </div>
 
-        {/* Transaction Detail */}
-        <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
-          {selectedTransaction ? (
-            <TransactionDetail 
-              transaction={selectedTransaction} 
-              onDelete={handleDeleteTransaction}
-              onUpdate={handleUpdateTransaction}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center text-[var(--text-secondary)]">
-              <div className="text-center">
-                <Receipt size={48} className="mx-auto mb-4 opacity-50" />
-                <p>{t("transactions.selectTransaction")}</p>
+        {/* Transaction Detail - Desktop */}
+        {!isMobile && (
+          <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
+            {selectedTransaction ? (
+              <TransactionDetail 
+                transaction={selectedTransaction} 
+                onDelete={handleDeleteTransaction}
+                onUpdate={handleUpdateTransaction}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-[var(--text-secondary)]">
+                <div className="text-center">
+                  <Receipt size={48} className="mx-auto mb-4 opacity-50" />
+                  <p>{t("transactions.selectTransaction")}</p>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+        )}
+
+        {/* Transaction Detail - Mobile Overlay */}
+        <AnimatePresence>
+          {isMobile && selectedTransaction && (
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-0 z-50 bg-[var(--bg-secondary)] lg:hidden"
+            >
+              <TransactionDetail 
+                transaction={selectedTransaction} 
+                onDelete={handleDeleteTransaction}
+                onUpdate={handleUpdateTransaction}
+                onClose={() => setSelectedTransaction(null)}
+              />
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );

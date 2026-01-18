@@ -25,13 +25,13 @@ export function FilterBar({
   ];
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
       {/* Currency Selector */}
       <div className="flex gap-2">
         <motion.select
           value={selectedCurrency}
           onChange={(e) => onCurrencyChange(e.target.value)}
-          className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-transparent hover:border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer transition-all appearance-none"
+          className="w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-transparent hover:border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer transition-all appearance-none"
           whileFocus={{ scale: 1.01 }}
           whileHover={{ scale: 1.01 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -46,7 +46,7 @@ export function FilterBar({
       </div>
 
       {/* Period Selector */}
-      <div className="flex gap-1 bg-[var(--bg-secondary)] p-1 rounded-xl">
+      <div className="flex gap-1 bg-[var(--bg-secondary)] p-1 rounded-xl overflow-x-auto sm:overflow-visible">
         {periods.map((period) => {
           const isSelected = selectedPeriod === period.value;
           return (
@@ -55,7 +55,7 @@ export function FilterBar({
               onClick={() =>
                 onPeriodChange(period.value as "30" | "90" | "365")
               }
-              className={`relative px-4 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+              className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
                 isSelected
                   ? "text-white"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
