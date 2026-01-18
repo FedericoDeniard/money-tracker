@@ -6,6 +6,7 @@ import path from "path";
 import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
 import { extractPdfAttachments } from "./lib/pdf-extractor";
+import { extractImageAttachments } from "./lib/image-extractor";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { gmailLogger, authLogger, apiLogger } from "./src/config/logger";
@@ -84,6 +85,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Health check endpoint for Railway/containers
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Función para decodificar notificaciones de Pub/Sub
 function decodeNotification(data: string) {
@@ -690,7 +696,10 @@ app.post("/webhook", async (req, res) => {
     // Extraer texto de PDFs adjuntos (si existen)
     const pdfTexts = await extractPdfAttachments(gmail, messageId);
 
-    // Combinar el texto del email con el contenido de los PDFs
+    // Extraer texto de imágenes adjuntas con OCR (si existen)
+    const imageTexts = await extractImageAttachments(gmail, messageId);
+
+    // Combinar el texto del email con el contenido de los PDFs e imágenes
     const contentParts = [bodyText];
     if (pdfTexts.length > 0) {
       for (const pdfText of pdfTexts) {
@@ -698,16 +707,23 @@ app.post("/webhook", async (req, res) => {
         contentParts.push(pdfText);
       }
     }
+    if (imageTexts.length > 0) {
+      for (const imageText of imageTexts) {
+        contentParts.push('--- IMAGE ATTACHMENT (OCR) ---');
+        contentParts.push(imageText);
+      }
+    }
     const fullContent = contentParts.filter(t => t.trim()).join('\n\n');
 
     gmailLogger.info("Analizando email con IA...", {
       bodyTextLength: bodyText.length,
       pdfCount: pdfTexts.length,
+      imageCount: imageTexts.length,
       totalContentLength: fullContent.length,
     });
     // gmailLogger.debug("Contenido", { bodyText: bodyText.substring(0, 200) + "..." }); // Debug only
 
-    // Extraer transacción usando IA (con contenido completo: email + PDFs)
+    // Extraer transacción usando IA (con contenido completo: email + PDFs + imágenes)
     const aiResult = await extractTransactionFromEmail(fullContent);
 
     if (aiResult.success && aiResult.data && 'amount' in aiResult.data) {
@@ -767,6 +783,34 @@ app.post("/webhook", async (req, res) => {
 
 const PORT = Number(process.env.PORT) || 3001;
 
-app.listen(PORT, '0.0.0.0', () =>
+const server = app.listen(PORT, '0.0.0.0', () =>
   apiLogger.info(`Servidor backend corriendo en puerto ${PORT}`),
 );
+
+// Manejar señales de terminación gracefully
+process.on('SIGTERM', () => {
+  apiLogger.info('SIGTERM recibido, cerrando servidor gracefully...');
+  server.close(() => {
+    apiLogger.info('Servidor cerrado');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  apiLogger.info('SIGINT recibido, cerrando servidor gracefully...');
+  server.close(() => {
+    apiLogger.info('Servidor cerrado');
+    process.exit(0);
+  });
+});
+
+// Manejar errores no capturados
+process.on('uncaughtException', (error) => {
+  apiLogger.error('Uncaught Exception:', { error });
+  // No terminar el proceso inmediatamente, dejar que Railway lo maneje
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  apiLogger.error('Unhandled Rejection:', { reason, promise });
+  // No terminar el proceso inmediatamente, dejar que Railway lo maneje
+});
