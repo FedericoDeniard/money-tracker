@@ -63,7 +63,7 @@ export function Metrics() {
     const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
 
     return transactions.filter((tx) => {
-      const dateMatch = new Date(tx.created_at) >= cutoffDate;
+      const dateMatch = new Date(tx.transaction_date) >= cutoffDate;
       const currencyMatch =
         selectedCurrency === "all" || tx.currency === selectedCurrency;
       return dateMatch && currencyMatch;
@@ -126,7 +126,7 @@ export function Metrics() {
 
     const previousPeriodTransactions =
       transactions?.filter((tx) => {
-        const txDate = new Date(tx.created_at);
+        const txDate = new Date(tx.transaction_date);
         const currencyMatch =
           selectedCurrency === "all" || tx.currency === selectedCurrency;
         return (
@@ -196,7 +196,7 @@ export function Metrics() {
     const monthlyMap = new Map<string, { income: number; expense: number }>();
 
     filteredTransactions.forEach((tx) => {
-      const date = new Date(tx.created_at);
+      const date = new Date(tx.transaction_date);
       const monthKey = date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
@@ -218,10 +218,12 @@ export function Metrics() {
       .map(([month, data]) => ({
         month,
         income: data.income,
-        expense: data.expense,
+        expense: -data.expense, // Show expenses as negative values
         net: data.income - data.expense,
       }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+      .sort(
+        (a, b) => new Date(a.month).getTime() - new Date(b.month).getTime(),
+      );
   }, [filteredTransactions]);
 
   // Calculate category breakdown
