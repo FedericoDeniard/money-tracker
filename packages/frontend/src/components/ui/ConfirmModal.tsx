@@ -7,7 +7,8 @@ interface ConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message?: string;
+  children?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   isDestructive?: boolean;
@@ -20,6 +21,7 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
+  children,
   confirmText,
   cancelText,
   isDestructive = false,
@@ -63,8 +65,10 @@ export function ConfirmModal({
                 </button>
               </div>
 
-              {/* Message */}
-              <p className="text-[var(--text-secondary)] mb-6">{message}</p>
+              {/* Message or Content */}
+              {children ? children : (
+                <p className="text-[var(--text-secondary)] mb-6">{message}</p>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3">

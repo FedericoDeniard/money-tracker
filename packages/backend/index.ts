@@ -7,6 +7,7 @@ import { extractTransactionFromEmail } from "./ai/agents/transaction-agent";
 import { encryptToken, decryptToken } from "./lib/encryption";
 import { extractPdfAttachments } from "./lib/pdf-extractor";
 import { extractImageAttachments } from "./lib/image-extractor";
+import { processSeedJob } from "./lib/seed-processor";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { gmailLogger, authLogger, apiLogger } from "./src/config/logger";
@@ -90,6 +91,95 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// ============================================
+// SEED EMAILS ENDPOINTS
+// ============================================
+
+// Start seed job for historical emails
+app.post("/seed-emails", requireAuth, async (req: AuthRequest, res) => {
+  const { connectionId } = req.body;
+  const userId = req.userId;
+
+  if (!connectionId) {
+    return res.status(400).json({ error: "Missing connectionId parameter" });
+  }
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    // Verify that the connection belongs to the user
+    const { data: tokenData, error: tokenError } = await supabase
+      .from("user_oauth_tokens")
+      .select("id, gmail_email")
+      .eq("id", connectionId)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .single();
+
+    if (tokenError || !tokenData) {
+      return res.status(404).json({ error: "Connection not found or unauthorized" });
+    }
+
+    // Check if there's already a seed in progress for this connection
+    const { data: existingSeed } = await supabase
+      .from("seeds")
+      .select("id, status")
+      .eq("user_oauth_token_id", connectionId)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (existingSeed) {
+      return res.status(409).json({
+        error: "A seed is already in progress for this connection",
+        seedId: existingSeed.id
+      });
+    }
+
+    // Create seed
+    const { data: newSeed, error: seedError } = await supabase
+      .from("seeds")
+      .insert({
+        user_id: userId,
+        user_oauth_token_id: connectionId,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (seedError || !newSeed) {
+      gmailLogger.error("Error creating seed", { error: seedError });
+      return res.status(500).json({ error: "Failed to create seed" });
+    }
+
+    gmailLogger.info("Seed created", {
+      seedId: newSeed.id,
+      userId,
+      gmailEmail: tokenData.gmail_email
+    });
+
+    // Start processing in background (don't await)
+    processSeedJob(newSeed.id).catch(error => {
+      gmailLogger.error("Error in background seed job", { error, seedId: newSeed.id });
+    });
+
+    return res.status(202).json({
+      seedId: newSeed.id,
+      status: "pending",
+      message: "Seed started successfully"
+    });
+
+  } catch (error) {
+    gmailLogger.error("Error starting seed", { error });
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ============================================
+// END SEED EMAILS ENDPOINTS
+// ============================================
 
 // Función para decodificar notificaciones de Pub/Sub
 function decodeNotification(data: string) {
