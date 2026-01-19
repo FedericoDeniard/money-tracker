@@ -81,7 +81,7 @@ async function extractTextFromImageBuffer(
                     imageData,
                     'spa+eng', // Español e inglés
                     {
-                        logger: () => {}, // Función vacía para silenciar logs
+                        logger: () => { }, // Función vacía para silenciar logs
                     }
                 );
 
