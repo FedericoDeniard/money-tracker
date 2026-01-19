@@ -222,21 +222,21 @@ async function processEmail(
     retryCount: number = 0
 ): Promise<{ success: boolean; isDuplicate: boolean; skipped: boolean }> {
     try {
-        // Check if we should skip this email
-        const shouldProcess = await shouldProcessEmail(messageId, userOauthTokenId);
-        if (!shouldProcess) {
-            return { success: false, isDuplicate: false, skipped: true };
-        }
-
-        // Get message details
+        // Get message details first to get the canonical ID
         const messageResponse = await gmail.users.messages.get({
             userId: "me",
             id: messageId,
             format: "full",
         });
 
-        // Use the ID from the response for consistency
+        // Use the ID from Gmail response for consistency
         const gmailMessageId = messageResponse.data.id || messageId;
+
+        // Check if we should skip this email (using canonical Gmail ID)
+        const shouldProcess = await shouldProcessEmail(gmailMessageId, userOauthTokenId);
+        if (!shouldProcess) {
+            return { success: false, isDuplicate: false, skipped: true };
+        }
 
         // Skip if not in INBOX or in SPAM/TRASH
         const labelIds = messageResponse.data.labelIds || [];
