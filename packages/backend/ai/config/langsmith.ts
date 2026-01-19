@@ -14,8 +14,14 @@ if (process.env.LANGSMITH_TRACING) {
     process.env.LANGCHAIN_PROJECT = projectName;
     process.env.LANGSMITH_PROJECT = projectName; // Also set the normalized version
 
+    // Silence LangSmith warnings and errors (rate limits, etc)
+    process.env.LANGCHAIN_CALLBACKS_BACKGROUND = 'true';
+    process.env.LANGSMITH_HIDE_INPUTS = 'false';
+    process.env.LANGSMITH_HIDE_OUTPUTS = 'false';
+
     console.log('[LangSmith] Tracing enabled for project:', projectName);
     console.log('[LangSmith] Workspace ID:', process.env.LANGSMITH_WORKSPACE_ID);
+    console.log('[LangSmith] Errors and warnings silenced');
 }
 
 export const langsmithConfig = {

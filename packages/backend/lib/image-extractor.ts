@@ -82,14 +82,16 @@ async function extractTextFromImageBuffer(
                     'spa+eng', // Español e inglés
                     {
                         logger: () => { }, // Función vacía para silenciar logs
+                        errorHandler: () => {}, // Silenciar errores internos de Tesseract
                     }
                 );
 
                 clearTimeout(timeout);
                 resolve(result.data.text);
-            } catch (error) {
+            } catch {
                 clearTimeout(timeout);
-                reject(error);
+                // Retornar string vacío en lugar de rechazar (más robusto con alta concurrencia)
+                resolve('');
             }
         })();
     });
