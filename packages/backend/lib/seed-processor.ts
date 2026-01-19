@@ -289,13 +289,16 @@ async function processEmail(
                 ? `Validation error: ${error.message}`
                 : 'Invalid AI response format';
 
-            await supabase.from("discarded_emails").insert({
+            const { error: discardError } = await supabase.from("discarded_emails").insert({
                 user_oauth_token_id: userOauthTokenId,
                 message_id: gmailMessageId,
                 reason: reason
             });
 
             // Silently ignore duplicate errors (already discarded)
+            if (discardError && discardError.code !== '23505') {
+                throw discardError; // Re-throw non-duplicate errors
+            }
 
             return { success: false, isDuplicate: false, skipped: false };
         }
@@ -306,13 +309,16 @@ async function processEmail(
                 ? aiResult.error
                 : 'AI failed to process email';
 
-            await supabase.from("discarded_emails").insert({
+            const { error: discardError } = await supabase.from("discarded_emails").insert({
                 user_oauth_token_id: userOauthTokenId,
                 message_id: gmailMessageId,
                 reason: reason
             });
 
             // Silently ignore duplicate errors (already discarded)
+            if (discardError && discardError.code !== '23505') {
+                throw discardError; // Re-throw non-duplicate errors
+            }
 
             return { success: false, isDuplicate: false, skipped: false };
         }
@@ -353,13 +359,16 @@ async function processEmail(
             ? aiResult.data.reason
             : 'No transaction found';
 
-        await supabase.from("discarded_emails").insert({
+        const { error: discardError } = await supabase.from("discarded_emails").insert({
             user_oauth_token_id: userOauthTokenId,
             message_id: gmailMessageId,
             reason: reason
         });
 
         // Silently ignore duplicate errors (already discarded)
+        if (discardError && discardError.code !== '23505') {
+            throw discardError; // Re-throw non-duplicate errors
+        }
 
         return { success: false, isDuplicate: false, skipped: false };
 

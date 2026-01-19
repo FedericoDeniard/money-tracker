@@ -18,7 +18,7 @@ if (process.env.LANGSMITH_TRACING) {
     process.env.LANGCHAIN_CALLBACKS_BACKGROUND = 'true';
     process.env.LANGSMITH_HIDE_INPUTS = 'false';
     process.env.LANGSMITH_HIDE_OUTPUTS = 'false';
-    
+
     // Batching configuration for high concurrency
     // Auto-batch tracing in background thread (already enabled above)
     // These help reduce network overhead and API calls
