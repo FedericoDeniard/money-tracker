@@ -866,14 +866,38 @@ app.post("/webhook", async (req, res) => {
 
       gmailLogger.info(`Transacción procesada para ${validTokens.length} usuario(s)`);
     } else {
-      // No se encontró transacción - no guardar nada
+      // No se encontró transacción - guardar en discarded_emails para no reprocesar
       gmailLogger.info("No se encontró transacción en el email - descartando");
+      
+      const discardReason = (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) 
+        || "No se pudo extraer transacción";
+      
       gmailLogger.debug("Email descartado", {
         remitente: fromEmail,
         asunto: subject,
         cuerpo: bodyText.substring(0, 200) + "...",
-        razón: (aiResult.data && 'reason' in aiResult.data && aiResult.data.reason) || "No se pudo extraer transacción"
+        razón: discardReason
       });
+
+      // Guardar en discarded_emails para cada usuario válido
+      for (const tokenData of validTokens) {
+        const { error: discardError } = await supabase
+          .from("discarded_emails")
+          .insert({
+            user_oauth_token_id: tokenData.id,
+            message_id: messageResponse.data.id,
+            reason: discardReason,
+          })
+          .select();
+
+        if (discardError) {
+          if (discardError.code === '23505') {
+            gmailLogger.debug(`Email ya descartado para user ${tokenData.user_id}`);
+          } else {
+            gmailLogger.error(`Error guardando email descartado para user ${tokenData.user_id}`, { error: discardError });
+          }
+        }
+      }
     }
 
     res.sendStatus(200);
