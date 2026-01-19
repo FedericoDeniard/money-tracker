@@ -1,5 +1,4 @@
 import { gmail_v1 } from 'googleapis';
-import { gmailLogger } from '../src/config/logger';
 import Tesseract from 'tesseract.js';
 
 // Límites de seguridad
@@ -74,8 +73,6 @@ async function extractTextFromImageBuffer(
         // Ejecutar OCR
         (async () => {
             try {
-                const startTime = Date.now();
-
                 // Convertir buffer a formato que Tesseract puede procesar
                 const imageData = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
@@ -84,18 +81,9 @@ async function extractTextFromImageBuffer(
                     imageData,
                     'spa+eng', // Español e inglés
                     {
-                        logger: undefined, // Desactivar logs verbosos
+                        logger: () => { }, // Función vacía para silenciar logs
                     }
                 );
-
-                const duration = Date.now() - startTime;
-
-                gmailLogger.info('Image OCR completed successfully', {
-                    filename,
-                    textLength: result.data.text.length,
-                    confidence: result.data.confidence.toFixed(2),
-                    durationMs: duration,
-                });
 
                 clearTimeout(timeout);
                 resolve(result.data.text);
@@ -137,24 +125,8 @@ export async function extractImageAttachments(
             return [];
         }
 
-        gmailLogger.info('Image attachments detected', {
-            messageId,
-            count: imageAttachments.length,
-            attachments: imageAttachments.map(a => ({
-                filename: a.filename,
-                sizeMB: (a.size / 1024 / 1024).toFixed(2),
-                mimeType: a.mimeType,
-            })),
-        });
-
         // Limitar número de imágenes a procesar
         const imagesToProcess = imageAttachments.slice(0, MAX_IMAGES_PER_EMAIL);
-        if (imageAttachments.length > MAX_IMAGES_PER_EMAIL) {
-            gmailLogger.warn('Too many images, processing only first', {
-                total: imageAttachments.length,
-                processing: MAX_IMAGES_PER_EMAIL,
-            });
-        }
 
         // Extraer texto de cada imagen con OCR
         const extractedTexts: string[] = [];
@@ -163,12 +135,7 @@ export async function extractImageAttachments(
             try {
                 // Verificar tamaño de la imagen
                 if (attachment.size > MAX_IMAGE_SIZE_BYTES) {
-                    gmailLogger.warn('Image too large, skipping OCR', {
-                        filename: attachment.filename,
-                        sizeMB: (attachment.size / 1024 / 1024).toFixed(2),
-                        maxSizeMB: MAX_IMAGE_SIZE_MB,
-                    });
-                    continue;
+                    continue; // Skip large images silently
                 }
 
                 // Descargar el adjunto (en memoria, como base64)
@@ -179,19 +146,11 @@ export async function extractImageAttachments(
                 });
 
                 if (!attachmentResponse.data.data) {
-                    gmailLogger.warn('No data in attachment response', {
-                        filename: attachment.filename,
-                    });
-                    continue;
+                    continue; // Skip silently
                 }
 
                 // Convertir de base64 a Buffer (en memoria)
                 const imageBuffer = Buffer.from(attachmentResponse.data.data, 'base64');
-
-                gmailLogger.info('Starting OCR processing', {
-                    filename: attachment.filename,
-                    bufferSize: imageBuffer.length,
-                });
 
                 // Extraer texto con OCR
                 const text = await extractTextFromImageBuffer(
@@ -202,31 +161,15 @@ export async function extractImageAttachments(
 
                 if (text.trim()) {
                     extractedTexts.push(text);
-                    gmailLogger.info('Image OCR processed successfully', {
-                        filename: attachment.filename,
-                        textLength: text.length,
-                    });
-                } else {
-                    gmailLogger.warn('Image contains no readable text', {
-                        filename: attachment.filename,
-                    });
                 }
-            } catch (error) {
-                // No fallar todo el proceso si una imagen falla
-                gmailLogger.error('Error processing image with OCR', {
-                    filename: attachment.filename,
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                });
+            } catch {
+                // Silently skip images that fail OCR
             }
         }
 
         return extractedTexts;
-    } catch (error) {
-        // Si falla la detección completa, loggear y retornar array vacío
-        gmailLogger.error('Error in extractImageAttachments', {
-            messageId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-        });
+    } catch {
+        // Si falla la detección completa, retornar array vacío silenciosamente
         return [];
     }
 }

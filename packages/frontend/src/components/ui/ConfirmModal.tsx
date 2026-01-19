@@ -71,7 +71,7 @@ export function ConfirmModal({
               )}
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 mt-6">
                 <button
                   onClick={onClose}
                   disabled={isLoading}
@@ -85,7 +85,7 @@ export function ConfirmModal({
                   className={`flex-1 py-3 px-4 rounded-2xl font-medium transition-colors disabled:opacity-50 ${
                     isDestructive
                       ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)]"
+                      : "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]"
                   }`}
                 >
                   {isLoading ? t("common.loading") : confirmText || t("common.confirm")}

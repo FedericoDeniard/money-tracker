@@ -40,8 +40,6 @@ interface EmailMessage {
  * Main function to process a seed job
  */
 export async function processSeedJob(seedId: string): Promise<void> {
-    gmailLogger.info("Starting seed job", { seedId });
-
     try {
         // Get seed data
         const { data: seed, error: seedError } = await supabase
@@ -96,12 +94,8 @@ export async function processSeedJob(seedId: string): Promise<void> {
         const afterDate = threeMonthsAgo.toISOString().split('T')[0]?.replace(/-/g, '/') || '';
         const query = `after:${afterDate}`;
 
-        gmailLogger.info("Fetching emails", { query, seedId });
-
         // Get all message IDs
         const messageIds = await getAllMessageIds(gmail, query);
-
-        gmailLogger.info("Messages found", { count: messageIds.length, seedId });
 
         if (messageIds.length === 0) {
             await updateSeedStatus(seedId, "completed", undefined, {
@@ -110,7 +104,6 @@ export async function processSeedJob(seedId: string): Promise<void> {
                 totalSkipped: 0,
                 emailsProcessedByAI: 0,
             });
-            gmailLogger.info("No emails to process", { seedId });
             return;
         }
 
@@ -121,44 +114,23 @@ export async function processSeedJob(seedId: string): Promise<void> {
 
         for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
             const batch = messageIds.slice(i, i + BATCH_SIZE);
-            gmailLogger.info("Processing batch", {
-                batchNumber: Math.floor(i / BATCH_SIZE) + 1,
-                batchSize: batch.length,
-                seedId
-            });
 
             const results = await Promise.allSettled(
                 batch.map(msgId => processEmail(gmail, msgId, tokenData.id, userFullName))
             );
 
             // Count results
-            let skippedCount = 0;
             for (const result of results) {
                 if (result.status === "fulfilled") {
                     if (result.value.skipped) {
-                        skippedCount++;
+                        totalSkipped++;
                     } else if (result.value.success) {
                         transactionsFound++;
                     }
                 } else {
                     errorsCount++;
-                    gmailLogger.error("Error processing email", {
-                        error: result.reason,
-                        seedId
-                    });
                 }
             }
-
-            totalSkipped += skippedCount;
-
-            gmailLogger.info("Batch completed", {
-                batchNumber: Math.floor(i / BATCH_SIZE) + 1,
-                transactionsFound,
-                skipped: skippedCount,
-                totalSkipped,
-                errorsCount,
-                seedId
-            });
         }
 
         // Mark seed as completed
@@ -179,7 +151,7 @@ export async function processSeedJob(seedId: string): Promise<void> {
         });
 
     } catch (error) {
-        gmailLogger.error("Error in seed job", { error, seedId });
+        gmailLogger.error("Seed job failed", { error, seedId });
         await updateSeedStatus(seedId, "failed",
             error instanceof Error ? error.message : "Unknown error"
         );
@@ -322,15 +294,13 @@ async function processEmail(
                 ? `Validation error: ${error.message}`
                 : 'Invalid AI response format';
 
-            const { error: discardError } = await supabase.from("discarded_emails").insert({
+            await supabase.from("discarded_emails").insert({
                 user_oauth_token_id: userOauthTokenId,
                 message_id: gmailMessageId,
                 reason: reason
             });
 
-            if (discardError && discardError.code !== '23505') {
-                gmailLogger.warn("Error saving discarded email", { messageId: gmailMessageId, error: discardError });
-            }
+            // Silently ignore duplicate errors (already discarded)
 
             return { success: false, isDuplicate: false, skipped: false };
         }
@@ -341,15 +311,13 @@ async function processEmail(
                 ? aiResult.error
                 : 'AI failed to process email';
 
-            const { error: discardError } = await supabase.from("discarded_emails").insert({
+            await supabase.from("discarded_emails").insert({
                 user_oauth_token_id: userOauthTokenId,
                 message_id: gmailMessageId,
                 reason: reason
             });
 
-            if (discardError && discardError.code !== '23505') {
-                gmailLogger.warn("Error saving discarded email", { messageId: gmailMessageId, error: discardError });
-            }
+            // Silently ignore duplicate errors (already discarded)
 
             return { success: false, isDuplicate: false, skipped: false };
         }
@@ -390,27 +358,19 @@ async function processEmail(
             ? aiResult.data.reason
             : 'No transaction found';
 
-        const { error: discardError } = await supabase.from("discarded_emails").insert({
+        await supabase.from("discarded_emails").insert({
             user_oauth_token_id: userOauthTokenId,
             message_id: gmailMessageId,
             reason: reason
         });
 
-        // Ignore duplicate errors (23505) - email already discarded
-        if (discardError && discardError.code !== '23505') {
-            gmailLogger.warn("Error saving discarded email", { messageId: gmailMessageId, error: discardError });
-        }
+        // Silently ignore duplicate errors (already discarded)
 
         return { success: false, isDuplicate: false, skipped: false };
 
     } catch (error) {
         // Retry on network errors
         if (retryCount < MAX_RETRIES && isRetryableError(error)) {
-            gmailLogger.warn("Retrying email processing", {
-                messageId,
-                retryCount: retryCount + 1,
-                error
-            });
             await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
             return processEmail(gmail, messageId, userOauthTokenId, userFullName, retryCount + 1);
         }
