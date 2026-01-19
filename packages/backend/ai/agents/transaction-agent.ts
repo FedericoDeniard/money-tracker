@@ -1,4 +1,4 @@
-import { generateText, Output, type LangSmithOptions } from '../wrapped-ai';
+import { generateText, Output, type LangSmithOptions, type LanguageModel } from '../wrapped-ai';
 import { aiModel, getModelName } from '../index';
 import { TransactionSchema } from '../types/schemas';
 import { EMAIL_EXTRACTION_SYSTEM } from '../prompts/email-extraction';
@@ -19,7 +19,11 @@ export const TransactionResponseSchema = z.discriminatedUnion('hasTransaction', 
 
 export type TransactionResponse = z.infer<typeof TransactionResponseSchema>;
 
-export async function extractTransactionFromEmail(emailContent: string, userFullName?: string) {
+export async function extractTransactionFromEmail(
+    emailContent: string,
+    userFullName?: string,
+    model: LanguageModel = aiModel
+) {
     try {
         // Construir el prompt dinámico con el contenido del email y contexto del usuario
         let dynamicPrompt = '';
@@ -33,15 +37,15 @@ export async function extractTransactionFromEmail(emailContent: string, userFull
         dynamicPrompt += `Email to analyze:\n${emailContent}`;
 
         const langsmithOptions: LangSmithOptions = {
-            tags: [getModelName(aiModel), 'extract-transaction'],
+            tags: [getModelName(model), 'extract-transaction'],
             metadata: {
-                model: getModelName(aiModel),
+                model: getModelName(model),
                 hasUserContext: !!userFullName,
             }
         };
 
         const { output } = await generateText({
-            model: aiModel,
+            model: model,
             system: EMAIL_EXTRACTION_SYSTEM, // Parte estática - permite input caching
             prompt: dynamicPrompt,            // Parte dinámica - varía en cada llamada
             temperature: 0.1,

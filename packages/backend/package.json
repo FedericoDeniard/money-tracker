@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.8",
+    "@ai-sdk/xai": "^3.0.26",
     "@supabase/supabase-js": "^2.90.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
