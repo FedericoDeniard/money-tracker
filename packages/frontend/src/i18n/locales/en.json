@@ -244,7 +244,10 @@
     "transactionsFound": "transactions found",
     "duplicatesSkipped": "duplicates skipped",
     "seedWaitMessage": "This may take several minutes...",
-    "seedCompletedSuccess": "Import completed! New transactions found."
+    "seedCompletedSuccess": "Import completed! New transactions found.",
+    "seedFailedError": "Import failed",
+    "seedCompletedDescription": "Check your transactions to see the new movements.",
+    "seedFailedDescription": "There was an error processing the emails. Please try again."
   },
   "kbar": {
     "placeholder": "Type a command or search...",

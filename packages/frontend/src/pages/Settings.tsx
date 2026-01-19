@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useSeedNotifications } from '../hooks/useSeedNotifications';
 import { Button } from '../components/ui/Button';
 import { Mail, CheckCircle, AlertCircle, Loader2, X, Download } from "lucide-react";
 import { useSearchParams } from 'react-router-dom';
@@ -12,6 +13,9 @@ import { SeedEmailsModal } from "../components/settings/SeedEmailsModal";
 export function Settings() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  
+  // Enable seed notifications
+  useSeedNotifications(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState<string | null>(null);
