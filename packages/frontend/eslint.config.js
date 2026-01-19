@@ -28,6 +28,9 @@ export default [
         confirm: "readonly",
         React: "readonly",
         HTMLButtonElement: "readonly",
+        HTMLDivElement: "readonly",
+        IntersectionObserver: "readonly",
+        IntersectionObserverEntry: "readonly",
       },
     },
     plugins: {

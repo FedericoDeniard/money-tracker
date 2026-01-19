@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 
+const PAGE_SIZE = 10;
+
 export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -28,10 +30,14 @@ export function Transactions() {
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingFilters, setLoadingFilters] = useState(true);
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [availableEmails, setAvailableEmails] = useState<string[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Load filter options once
   useEffect(() => {
@@ -55,29 +61,63 @@ export function Transactions() {
   }, []);
 
   // Load transactions based on filters
-  const loadTransactions = useCallback(async () => {
-    setLoading(true);
+  const loadTransactions = useCallback(async (resetPagination = false) => {
+    const isInitialLoad = resetPagination;
+    
+    if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    
     setError(null);
+    
     try {
       const supabase = await getSupabase();
       const service = createTransactionsService(supabase);
-      const data = await service.getTransactions(filters);
-      setTransactions(data);
+      
+      const currentPage = isInitialLoad ? 0 : page;
+      const from = currentPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      
+      const result = await service.getTransactionsPaginated(filters, { from, to });
+      
+      if (isInitialLoad) {
+        setTransactions(result.transactions);
+        setPage(1);
+      } else {
+        setTransactions(prev => [...prev, ...result.transactions]);
+        setPage(prev => prev + 1);
+      }
+      
+      setHasMore(result.hasMore);
+      setTotalCount(result.total || 0);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load transactions",
       );
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [filters]);
+  }, [filters, page]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      loadTransactions(false);
+    }
+  }, [loadTransactions, loadingMore, hasMore]);
 
   // Initial load and when filters change
   useEffect(() => {
     if (!loadingFilters) {
-      loadTransactions();
+      // Reset pagination when filters change
+      setPage(0);
+      setTransactions([]);
+      setHasMore(true);
+      loadTransactions(true);
     }
-  }, [loadTransactions, loadingFilters]);
+  }, [filters, loadingFilters]);
 
   // Categories are static
   const categories = [
@@ -111,8 +151,11 @@ export function Transactions() {
       const service = createTransactionsService(supabase);
       await service.deleteTransaction(id);
       
-      // Refresh transactions list
-      await loadTransactions();
+      // Refresh transactions list from the beginning
+      setPage(0);
+      setTransactions([]);
+      setHasMore(true);
+      loadTransactions(true);
       
       // Clear selection if the deleted transaction was selected
       if (selectedTransaction?.id === id) {
@@ -133,8 +176,11 @@ export function Transactions() {
       const service = createTransactionsService(supabase);
       await service.updateTransaction(id, updates);
       
-      // Refresh transactions list
-      await loadTransactions();
+      // Refresh transactions list from the beginning
+      setPage(0);
+      setTransactions([]);
+      setHasMore(true);
+      loadTransactions(true);
       
       // Update selected transaction
       if (selectedTransaction?.id === id) {
@@ -218,11 +264,15 @@ export function Transactions() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                 <Receipt size={20} />
-                {t("navigation.transactions")} ({transactions?.length || 0})
+                {t("navigation.transactions")} ({totalCount})
                 {loading && <LoadingSpinner size="sm" className="ml-2" />}
               </h2>
               <button
-                onClick={loadTransactions}
+                onClick={() => {
+                  setPage(0);
+                  setTransactions([]);
+                  loadTransactions(true);
+                }}
                 disabled={loading}
                 className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t("common.refresh") || "Actualizar"}
@@ -236,6 +286,9 @@ export function Transactions() {
               transactions={transactions || []}
               selectedTransactionId={selectedTransaction?.id || null}
               onSelectTransaction={setSelectedTransaction}
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoadingMore={loadingMore}
             />
           </div>
         </div>

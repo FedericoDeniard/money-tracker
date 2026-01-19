@@ -35,8 +35,117 @@ export interface TransactionFilters {
   endDate?: string;
 }
 
+export interface PaginationParams {
+  from: number;
+  to: number;
+}
+
+export interface PaginatedTransactions {
+  transactions: Transaction[];
+  hasMore: boolean;
+  total?: number;
+}
+
 export class TransactionsService {
   constructor(private supabase: SupabaseClient) { }
+
+  async getTransactionsPaginated(
+    filters?: TransactionFilters,
+    pagination?: PaginationParams
+  ): Promise<PaginatedTransactions> {
+    // Handle email filter separately (need to get token_id first)
+    let tokenId: string | null = null;
+    if (filters?.email && filters.email !== 'all') {
+      const { data: tokenData, error: tokenError } = await this.supabase
+        .from('user_oauth_tokens')
+        .select('id')
+        .eq('gmail_email', filters.email)
+        .eq('is_active', true)
+        .single();
+
+      if (tokenError || !tokenData) {
+        // No token found for this email, return empty result
+        return { transactions: [], hasMore: false, total: 0 };
+      }
+
+      tokenId = tokenData.id;
+    }
+
+    let query = this.supabase
+      .from('transactions')
+      .select(`
+        *,
+        user_oauth_tokens!user_oauth_token_id (
+          gmail_email
+        )
+      `, { count: 'exact' });
+
+    // Apply filters
+    query = this.applyFilters(query, filters, tokenId);
+
+    // Apply pagination
+    if (pagination) {
+      query = query.range(pagination.from, pagination.to);
+    }
+
+    const { data, error, count } = await query.order('transaction_date', { ascending: false });
+
+    if (error) throw error;
+
+    // Map the joined data to include recipient_email
+    const transactions = (data || []).map((item: TransactionWithTokens): Transaction => {
+      const { user_oauth_tokens, ...transaction } = item;
+      return {
+        ...transaction,
+        recipient_email: user_oauth_tokens?.gmail_email || undefined,
+      };
+    });
+
+    return {
+      transactions,
+      hasMore: pagination ? (count || 0) > pagination.to + 1 : false,
+      total: count || 0,
+    };
+  }
+
+  private applyFilters(query: ReturnType<SupabaseClient['from']>, filters?: TransactionFilters, tokenId?: string | null) {
+    if (!filters) return query;
+
+    // Apply currency filter
+    if (filters.currency && filters.currency !== 'all') {
+      query = query.eq('currency', filters.currency);
+    }
+
+    // Apply email filter (via tokenId)
+    if (tokenId) {
+      query = query.eq('user_oauth_token_id', tokenId);
+    }
+
+    // Apply category filter
+    if (filters.category && filters.category !== 'all') {
+      query = query.eq('category', filters.category);
+    }
+
+    // Apply type filter
+    if (filters.type && filters.type !== 'all') {
+      if (filters.type === 'income' || filters.type === 'ingreso') {
+        query = query.in('transaction_type', ['income', 'ingreso']);
+      } else if (filters.type === 'expense' || filters.type === 'egreso') {
+        query = query.in('transaction_type', ['expense', 'egreso']);
+      }
+    }
+
+    // Apply date filters
+    if (filters.startDate) {
+      query = query.gte('transaction_date', filters.startDate);
+    }
+
+    if (filters.endDate) {
+      query = query.lte('transaction_date', filters.endDate);
+    }
+
+    return query;
+  }
 
   async getTransactions(filters?: TransactionFilters): Promise<Transaction[]> {
     let query = this.supabase
@@ -131,29 +240,42 @@ export class TransactionsService {
   }
 
   async getAvailableCurrencies(): Promise<string[]> {
-    const { data, error } = await this.supabase
-      .from('transactions')
-      .select('currency');
+    // Use RPC to get distinct currencies more efficiently
+    const { data, error } = await this.supabase.rpc('get_distinct_currencies');
 
-    if (error) throw error;
+    if (error) {
+      // Fallback to the old method if RPC not available
+      const { data: fallbackData, error: fallbackError } = await this.supabase
+        .from('transactions')
+        .select('currency');
 
-    // Get unique currencies
-    const currencies = [...new Set((data || []).map(item => item.currency))];
-    return currencies.sort();
+      if (fallbackError) throw fallbackError;
+
+      const currencies = [...new Set((fallbackData || []).map(item => item.currency))];
+      return currencies.sort();
+    }
+
+    return (data || []).sort();
   }
 
   async getAvailableEmails(): Promise<string[]> {
-    const { data, error } = await this.supabase
-      .from('user_oauth_tokens')
-      .select('gmail_email')
-      .eq('is_active', true);
+    // Use RPC to get distinct emails more efficiently
+    const { data, error } = await this.supabase.rpc('get_active_gmail_emails');
 
-    if (error) throw error;
+    if (error) {
+      // Fallback to the old method if RPC not available
+      const { data: fallbackData, error: fallbackError } = await this.supabase
+        .from('user_oauth_tokens')
+        .select('gmail_email')
+        .eq('is_active', true);
 
-    // Get unique emails
-    const emails = [...new Set((data || []).map(item => item.gmail_email))];
+      if (fallbackError) throw fallbackError;
 
-    return emails.sort();
+      const emails = [...new Set((fallbackData || []).map(item => item.gmail_email))];
+      return emails.sort();
+    }
+
+    return (data || []).sort();
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {
