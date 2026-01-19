@@ -20,7 +20,6 @@ const oAuth2Client = new google.auth.OAuth2(
     process.env.OAUTH_REDIRECT_URI
 );
 
-const BATCH_SIZE = 50; // Process 50 emails in parallel (aggressive mode)
 const MAX_RETRIES = 3;
 const MONTHS_TO_SEED = 3;
 
@@ -107,29 +106,25 @@ export async function processSeedJob(seedId: string): Promise<void> {
             return;
         }
 
-        // Process emails in batches
+        // Process ALL emails in parallel (no batches - maximum speed)
+        const results = await Promise.allSettled(
+            messageIds.map(msgId => processEmail(gmail, msgId, tokenData.id, userFullName))
+        );
+
+        // Count results
         let transactionsFound = 0;
         let errorsCount = 0;
         let totalSkipped = 0;
 
-        for (let i = 0; i < messageIds.length; i += BATCH_SIZE) {
-            const batch = messageIds.slice(i, i + BATCH_SIZE);
-
-            const results = await Promise.allSettled(
-                batch.map(msgId => processEmail(gmail, msgId, tokenData.id, userFullName))
-            );
-
-            // Count results
-            for (const result of results) {
-                if (result.status === "fulfilled") {
-                    if (result.value.skipped) {
-                        totalSkipped++;
-                    } else if (result.value.success) {
-                        transactionsFound++;
-                    }
-                } else {
-                    errorsCount++;
+        for (const result of results) {
+            if (result.status === "fulfilled") {
+                if (result.value.skipped) {
+                    totalSkipped++;
+                } else if (result.value.success) {
+                    transactionsFound++;
                 }
+            } else {
+                errorsCount++;
             }
         }
 
