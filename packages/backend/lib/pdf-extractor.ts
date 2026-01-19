@@ -112,23 +112,8 @@ export async function extractPdfAttachments(
             return [];
         }
 
-        gmailLogger.info('PDF attachments detected', {
-            messageId,
-            count: pdfAttachments.length,
-            attachments: pdfAttachments.map(a => ({
-                filename: a.filename,
-                sizeMB: (a.size / 1024 / 1024).toFixed(2),
-            })),
-        });
-
         // Limitar número de PDFs a procesar
         const pdfsToProcess = pdfAttachments.slice(0, MAX_PDFS_PER_EMAIL);
-        if (pdfAttachments.length > MAX_PDFS_PER_EMAIL) {
-            gmailLogger.warn('Too many PDFs, processing only first', {
-                total: pdfAttachments.length,
-                processing: MAX_PDFS_PER_EMAIL,
-            });
-        }
 
         // Extraer texto de cada PDF
         const extractedTexts: string[] = [];
@@ -137,12 +122,7 @@ export async function extractPdfAttachments(
             try {
                 // Verificar tamaño del PDF
                 if (attachment.size > MAX_PDF_SIZE_BYTES) {
-                    gmailLogger.warn('PDF too large, skipping', {
-                        filename: attachment.filename,
-                        sizeMB: (attachment.size / 1024 / 1024).toFixed(2),
-                        maxSizeMB: MAX_PDF_SIZE_MB,
-                    });
-                    continue;
+                    continue; // Skip large PDFs silently
                 }
 
                 // Descargar el adjunto (en memoria, como base64)
@@ -153,10 +133,7 @@ export async function extractPdfAttachments(
                 });
 
                 if (!attachmentResponse.data.data) {
-                    gmailLogger.warn('No data in attachment response', {
-                        filename: attachment.filename,
-                    });
-                    continue;
+                    continue; // Skip silently
                 }
 
                 // Convertir de base64 a Buffer (en memoria)
@@ -167,31 +144,15 @@ export async function extractPdfAttachments(
 
                 if (text.trim()) {
                     extractedTexts.push(text);
-                    gmailLogger.info('PDF processed successfully', {
-                        filename: attachment.filename,
-                        textLength: text.length,
-                    });
-                } else {
-                    gmailLogger.warn('PDF contains no extractable text', {
-                        filename: attachment.filename,
-                    });
                 }
-            } catch (error) {
-                // No fallar todo el proceso si un PDF falla
-                gmailLogger.error('Error extracting PDF', {
-                    filename: attachment.filename,
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                });
+            } catch {
+                // Silently skip PDFs that fail extraction
             }
         }
 
         return extractedTexts;
-    } catch (error) {
-        // Si falla la detección completa, loggear y retornar array vacío
-        gmailLogger.error('Error in extractPdfAttachments', {
-            messageId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-        });
+    } catch {
+        // Si falla la detección completa, retornar array vacío silenciosamente
         return [];
     }
 }
