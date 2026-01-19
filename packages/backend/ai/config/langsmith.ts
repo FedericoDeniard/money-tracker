@@ -18,10 +18,15 @@ if (process.env.LANGSMITH_TRACING) {
     process.env.LANGCHAIN_CALLBACKS_BACKGROUND = 'true';
     process.env.LANGSMITH_HIDE_INPUTS = 'false';
     process.env.LANGSMITH_HIDE_OUTPUTS = 'false';
+    
+    // Batching configuration for high concurrency
+    // Auto-batch tracing in background thread (already enabled above)
+    // These help reduce network overhead and API calls
+    process.env.LANGCHAIN_AUTO_BATCH_TRACING = 'true';
 
     console.log('[LangSmith] Tracing enabled for project:', projectName);
     console.log('[LangSmith] Workspace ID:', process.env.LANGSMITH_WORKSPACE_ID);
-    console.log('[LangSmith] Errors and warnings silenced');
+    console.log('[LangSmith] Background batching enabled');
 }
 
 export const langsmithConfig = {
