@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useSeedNotifications } from '../hooks/useSeedNotifications';
 import { Button } from '../components/ui/Button';
-import { Mail, CheckCircle, AlertCircle, Loader2, X } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, Loader2, X, Download } from "lucide-react";
 import { useSearchParams } from 'react-router-dom';
 import { gmailService, type GmailStatus } from "../services/gmail.service";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
+import { SeedEmailsModal } from "../components/settings/SeedEmailsModal";
 
 export function Settings() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  
+  // Enable seed notifications
+  useSeedNotifications(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState<string | null>(null);
@@ -25,6 +30,13 @@ export function Settings() {
     connectionId: string;
     email: string;
   }>({ isOpen: false, connectionId: '', email: '' });
+  
+  // Seed modal state
+  const [seedModal, setSeedModal] = useState<{
+    isOpen: boolean;
+    connectionId: string;
+    gmailEmail: string;
+  }>({ isOpen: false, connectionId: '', gmailEmail: '' });
 
   useEffect(() => {
     const success = searchParams.get('success');
@@ -36,7 +48,19 @@ export function Settings() {
         message: t("settings.emailConfiguredSuccess"),
       });
       setSearchParams({});
-      checkGmailStatus();
+      
+      // Check Gmail status and show seed modal
+      checkGmailStatus().then(() => {
+        // Get the most recently connected account to offer seed
+        if (gmailStatus && gmailStatus.connections.length > 0) {
+          const latestConnection = gmailStatus.connections[0];
+          setSeedModal({
+            isOpen: true,
+            connectionId: latestConnection.id,
+            gmailEmail: latestConnection.gmail_email,
+          });
+        }
+      });
     } else if (error === 'auth_failed') {
       setNotification({
         type: "error",
@@ -138,6 +162,14 @@ export function Settings() {
     }
   };
 
+  const handleStartSeed = (connectionId: string, gmailEmail: string) => {
+    setSeedModal({
+      isOpen: true,
+      connectionId,
+      gmailEmail,
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
       <div className="bg-white shadow rounded-lg p-4 sm:p-6">
@@ -237,29 +269,44 @@ export function Settings() {
                             </p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="self-end sm:self-auto shrink-0"
-                          icon={
-                            isDisconnecting === connection.id ? (
-                              <Loader2 className="animate-spin" size={16} />
-                            ) : (
-                              <X size={16} />
-                            )
-                          }
-                          onClick={() =>
-                            handleDisconnectEmail(
-                              connection.id,
-                              connection.gmail_email,
-                            )
-                          }
-                          disabled={isDisconnecting === connection.id}
-                        >
-                          {isDisconnecting === connection.id
-                            ? t("settings.disconnecting")
-                            : t("settings.disconnect")}
-                        </Button>
+                        
+                        <div className="flex gap-2 self-end sm:self-auto shrink-0">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<Download size={16} />}
+                            onClick={() =>
+                              handleStartSeed(
+                                connection.id,
+                                connection.gmail_email,
+                              )
+                            }
+                          >
+                            {t("settings.importEmails") || "Importar"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={
+                              isDisconnecting === connection.id ? (
+                                <Loader2 className="animate-spin" size={16} />
+                              ) : (
+                                <X size={16} />
+                              )
+                            }
+                            onClick={() =>
+                              handleDisconnectEmail(
+                                connection.id,
+                                connection.gmail_email,
+                              )
+                            }
+                            disabled={isDisconnecting === connection.id}
+                          >
+                            {isDisconnecting === connection.id
+                              ? t("settings.disconnecting")
+                              : t("settings.disconnect")}
+                          </Button>
+                        </div>
                       </div>
                     ))}
 
@@ -368,6 +415,14 @@ export function Settings() {
         message={t("settings.confirmDisconnectEmail", { email: disconnectModal.email })}
         confirmText={t("settings.disconnect")}
         isDestructive
+      />
+      
+      {/* Seed Emails Modal */}
+      <SeedEmailsModal
+        isOpen={seedModal.isOpen}
+        onClose={() => setSeedModal({ isOpen: false, connectionId: '', gmailEmail: '' })}
+        connectionId={seedModal.connectionId}
+        gmailEmail={seedModal.gmailEmail}
       />
     </div>
   );

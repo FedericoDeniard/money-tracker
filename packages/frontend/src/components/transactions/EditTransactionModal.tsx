@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { Transaction } from "../../services/transactions.service";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
+import { getCurrencySymbol } from "../../utils/currency";
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -26,6 +27,15 @@ const CATEGORIES = [
   "other",
 ] as const;
 
+const CURRENCIES = [
+  "USD", "EUR", "GBP", "JPY", "CNY", "INR", "AUD", "CAD", "CHF",
+  "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "HRK",
+  "RUB", "TRY", "MXN", "ARS", "CLP", "COP", "PEN", "UYU", "BOB",
+  "PYG", "ILS", "KRW", "THB", "VND", "IDR", "MYR", "PHP", "SGD",
+  "HKD", "NZD", "ZAR", "NGN", "GHS", "KES", "EGP", "MAD", "TND",
+  "DZD", "LBP", "JOD", "IQD", "BHD", "KWD", "QAR", "SAR", "AED", "OMR"
+] as const;
+
 export function EditTransactionModal({
   isOpen,
   onClose,
@@ -40,6 +50,7 @@ export function EditTransactionModal({
     transaction_type: transaction.transaction_type,
     merchant: transaction.merchant || "",
     amount: transaction.amount.toString(),
+    currency: transaction.currency,
     category: transaction.category,
   });
 
@@ -52,6 +63,7 @@ export function EditTransactionModal({
         transaction_type: formData.transaction_type,
         merchant: formData.merchant,
         amount: parseFloat(formData.amount),
+        currency: formData.currency,
         category: formData.category,
       });
       onClose();
@@ -150,6 +162,27 @@ export function EditTransactionModal({
                     disabled={isLoading}
                     required
                   />
+                </div>
+
+                {/* Currency */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    {t("transactions.currency")}
+                  </label>
+                  <select
+                    value={formData.currency}
+                    onChange={(e) =>
+                      setFormData({ ...formData, currency: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+                    disabled={isLoading}
+                  >
+                    {CURRENCIES.map((curr) => (
+                      <option key={curr} value={curr}>
+                        {getCurrencySymbol(curr)} {curr}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Category */}
