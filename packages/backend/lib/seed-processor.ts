@@ -104,7 +104,12 @@ export async function processSeedJob(seedId: string): Promise<void> {
         gmailLogger.info("Messages found", { count: messageIds.length, seedId });
 
         if (messageIds.length === 0) {
-            await updateSeedStatus(seedId, "completed");
+            await updateSeedStatus(seedId, "completed", undefined, {
+                totalEmails: 0,
+                transactionsFound: 0,
+                totalSkipped: 0,
+                emailsProcessedByAI: 0,
+            });
             gmailLogger.info("No emails to process", { seedId });
             return;
         }
@@ -157,7 +162,12 @@ export async function processSeedJob(seedId: string): Promise<void> {
         }
 
         // Mark seed as completed
-        await updateSeedStatus(seedId, "completed");
+        await updateSeedStatus(seedId, "completed", undefined, {
+            totalEmails: messageIds.length,
+            transactionsFound,
+            totalSkipped,
+            emailsProcessedByAI: messageIds.length - totalSkipped,
+        });
 
         gmailLogger.info("Seed completed", {
             seedId,
@@ -469,15 +479,36 @@ function extractBody(payload: {
 async function updateSeedStatus(
     seedId: string,
     status: string,
-    errorMessage?: string
+    errorMessage?: string,
+    results?: {
+        totalEmails?: number;
+        transactionsFound?: number;
+        totalSkipped?: number;
+        emailsProcessedByAI?: number;
+    }
 ): Promise<void> {
-    const updateData: Record<string, string> = {
+    const updateData: Record<string, string | number> = {
         status,
         updated_at: new Date().toISOString(),
     };
 
     if (errorMessage) {
         updateData.error_message = errorMessage;
+    }
+
+    if (results) {
+        if (results.totalEmails !== undefined) {
+            updateData.total_emails = results.totalEmails;
+        }
+        if (results.transactionsFound !== undefined) {
+            updateData.transactions_found = results.transactionsFound;
+        }
+        if (results.totalSkipped !== undefined) {
+            updateData.total_skipped = results.totalSkipped;
+        }
+        if (results.emailsProcessedByAI !== undefined) {
+            updateData.emails_processed_by_ai = results.emailsProcessedByAI;
+        }
     }
 
     await supabase

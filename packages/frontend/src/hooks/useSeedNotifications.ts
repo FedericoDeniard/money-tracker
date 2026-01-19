@@ -9,6 +9,10 @@ interface Seed {
   user_oauth_token_id: string;
   status: 'pending' | 'completed' | 'failed';
   error_message?: string;
+  total_emails?: number;
+  transactions_found?: number;
+  total_skipped?: number;
+  emails_processed_by_ai?: number;
   created_at: string;
   updated_at: string;
 }
@@ -41,10 +45,32 @@ export function useSeedNotifications(userId: string | undefined) {
             // Only notify if status changed
             if (newSeed.status !== oldSeed.status) {
               if (newSeed.status === 'completed') {
-                toast.success(
-                  t('settings.seedCompletedSuccess') || '¡Importación completada! Se encontraron nuevas transacciones.',
-                  t('settings.seedCompletedDescription') || 'Revisa tus transacciones para ver los nuevos movimientos.'
-                );
+                const transactionsFound = newSeed.transactions_found || 0;
+                const totalEmails = newSeed.total_emails || 0;
+                const totalSkipped = newSeed.total_skipped || 0;
+
+                if (transactionsFound > 0) {
+                  // Found new transactions
+                  toast.success(
+                    t('settings.seedCompletedWithTransactions', { count: transactionsFound }) || 
+                    `¡Importación completada! Se ${transactionsFound === 1 ? 'encontró' : 'encontraron'} ${transactionsFound} ${transactionsFound === 1 ? 'transacción nueva' : 'transacciones nuevas'}.`,
+                    t('settings.seedCompletedDescription') || 'Revisa tus transacciones para ver los nuevos movimientos.'
+                  );
+                } else if (totalEmails === totalSkipped) {
+                  // All emails were already processed
+                  toast.info(
+                    t('settings.seedCompletedNoNew') || '¡Importación completada!',
+                    t('settings.seedCompletedAllProcessed', { count: totalEmails }) || 
+                    `Se revisaron ${totalEmails} correos pero todos ya habían sido procesados anteriormente.`
+                  );
+                } else {
+                  // No transactions found in new emails
+                  toast.info(
+                    t('settings.seedCompletedNoTransactions') || 'Importación completada.',
+                    t('settings.seedCompletedNoTransactionsDescription', { count: totalEmails }) || 
+                    `Se analizaron ${totalEmails} correos pero no se encontraron transacciones nuevas.`
+                  );
+                }
               } else if (newSeed.status === 'failed') {
                 toast.error(
                   t('settings.seedFailedError') || 'La importación falló.',
