@@ -279,12 +279,37 @@ export class TransactionsService {
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {
-    const { error } = await this.supabase
+    // 1. Obtener datos de la transacción antes de borrarla
+    const { data: transaction, error: fetchError } = await this.supabase
+      .from('transactions')
+      .select('source_message_id, user_oauth_token_id')
+      .eq('id', transactionId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!transaction) throw new Error('Transaction not found');
+
+    // 2. Eliminar de transactions
+    const { error: deleteError } = await this.supabase
       .from('transactions')
       .delete()
       .eq('id', transactionId);
 
-    if (error) throw error;
+    if (deleteError) throw deleteError;
+
+    // 3. Guardar en discarded_emails para evitar que reaparezca en seeds
+    const { error: discardError } = await this.supabase
+      .from('discarded_emails')
+      .insert({
+        user_oauth_token_id: transaction.user_oauth_token_id,
+        message_id: transaction.source_message_id,
+        reason: 'User discarded transaction'
+      });
+
+    // Ignorar error de duplicado (ya estaba descartado)
+    if (discardError && discardError.code !== '23505') {
+      throw discardError;
+    }
   }
 
   async updateTransaction(transactionId: string, updates: Partial<Transaction>): Promise<void> {
