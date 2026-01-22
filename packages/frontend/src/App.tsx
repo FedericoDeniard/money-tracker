@@ -10,17 +10,23 @@ import { queryClient } from "./lib/query-client";
 import "./i18n";
 import { Toaster } from "sonner";
 
-export function App() {
+function AppContent() {
   const { loading } = useAuth();
   useTransactionsRealtime();
 
   return (
+    <BrowserRouter>
+      <AppRoutes />
+      {!loading && <KBar />}
+      <Toaster position="bottom-center" />
+    </BrowserRouter>
+  );
+}
+
+export function App() {
+  return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRoutes />
-        {!loading && <KBar />}
-        <Toaster position="bottom-center" />
-      </BrowserRouter>
+      <AppContent />
       {process.env.NODE_ENV === "development" && <ReactQueryDevtools />}
     </QueryClientProvider>
   );
