@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { type Transaction, type TransactionFilters } from "../services/transactions.service";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
@@ -10,7 +10,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useTransactions, flattenTransactionsData, getTotalCount, hasMorePages } from "../hooks/useTransactions";
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
-import { gmailService } from "../services/gmail.service";
+import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -23,7 +23,6 @@ export function Transactions() {
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [hasConnections, setHasConnections] = useState<boolean | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>({});
 
   // Use TanStack Query hooks
@@ -38,6 +37,7 @@ export function Transactions() {
 
   const { currencies: availableCurrencies, emails: availableEmails, isLoading: loadingFilters } = useTransactionFilters();
   const { deleteTransaction, updateTransaction } = useTransactionMutations();
+  const { data: gmailStatus } = useGmailStatus(user?.id);
 
   // Flatten transactions data from infinite query
   const transactions = flattenTransactionsData(transactionsData);
@@ -66,16 +66,8 @@ export function Transactions() {
     "other",
   ];
 
-  // Check if user has any Gmail connections
-  useEffect(() => {
-    const checkConnections = async () => {
-      if (user?.id) {
-        const status = await gmailService.getConnectionStatus(user.id);
-        setHasConnections(status.total > 0);
-      }
-    };
-    checkConnections();
-  }, [user?.id]);
+  // Derive hasConnections from cached Gmail status
+  const hasConnections = gmailStatus ? gmailStatus.total > 0 : null;
 
   const handleDeleteTransaction = async (id: string) => {
     try {
