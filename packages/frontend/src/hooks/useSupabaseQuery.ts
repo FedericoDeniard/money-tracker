@@ -1,3 +1,8 @@
+/**
+ * @deprecated This hook has been replaced by TanStack Query hooks.
+ * Use useTransactions, useTransactionFilters, useMetricsData, etc. instead.
+ * This hook will be removed in a future version.
+ */
 import { useState, useEffect } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '../lib/supabase';

@@ -1,24 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
-import { getSupabase } from "../lib/supabase";
-import {
-  createTransactionsService,
-  type Transaction,
-  type TransactionFilters,
-} from "../services/transactions.service";
+import { type Transaction, type TransactionFilters } from "../services/transactions.service";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TransactionList } from "../components/transactions/TransactionList";
 import { TransactionDetail } from "../components/transactions/TransactionDetail";
 import { TransactionFiltersComponent } from "../components/transactions/TransactionFilters";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../hooks/useAuth";
+import { useTransactions, flattenTransactionsData, getTotalCount, hasMorePages } from "../hooks/useTransactions";
+import { useTransactionFilters } from "../hooks/useTransactionFilters";
+import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { gmailService } from "../services/gmail.service";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 
-const PAGE_SIZE = 10;
 
 export function Transactions() {
   const { t } = useTranslation();
@@ -28,96 +25,31 @@ export function Transactions() {
     useState<Transaction | null>(null);
   const [hasConnections, setHasConnections] = useState<boolean | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>({});
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingFilters, setLoadingFilters] = useState(true);
-  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
-  const [availableEmails, setAvailableEmails] = useState<string[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
 
-  // Load filter options once
-  useEffect(() => {
-    const loadFilterOptions = async () => {
-      try {
-        const supabase = await getSupabase();
-        const service = createTransactionsService(supabase);
-        const [currencies, emails] = await Promise.all([
-          service.getAvailableCurrencies(),
-          service.getAvailableEmails(),
-        ]);
-        setAvailableCurrencies(currencies);
-        setAvailableEmails(emails);
-      } catch (err) {
-        console.error("Error loading filter options:", err);
-      } finally {
-        setLoadingFilters(false);
-      }
-    };
-    loadFilterOptions();
-  }, []);
+  // Use TanStack Query hooks
+  const {
+    data: transactionsData,
+    isLoading: loading,
+    error,
+    fetchNextPage,
+    isFetchingNextPage: loadingMore,
+    refetch,
+  } = useTransactions({ filters });
 
-  // Load transactions based on filters
-  const loadTransactions = useCallback(async (resetPagination = false) => {
-    const isInitialLoad = resetPagination;
-    
-    if (isInitialLoad) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
-    
-    setError(null);
-    
-    try {
-      const supabase = await getSupabase();
-      const service = createTransactionsService(supabase);
-      
-      const currentPage = isInitialLoad ? 0 : page;
-      const from = currentPage * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      
-      const result = await service.getTransactionsPaginated(filters, { from, to });
-      
-      if (isInitialLoad) {
-        setTransactions(result.transactions);
-        setPage(1);
-      } else {
-        setTransactions(prev => [...prev, ...result.transactions]);
-        setPage(prev => prev + 1);
-      }
-      
-      setHasMore(result.hasMore);
-      setTotalCount(result.total || 0);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load transactions",
-      );
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [filters, page]);
+  const { currencies: availableCurrencies, emails: availableEmails, isLoading: loadingFilters } = useTransactionFilters();
+  const { deleteTransaction, updateTransaction } = useTransactionMutations();
 
+  // Flatten transactions data from infinite query
+  const transactions = flattenTransactionsData(transactionsData);
+  const totalCount = getTotalCount(transactionsData);
+  const hasMore = hasMorePages(transactionsData);
+
+  // Handle load more with TanStack Query
   const handleLoadMore = useCallback(() => {
     if (!loadingMore && hasMore) {
-      loadTransactions(false);
+      fetchNextPage();
     }
-  }, [loadTransactions, loadingMore, hasMore]);
-
-  // Initial load and when filters change
-  useEffect(() => {
-    if (!loadingFilters) {
-      // Reset pagination when filters change
-      setPage(0);
-      setTransactions([]);
-      setHasMore(true);
-      loadTransactions(true);
-    }
-  }, [filters, loadingFilters]);
+  }, [fetchNextPage, loadingMore, hasMore]);
 
   // Categories are static
   const categories = [
@@ -147,21 +79,13 @@ export function Transactions() {
 
   const handleDeleteTransaction = async (id: string) => {
     try {
-      const supabase = await getSupabase();
-      const service = createTransactionsService(supabase);
-      await service.deleteTransaction(id);
-      
-      // Refresh transactions list from the beginning
-      setPage(0);
-      setTransactions([]);
-      setHasMore(true);
-      loadTransactions(true);
-      
+      await deleteTransaction(id);
+
       // Clear selection if the deleted transaction was selected
       if (selectedTransaction?.id === id) {
         setSelectedTransaction(null);
       }
-      
+
       toast.success(t("transactions.deleteSuccess"));
     } catch (error) {
       console.error("Error deleting transaction:", error);
@@ -172,21 +96,13 @@ export function Transactions() {
 
   const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
     try {
-      const supabase = await getSupabase();
-      const service = createTransactionsService(supabase);
-      await service.updateTransaction(id, updates);
-      
-      // Refresh transactions list from the beginning
-      setPage(0);
-      setTransactions([]);
-      setHasMore(true);
-      loadTransactions(true);
-      
+      await updateTransaction({ id, updates });
+
       // Update selected transaction
       if (selectedTransaction?.id === id) {
         setSelectedTransaction({ ...selectedTransaction, ...updates });
       }
-      
+
       toast.success(t("transactions.updateSuccess"));
     } catch (error) {
       console.error("Error updating transaction:", error);
@@ -209,7 +125,7 @@ export function Transactions() {
         <div className="text-center">
           <p className="text-[var(--error)] mb-2">{t("errors.loadingError")}</p>
           <button
-            onClick={loadTransactions}
+            onClick={() => refetch()}
             className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-hover)]"
           >
             {t("common.retry")}
@@ -268,11 +184,7 @@ export function Transactions() {
                 {loading && <LoadingSpinner size="sm" className="ml-2" />}
               </h2>
               <button
-                onClick={() => {
-                  setPage(0);
-                  setTransactions([]);
-                  loadTransactions(true);
-                }}
+                onClick={() => refetch()}
                 disabled={loading}
                 className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t("common.refresh") || "Actualizar"}

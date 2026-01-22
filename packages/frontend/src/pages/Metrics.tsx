@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
-import { createTransactionsService } from "../services/transactions.service";
+import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TrendingUp, TrendingDown, DollarSign, CreditCard } from "lucide-react";
 import { MonthlyTrendChart } from "../components/charts/MonthlyTrendChart";
@@ -37,157 +36,15 @@ export function Metrics() {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
 
   const {
-    data: transactions,
-    loading,
+    availableCurrencies,
+    metrics,
+    isLoading: loading,
     error,
-  } = useSupabaseQuery(async (supabase) => {
-    const service = createTransactionsService(supabase);
-    return await service.getTransactions();
-  }, []);
-
-  // Get available currencies from transactions
-  const availableCurrencies = useMemo(() => {
-    if (!transactions) return [];
-    const currencies = [
-      ...new Set(transactions.map((tx) => tx.currency)),
-    ].sort();
-    return currencies;
-  }, [transactions]);
-
-  // Filter transactions based on selected period and currency
-  const filteredTransactions = useMemo(() => {
-    if (!transactions) return [];
-
-    const now = new Date();
-    const daysAgo = parseInt(selectedPeriod);
-    const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-
-    return transactions.filter((tx) => {
-      const dateMatch = new Date(tx.transaction_date) >= cutoffDate;
-      const currencyMatch =
-        selectedCurrency === "all" || tx.currency === selectedCurrency;
-      return dateMatch && currencyMatch;
-    });
-  }, [transactions, selectedPeriod, selectedCurrency]);
-
-  // Calculate metrics for current and previous period
-  const metrics = useMemo(() => {
-    if (!filteredTransactions.length) {
-      return {
-        totalIncome: 0,
-        totalExpense: 0,
-        netBalance: 0,
-        transactionCount: 0,
-        averageTransaction: 0,
-        topCategory: null,
-        changes: {
-          income: null,
-          expense: null,
-          netBalance: null,
-          averageTransaction: null,
-        },
-      };
-    }
-
-    const income = filteredTransactions
-      .filter((tx) => tx.transaction_type === "income")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const expense = filteredTransactions
-      .filter((tx) => tx.transaction_type === "expense")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const categoryTotals = filteredTransactions.reduce(
-      (acc, tx) => {
-        const category = tx.category || "other";
-        acc[category] = (acc[category] || 0) + tx.amount;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const topCategory = Object.entries(categoryTotals).sort(
-      ([, a], [, b]) => b - a,
-    )[0];
-
-    const averageTransaction =
-      filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
-      filteredTransactions.length;
-
-    // Calculate previous period metrics for comparison
-    const now = new Date();
-    const daysAgo = parseInt(selectedPeriod);
-    const currentPeriodStart = new Date(
-      now.getTime() - daysAgo * 24 * 60 * 60 * 1000,
-    );
-    const previousPeriodStart = new Date(
-      currentPeriodStart.getTime() - daysAgo * 24 * 60 * 60 * 1000,
-    );
-
-    const previousPeriodTransactions =
-      transactions?.filter((tx) => {
-        const txDate = new Date(tx.transaction_date);
-        const currencyMatch =
-          selectedCurrency === "all" || tx.currency === selectedCurrency;
-        return (
-          txDate >= previousPeriodStart &&
-          txDate < currentPeriodStart &&
-          currencyMatch
-        );
-      }) || [];
-
-    let changes = {
-      income: null as number | null,
-      expense: null as number | null,
-      netBalance: null as number | null,
-      averageTransaction: null as number | null,
-    };
-
-    if (previousPeriodTransactions.length > 0) {
-      const prevIncome = previousPeriodTransactions
-        .filter((tx) => tx.transaction_type === "income")
-        .reduce((sum, tx) => sum + tx.amount, 0);
-
-      const prevExpense = previousPeriodTransactions
-        .filter((tx) => tx.transaction_type === "expense")
-        .reduce((sum, tx) => sum + tx.amount, 0);
-
-      const prevAverage =
-        previousPeriodTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
-        previousPeriodTransactions.length;
-
-      changes = {
-        income:
-          prevIncome > 0 ? ((income - prevIncome) / prevIncome) * 100 : null,
-        expense:
-          prevExpense > 0
-            ? ((expense - prevExpense) / prevExpense) * 100
-            : null,
-        netBalance:
-          prevIncome - prevExpense !== 0
-            ? ((income - expense - (prevIncome - prevExpense)) /
-                Math.abs(prevIncome - prevExpense)) *
-              100
-            : null,
-        averageTransaction:
-          prevAverage > 0
-            ? ((averageTransaction - prevAverage) / prevAverage) * 100
-            : null,
-      };
-    }
-
-    return {
-      totalIncome: income,
-      totalExpense: expense,
-      netBalance: income - expense,
-      transactionCount: filteredTransactions.length,
-      averageTransaction,
-      topCategory: topCategory
-        ? { name: topCategory[0], amount: topCategory[1] }
-        : null,
-      changes,
-    };
-  }, [filteredTransactions, transactions, selectedPeriod, selectedCurrency]);
+    filteredTransactions,
+  } = useMetricsData({
+    selectedPeriod,
+    selectedCurrency,
+  });
 
   // Calculate monthly data for charts
   const monthlyData = useMemo((): MonthlyData[] => {
