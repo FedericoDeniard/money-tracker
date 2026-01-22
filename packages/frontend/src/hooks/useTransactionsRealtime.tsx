@@ -1,15 +1,18 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { getSupabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { formatCurrency } from "../utils/currency";
 import type { Transaction } from "../services/transactions.service";
 import { useAuth } from "./useAuth";
 import { getTransactionType } from "../utils/transactionUtils";
+import { queryKeys } from "../lib/query-client";
 
 export function useTransactionsRealtime() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!user) return;
@@ -35,6 +38,10 @@ export function useTransactionsRealtime() {
           },
           (payload) => {
             const newTransaction = payload.new as Transaction;
+
+            // Invalidate all transaction-related queries to ensure cache consistency
+            queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
 
             const isIncome =
               newTransaction.transaction_type === "income" ||
