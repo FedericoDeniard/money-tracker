@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSeedNotifications } from '../hooks/useSeedNotifications';
+import { useGmailStatus, useInvalidateGmailQueries } from '../hooks/useGmailStatus';
 import { Button } from '../components/ui/Button';
 import { Mail, CheckCircle, AlertCircle, Loader2, X, Download } from "lucide-react";
 import { useSearchParams } from 'react-router-dom';
-import { gmailService, type GmailStatus } from "../services/gmail.service";
+import { gmailService } from "../services/gmail.service";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
@@ -19,8 +20,8 @@ export function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState<string | null>(null);
-  const [gmailStatus, setGmailStatus] = useState<GmailStatus | null>(null);
-  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const invalidateGmailQueries = useInvalidateGmailQueries();
+  const { data: gmailStatus, isLoading: isLoadingStatus } = useGmailStatus(user?.id);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -49,9 +50,10 @@ export function Settings() {
       });
       setSearchParams({});
       
-      // Check Gmail status and show seed modal
-      checkGmailStatus().then(() => {
-        // Get the most recently connected account to offer seed
+      // Refresh Gmail status and show seed modal
+      invalidateGmailQueries();
+      // Wait a bit for the cache to update, then show seed modal
+      setTimeout(() => {
         if (gmailStatus && gmailStatus.connections.length > 0) {
           const latestConnection = gmailStatus.connections[0];
           setSeedModal({
@@ -60,7 +62,7 @@ export function Settings() {
             gmailEmail: latestConnection.gmail_email,
           });
         }
-      });
+      }, 1000);
     } else if (error === 'auth_failed') {
       setNotification({
         type: "error",
@@ -70,24 +72,7 @@ export function Settings() {
     }
   }, [searchParams, setSearchParams]);
 
-  useEffect(() => {
-    checkGmailStatus();
-  }, [user?.id]);
-
-  const checkGmailStatus = async () => {
-    if (!user?.id) return;
-
-    try {
-      setIsLoadingStatus(true);
-      const status = await gmailService.getConnectionStatus(user.id);
-      setGmailStatus(status);
-    } catch (error) {
-      console.error("Error checking Gmail status:", error);
-      setGmailStatus({ connections: [], total: 0 });
-    } finally {
-      setIsLoadingStatus(false);
-    }
-  };
+  // Gmail status is automatically managed by useGmailStatus hook
 
   useEffect(() => {
     if (notification) {
@@ -147,7 +132,7 @@ export function Settings() {
           type: "success",
           message: t("settings.gmailDisconnectedSuccess"),
         });
-        await checkGmailStatus();
+        invalidateGmailQueries();
       } else {
         throw new Error(result.error || "Failed to disconnect");
       }
