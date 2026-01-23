@@ -1,0 +1,1 @@
+export const ZEROSTEP_TOKEN = process.env.ZEROSTEP_TOKEN;
