@@ -52,6 +52,7 @@ export function EditTransactionModal({
     amount: transaction.amount.toString(),
     currency: transaction.currency,
     category: transaction.category,
+    transaction_date: transaction.transaction_date || transaction.date,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +66,7 @@ export function EditTransactionModal({
         amount: parseFloat(formData.amount),
         currency: formData.currency,
         category: formData.category,
+        transaction_date: formData.transaction_date,
       });
       onClose();
     } catch (error) {
@@ -120,7 +122,12 @@ export function EditTransactionModal({
                   <select
                     value={formData.transaction_type}
                     onChange={(e) =>
-                      setFormData({ ...formData, transaction_type: e.target.value as "income" | "expense" })
+                      setFormData({
+                        ...formData,
+                        transaction_type: e.target.value as
+                          | "income"
+                          | "expense",
+                      })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
@@ -143,6 +150,26 @@ export function EditTransactionModal({
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
+                  />
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    {t("transactions.date")}
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.transaction_date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        transaction_date: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+                    disabled={isLoading}
+                    required
                   />
                 </div>
 
@@ -193,7 +220,10 @@ export function EditTransactionModal({
                   <select
                     value={formData.category}
                     onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value as typeof CATEGORIES[number] })
+                      setFormData({
+                        ...formData,
+                        category: e.target.value as (typeof CATEGORIES)[number],
+                      })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
