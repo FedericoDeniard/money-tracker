@@ -907,6 +907,118 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+// Endpoint para renovar Gmail watches (llamado por pg_cron)
+app.post("/renew-watches", async (req, res) => {
+  try {
+    gmailLogger.info("Iniciando renovación automática de Gmail watches");
+
+    // Obtener watches que expiran en las próximas 48 horas
+    const fortyEightHoursFromNow = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+    const { data: expiringWatches, error: fetchError } = await supabase
+      .from("gmail_watches")
+      .select("*")
+      .eq("is_active", true)
+      .lt("expiration", fortyEightHoursFromNow);
+
+    if (fetchError) {
+      gmailLogger.error("Error obteniendo watches por expirar", { error: fetchError });
+      return res.status(500).json({ error: "Failed to fetch expiring watches" });
+    }
+
+    if (!expiringWatches || expiringWatches.length === 0) {
+      gmailLogger.info("No hay watches por expirar en las próximas 48 horas");
+      return res.json({ message: "No watches to renew", renewed: 0 });
+    }
+
+    let renewedCount = 0;
+    let failedCount = 0;
+    const results = [];
+
+    for (const watch of expiringWatches) {
+      try {
+        // Obtener tokens para este email
+        const { data: tokenData } = await supabase
+          .from("user_oauth_tokens")
+          .select("*")
+          .eq("gmail_email", watch.gmail_email)
+          .limit(1)
+          .single();
+
+        if (!tokenData) {
+          gmailLogger.warn(`No tokens found for ${watch.gmail_email}`);
+          failedCount++;
+          results.push({ email: watch.gmail_email, status: "no_tokens" });
+          continue;
+        }
+
+        // Configurar OAuth client
+        const accessToken = await decryptToken(tokenData.access_token_encrypted);
+        oAuth2Client.setCredentials({ access_token: accessToken });
+        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+        // Renovar el watch
+        const topicName = `projects/${process.env.GOOGLE_PROJECT_ID}/topics/${process.env.PUBSUB_TOPIC || "gmail-notifications"}`;
+        const watchResponse = await gmail.users.watch({
+          userId: "me",
+          requestBody: {
+            labelIds: ["INBOX"],
+            topicName,
+            labelFilterAction: "include",
+          },
+        });
+
+        // Actualizar en la base de datos
+        const watchExpiration = watchResponse.data.expiration
+          ? new Date(parseInt(watchResponse.data.expiration)).toISOString()
+          : null;
+
+        const { error: updateError } = await supabase
+          .from("gmail_watches")
+          .update({
+            watch_id: watchResponse.data.historyId || null,
+            expiration: watchExpiration,
+            history_id: watchResponse.data.historyId || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", watch.id);
+
+        if (updateError) {
+          gmailLogger.error(`Error actualizando watch para ${watch.gmail_email}`, { error: updateError });
+          failedCount++;
+          results.push({ email: watch.gmail_email, status: "update_failed", error: updateError.message });
+        } else {
+          gmailLogger.info(`Watch renovado exitosamente para ${watch.gmail_email}`);
+          renewedCount++;
+          results.push({ email: watch.gmail_email, status: "renewed", expiration: watchExpiration });
+        }
+
+      } catch (error) {
+        gmailLogger.error(`Error renovando watch para ${watch.gmail_email}`, { error });
+        failedCount++;
+        results.push({
+          email: watch.gmail_email,
+          status: "renewal_failed",
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+
+    gmailLogger.info(`Renovación completada: ${renewedCount} exitosos, ${failedCount} fallidos`);
+
+    res.json({
+      message: "Renewal completed",
+      renewed: renewedCount,
+      failed: failedCount,
+      results
+    });
+
+  } catch (error) {
+    gmailLogger.error("Error en endpoint de renovación", { error });
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 const PORT = Number(process.env.PORT) || 3001;
 
 const server = app.listen(PORT, '0.0.0.0', () =>
