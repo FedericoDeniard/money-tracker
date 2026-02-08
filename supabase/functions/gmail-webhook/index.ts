@@ -168,26 +168,41 @@ Deno.serve(async (req) => {
 
     // Use the first valid token to read the message
     const firstToken = validTokens[0]
-    const accessToken = firstToken.access_token
 
     // Get the last historyId saved
     const { data: watchData } = await supabase
       .from('gmail_watches')
-      .select('history_id')
+      .select('history_id, topic_name')
       .eq('gmail_email', gmailEmail)
       .eq('is_active', true)
       .order('history_id', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    const startHistoryId = watchData?.history_id || historyId
+    if (!watchData?.history_id) {
+      // No saved historyId — save current one so next notification works properly
+      console.log('No saved historyId, initializing gmail_watches record')
+      await supabase.from('gmail_watches').upsert(
+        {
+          user_id: firstToken.user_id,
+          gmail_email: gmailEmail,
+          history_id: historyId.toString(),
+          is_active: true,
+          topic_name: watchData?.topic_name || 'projects/unknown/topics/gmail-notifications',
+          label_ids: ['INBOX'],
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,gmail_email' }
+      )
+      return new Response('OK', { status: 200 })
+    }
 
-    // Get changes since the last historyId
-    const historyUrl = `https://www.googleapis.com/gmail/v1/users/me/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded&labelId=INBOX`
+    // Use History API to find new INBOX messages since last processed historyId
+    const historyUrl = `https://www.googleapis.com/gmail/v1/users/me/history?startHistoryId=${watchData.history_id}&historyTypes=messageAdded&labelId=INBOX`
     
     const historyResponse = await fetch(historyUrl, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${firstToken.access_token}`,
       },
     })
 
@@ -200,33 +215,42 @@ Deno.serve(async (req) => {
     const history = historyData.history
 
     if (!history || history.length === 0) {
-      console.log('No new messages in history')
+      // Update historyId even if no new messages (could be a draft/label event)
+      await supabase
+        .from('gmail_watches')
+        .update({ history_id: historyId.toString(), updated_at: new Date().toISOString() })
+        .eq('gmail_email', gmailEmail)
+        .eq('is_active', true)
+      console.log('No new INBOX messages (probably a draft/label/read event)')
       return new Response('OK', { status: 200 })
     }
 
-    // Filter only messagesAdded
     const addedMessages = history
       .flatMap((h: any) => h.messagesAdded || [])
       .filter((m: any) => m.message?.labelIds?.includes('INBOX'))
 
     if (addedMessages.length === 0) {
+      await supabase
+        .from('gmail_watches')
+        .update({ history_id: historyId.toString(), updated_at: new Date().toISOString() })
+        .eq('gmail_email', gmailEmail)
+        .eq('is_active', true)
       console.log('No new messages in INBOX')
       return new Response('OK', { status: 200 })
     }
 
-    // Process the most recent message
     const latestMessage = addedMessages[addedMessages.length - 1]
-    if (!latestMessage || !latestMessage.message?.id) {
+    const messageId = latestMessage?.message?.id
+    if (!messageId) {
       return new Response('OK', { status: 200 })
     }
 
-    const messageId = latestMessage.message.id
     console.log('Processing message', { messageId })
 
     // Update historyId in database
     await supabase
       .from('gmail_watches')
-      .update({ history_id: historyId })
+      .update({ history_id: historyId.toString(), updated_at: new Date().toISOString() })
       .eq('gmail_email', gmailEmail)
       .eq('is_active', true)
 
@@ -235,7 +259,7 @@ Deno.serve(async (req) => {
       `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${firstToken.access_token}`,
         },
       }
     )
@@ -280,8 +304,8 @@ Deno.serve(async (req) => {
     }
 
     // Extract attachments for AI analysis
-    const images = await extractImageAttachments(accessToken, message.id, message.payload)
-    const pdfTexts = await extractPdfTexts(accessToken, message.id, message.payload)
+    const images = await extractImageAttachments(firstToken.access_token, message.id, message.payload)
+    const pdfTexts = await extractPdfTexts(firstToken.access_token, message.id, message.payload)
 
     const fullContent = bodyText
 
