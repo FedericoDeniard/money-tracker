@@ -1,5 +1,5 @@
 import { getSupabase } from '../lib/supabase';
-import { config } from '../config';
+import { getConfig } from '../config';
 
 export interface GmailConnection {
   id: string;
@@ -70,6 +70,7 @@ export const gmailService = {
 
   async connectGmail(): Promise<void> {
     const supabase = await getSupabase();
+    const config = await getConfig();
 
     // Get the current session token
     const { data: { session }, error } = await supabase.auth.getSession();
@@ -92,6 +93,7 @@ export const gmailService = {
   async disconnectGmail(connectionId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const supabase = await getSupabase();
+      const config = await getConfig();
 
       // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();

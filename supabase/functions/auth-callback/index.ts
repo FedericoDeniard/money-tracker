@@ -26,6 +26,14 @@ Deno.serve(async (req) => {
     const state = url.searchParams.get('state')
     const error = url.searchParams.get('error')
 
+    // Debug logs
+    console.log('OAuth Callback Debug:')
+    console.log('  URL:', req.url)
+    console.log('  Code:', code ? 'present' : 'missing')
+    console.log('  State:', state ? 'present' : 'missing')
+    console.log('  Error:', error || 'none')
+    console.log('  Expected redirect_uri:', Deno.env.get('OAUTH_REDIRECT_URI'))
+
     // Handle OAuth errors
     if (error) {
       console.error('OAuth error:', error)
@@ -45,12 +53,26 @@ Deno.serve(async (req) => {
       return Response.redirect(`${frontendUrl}/settings?error=oauth_failed&reason=no_state`, 302)
     }
 
-    const userId = state
+    // State contains the Supabase JWT token - extract user_id from it
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    )
+    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser(state)
+    
+    if (authError || !authUser) {
+      console.error('Failed to verify state token:', authError)
+      const frontendUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:3000'
+      return Response.redirect(`${frontendUrl}/settings?error=oauth_failed&reason=invalid_state`, 302)
+    }
+
+    const userId = authUser.id
+    console.log('Authenticated user:', userId)
 
     // Exchange code for tokens
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
-    const redirectUri = Deno.env.get('OAUTH_REDIRECT_URI') || 'http://localhost:3001/auth/callback'
+    const redirectUri = Deno.env.get('OAUTH_REDIRECT_URI') || 'http://127.0.0.1:54321/functions/v1/auth-callback'
 
     if (!clientId || !clientSecret) {
       console.error('Missing OAuth credentials')
@@ -104,9 +126,9 @@ Deno.serve(async (req) => {
       return Response.redirect(`${frontendUrl}/settings?error=oauth_failed&reason=no_email`, 302)
     }
 
-    // Encrypt tokens (simple base64 encoding for now - replace with proper encryption)
-    const encryptedAccessToken = btoa(tokens.access_token)
-    const encryptedRefreshToken = tokens.refresh_token ? btoa(tokens.refresh_token) : null
+    // Store tokens directly for now
+    const accessToken = tokens.access_token
+    const refreshToken = tokens.refresh_token || null
 
     // Calculate token expiration
     const expiresAt = tokens.expires_in
@@ -132,8 +154,8 @@ Deno.serve(async (req) => {
       const { error: updateError } = await supabase
         .from('user_oauth_tokens')
         .update({
-          access_token_encrypted: encryptedAccessToken,
-          refresh_token_encrypted: encryptedRefreshToken,
+          access_token: accessToken,
+          refresh_token: refreshToken,
           token_type: tokens.token_type || 'Bearer',
           expires_at: expiresAt,
           scope: tokens.scope || null,
@@ -155,8 +177,8 @@ Deno.serve(async (req) => {
         .from('user_oauth_tokens')
         .insert({
           user_id: userId,
-          access_token_encrypted: encryptedAccessToken,
-          refresh_token_encrypted: encryptedRefreshToken,
+          access_token: accessToken,
+          refresh_token: refreshToken,
           token_type: tokens.token_type || 'Bearer',
           expires_at: expiresAt,
           scope: tokens.scope || null,
@@ -173,7 +195,64 @@ Deno.serve(async (req) => {
       console.log(`Created new token for ${gmailEmail}`)
     }
 
-    // Set up Gmail watch (simplified version - full implementation would need Pub/Sub)
+    // Set up Gmail watch for real-time notifications
+    const projectId = Deno.env.get('GOOGLE_PROJECT_ID')
+    const pubsubTopic = Deno.env.get('PUBSUB_TOPIC') || 'gmail-notifications'
+
+    if (projectId) {
+      try {
+        const topicName = `projects/${projectId}/topics/${pubsubTopic}`
+        const watchResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/watch', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            labelIds: ['INBOX'],
+            topicName,
+            labelFilterAction: 'include',
+          }),
+        })
+
+        if (watchResponse.ok) {
+          const watchData = await watchResponse.json()
+          const watchExpiration = watchData.expiration
+            ? new Date(parseInt(watchData.expiration)).toISOString()
+            : null
+
+          const { error: watchError } = await supabase.from('gmail_watches').upsert(
+            {
+              user_id: userId,
+              gmail_email: gmailEmail,
+              watch_id: watchData.historyId || null,
+              topic_name: topicName,
+              label_ids: ['INBOX'],
+              expiration: watchExpiration,
+              history_id: watchData.historyId || null,
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id,gmail_email',
+            }
+          )
+
+          if (watchError) {
+            console.error('Error saving watch:', watchError)
+          } else {
+            console.log('Gmail watch configured for', gmailEmail)
+          }
+        } else {
+          console.error('Failed to set up Gmail watch:', await watchResponse.text())
+        }
+      } catch (watchErr) {
+        console.error('Error setting up Gmail watch:', watchErr)
+      }
+    } else {
+      console.warn('GOOGLE_PROJECT_ID not set, skipping Gmail watch setup')
+    }
+
     console.log('Gmail OAuth completed successfully for user:', userId, 'email:', gmailEmail)
 
     // Redirect to frontend with success

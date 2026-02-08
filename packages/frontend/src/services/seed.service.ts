@@ -1,5 +1,5 @@
 import { getSupabase } from '../lib/supabase';
-import { config } from '../config';
+import { getConfig } from '../config';
 
 export interface StartSeedResponse {
   seedId: string;
@@ -13,13 +13,14 @@ export const seedService = {
    */
   async startSeed(connectionId: string): Promise<StartSeedResponse> {
     const supabase = await getSupabase();
+    const config = await getConfig();
 
     // Get the current session token
     const sessionResult = await supabase.auth.getSession();
     const session = sessionResult?.data?.session;
     
-    if (sessionResult?.error || !session?.access_token) {
-      throw new Error('No active session. Please refresh the page and try again.');
+    if (!session?.access_token) {
+      throw new Error('No active session found. Please log in again.');
     }
 
     // Call Supabase Edge Function instead of backend
@@ -29,12 +30,14 @@ export const seedService = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ connectionId }),
+      body: JSON.stringify({
+        connectionId
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData?.error || 'Failed to start seed');
+      throw new Error(errorData.error || 'Failed to start seed job');
     }
 
     return await response.json();

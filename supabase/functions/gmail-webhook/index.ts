@@ -2,12 +2,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent.ts'
-// Note: PDF and image extraction temporarily removed to reduce bundle size
-// import { extractPdfAttachments } from '../_shared/lib/pdf-extractor.ts'
-// import { extractImageAttachments } from '../_shared/lib/image-extractor.ts'
-import { decryptTokenFallback } from '../_shared/lib/encryption.ts'
-import { supabase as supabaseAdmin } from '../_shared/lib/supabase.ts'
-import { google } from 'npm:googleapis@170.1.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -99,9 +93,9 @@ Deno.serve(async (req) => {
 
         if (expiresAt && now >= expiresAt) {
           // Try to refresh if we have refresh token
-          if (tokenData.refresh_token_encrypted) {
+          if (tokenData.refresh_token) {
             console.log(`Attempting to refresh expired token for user ${tokenData.user_id}`)
-            const refreshToken = await decryptTokenFallback(tokenData.refresh_token_encrypted)
+            const refreshToken = tokenData.refresh_token
 
             const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
               method: 'POST',
@@ -118,7 +112,6 @@ Deno.serve(async (req) => {
 
             if (refreshResponse.ok) {
               const refreshData = await refreshResponse.json()
-              const newEncryptedAccessToken = btoa(refreshData.access_token)
               const newExpiresAt = refreshData.expires_in
                 ? new Date(Date.now() + refreshData.expires_in * 1000).toISOString()
                 : null
@@ -126,14 +119,14 @@ Deno.serve(async (req) => {
               await supabase
                 .from('user_oauth_tokens')
                 .update({
-                  access_token_encrypted: newEncryptedAccessToken,
+                  access_token: refreshData.access_token,
                   expires_at: newExpiresAt,
                   updated_at: new Date().toISOString(),
                 })
                 .eq('id', tokenData.id)
 
               // Update tokenData with new credentials
-              tokenData.access_token_encrypted = newEncryptedAccessToken
+              tokenData.access_token = refreshData.access_token
               tokenData.expires_at = newExpiresAt
 
               validTokens.push(tokenData)
@@ -148,7 +141,7 @@ Deno.serve(async (req) => {
           }
         } else {
           // Token not expired by date, verify with Google
-          const accessToken = await decryptTokenFallback(tokenData.access_token_encrypted)
+          const accessToken = tokenData.access_token
 
           const response = await fetch(
             `https://oauth2.googleapis.com/tokeninfo?access_token=${accessToken}`
@@ -175,14 +168,14 @@ Deno.serve(async (req) => {
 
     // Use the first valid token to read the message
     const firstToken = validTokens[0]
-    const accessToken = atob(firstToken.access_token_encrypted)
+    const accessToken = firstToken.access_token
 
     // Get the last historyId saved
     const { data: watchData } = await supabase
       .from('gmail_watches')
       .select('history_id')
       .eq('gmail_email', gmailEmail)
-      .eq('active', true)
+      .eq('is_active', true)
       .order('history_id', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -235,7 +228,7 @@ Deno.serve(async (req) => {
       .from('gmail_watches')
       .update({ history_id: historyId })
       .eq('gmail_email', gmailEmail)
-      .eq('active', true)
+      .eq('is_active', true)
 
     // Get full message details
     const messageResponse = await fetch(

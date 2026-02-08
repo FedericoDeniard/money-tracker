@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { config } from "../config";
+import { getConfig } from "../config";
 
 let supabaseInstance: SupabaseClient | null = null;
 let initPromise: Promise<SupabaseClient> | null = null;
@@ -17,6 +17,7 @@ export async function getSupabase(): Promise<SupabaseClient> {
 
   // Start initialization
   initPromise = (async () => {
+    const config = await getConfig();
     supabaseInstance = createClient(
       config.supabase.url,
       config.supabase.anonKey,

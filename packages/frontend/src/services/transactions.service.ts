@@ -275,7 +275,8 @@ export class TransactionsService {
       return emails.sort();
     }
 
-    return (data || []).sort();
+    const emails = (data || []).map((item: any) => typeof item === 'string' ? item : item.gmail_email);
+    return emails.sort();
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {

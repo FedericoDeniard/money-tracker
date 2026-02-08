@@ -1,13 +1,8 @@
-// Seed Emails Edge Function - Processes historical emails for transactions (text only)
+// Seed Emails Edge Function - Chunked processing with auto-invocation
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
-// Note: PDF and image extraction temporarily removed to reduce bundle size
-// import { extractPdfAttachments } from "../_shared/lib/pdf-extractor.ts"
-// import { extractImageAttachments } from "../_shared/lib/image-extractor.ts"
-import { decryptTokenFallback, encryptTokenFallback } from "../_shared/lib/encryption.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
-import { google } from "npm:googleapis@170.1.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,14 +10,16 @@ const corsHeaders = {
 }
 
 interface SeedRequest {
-  connectionId: string
+  connectionId?: string
+  seedId?: string
+  resume?: boolean
 }
 
-const MAX_RETRIES = 3
 const MONTHS_TO_SEED = 3
+const CHUNK_SIZE = 30
+const CONCURRENCY = 10
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -30,62 +27,62 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { 
-        status: 405, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 
   try {
-    // Get authorization header
     const authHeader = req.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Missing or invalid authorization header' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const token = authHeader.replace('Bearer ', '')
 
     // Verify token with Supabase
-    const supabase = createSupabaseClient()
+    const supabaseAnon = createSupabaseClient()
+    const { data: { user }, error } = await supabaseAnon.auth.getUser(token)
 
-    const { data: { user }, error } = await supabase.auth.getUser(token)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
 
     if (error || !user) {
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const userId = user.id
+    const body: SeedRequest = await req.json()
 
-    // Parse request body
-    const { connectionId }: SeedRequest = await req.json()
-
-    if (!connectionId) {
+    // --- RESUME MODE: continue processing an existing seed ---
+    if (body.resume && body.seedId) {
+      const result = await processChunk(supabase, body.seedId, token)
       return new Response(
-        JSON.stringify({ error: 'Missing connectionId parameter' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify(result),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Verify that the connection belongs to the user
+    // --- NEW SEED MODE ---
+    const { connectionId } = body
+    if (!connectionId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing connectionId parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify connection belongs to user
     const { data: tokenData, error: tokenError } = await supabase
       .from('user_oauth_tokens')
-      .select('id, gmail_email')
+      .select('id, gmail_email, access_token')
       .eq('id', connectionId)
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -94,41 +91,52 @@ Deno.serve(async (req) => {
     if (tokenError || !tokenData) {
       return new Response(
         JSON.stringify({ error: 'Connection not found or unauthorized' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Check if there's already a seed in progress for this connection
+    // Check for existing in-progress seed
     const { data: existingSeed } = await supabase
       .from('seeds')
       .select('id, status')
       .eq('user_oauth_token_id', connectionId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'processing'])
       .maybeSingle()
 
     if (existingSeed) {
       return new Response(
-        JSON.stringify({
-          error: 'A seed is already in progress for this connection',
-          seedId: existingSeed.id
-        }),
-        { 
-          status: 409, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'A seed is already in progress', seedId: existingSeed.id }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create seed
+    // Fetch all Gmail message IDs
+    const accessToken = tokenData.access_token
+    const threeMonthsAgo = new Date()
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - MONTHS_TO_SEED)
+    const afterDate = threeMonthsAgo.toISOString().split('T')[0]?.replace(/-/g, '/') || ''
+    const query = `after:${afterDate}`
+    const messageIds = await getAllMessageIds(accessToken, query)
+
+    if (messageIds.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No messages found', totalMessages: 0 }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Found ${messageIds.length} messages to process`)
+
+    // Create seed with all message IDs stored
     const { data: newSeed, error: seedError } = await supabase
       .from('seeds')
       .insert({
         user_id: userId,
         user_oauth_token_id: connectionId,
-        status: 'pending',
+        status: 'processing',
+        message_ids: messageIds,
+        total_emails: messageIds.length,
+        last_processed_index: 0,
       })
       .select()
       .single()
@@ -137,171 +145,137 @@ Deno.serve(async (req) => {
       console.error('Error creating seed:', seedError)
       return new Response(
         JSON.stringify({ error: 'Failed to create seed' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Seed created', {
-      seedId: newSeed.id,
-      userId,
-      gmailEmail: tokenData.gmail_email
-    })
+    console.log('Seed created', { seedId: newSeed.id, userId, gmailEmail: tokenData.gmail_email, totalMessages: messageIds.length })
 
-    // Start processing in background (don't await)
-    // In Edge Functions, we'll process synchronously for now
-    // TODO: Implement proper background processing
-    processSeedJob(newSeed.id).catch(error => {
-      console.error('Error in seed job', { error, seedId: newSeed.id })
-    })
+    // Process first chunk
+    const result = await processChunk(supabase, newSeed.id, token)
 
     return new Response(
-      JSON.stringify({
-        seedId: newSeed.id,
-        status: 'pending',
-        message: 'Seed started successfully'
-      }),
-      { 
-        status: 202, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ seedId: newSeed.id, status: 'processing', ...result }),
+      { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Error starting seed:', error)
+    console.error('Error in seed-emails:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
 
-async function processSeedJob(seedId: string): Promise<void> {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  )
+// --- CHUNK PROCESSING ---
+async function processChunk(
+  supabase: any,
+  seedId: string,
+  authToken: string
+): Promise<{ done: boolean; processed: number; transactions: number; total: number }> {
+  // Get seed data
+  const { data: seed, error: seedError } = await supabase
+    .from('seeds')
+    .select('*')
+    .eq('id', seedId)
+    .single()
 
-  try {
-    // Get seed data
-    const { data: seed, error: seedError } = await supabase
-      .from('seeds')
-      .select('*')
-      .eq('id', seedId)
-      .single()
+  if (seedError || !seed) {
+    throw new Error(`Seed not found: ${seedId}`)
+  }
 
-    if (seedError || !seed) {
-      throw new Error(`Seed not found: ${seedId}`)
-    }
+  if (seed.status === 'completed' || seed.status === 'failed') {
+    return { done: true, processed: seed.last_processed_index, transactions: seed.transactions_found || 0, total: seed.total_emails || 0 }
+  }
 
-    // Get user OAuth tokens
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('user_oauth_tokens')
-      .select('*')
-      .eq('id', seed.user_oauth_token_id)
-      .single()
+  const messageIds: string[] = seed.message_ids || []
+  const startIndex = seed.last_processed_index || 0
+  const endIndex = Math.min(startIndex + CHUNK_SIZE, messageIds.length)
+  const chunk = messageIds.slice(startIndex, endIndex)
 
-    if (tokenError || !tokenData) {
-      throw new Error('OAuth tokens not found')
-    }
+  if (chunk.length === 0) {
+    // All done
+    await supabase.from('seeds').update({
+      status: 'completed',
+      last_processed_index: messageIds.length,
+      updated_at: new Date().toISOString(),
+    }).eq('id', seedId)
+    return { done: true, processed: messageIds.length, transactions: seed.transactions_found || 0, total: messageIds.length }
+  }
 
-    // Decrypt tokens
-    const accessToken = await decryptTokenFallback(tokenData.access_token_encrypted)
-    const refreshToken = tokenData.refresh_token_encrypted
-      ? await decryptTokenFallback(tokenData.refresh_token_encrypted)
-      : null
+  // Get OAuth token
+  const { data: tokenData } = await supabase
+    .from('user_oauth_tokens')
+    .select('*')
+    .eq('id', seed.user_oauth_token_id)
+    .single()
 
-    // Get user full name for context
-    let userFullName: string | undefined
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-      seed.user_id
-    )
-    if (!userError && userData?.user?.user_metadata?.full_name) {
-      userFullName = userData.user.user_metadata.full_name
-    }
+  if (!tokenData) throw new Error('OAuth tokens not found')
 
-    // Calculate date 3 months ago
-    const threeMonthsAgo = new Date()
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - MONTHS_TO_SEED)
-    const afterDate = threeMonthsAgo.toISOString().split('T')[0]?.replace(/-/g, '/') || ''
-    const query = `after:${afterDate}`
+  const accessToken = tokenData.access_token
 
-    // Get all message IDs using Gmail API
-    const messageIds = await getAllMessageIds(accessToken, query)
+  // Get user full name for AI context
+  let userFullName: string | undefined
+  const { data: userData } = await supabase.auth.admin.getUserById(seed.user_id)
+  if (userData?.user?.user_metadata?.full_name) {
+    userFullName = userData.user.user_metadata.full_name
+  }
 
-    if (messageIds.length === 0) {
-      await updateSeedStatus(supabase, seedId, 'completed', undefined, {
-        totalMessages: 0,
-        processedMessages: 0,
-        transactionsFound: 0,
-      })
-      return
-    }
+  console.log(`Processing chunk: messages ${startIndex}-${endIndex - 1} of ${messageIds.length}`)
 
-    console.log(`Found ${messageIds.length} messages to process`)
+  // Process chunk in parallel batches
+  let transactionsFound = seed.transactions_found || 0
+  let processedCount = 0
 
-    // Process messages in batches
-    const batchSize = 10
-    let processedCount = 0
-    let transactionsFound = 0
+  for (let i = 0; i < chunk.length; i += CONCURRENCY) {
+    const batch = chunk.slice(i, i + CONCURRENCY)
 
-    for (let i = 0; i < messageIds.length; i += batchSize) {
-      const batch = messageIds.slice(i, i + batchSize)
-      
-      for (const messageId of batch) {
+    const results = await Promise.all(
+      batch.map(async (messageId: string) => {
         try {
-          const result = await processMessage(
-            supabase, 
-            accessToken, 
-            messageId, 
-            seed.user_id, 
-            tokenData.id,
-            userFullName
-          )
-          
-          if (result.transactionFound) {
-            transactionsFound++
-          }
-          
-          processedCount++
+          return await processMessage(supabase, accessToken, messageId, seed.user_id, tokenData.id, userFullName)
         } catch (error) {
           console.error(`Error processing message ${messageId}:`, error)
+          return { transactionFound: false }
         }
-      }
-
-      // Update progress
-      if (processedCount % 50 === 0) {
-        await updateSeedStatus(supabase, seedId, 'processing', undefined, {
-          totalMessages: messageIds.length,
-          processedMessages: processedCount,
-          transactionsFound,
-        })
-      }
-    }
-
-    // Mark as completed
-    await updateSeedStatus(supabase, seedId, 'completed', undefined, {
-      totalMessages: messageIds.length,
-      processedMessages: processedCount,
-      transactionsFound,
-    })
-
-    console.log(`Seed completed: ${processedCount} messages processed, ${transactionsFound} transactions found`)
-
-  } catch (error) {
-    console.error('Seed job failed:', error)
-    await updateSeedStatus(
-      supabase, 
-      seedId, 
-      'failed', 
-      error instanceof Error ? error.message : 'Unknown error'
+      })
     )
+
+    for (const result of results) {
+      if (result.transactionFound) transactionsFound++
+      processedCount++
+    }
   }
+
+  const newIndex = endIndex
+  const isDone = newIndex >= messageIds.length
+
+  // Update seed progress
+  await supabase.from('seeds').update({
+    status: isDone ? 'completed' : 'processing',
+    last_processed_index: newIndex,
+    emails_processed_by_ai: newIndex,
+    transactions_found: transactionsFound,
+    updated_at: new Date().toISOString(),
+  }).eq('id', seedId)
+
+  console.log(`Chunk done: ${processedCount} processed, ${transactionsFound} transactions total, ${isDone ? 'COMPLETED' : `${messageIds.length - newIndex} remaining`}`)
+
+  // Auto-invoke next chunk if not done
+  if (!isDone) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    fetch(`${supabaseUrl}/functions/v1/seed-emails`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ seedId, resume: true }),
+    }).catch(err => console.error('Auto-invoke failed:', err))
+  }
+
+  return { done: isDone, processed: newIndex, transactions: transactionsFound, total: messageIds.length }
 }
 
 async function getAllMessageIds(accessToken: string, query: string): Promise<string[]> {
@@ -355,14 +329,32 @@ async function processMessage(
 
   const message = await response.json()
 
-  // Check if already processed
+  // Check if already processed (transactions or discarded)
   const { data: existingTransaction } = await supabase
     .from('transactions')
     .select('id')
-    .eq('source_message_id', messageId)
+    .eq('user_oauth_token_id', tokenId)
+    .eq('source_message_id', message.id || messageId)
     .maybeSingle()
 
   if (existingTransaction) {
+    return { transactionFound: false }
+  }
+
+  const { data: existingDiscarded } = await supabase
+    .from('discarded_emails')
+    .select('id')
+    .eq('user_oauth_token_id', tokenId)
+    .eq('message_id', message.id || messageId)
+    .maybeSingle()
+
+  if (existingDiscarded) {
+    return { transactionFound: false }
+  }
+
+  // Skip if not in INBOX or in SPAM/TRASH
+  const labelIds = message.labelIds || []
+  if (!labelIds.includes('INBOX') || labelIds.includes('SPAM') || labelIds.includes('TRASH')) {
     return { transactionFound: false }
   }
 
@@ -515,11 +507,31 @@ function extractBodyText(payload: any): string {
 
   if (payload.parts) {
     for (const part of payload.parts) {
+      // Prioritize text/plain
       if (part.mimeType === 'text/plain' && part.body?.data) {
         const plainText = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'))
         if (plainText.trim()) {
           text = plainText
           break
+        }
+      }
+      // If multipart, search recursively
+      if (part.mimeType?.startsWith('multipart/')) {
+        const nestedText = extractBodyText(part)
+        if (nestedText.trim()) {
+          text = nestedText
+        }
+      }
+    }
+
+    // If no text/plain found, try text/html
+    if (!text.trim()) {
+      for (const part of payload.parts) {
+        if (part.mimeType === 'text/html' && part.body?.data) {
+          const htmlText = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'))
+          // Extract basic text from HTML (remove tags)
+          text = htmlText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+          if (text) break
         }
       }
     }
@@ -541,11 +553,14 @@ async function updateSeedStatus(
   }
 
   if (error) {
-    updateData.error = error
+    updateData.error_message = error
   }
 
   if (metadata) {
-    updateData.metadata = metadata
+    if (metadata.totalMessages !== undefined) updateData.total_emails = metadata.totalMessages
+    if (metadata.processedMessages !== undefined) updateData.emails_processed_by_ai = metadata.processedMessages
+    if (metadata.transactionsFound !== undefined) updateData.transactions_found = metadata.transactionsFound
+    if (metadata.skippedMessages !== undefined) updateData.total_skipped = metadata.skippedMessages
   }
 
   const { error: updateError } = await supabase

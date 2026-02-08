@@ -1,19 +1,30 @@
-// Direct configuration from environment variables
-// No backend dependency - reads directly from process.env
+// Configuration fetched from server API endpoint
+// Server reads from .env and exposes public config
 
-export const config = {
-  supabase: {
-    url: process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
-    anonKey: process.env.SUPABASE_ANON_KEY || '',
-  },
-  backendUrl: (process.env.SUPABASE_URL || 'http://127.0.0.1:54321') + '/functions/v1',
-};
+let configCache: {
+  supabase: { url: string; anonKey: string };
+  backendUrl: string;
+} | null = null;
 
 export async function getConfig() {
-  // Validate configuration
-  if (!config.supabase.url || !config.supabase.anonKey) {
-    throw new Error("Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY");
+  if (configCache) {
+    return configCache;
   }
 
-  return config;
+  const response = await fetch("/api/config");
+  if (!response.ok) {
+    throw new Error("Failed to fetch configuration from server");
+  }
+
+  configCache = await response.json();
+
+  if (!configCache?.supabase?.url || !configCache?.supabase?.anonKey) {
+    throw new Error("Invalid configuration received from server");
+  }
+
+  if (!configCache?.backendUrl) {
+    throw new Error("Invalid configuration: missing backendUrl");
+  }
+
+  return configCache;
 }

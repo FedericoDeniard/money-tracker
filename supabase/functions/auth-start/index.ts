@@ -7,19 +7,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface AuthRequest {
-  token: string
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  if (req.method !== 'GET') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { 
+        status: 405, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+
   try {
-    // Parse request body
-    const { token }: AuthRequest = await req.json()
+    // Get token from URL parameter
+    const url = new URL(req.url)
+    const token = url.searchParams.get('token')
     
     if (!token) {
       return new Response(
@@ -31,17 +38,19 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Verify token with Supabase
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
+    // Verify the token and get user
     const { data: { user }, error } = await supabase.auth.getUser(token)
-
+    
     if (error || !user) {
+      console.error('Auth verification failed:', error)
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
+        JSON.stringify({ error: 'Invalid authentication token' }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -49,17 +58,18 @@ Deno.serve(async (req) => {
       )
     }
 
-    const userId = user.id
-
-    // Initialize Google OAuth2 Client
+    // Get Google OAuth configuration
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
-    const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
-    const redirectUri = Deno.env.get('OAUTH_REDIRECT_URI') || 'http://localhost:3001/auth/callback'
-
-    if (!clientId || !clientSecret) {
-      console.error('Missing Google OAuth credentials')
+    const redirectUri = Deno.env.get('OAUTH_REDIRECT_URI') || 'http://127.0.0.1:54321/functions/v1/auth-callback'
+    
+    console.log('Auth Start Debug:')
+    console.log('  Redirect URI:', redirectUri)
+    console.log('  Client ID present:', clientId ? 'yes' : 'no')
+    
+    if (!clientId) {
+      console.error('Missing Google OAuth configuration')
       return new Response(
-        JSON.stringify({ error: 'OAuth configuration error' }),
+        JSON.stringify({ error: 'OAuth configuration missing' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -67,28 +77,23 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Generate OAuth URL
+    // Generate Google OAuth URL
+    const scopes = [
+      'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/userinfo.email'
+    ]
+    
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
     authUrl.searchParams.set('client_id', clientId)
     authUrl.searchParams.set('redirect_uri', redirectUri)
     authUrl.searchParams.set('response_type', 'code')
-    authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/gmail.readonly')
+    authUrl.searchParams.set('scope', scopes.join(' '))
+    authUrl.searchParams.set('state', token) // Pass Supabase token as state
     authUrl.searchParams.set('access_type', 'offline')
-    authUrl.searchParams.set('state', userId)
     authUrl.searchParams.set('prompt', 'consent')
 
-    console.log('OAuth flow initiated for user:', userId)
-
-    return new Response(
-      JSON.stringify({ 
-        authUrl: authUrl.toString(),
-        userId: userId
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    // Redirect to Google OAuth
+    return Response.redirect(authUrl.toString(), 302)
 
   } catch (error) {
     console.error('Auth start error:', error)

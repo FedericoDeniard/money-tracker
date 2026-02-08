@@ -54,21 +54,12 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '')
 
-    // Initialize Supabase client
-    const supabase = createClient(
+    // Verify user is authenticated using anon client
+    const supabaseAnon = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
     )
-
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token)
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
@@ -79,15 +70,83 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Delete the OAuth token
-    const { error: deleteError } = await supabase
+    // Use service role for DB operations
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    // Get the token data first and verify ownership
+    const { data: tokenData, error: fetchError } = await supabase
       .from('user_oauth_tokens')
-      .delete()
+      .select('*')
+      .eq('id', connectionId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !tokenData) {
+      return new Response(
+        JSON.stringify({ error: 'Connection not found or unauthorized' }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Check if there are other users with the same Gmail account
+    const { data: otherTokens } = await supabase
+      .from('user_oauth_tokens')
+      .select('id')
+      .eq('gmail_email', tokenData.gmail_email)
+      .eq('is_active', true)
+      .neq('id', connectionId)
+
+    const hasOtherUsers = otherTokens && otherTokens.length > 0
+
+    // Only stop the Gmail watch if this is the last user with this account
+    if (!hasOtherUsers) {
+      try {
+        const accessToken = tokenData.access_token
+        await fetch('https://www.googleapis.com/gmail/v1/users/me/stop', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        })
+        console.log(`Watch stopped for ${tokenData.gmail_email} (last user)`)
+      } catch (error) {
+        console.warn('Could not stop watch (may not exist)', error)
+      }
+
+      // Delete ALL Gmail watches for this email
+      await supabase
+        .from('gmail_watches')
+        .delete()
+        .eq('gmail_email', tokenData.gmail_email)
+    } else {
+      console.log(`Not stopping watch for ${tokenData.gmail_email} (${otherTokens.length} other user(s) still connected)`)
+
+      // Only delete watches for THIS user
+      await supabase
+        .from('gmail_watches')
+        .delete()
+        .eq('gmail_email', tokenData.gmail_email)
+        .eq('user_id', user.id)
+    }
+
+    // Soft delete: Mark token as inactive instead of deleting
+    const { error: updateError } = await supabase
+      .from('user_oauth_tokens')
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', connectionId)
       .eq('user_id', user.id)
 
-    if (deleteError) {
-      console.error('Error deleting OAuth token:', deleteError)
+    if (updateError) {
+      console.error('Error deactivating token:', updateError)
       return new Response(
         JSON.stringify({ error: 'Failed to disconnect Gmail' }),
         { 
@@ -97,11 +156,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Also delete any associated Gmail watches
-    await supabase
-      .from('gmail_watches')
-      .delete()
-      .eq('user_id', user.id)
+    console.log(`Token deactivated for user ${user.id}, transactions preserved`)
 
     return new Response(
       JSON.stringify({ success: true, message: 'Gmail disconnected successfully' }),

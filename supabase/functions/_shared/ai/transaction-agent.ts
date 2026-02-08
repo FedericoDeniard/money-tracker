@@ -1,10 +1,9 @@
 import { TransactionResponseSchema, type TransactionResponse } from './schemas.ts';
 import { EMAIL_EXTRACTION_SYSTEM } from '../prompts/email-extraction.ts';
+import { generateText, Output } from 'npm:ai';
+import { createXai } from 'npm:@ai-sdk/xai';
 
-const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const MODEL = 'grok-4-1-fast-non-reasoning';
-
-const MAX_TOKENS = 2000;
 const TEMPERATURE = 0.1;
 
 export async function extractTransactionFromEmail(
@@ -12,77 +11,50 @@ export async function extractTransactionFromEmail(
   userFullName?: string
 ): Promise<TransactionResponse> {
   try {
+    const xai = createXai({
+      apiKey: Deno.env.get('XAI_API_KEY') || '',
+    });
+
     let dynamicPrompt = '';
 
     if (userFullName) {
-      dynamicPrompt += `IMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\
-Use this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).\
-\
-`;
+      dynamicPrompt += `IMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).\n\n`;
     }
 
-    dynamicPrompt += `Email to analyze:\
-${emailContent}`;
+    dynamicPrompt += `Email to analyze:\n${emailContent}`;
 
-    const response = await fetch(GROK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('XAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: EMAIL_EXTRACTION_SYSTEM },
-          { role: 'user', content: dynamicPrompt },
-        ],
-        temperature: TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-        response_format: { type: 'json_object' },
+    const { output } = await generateText({
+      model: xai(MODEL),
+      system: EMAIL_EXTRACTION_SYSTEM,
+      prompt: dynamicPrompt,
+      temperature: TEMPERATURE,
+      output: Output.object({
+        schema: TransactionResponseSchema,
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Grok API error: ${response.status}`);
-    }
+    if (output.hasTransaction) {
+      if (output.data.amount === 0) {
+        return {
+          hasTransaction: false,
+          reason: 'Invalid transaction: amount is 0',
+        };
+      }
 
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
       return {
-        hasTransaction: false,
-        reason: 'No response from AI',
+        hasTransaction: true,
+        data: {
+          ...output.data,
+          merchant: output.data.merchant || 'Unknown',
+          date: output.data.date || undefined,
+        },
       };
     }
 
-    // Parse JSON response
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      return {
-        hasTransaction: false,
-        reason: 'Invalid JSON from AI',
-      };
-    }
-
-    const result = TransactionResponseSchema.safeParse(parsed);
-    if (!result.success) {
-      return {
-        hasTransaction: false,
-        reason: `Validation error: ${result.error.message}`,
-      };
-    }
-
-    if (result.data.hasTransaction && result.data.data.amount === 0) {
-      return {
-        hasTransaction: false,
-        reason: 'Invalid transaction: amount is 0',
-      };
-    }
-
-    return result.data;
+    return {
+      hasTransaction: false,
+      reason: output.reason,
+    };
   } catch (error) {
     console.error('AI extraction error', error);
     return {
