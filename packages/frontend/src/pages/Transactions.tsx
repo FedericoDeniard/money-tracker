@@ -109,10 +109,11 @@ export function Transactions() {
     }
   };
 
-  const handleUploadSuccess = useCallback((data: TransactionFormData) => {
-    setPreFilledData(data);
-    setIsFormModalOpen(true);
-  }, []);
+  const handleUploadSuccess = useCallback(() => {
+    // Transaction was already saved to database by the Edge Function
+    // Just show success - no need to open manual form
+    toast.success(t("upload.success", "Document processed successfully!"));
+  }, [t]);
 
   const handleUploadError = useCallback((error: string) => {
     toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
