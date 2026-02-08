@@ -401,6 +401,10 @@ async function processMessage(
   try {
     const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images, pdfTexts)
     
+    // Flush Langfuse events before returning (critical for serverless)
+    const { flushLangfuse } = await import("../_shared/lib/langfuse.ts")
+    await flushLangfuse()
+    
     if (aiResult.hasTransaction) {
       const transaction = aiResult.data
       
@@ -408,6 +412,7 @@ async function processMessage(
       const { error: insertError } = await supabase
         .from('transactions')
         .insert({
+          user_id: userId, // ← Agregar user_id explícitamente
           user_oauth_token_id: tokenId,
           source_email: fromEmail,
           source_message_id: messageId,

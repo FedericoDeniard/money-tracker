@@ -319,6 +319,10 @@ Deno.serve(async (req) => {
     try {
       const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images, pdfTexts)
       
+      // Flush Langfuse events before returning (critical for serverless)
+      const { flushLangfuse } = await import("../_shared/lib/langfuse.ts")
+      await flushLangfuse()
+      
       if (aiResult.hasTransaction) {
         console.log('Transaction detected by AI', { fromEmail, subject })
         const transaction = aiResult.data
@@ -328,6 +332,7 @@ Deno.serve(async (req) => {
           const { error: insertError } = await supabase
             .from('transactions')
             .insert({
+              user_id: tokenData.user_id, // ← Agregar user_id explícitamente
               user_oauth_token_id: tokenData.id,
               source_email: fromEmail,
               source_message_id: message.id,

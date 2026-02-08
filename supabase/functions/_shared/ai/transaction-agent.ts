@@ -1,8 +1,41 @@
 import { TransactionResponseSchema, type TransactionResponse } from './schemas.ts';
 import { EMAIL_EXTRACTION_SYSTEM } from '../prompts/email-extraction.ts';
 import { generateText, Output } from 'npm:ai';
-import { createXai } from 'npm:@ai-sdk/xai';
-import type { ImageAttachment } from '../lib/attachment-extractor.ts';
+import { createOpenAI } from "npm:ai";
+import { generateObject } from "npm:ai";
+import { createXai } from "npm:@ai-sdk/xai";
+import { z } from "npm:zod";
+import { traceOperation } from "../lib/langfuse.ts";
+
+// Date validation helper
+function validateAndFixDate(dateString?: string): string | undefined {
+  if (!dateString) return undefined;
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date detected: ${dateString}, using current date`);
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    // Check if date is in reasonable range (not too far in future)
+    const now = new Date();
+    const maxFutureDate = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year from now
+    
+    if (date > maxFutureDate) {
+      console.warn(`Future date detected: ${dateString}, using current date`);
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    // Return in YYYY-MM-DD format
+    return date.toISOString().split('T')[0];
+  } catch (error) {
+    console.warn(`Date validation error for ${dateString}:`, error);
+    return new Date().toISOString().split('T')[0];
+  }
+}
 
 const MODEL = 'grok-4-1-fast-non-reasoning';
 const TEMPERATURE = 0.1;
@@ -13,6 +46,7 @@ export async function extractTransactionFromEmail(
   images?: ImageAttachment[],
   pdfTexts?: string[]
 ): Promise<TransactionResponse> {
+  return await traceOperation("ai-transaction-processing", async () => {
   try {
     const xai = createXai({
       apiKey: Deno.env.get('XAI_API_KEY') || '',
@@ -94,7 +128,7 @@ export async function extractTransactionFromEmail(
         data: {
           ...output.data,
           merchant: output.data.merchant || 'Unknown',
-          date: output.data.date || undefined,
+          date: validateAndFixDate(output.data.date),
         },
       };
     }
@@ -110,4 +144,10 @@ export async function extractTransactionFromEmail(
       reason: 'AI processing failed',
     };
   }
+  }, {
+    imageCount: images?.length || 0,
+    pdfCount: pdfTexts?.length || 0,
+    contentLength: emailContent.length,
+    hasUserContext: !!userFullName
+  });
 }
