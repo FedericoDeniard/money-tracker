@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, File, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '../ui/Button';
 import { uploadDocumentForAnalysis } from '../../services/document-upload.service';
 
 export type TransactionFormData = {
@@ -47,7 +48,6 @@ export function UploadTransactionModal({
   const [dragActive, setDragActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [fileInputKey, setFileInputKey] = useState(0);
 
   const validateFile = (file: File): string | null => {
     if (!SUPPORTED_TYPES.includes(file.type)) {
@@ -97,13 +97,6 @@ export function UploadTransactionModal({
     }
   }, [handleFileSelect]);
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<React.ElementRef<'input'>>) => {
-    const files = e.target.files;
-    if (files && files.length > 0 && files[0]) {
-      handleFileSelect(files[0]);
-    }
-  }, [handleFileSelect]);
-
   const uploadFile = async () => {
     if (!selectedFile) return;
 
@@ -137,7 +130,6 @@ export function UploadTransactionModal({
     setUploadState('idle');
     setErrorMessage('');
     setDragActive(false);
-    setFileInputKey(prev => prev + 1);
   };
 
   const handleClose = () => {
@@ -218,16 +210,23 @@ export function UploadTransactionModal({
                     <p className="text-sm text-[var(--text-secondary)] mb-4">
                       {t('upload.supportedFormats', 'Supports PDF and image files (JPG, PNG, etc.)')}
                     </p>
-                    <label className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors cursor-pointer inline-block">
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = SUPPORTED_TYPES.join(',');
+                        input.onchange = (e) => {
+                          const target = e.target as { files?: { [key: number]: File; length: number } | null };
+                          if (target.files && target.files.length > 0 && target.files[0]) {
+                            handleFileSelect(target.files[0]);
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
                       {t('upload.selectFile', 'Select File')}
-                      <input
-                        key={fileInputKey}
-                        type="file"
-                        accept={SUPPORTED_TYPES.join(',')}
-                        onChange={handleFileInput}
-                        className="hidden"
-                      />
-                    </label>
+                    </Button>
                   </div>
                 ) : (
                   /* File Preview */
@@ -285,23 +284,24 @@ export function UploadTransactionModal({
 
               {/* Actions */}
               <div className="flex gap-3 pt-4">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={handleClose}
                   disabled={uploadState === 'uploading' || uploadState === 'processing'}
-                  className="flex-1 py-3 px-4 rounded-2xl bg-gray-100 text-[var(--text-primary)] font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  fullWidth
                 >
                   {t('common.cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={uploadFile}
-                  disabled={!selectedFile || uploadState === 'uploading' || uploadState === 'processing' || uploadState === 'success'}
-                  className="flex-1 py-3 px-4 rounded-2xl bg-[var(--primary)] text-white font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={!selectedFile || uploadState === 'success'}
+                  loading={uploadState === 'uploading' || uploadState === 'processing'}
+                  variant="primary"
+                  fullWidth
                 >
-                  {uploadState === 'uploading' && <Loader className="w-4 h-4 animate-spin" />}
-                  {uploadState === 'processing' && <Loader className="w-4 h-4 animate-spin" />}
                   {t('upload.analyze', 'Analyze Document')}
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>

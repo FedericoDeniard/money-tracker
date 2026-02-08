@@ -1,11 +1,12 @@
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
-import type { Transaction } from "../../services/transactions.service";
-import { useTranslateCategory } from "../../hooks/useTranslateCategory";
+import { useState } from 'react';
+import { Button } from '../ui/Button';
+import { useTranslateCategory } from '../../hooks/useTranslateCategory';
 import { getCurrencySymbol } from "../../utils/currency";
 import { TRANSACTION_CATEGORIES, TRANSACTION_CURRENCIES } from "../../constants/transactions";
+import type { Transaction } from "../../services/transactions.service";
 
 export type TransactionFormData = {
   transaction_type: 'income' | 'expense';
@@ -236,21 +237,23 @@ export function TransactionFormModal({
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={onClose}
                     disabled={isLoading}
-                    className="flex-1 py-3 px-4 rounded-2xl bg-gray-100 text-[var(--text-primary)] font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    fullWidth
                   >
                     {t("common.cancel")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={isLoading}
-                    className="flex-1 py-3 px-4 rounded-2xl bg-[var(--primary)] text-white font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
+                    variant="primary"
+                    loading={isLoading}
+                    fullWidth
                   >
-                    {isLoading ? t("common.loading") : saveButtonText}
-                  </button>
+                    {saveButtonText}
+                  </Button>
                 </div>
               </form>
             </motion.div>
