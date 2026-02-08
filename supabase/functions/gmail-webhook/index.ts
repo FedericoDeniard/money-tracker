@@ -34,8 +34,7 @@ Deno.serve(async (req) => {
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.warn('Webhook received without proper authorization header')
-      // For now, we'll allow it, but in production you should reject it
-      // return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
     }
 
     // Verify the message has the expected structure
