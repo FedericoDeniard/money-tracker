@@ -201,6 +201,7 @@ export function Metrics() {
             transactions={filteredTransactions}
             selectedPeriod={selectedPeriod}
             getCurrencySymbol={getCurrencySymbol}
+            onCurrencySelect={setSelectedCurrency}
           />
         </div>
       </div>

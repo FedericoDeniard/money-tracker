@@ -6,6 +6,7 @@ export interface CurrencyComparisonProps {
   transactions: Transaction[];
   selectedPeriod: string;
   getCurrencySymbol: (currency: string) => string;
+  onCurrencySelect?: (currency: string) => void;
 }
 
 interface Transaction {
@@ -18,6 +19,7 @@ interface Transaction {
 export function CurrencyComparison({
   transactions,
   getCurrencySymbol,
+  onCurrencySelect,
 }: CurrencyComparisonProps) {
   const { t } = useTranslation();
 
@@ -116,7 +118,8 @@ export function CurrencyComparison({
         {currencyMetrics.map((metrics) => (
           <div
             key={metrics.currency}
-            className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-transparent hover:border-[var(--border)] transition-all duration-300"
+            onClick={() => onCurrencySelect?.(metrics.currency)}
+            className={`bg-[var(--bg-secondary)] p-6 rounded-xl border border-transparent hover:border-[var(--border)] transition-all duration-300 ${onCurrencySelect ? 'cursor-pointer hover:shadow-md' : ''}`}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
