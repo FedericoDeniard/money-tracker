@@ -366,8 +366,19 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+[edge_runtime.secrets]
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
+GOOGLE_CLIENT_SECRET = "env(GOOGLE_CLIENT_SECRET)"
+GOOGLE_PROJECT_ID = "env(GOOGLE_PROJECT_ID)"
+OAUTH_REDIRECT_URI = "env(OAUTH_REDIRECT_URI)"
+PUBSUB_TOPIC = "env(PUBSUB_TOPIC)"
+
+# AI Configuration
+XAI_API_KEY = "env(XAI_API_KEY)"
+
+# Encryption
+ENCRYPTION_SECRET = "env(ENCRYPTION_KEY)"
 
 [analytics]
 enabled = true

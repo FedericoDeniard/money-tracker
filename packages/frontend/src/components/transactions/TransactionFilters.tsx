@@ -7,6 +7,7 @@ import {
   Tag,
   ArrowUpCircle,
   ArrowDownCircle,
+  ArrowUpDown,
   LayoutList,
   Calendar,
 } from "lucide-react";
@@ -219,6 +220,27 @@ export function TransactionFiltersComponent({
                   label: t(`categories.${c}`),
                 }))}
               />
+            </div>
+
+            {/* Sort */}
+            <div className="relative group flex-1 min-w-[140px] sm:flex-none">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg transition-all w-full sm:w-auto justify-between sm:justify-start text-gray-700 hover:border-gray-300">
+                <ArrowUpDown size={14} className="text-gray-500" />
+                <span className="text-sm font-medium whitespace-nowrap">
+                  {(filters.sortBy || "created_at") === "created_at"
+                    ? t("transactions.newest")
+                    : t("transactions.byDate")}
+                </span>
+                <ChevronDown size={14} className="opacity-50 transition-transform group-hover:translate-y-0.5" />
+              </div>
+              <select
+                value={filters.sortBy || "created_at"}
+                onChange={(e) => onFiltersChange({ ...filters, sortBy: e.target.value as TransactionFilters['sortBy'] })}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              >
+                <option value="created_at">{t("transactions.newest")}</option>
+                <option value="transaction_date">{t("transactions.byDate")}</option>
+              </select>
             </div>
 
             {/* Date Range Button */}

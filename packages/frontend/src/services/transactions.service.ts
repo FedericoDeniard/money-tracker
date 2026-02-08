@@ -1,29 +1,26 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import type { Database, Tables } from '../types/database.types';
 
-export interface Transaction {
-  id: string;
-  user_id: string; // User who owns this transaction
-  user_oauth_token_id: string | null; // Reference to which Gmail account received this
-  source_email: string;
-  source_message_id: string;
-  date: string; // Fecha y hora cuando se recibió el email
-  amount: number;
-  currency: string;
-  transaction_type: 'ingreso' | 'egreso' | 'income' | 'expense';
-  transaction_description: string;
-  transaction_date: string; // Fecha de la transacción extraída por IA
-  merchant: string;
-  category: 'salary' | 'entertainment' | 'investment' | 'food' | 'transport' | 'services' | 'health' | 'education' | 'housing' | 'clothing' | 'other';
-  created_at: string;
-  // Joined from user_oauth_tokens
-  recipient_email?: string; // Gmail email that received this transaction
+// DB row type from generated types
+type TransactionRow = Tables<'transactions'>;
+
+// Joined query result (select * with user_oauth_tokens relation)
+interface JoinedTransactionRow extends TransactionRow {
+  user_oauth_tokens: { gmail_email: string } | null;
 }
 
-// Type for database query result with joined user_oauth_tokens
-interface TransactionWithTokens extends Omit<Transaction, 'recipient_email'> {
-  user_oauth_tokens?: {
-    gmail_email: string;
-  } | null;
+// Application-level transaction type with resolved recipient_email
+export interface Transaction extends TransactionRow {
+  recipient_email?: string;
+}
+
+// Maps a joined query row to the application Transaction type
+function mapJoinedTransaction(item: JoinedTransactionRow): Transaction {
+  const { user_oauth_tokens, ...transaction } = item;
+  return {
+    ...transaction,
+    recipient_email: user_oauth_tokens?.gmail_email || undefined,
+  };
 }
 
 export interface TransactionFilters {
@@ -33,6 +30,7 @@ export interface TransactionFilters {
   type?: 'income' | 'expense' | 'ingreso' | 'egreso' | 'all';
   startDate?: string;
   endDate?: string;
+  sortBy?: 'created_at' | 'transaction_date';
 }
 
 export interface PaginationParams {
@@ -47,7 +45,7 @@ export interface PaginatedTransactions {
 }
 
 export class TransactionsService {
-  constructor(private supabase: SupabaseClient) { }
+  constructor(private supabase: SupabaseClient<Database>) { }
 
   async getTransactionsPaginated(
     filters?: TransactionFilters,
@@ -81,70 +79,47 @@ export class TransactionsService {
       `, { count: 'exact' });
 
     // Apply filters
-    query = this.applyFilters(query, filters, tokenId);
-
-    // Apply pagination
-    if (pagination) {
-      query = query.range(pagination.from, pagination.to);
-    }
-
-    const { data, error, count } = await query.order('transaction_date', { ascending: false });
-
-    if (error) throw error;
-
-    // Map the joined data to include recipient_email
-    const transactions = (data || []).map((item: TransactionWithTokens): Transaction => {
-      const { user_oauth_tokens, ...transaction } = item;
-      return {
-        ...transaction,
-        recipient_email: user_oauth_tokens?.gmail_email || undefined,
-      };
-    });
-
-    return {
-      transactions,
-      hasMore: pagination ? (count || 0) > pagination.to + 1 : false,
-      total: count || 0,
-    };
-  }
-
-  private applyFilters(query: ReturnType<SupabaseClient['from']>, filters?: TransactionFilters, tokenId?: string | null) {
-    if (!filters) return query;
-
-    // Apply currency filter
-    if (filters.currency && filters.currency !== 'all') {
+    if (filters?.currency && filters.currency !== 'all') {
       query = query.eq('currency', filters.currency);
     }
-
-    // Apply email filter (via tokenId)
     if (tokenId) {
       query = query.eq('user_oauth_token_id', tokenId);
     }
-
-    // Apply category filter
-    if (filters.category && filters.category !== 'all') {
+    if (filters?.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
     }
-
-    // Apply type filter
-    if (filters.type && filters.type !== 'all') {
+    if (filters?.type && filters.type !== 'all') {
       if (filters.type === 'income' || filters.type === 'ingreso') {
         query = query.in('transaction_type', ['income', 'ingreso']);
       } else if (filters.type === 'expense' || filters.type === 'egreso') {
         query = query.in('transaction_type', ['expense', 'egreso']);
       }
     }
-
-    // Apply date filters
-    if (filters.startDate) {
+    if (filters?.startDate) {
       query = query.gte('transaction_date', filters.startDate);
     }
-
-    if (filters.endDate) {
+    if (filters?.endDate) {
       query = query.lte('transaction_date', filters.endDate);
     }
 
-    return query;
+    // Apply pagination
+    if (pagination) {
+      query = query.range(pagination.from, pagination.to);
+    }
+
+    const sortColumn = filters?.sortBy || 'created_at';
+    const { data, error, count } = await query.order(sortColumn, { ascending: false });
+
+    if (error) throw error;
+
+    // Map the joined data to include recipient_email
+    const transactions = (data as JoinedTransactionRow[] || []).map(mapJoinedTransaction);
+
+    return {
+      transactions,
+      hasMore: pagination ? (count || 0) > pagination.to + 1 : false,
+      total: count || 0,
+    };
   }
 
   async getTransactions(filters?: TransactionFilters): Promise<Transaction[]> {
@@ -208,13 +183,7 @@ export class TransactionsService {
     if (error) throw error;
 
     // Map the joined data to include recipient_email
-    return (data || []).map((item: TransactionWithTokens): Transaction => {
-      const { user_oauth_tokens, ...transaction } = item;
-      return {
-        ...transaction,
-        recipient_email: user_oauth_tokens?.gmail_email || undefined,
-      };
-    });
+    return (data as JoinedTransactionRow[] || []).map(mapJoinedTransaction);
   }
 
   async getTransactionById(id: string): Promise<Transaction | null> {
@@ -231,12 +200,8 @@ export class TransactionsService {
 
     if (error) throw error;
 
-    // Map the joined data to include recipient_email
-    return data ? {
-      ...data,
-      recipient_email: data.user_oauth_tokens?.gmail_email || null,
-      user_oauth_tokens: undefined,
-    } : null;
+    if (!data) return null;
+    return mapJoinedTransaction(data as JoinedTransactionRow);
   }
 
   async getAvailableCurrencies(): Promise<string[]> {
@@ -255,7 +220,7 @@ export class TransactionsService {
       return currencies.sort();
     }
 
-    return (data || []).sort();
+    return (data || []).map((item) => item.currency).sort();
   }
 
   async getAvailableEmails(): Promise<string[]> {
@@ -271,11 +236,12 @@ export class TransactionsService {
 
       if (fallbackError) throw fallbackError;
 
-      const emails = [...new Set((fallbackData || []).map(item => item.gmail_email))];
+      const emails = [...new Set((fallbackData || []).map(item => item.gmail_email).filter((e): e is string => e !== null))];
       return emails.sort();
     }
 
-    return (data || []).sort();
+    const emails = (data || []).map((item) => item.gmail_email);
+    return emails.sort();
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {
@@ -301,7 +267,7 @@ export class TransactionsService {
     const { error: discardError } = await this.supabase
       .from('discarded_emails')
       .insert({
-        user_oauth_token_id: transaction.user_oauth_token_id,
+        user_oauth_token_id: transaction.user_oauth_token_id!,
         message_id: transaction.source_message_id,
         reason: 'User discarded transaction'
       });
@@ -312,7 +278,7 @@ export class TransactionsService {
     }
   }
 
-  async updateTransaction(transactionId: string, updates: Partial<Transaction>): Promise<void> {
+  async updateTransaction(transactionId: string, updates: Partial<TransactionRow>): Promise<void> {
     const { error } = await this.supabase
       .from('transactions')
       .update(updates)
@@ -323,6 +289,6 @@ export class TransactionsService {
 }
 
 // Factory function to create service instance
-export function createTransactionsService(supabase: SupabaseClient) {
+export function createTransactionsService(supabase: SupabaseClient<Database>) {
   return new TransactionsService(supabase);
 }

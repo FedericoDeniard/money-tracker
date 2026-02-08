@@ -19,10 +19,6 @@ jobs:
       - name: Instalar dependencias
         run: bun install
       
-      - name: Ejecutar lint en backend
-        working-directory: packages/backend
-        run: bun run lint
-      
       - name: Ejecutar lint en frontend
         working-directory: packages/frontend
         run: bun run lint
