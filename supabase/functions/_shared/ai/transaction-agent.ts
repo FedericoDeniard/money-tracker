@@ -3,6 +3,7 @@ import { EMAIL_EXTRACTION_SYSTEM } from '../prompts/email-extraction.ts';
 import { generateText, Output } from 'npm:ai';
 import { createXai } from 'npm:@ai-sdk/xai';
 import type { ImageAttachment } from '../lib/attachment-extractor.ts';
+import { traceOperation } from '../lib/langfuse.ts';
 
 const MODEL = 'grok-4-1-fast-non-reasoning';
 const TEMPERATURE = 0.1;
@@ -13,6 +14,7 @@ export async function extractTransactionFromEmail(
   images?: ImageAttachment[],
   pdfTexts?: string[]
 ): Promise<TransactionResponse> {
+  return await traceOperation("ai-transaction-processing", async () => {
   try {
     const xai = createXai({
       apiKey: Deno.env.get('XAI_API_KEY') || '',
@@ -110,4 +112,10 @@ export async function extractTransactionFromEmail(
       reason: 'AI processing failed',
     };
   }
+  }, {
+    imageCount: images?.length || 0,
+    pdfCount: pdfTexts?.length || 0,
+    contentLength: emailContent.length,
+    hasUserContext: !!userFullName
+  });
 }
