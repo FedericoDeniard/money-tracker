@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
           .select('*')
           .eq('gmail_email', watch.gmail_email)
           .eq('is_active', true)
-          .single()
+          .limit(1)
+          .maybeSingle()
 
         if (!tokenData) {
           results.push({ 
