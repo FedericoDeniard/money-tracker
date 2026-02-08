@@ -1,10 +1,11 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../types/database.types";
 import { getConfig } from "../config";
 
-let supabaseInstance: SupabaseClient | null = null;
-let initPromise: Promise<SupabaseClient> | null = null;
+let supabaseInstance: SupabaseClient<Database> | null = null;
+let initPromise: Promise<SupabaseClient<Database>> | null = null;
 
-export async function getSupabase(): Promise<SupabaseClient> {
+export async function getSupabase(): Promise<SupabaseClient<Database>> {
   // Return existing instance if already initialized
   if (supabaseInstance) {
     return supabaseInstance;
@@ -36,7 +37,7 @@ export async function getSupabase(): Promise<SupabaseClient> {
 }
 
 // For backward compatibility - will be initialized on first use
-export let supabase: SupabaseClient;
+export let supabase: SupabaseClient<Database>;
 
 // Initialize on first import
 getSupabase().then((client) => {

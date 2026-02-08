@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "dev": "bun --filter '*' dev",
+    "db:types": "supabase gen types typescript --local > packages/frontend/src/types/database.types.ts",
     "prepare": "husky"
   },
   "devDependencies": {

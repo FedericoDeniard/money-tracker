@@ -235,7 +235,7 @@ export function TransactionFiltersComponent({
               </div>
               <select
                 value={filters.sortBy || "created_at"}
-                onChange={(e) => onFiltersChange({ ...filters, sortBy: e.target.value as any })}
+                onChange={(e) => onFiltersChange({ ...filters, sortBy: e.target.value as TransactionFilters['sortBy'] })}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               >
                 <option value="created_at">{t("transactions.newest")}</option>
