@@ -76,6 +76,10 @@
   },
   "transactions": {
     "title": "Transactions",
+    "addTransaction": "Add Transaction",
+    "addManually": "Add manually",
+    "uploadDocument": "Upload document",
+    "create": "Create",
     "noTransactions": "No transactions",
     "noTransactionsDescription": "Transactions extracted from your emails will appear here",
     "selectTransaction": "Select a transaction to view its details",
@@ -128,8 +132,23 @@
     "endDate": "End Date",
     "apply": "Apply",
     "customRange": "Custom Range",
-    "newIncomeReceived": "💰 New Income Received",
-    "newExpenseReceived": "💸 New Expense Registered"
+    "newIncomeReceived": " New Income Received",
+    "newExpenseReceived": " New Expense Registered"
+  },
+  "upload": {
+    "title": "Upload Document",
+    "dragDrop": "Drag and drop your document here",
+    "supportedFormats": "Supports PDF and image files (JPG, PNG, etc.)",
+    "selectFile": "Select File",
+    "uploading": "Uploading document...",
+    "processing": "Analyzing document with AI...",
+    "analyze": "Analyze Document",
+    "success": "Document processed successfully!",
+    "error": "Upload failed: {{error}}",
+    "errors": {
+      "unsupportedType": "Unsupported file type. Please upload PDF or image files.",
+      "fileTooLarge": "File too large. Maximum size is {{size}}MB."
+    }
   },
   "metrics": {
     "title": "Financial Metrics",

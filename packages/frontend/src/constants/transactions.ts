@@ -1,0 +1,22 @@
+export const TRANSACTION_CATEGORIES = [
+  "salary",
+  "entertainment",
+  "investment",
+  "food",
+  "transport",
+  "services",
+  "health",
+  "education",
+  "housing",
+  "clothing",
+  "other",
+] as const;
+
+export const TRANSACTION_CURRENCIES = [
+  "USD", "EUR", "GBP", "JPY", "CNY", "INR", "AUD", "CAD", "CHF",
+  "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "HRK",
+  "RUB", "TRY", "MXN", "ARS", "CLP", "COP", "PEN", "UYU", "BOB",
+  "PYG", "ILS", "KRW", "THB", "VND", "IDR", "MYR", "PHP", "SGD",
+  "HKD", "NZD", "ZAR", "NGN", "GHS", "KES", "EGP", "MAD", "TND",
+  "DZD", "LBP", "JOD", "IQD", "BHD", "KWD", "QAR", "SAR", "AED", "OMR"
+] as const;

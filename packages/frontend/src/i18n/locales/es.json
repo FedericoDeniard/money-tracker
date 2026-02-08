@@ -76,6 +76,10 @@
   },
   "transactions": {
     "title": "Transacciones",
+    "addTransaction": "Agregar Transacción",
+    "addManually": "Agregar manualmente",
+    "uploadDocument": "Subir documento",
+    "create": "Crear",
     "noTransactions": "No hay transacciones",
     "noTransactionsDescription": "Las transacciones extraídas de tus emails aparecerán aquí",
     "selectTransaction": "Selecciona una transacción para ver los detalles",
@@ -130,6 +134,21 @@
     "customRange": "Rango Personalizado",
     "newIncomeReceived": "💰 Nuevo Ingreso Recibido",
     "newExpenseReceived": "💸 Nuevo Gasto Registrado"
+  },
+  "upload": {
+    "title": "Subir Documento",
+    "dragDrop": "Arrastra y suelta tu documento aquí",
+    "supportedFormats": "Admite archivos PDF e imágenes (JPG, PNG, etc.)",
+    "selectFile": "Seleccionar Archivo",
+    "uploading": "Subiendo documento...",
+    "processing": "Analizando documento con IA...",
+    "analyze": "Analizar Documento",
+    "success": "¡Documento procesado exitosamente!",
+    "error": "Error al subir: {{error}}",
+    "errors": {
+      "unsupportedType": "Tipo de archivo no soportado. Por favor sube archivos PDF o imágenes.",
+      "fileTooLarge": "Archivo demasiado grande. El tamaño máximo es {{size}}MB."
+    }
   },
   "metrics": {
     "title": "Métricas Financieras",
