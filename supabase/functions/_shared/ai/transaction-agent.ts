@@ -10,7 +10,8 @@ const TEMPERATURE = 0.1;
 export async function extractTransactionFromEmail(
   emailContent: string,
   userFullName?: string,
-  images?: ImageAttachment[]
+  images?: ImageAttachment[],
+  pdfTexts?: string[]
 ): Promise<TransactionResponse> {
   try {
     const xai = createXai({
@@ -24,6 +25,12 @@ export async function extractTransactionFromEmail(
     }
 
     dynamicPrompt += `Email to analyze:\n${emailContent}`;
+
+    if (pdfTexts && pdfTexts.length > 0) {
+      for (const pdfText of pdfTexts) {
+        dynamicPrompt += `\n\n--- PDF ATTACHMENT ---\n${pdfText}`;
+      }
+    }
 
     if (images && images.length > 0) {
       dynamicPrompt += `\n\nNote: ${images.length} image attachment(s) are included below. These may contain receipts, invoices, or transaction details. Analyze them along with the email text.`;

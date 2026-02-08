@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
-import { extractImageAttachments } from "../_shared/lib/attachment-extractor.ts"
+import { extractImageAttachments, extractPdfTexts } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
 
 const corsHeaders = {
@@ -373,14 +373,15 @@ async function processMessage(
   // Extract body text
   const bodyText = extractBodyText(message.payload)
 
-  // Extract image attachments for vision analysis
+  // Extract attachments for AI analysis
   const images = await extractImageAttachments(accessToken, message.id || messageId, message.payload)
+  const pdfTexts = await extractPdfTexts(accessToken, message.id || messageId, message.payload)
 
   const fullContent = bodyText
 
-  // Use AI to extract transaction information (with images if available)
+  // Use AI to extract transaction information (with images and PDF text if available)
   try {
-    const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images)
+    const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images, pdfTexts)
     
     if (aiResult.hasTransaction) {
       const transaction = aiResult.data

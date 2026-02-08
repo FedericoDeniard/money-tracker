@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent.ts'
-import { extractImageAttachments } from '../_shared/lib/attachment-extractor.ts'
+import { extractImageAttachments, extractPdfTexts } from '../_shared/lib/attachment-extractor.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -280,19 +280,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Extract image attachments for vision analysis
+    // Extract attachments for AI analysis
     const images = await extractImageAttachments(accessToken, message.id, message.payload)
+    const pdfTexts = await extractPdfTexts(accessToken, message.id, message.payload)
 
     const fullContent = bodyText
 
     console.log('Analyzing email...', {
       bodyTextLength: bodyText.length,
       imageCount: images.length,
+      pdfCount: pdfTexts.length,
     })
 
-    // Use AI to extract transaction information (with images if available)
+    // Use AI to extract transaction information (with images and PDF text if available)
     try {
-      const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images)
+      const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images, pdfTexts)
       
       if (aiResult.hasTransaction) {
         console.log('Transaction detected by AI', { fromEmail, subject })
