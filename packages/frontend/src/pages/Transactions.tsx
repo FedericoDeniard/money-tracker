@@ -5,6 +5,10 @@ import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TransactionList } from "../components/transactions/TransactionList";
 import { TransactionDetail } from "../components/transactions/TransactionDetail";
 import { TransactionFiltersComponent } from "../components/transactions/TransactionFilters";
+import { AddTransactionButton } from '../components/transactions/AddTransactionButton';
+import { TransactionFormModal } from '../components/transactions/TransactionFormModal';
+import { UploadTransactionModal } from '../components/transactions/UploadTransactionModal';
+import type { TransactionFormData } from '../components/transactions/TransactionFormModal';
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../hooks/useAuth";
 import { useTransactions, flattenTransactionsData, getTotalCount, hasMorePages } from "../hooks/useTransactions";
@@ -16,7 +20,6 @@ import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 
-
 export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -24,6 +27,9 @@ export function Transactions() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>({});
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [preFilledData, setPreFilledData] = useState<TransactionFormData | undefined>();
 
   // Use TanStack Query hooks
   const {
@@ -36,7 +42,7 @@ export function Transactions() {
   } = useTransactions({ filters });
 
   const { currencies: availableCurrencies, emails: availableEmails, isLoading: loadingFilters } = useTransactionFilters();
-  const { deleteTransaction, updateTransaction } = useTransactionMutations();
+  const { deleteTransaction, updateTransaction, createTransaction } = useTransactionMutations();
   const { data: gmailStatus } = useGmailStatus(user?.id);
 
   // Flatten transactions data from infinite query
@@ -88,7 +94,7 @@ export function Transactions() {
 
   const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
     try {
-      await updateTransaction({ id, updates });
+      await updateTransaction(id, updates);
 
       // Update selected transaction
       if (selectedTransaction?.id === id) {
@@ -101,6 +107,31 @@ export function Transactions() {
       toast.error(t("transactions.updateError"));
       throw error;
     }
+  };
+
+  const handleUploadSuccess = useCallback(() => {
+    // Transaction was already saved to database by the Edge Function
+    // Just show success - no need to open manual form
+    toast.success(t("upload.success", "Document processed successfully!"));
+  }, [t]);
+
+  const handleUploadError = useCallback((error: string) => {
+    toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
+  }, [t]);
+
+  const handleCreateTransaction = async (formData: TransactionFormData) => {
+    await createTransaction({
+      transaction_type: formData.transaction_type,
+      merchant: formData.merchant,
+      amount: parseFloat(formData.amount),
+      currency: formData.currency,
+      category: formData.category,
+      transaction_date: formData.transaction_date,
+      transaction_description: formData.merchant,
+      date: new Date().toISOString(),
+      source_email: '',
+      source_message_id: '',
+    });
   };
 
   if (loadingFilters) {
@@ -236,6 +267,32 @@ export function Transactions() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Add the button to trigger transaction creation */}
+        <AddTransactionButton 
+          onManualAdd={() => setIsFormModalOpen(true)} 
+          onUpload={() => setIsUploadModalOpen(true)} 
+        />
+
+        {/* Transaction form modal */}
+        <TransactionFormModal
+          isOpen={isFormModalOpen}
+          onClose={() => {
+            setIsFormModalOpen(false);
+            setPreFilledData(undefined);
+          }}
+          onSave={handleCreateTransaction}
+          mode="create"
+          initialData={preFilledData}
+        />
+
+        {/* Upload transaction modal */}
+        <UploadTransactionModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onSuccess={handleUploadSuccess}
+          onError={handleUploadError}
+        />
       </div>
     </div>
   );

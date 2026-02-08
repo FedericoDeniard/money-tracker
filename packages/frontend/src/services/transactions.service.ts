@@ -38,7 +38,7 @@ export interface PaginationParams {
   to: number;
 }
 
-export interface PaginatedTransactions {
+export interface TransactionPage {
   transactions: Transaction[];
   hasMore: boolean;
   total?: number;
@@ -50,7 +50,7 @@ export class TransactionsService {
   async getTransactionsPaginated(
     filters?: TransactionFilters,
     pagination?: PaginationParams
-  ): Promise<PaginatedTransactions> {
+  ): Promise<TransactionPage> {
     // Handle email filter separately (need to get token_id first)
     let tokenId: string | null = null;
     if (filters?.email && filters.email !== 'all') {
@@ -285,6 +285,20 @@ export class TransactionsService {
       .eq('id', transactionId);
 
     if (error) throw error;
+  }
+
+  async createTransaction(transaction: Omit<TransactionRow, 'id' | 'created_at'>): Promise<Transaction> {
+    const { data, error } = await this.supabase
+      .from('transactions')
+      .insert({
+        ...transaction,
+        user_id: (await this.supabase.auth.getUser()).data.user?.id
+      })
+      .select('*, user_oauth_tokens!user_oauth_token_id (gmail_email)')
+      .single();
+
+    if (error) throw error;
+    return mapJoinedTransaction(data as JoinedTransactionRow);
   }
 }
 
