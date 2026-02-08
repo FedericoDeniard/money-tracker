@@ -332,6 +332,7 @@ Deno.serve(async (req) => {
           const { error: insertError } = await supabase
             .from('transactions')
             .insert({
+              user_id: tokenData.user_id, // ← Agregar user_id explícitamente
               user_oauth_token_id: tokenData.id,
               source_email: fromEmail,
               source_message_id: message.id,

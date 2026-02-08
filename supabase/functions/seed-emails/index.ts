@@ -412,6 +412,7 @@ async function processMessage(
       const { error: insertError } = await supabase
         .from('transactions')
         .insert({
+          user_id: userId, // ← Agregar user_id explícitamente
           user_oauth_token_id: tokenId,
           source_email: fromEmail,
           source_message_id: messageId,
