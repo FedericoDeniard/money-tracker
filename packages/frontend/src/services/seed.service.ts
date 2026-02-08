@@ -1,5 +1,5 @@
 import { getSupabase } from '../lib/supabase';
-import { getConfig } from '../config';
+import { config } from '../config';
 
 export interface StartSeedResponse {
   seedId: string;
@@ -12,7 +12,6 @@ export const seedService = {
    * Start a seed to import historical emails
    */
   async startSeed(connectionId: string): Promise<StartSeedResponse> {
-    const config = await getConfig();
     const supabase = await getSupabase();
 
     // Get the current session token
@@ -23,6 +22,7 @@ export const seedService = {
       throw new Error('No active session. Please refresh the page and try again.');
     }
 
+    // Call Supabase Edge Function instead of backend
     const response = await fetch(`${config.backendUrl}/seed-emails`, {
       method: 'POST',
       headers: {

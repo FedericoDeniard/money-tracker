@@ -1,35 +1,31 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { getConfig } from "../config";
+import { config } from "../config";
 
 let supabaseInstance: SupabaseClient | null = null;
 let initPromise: Promise<SupabaseClient> | null = null;
 
-export async function getSupabase() {
-  // If instance exists, return it
+export async function getSupabase(): Promise<SupabaseClient> {
+  // Return existing instance if already initialized
   if (supabaseInstance) {
     return supabaseInstance;
   }
 
-  // If initialization is in progress, wait for it
+  // Return existing promise if initialization is in progress
   if (initPromise) {
     return initPromise;
   }
 
   // Start initialization
   initPromise = (async () => {
-    const config = await getConfig();
-
     supabaseInstance = createClient(
       config.supabase.url,
       config.supabase.anonKey,
       {
         auth: {
-          autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: true,
-          flowType: 'pkce',
+          autoRefreshToken: true,
         },
-      },
+      }
     );
 
     return supabaseInstance;

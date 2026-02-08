@@ -1,5 +1,5 @@
 import { getSupabase } from '../lib/supabase';
-import { getConfig } from '../config';
+import { config } from '../config';
 
 export interface GmailConnection {
   id: string;
@@ -69,7 +69,6 @@ export const gmailService = {
   },
 
   async connectGmail(): Promise<void> {
-    const config = await getConfig();
     const supabase = await getSupabase();
 
     // Get the current session token
@@ -86,13 +85,12 @@ export const gmailService = {
       throw new Error('Could not get user. Please refresh the page and try again.');
     }
 
-    // Redirect to auth endpoint with token in URL (will be used by backend)
-    window.location.href = `${config.backendUrl}/auth?token=${session.access_token}`;
+    // Redirect to Supabase Edge Function auth endpoint
+    window.location.href = `${config.backendUrl}/auth-start?token=${session.access_token}`;
   },
 
   async disconnectGmail(connectionId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const config = await getConfig();
       const supabase = await getSupabase();
 
       // Get the current session token
@@ -102,6 +100,7 @@ export const gmailService = {
         throw new Error('No active session');
       }
 
+      // Call the gmail-disconnect Edge Function
       const response = await fetch(`${config.backendUrl}/gmail-disconnect/${connectionId}`, {
         method: 'DELETE',
         headers: {
@@ -110,7 +109,8 @@ export const gmailService = {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to disconnect Gmail');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error || 'Failed to disconnect Gmail');
       }
 
       return { success: true };

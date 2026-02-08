@@ -1,12 +1,13 @@
-// Seed Emails Edge Function - Processes historical emails for transactions
+// Seed Emails Edge Function - Processes historical emails for transactions (text only)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent'
-import { extractPdfAttachments } from '../_shared/lib/pdf-extractor'
-import { extractImageAttachments } from '../_shared/lib/image-extractor'
-import { decryptTokenFallback, encryptTokenFallback } from '../_shared/lib/encryption'
-import { createSupabaseClient } from '../_shared/lib/supabase'
-import { google } from 'npm:googleapis@170.1.0'
+import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
+// Note: PDF and image extraction temporarily removed to reduce bundle size
+// import { extractPdfAttachments } from "../_shared/lib/pdf-extractor.ts"
+// import { extractImageAttachments } from "../_shared/lib/image-extractor.ts"
+import { decryptTokenFallback, encryptTokenFallback } from "../_shared/lib/encryption.ts"
+import { createSupabaseClient } from "../_shared/lib/supabase.ts"
+import { google } from "npm:googleapis@170.1.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -382,6 +383,9 @@ async function processMessage(
   // Combine all content sources for AI analysis
   const contentParts = [bodyText]
 
+  // Note: PDF and image processing temporarily disabled to reduce bundle size
+  // These features will be re-enabled with lazy loading in a future update
+  /*
   // Process PDF attachments
   try {
     const gmailClient = new google.gmail_v1.Gmail({ 
@@ -413,6 +417,7 @@ async function processMessage(
   } catch (error) {
     console.warn('Error processing image attachments:', error)
   }
+  */
 
   const fullContent = contentParts.filter(t => t.trim()).join('\n\n')
 

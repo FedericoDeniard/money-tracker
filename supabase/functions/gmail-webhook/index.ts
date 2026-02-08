@@ -1,11 +1,12 @@
 // Gmail Webhook Edge Function - Processes real-time Gmail notifications
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent'
-import { extractPdfAttachments } from '../_shared/lib/pdf-extractor'
-import { extractImageAttachments } from '../_shared/lib/image-extractor'
-import { decryptTokenFallback } from '../_shared/lib/encryption'
-import { supabase as supabaseAdmin } from '../_shared/lib/supabase'
+import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent.ts'
+// Note: PDF and image extraction temporarily removed to reduce bundle size
+// import { extractPdfAttachments } from '../_shared/lib/pdf-extractor.ts'
+// import { extractImageAttachments } from '../_shared/lib/image-extractor.ts'
+import { decryptTokenFallback } from '../_shared/lib/encryption.ts'
+import { supabase as supabaseAdmin } from '../_shared/lib/supabase.ts'
 import { google } from 'npm:googleapis@170.1.0'
 
 const corsHeaders = {
@@ -288,6 +289,9 @@ Deno.serve(async (req) => {
     // Combine all content sources for AI analysis
     const contentParts = [bodyText]
 
+    // Note: PDF and image processing temporarily disabled to reduce bundle size
+    // These features will be re-enabled with lazy loading in a future update
+    /*
     // Process PDF attachments
     try {
       const gmailClient = new google.gmail_v1.Gmail({ 
@@ -319,6 +323,7 @@ Deno.serve(async (req) => {
     } catch (error) {
       console.warn('Error processing image attachments:', error)
     }
+    */
 
     const fullContent = contentParts.filter(t => t.trim()).join('\n\n')
 

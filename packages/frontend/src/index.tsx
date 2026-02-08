@@ -5,33 +5,19 @@ import index from "./index.html";
 console.log('Environment variables loaded:');
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✓' : '✗');
 console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✓' : '✗');
-console.log('BACKEND_URL:', process.env.BACKEND_URL ? '✓' : '✗');
+console.log('Using direct Supabase Edge Functions (no backend dependency)');
 
 const server = serve({
   port: process.env.PORT || 3000,
   hostname: '0.0.0.0', // Listen on all network interfaces for Railway
   
   routes: {
-    // API endpoint to expose public config
-    "/api/config": () => {
-      const config = {
-        supabase: {
-          url: process.env.SUPABASE_URL,
-          anonKey: process.env.SUPABASE_ANON_KEY,
-        },
-        backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
-      };
-      
-      if (!config.supabase.url || !config.supabase.anonKey) {
-        console.error('Missing environment variables!');
-        return new Response('Server configuration error', { status: 500 });
-      }
-      
-      return Response.json(config);
-    },
-    // Serve index.html for all unmatched routes.
+    // Serve index.html for all routes (SPA)
     "/*": index,
   },
+
+  // Remove /api/config route - no backend dependency
+  // Configuration is now handled directly in config.ts
 
   development: process.env.NODE_ENV !== "production" && {
     // Enable browser hot reloading in development
