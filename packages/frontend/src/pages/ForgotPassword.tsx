@@ -4,6 +4,7 @@ import { AuthLayout } from "../components/auth/AuthLayout";
 import { getSupabase } from "../lib/supabase";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Mail } from "lucide-react";
+import { Button } from "../components/ui/Button";
 
 export function ForgotPassword() {
   const { t } = useTranslation();
@@ -103,13 +104,15 @@ export function ForgotPassword() {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-[var(--button-primary)] text-white rounded-2xl font-medium hover:bg-[var(--button-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={loading}
+            fullWidth
+            size="md"
           >
             {loading ? t("common.loading") : t("auth.sendResetLink")}
-          </button>
+          </Button>
         </form>
       </div>
     </AuthLayout>

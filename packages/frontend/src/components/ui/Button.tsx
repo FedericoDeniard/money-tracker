@@ -7,6 +7,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
+  selected?: boolean;
 }
 
 export function Button({
@@ -17,6 +18,7 @@ export function Button({
   icon,
   iconPosition = 'left',
   fullWidth = false,
+  selected = false,
   disabled,
   className = '',
   ...props
@@ -28,7 +30,7 @@ export function Button({
     secondary: 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--text-secondary)]/20 hover:bg-[var(--text-secondary)]/10 focus:ring-[var(--text-secondary)]',
     outline: 'bg-transparent text-[var(--button-primary)] border border-[var(--button-primary)] hover:bg-[var(--button-primary)] hover:text-white focus:ring-[var(--button-primary)]',
     ghost: 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] focus:ring-[var(--text-secondary)]',
-    danger: 'bg-[var(--error)] text-white hover:bg-[var(--error)]/90 focus:ring-[var(--error)]'
+    danger: 'bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-300'
   };
   
   const sizeClasses = {
@@ -39,7 +41,7 @@ export function Button({
 
   const widthClasses = fullWidth ? 'w-full' : '';
 
-  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClasses} ${className}`;
+  const classes = `${baseClasses} ${selected && variant === 'outline' ? variantClasses.primary : variantClasses[variant]} ${sizeClasses[size]} ${widthClasses} ${className}`;
 
   const renderIcon = () => {
     if (loading) {

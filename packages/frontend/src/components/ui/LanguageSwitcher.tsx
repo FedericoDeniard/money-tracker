@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Globe } from "lucide-react";
+import { Button } from "./Button";
 
 const languages = [
   { code: "es", name: "Español", flag: "🇪🇸" },
@@ -18,17 +19,20 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <button
+    <Button
       onClick={toggleLanguage}
-      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+      variant="ghost"
+      size="sm"
+      icon={<Globe size={16} />}
+      iconPosition="right"
+      className="flex items-center gap-2"
       title={currentLanguage?.name || "Language"}
     >
-      <Globe size={16} />
       <span>{currentLanguage?.flag || "🌐"}</span>
       <span>
         {currentLanguage?.name || "Language"}
       </span>
-    </button>
+    </Button>
   );
 }
 

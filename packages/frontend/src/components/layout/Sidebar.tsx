@@ -48,12 +48,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </h1>
         </div>
         {onClose && (
-          <button
+          <Button
             onClick={onClose}
-            className="lg:hidden p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded-lg"
-          >
-            <X size={24} />
-          </button>
+            variant="ghost"
+            size="sm"
+            icon={<X size={24} />}
+          />
         )}
       </div>
 

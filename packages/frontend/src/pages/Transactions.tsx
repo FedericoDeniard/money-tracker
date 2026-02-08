@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "../components/ui/Button";
 import { type Transaction, type TransactionFilters } from "../services/transactions.service";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TransactionList } from "../components/transactions/TransactionList";
@@ -147,12 +148,13 @@ export function Transactions() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-[var(--error)] mb-2">{t("errors.loadingError")}</p>
-          <button
+          <Button
             onClick={() => refetch()}
-            className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-hover)]"
+            variant="primary"
+            size="md"
           >
             {t("common.retry")}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -206,14 +208,14 @@ export function Transactions() {
                 {t("navigation.transactions")} ({totalCount})
                 {loading && <LoadingSpinner size="sm" className="ml-2" />}
               </h2>
-              <button
+              <Button
                 onClick={() => refetch()}
                 disabled={loading}
-                className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="ghost"
+                size="sm"
+                icon={<RefreshCw size={18} className={loading ? "animate-spin" : ""} />}
                 title={t("common.refresh") || "Actualizar"}
-              >
-                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-              </button>
+              />
             </div>
           </div>
           <div className="overflow-y-auto flex-1 p-4">

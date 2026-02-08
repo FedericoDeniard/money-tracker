@@ -4,6 +4,7 @@ import { AuthLayout } from "../components/auth/AuthLayout";
 import { getSupabase } from "../lib/supabase";
 import { useTranslation } from "react-i18next";
 import { Lock } from "lucide-react";
+import { Button } from "../components/ui/Button";
 
 export function ResetPassword() {
   const { t } = useTranslation();
@@ -166,13 +167,15 @@ export function ResetPassword() {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-[var(--button-primary)] text-white rounded-2xl font-medium hover:bg-[var(--button-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={loading}
+            fullWidth
+            size="md"
           >
             {loading ? t("common.loading") : t("auth.resetPasswordButton")}
-          </button>
+          </Button>
         </form>
       </div>
     </AuthLayout>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Menu } from 'lucide-react';
+import { Button } from '../ui/Button';
 import logo from '../../logo.svg';
 import { DecorativeSquare } from '../ui/DecorativeSquare';
 
@@ -25,12 +26,12 @@ export function DashboardLayout() {
             Money Tracker
           </h1>
         </div>
-        <button
+        <Button
           onClick={() => setIsSidebarOpen(true)}
-          className="p-2 text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
-        >
-          <Menu size={24} />
-        </button>
+          variant="ghost"
+          size="sm"
+          icon={<Menu size={24} />}
+        />
       </header>
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />

@@ -179,13 +179,13 @@ export function UploadTransactionModal({
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">
                   {t('upload.title', 'Upload Document')}
                 </h2>
-                <button
+                <Button
                   onClick={handleClose}
-                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={20} />}
                   disabled={uploadState === 'uploading' || uploadState === 'processing'}
-                >
-                  <X size={20} />
-                </button>
+                />
               </div>
 
               {/* Content */}
@@ -241,13 +241,13 @@ export function UploadTransactionModal({
                           {formatFileSize(selectedFile.size)}
                         </p>
                       </div>
-                      <button
+                      <Button
                         onClick={() => setSelectedFile(null)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        variant="ghost"
+                        size="sm"
+                        icon={<X size={16} />}
                         disabled={uploadState === 'uploading' || uploadState === 'processing'}
-                      >
-                        <X size={16} />
-                      </button>
+                      />
                     </div>
                   </div>
                 )}
