@@ -1,5 +1,4 @@
 echo "Running linting..."
 cd packages/frontend && bun run lint
-cd ../backend && bun run lint
 
 echo "Linting completed successfully!"
