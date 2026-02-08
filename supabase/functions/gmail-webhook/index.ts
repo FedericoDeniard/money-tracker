@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.warn('Webhook received without proper authorization header')
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+      // TODO: enforce auth rejection after configuring Pub/Sub OIDC token verification
     }
 
     // Verify the message has the expected structure
