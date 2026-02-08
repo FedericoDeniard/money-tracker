@@ -22,9 +22,5 @@ export async function getConfig() {
     throw new Error("Invalid configuration received from server");
   }
 
-  if (!configCache?.backendUrl) {
-    throw new Error("Invalid configuration: missing backendUrl");
-  }
-
   return configCache;
 }

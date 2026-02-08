@@ -5,7 +5,7 @@ import index from "./index.html";
 console.log('Environment variables loaded:');
 console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✓' : '✗');
 console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✓' : '✗');
-console.log('BACKEND_URL:', process.env.BACKEND_URL ? '✓' : '✗');
+console.log('Edge Functions URL:', `${(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/functions/v1`);
 
 const server = serve({
   port: process.env.PORT || 3000,
@@ -19,7 +19,7 @@ const server = serve({
           url: process.env.SUPABASE_URL,
           anonKey: process.env.SUPABASE_ANON_KEY,
         },
-        backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
+        backendUrl: `${(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/functions/v1`,
       };
       
       if (!config.supabase.url || !config.supabase.anonKey) {
