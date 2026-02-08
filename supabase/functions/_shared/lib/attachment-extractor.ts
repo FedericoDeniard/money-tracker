@@ -25,6 +25,13 @@ interface DetectedAttachment {
   mimeType: string;
 }
 
+interface InlineImage {
+  data: string; // base64 encoded data from body.data
+  filename: string;
+  size: number;
+  mimeType: string;
+}
+
 /**
  * Detect attachments recursively in a Gmail message payload
  */
@@ -57,6 +64,39 @@ function detectAttachments(payload: any, mimeTypes: string[]): DetectedAttachmen
 }
 
 /**
+ * Detect inline images (embedded in email body with base64 data, no attachmentId)
+ */
+function detectInlineImages(payload: any, mimeTypes: string[]): InlineImage[] {
+  const inlineImages: InlineImage[] = [];
+
+  const processPart = (part: any) => {
+    if (
+      part.mimeType &&
+      mimeTypes.includes(part.mimeType) &&
+      !part.body?.attachmentId &&
+      part.body?.data &&
+      part.body.size > 0
+    ) {
+      inlineImages.push({
+        data: part.body.data,
+        filename: part.filename || `inline-${inlineImages.length}.${part.mimeType.split('/')[1]}`,
+        size: part.body.size,
+        mimeType: part.mimeType,
+      });
+    }
+
+    if (part.parts && Array.isArray(part.parts)) {
+      for (const subPart of part.parts) {
+        processPart(subPart);
+      }
+    }
+  };
+
+  processPart(payload);
+  return inlineImages;
+}
+
+/**
  * Convert Gmail's URL-safe base64 to standard base64, then to Uint8Array
  */
 function gmailBase64ToUint8Array(data: string): Uint8Array {
@@ -84,18 +124,13 @@ export async function extractImageAttachments(
   payload: any
 ): Promise<ImageAttachment[]> {
   try {
+    const images: ImageAttachment[] = [];
+
+    // 1. Extract regular image attachments (with attachmentId)
     const detected = detectAttachments(payload, SUPPORTED_IMAGE_MIMETYPES);
-
-    if (detected.length === 0) {
-      return [];
-    }
-
-    // Limit number of images
     const toProcess = detected
       .filter(a => a.size <= MAX_IMAGE_SIZE_BYTES)
       .slice(0, MAX_IMAGES_PER_EMAIL);
-
-    const images: ImageAttachment[] = [];
 
     for (const attachment of toProcess) {
       try {
@@ -127,9 +162,31 @@ export async function extractImageAttachments(
           filename: attachment.filename,
         });
 
-        console.log(`Extracted image: ${attachment.filename} (${bytes.length} bytes)`);
+        console.log(`Extracted image attachment: ${attachment.filename} (${bytes.length} bytes)`);
       } catch (error) {
         console.warn(`Error extracting attachment ${attachment.filename}:`, error);
+      }
+    }
+
+    // 2. Extract inline images (embedded in email body with base64 data)
+    const remaining = MAX_IMAGES_PER_EMAIL - images.length;
+    if (remaining > 0) {
+      const inlineImages = detectInlineImages(payload, SUPPORTED_IMAGE_MIMETYPES)
+        .filter(a => a.size <= MAX_IMAGE_SIZE_BYTES)
+        .slice(0, remaining);
+
+      for (const inline of inlineImages) {
+        try {
+          const bytes = gmailBase64ToUint8Array(inline.data);
+          images.push({
+            data: bytes,
+            mimeType: inline.mimeType === 'image/jpg' ? 'image/jpeg' : inline.mimeType,
+            filename: inline.filename,
+          });
+          console.log(`Extracted inline image: ${inline.filename} (${bytes.length} bytes)`);
+        } catch (error) {
+          console.warn(`Error extracting inline image ${inline.filename}:`, error);
+        }
       }
     }
 
