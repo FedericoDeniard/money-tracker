@@ -11,6 +11,7 @@ import {
   LayoutList,
   Calendar,
 } from "lucide-react";
+import { Button } from "../ui/Button";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import type { TransactionFilters } from "../../services/transactions.service";
@@ -115,7 +116,7 @@ export function TransactionFiltersComponent({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Type Filter - Segmented Control Style */}
-          <div className="bg-gray-100/80 p-1 rounded-lg flex items-center w-full lg:w-auto overflow-x-auto">
+          <div className="bg-gray-100/80 p-1 rounded-lg flex items-center gap-2 w-full lg:w-auto overflow-x-auto">
             {[
               {
                 id: "all",
@@ -135,46 +136,17 @@ export function TransactionFiltersComponent({
             ].map((type) => {
               const isActive = (filters.type || "all") === type.id;
               return (
-                <button
+                <Button
                   key={type.id}
                   onClick={() => updateFilter("type", type.id)}
-                  className={`
-                    relative flex-1 lg:flex-none px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap
-                    ${
-                      isActive
-                        ? "bg-white text-[var(--text-primary)] shadow-sm"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-gray-200/50"
-                    }
-                  `}
+                  variant="outline"
+                  size="sm"
+                  selected={isActive}
+                  className="flex-1 lg:flex-none"
+                  icon={<type.icon size={14} />}
                 >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeType"
-                      className="absolute inset-0 bg-white rounded-md shadow-sm"
-                      transition={{
-                        type: "spring",
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
-                      style={{ zIndex: 0 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    <type.icon
-                      size={14}
-                      className={
-                        isActive
-                          ? type.id === "income"
-                            ? "text-green-600"
-                            : type.id === "expense"
-                              ? "text-red-500"
-                              : ""
-                          : ""
-                      }
-                    />
-                    {type.label}
-                  </span>
-                </button>
+                  {type.label}
+                </Button>
               );
             })}
           </div>
@@ -244,22 +216,14 @@ export function TransactionFiltersComponent({
             </div>
 
             {/* Date Range Button */}
-            <button
+            <Button
               onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-white border rounded-lg transition-all ${
-                filters.startDate || filters.endDate || showDatePicker
-                  ? "border-[var(--primary)] text-[var(--primary)] bg-blue-50/50"
-                  : "border-gray-200 text-gray-700 hover:border-gray-300"
-              }`}
+              variant="outline"
+              size="sm"
+              selected={!!(filters.startDate || filters.endDate || showDatePicker)}
+              className="flex-1 sm:flex-none"
+              icon={<Calendar size={14} />}
             >
-              <Calendar
-                size={14}
-                className={
-                  filters.startDate || filters.endDate
-                    ? "text-[var(--primary)]"
-                    : "text-gray-500"
-                }
-              />
               <span className="text-sm font-medium whitespace-nowrap">
                 {filters.startDate || filters.endDate
                   ? `${filters.startDate || "..."} - ${filters.endDate || "..."}`
@@ -269,17 +233,19 @@ export function TransactionFiltersComponent({
                 size={14}
                 className={`opacity-50 transition-transform ${showDatePicker ? "rotate-180" : ""}`}
               />
-            </button>
+            </Button>
 
             {/* Clear Filters Button */}
             {hasActiveFilters && (
-              <button
+              <Button
                 onClick={clearFilters}
+                variant="ghost"
+                size="sm"
+                icon={<X size={14} />}
                 className="w-full sm:w-auto ml-auto lg:ml-2 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
-                <X size={14} />
                 <span>{t("transactions.clearFilters")}</span>
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -315,15 +281,6 @@ export function TransactionFiltersComponent({
                 className="px-3 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-[var(--primary)]"
               />
             </div>
-            <button
-              onClick={() => {
-                updateFilter("startDate", "");
-                updateFilter("endDate", "");
-              }}
-              className="text-xs text-gray-500 hover:text-red-500 underline mt-2 md:mt-0"
-            >
-              {t("transactions.clearFilters")}
-            </button>
           </motion.div>
         )}
       </div>

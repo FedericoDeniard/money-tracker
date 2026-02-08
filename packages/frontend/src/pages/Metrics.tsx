@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TrendingUp, TrendingDown, DollarSign, CreditCard } from "lucide-react";
+import { Button } from "../components/ui/Button";
 import { MonthlyTrendChart } from "../components/charts/MonthlyTrendChart";
 import { CategoryPieChart } from "../components/charts/CategoryPieChart";
 import {
@@ -162,9 +163,9 @@ export function Metrics() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-[var(--error)] mb-2">{t("errors.loadingError")}</p>
-          <button className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-hover)]">
+          <Button variant="primary" size="md">
             {t("common.retry")}
-          </button>
+          </Button>
         </div>
       </div>
     );

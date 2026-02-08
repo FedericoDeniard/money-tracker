@@ -215,17 +215,13 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
                 {...register("password")}
                 className="block w-full pl-11 pr-12 py-3 border-0 bg-[var(--bg-secondary)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--primary-focus)] sm:text-sm font-medium transition-colors"
               />
-              <button
+              <Button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                variant="ghost"
+                size="sm"
+                icon={showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
+              />
             </div>
           </div>
 
@@ -246,17 +242,13 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
                   {...register("confirmPassword")}
                   className="block w-full pl-11 pr-12 py-3 border-0 bg-[var(--bg-secondary)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--primary-focus)] sm:text-sm font-medium transition-colors"
                 />
-                <button
+                <Button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  variant="ghost"
+                  size="sm"
+                  icon={showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
+                />
               </div>
             </div>
           )}

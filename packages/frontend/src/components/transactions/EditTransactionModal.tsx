@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { Button } from "../ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -103,13 +104,13 @@ export function EditTransactionModal({
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">
                   {t("transactions.editTransaction")}
                 </h2>
-                <button
+                <Button
                   onClick={onClose}
-                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={20} />}
                   disabled={isLoading}
-                >
-                  <X size={20} />
-                </button>
+                />
               </div>
 
               {/* Form */}
@@ -238,21 +239,23 @@ export function EditTransactionModal({
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
+                  <Button
                     onClick={onClose}
+                    variant="secondary"
+                    size="md"
                     disabled={isLoading}
-                    className="flex-1 py-3 px-4 rounded-2xl bg-gray-100 text-[var(--text-primary)] font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
                   >
                     {t("common.cancel")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 py-3 px-4 rounded-2xl bg-[var(--primary)] text-white font-medium hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-50"
+                    loading={isLoading}
+                    variant="primary"
+                    size="md"
                   >
-                    {isLoading ? t("common.loading") : t("common.save")}
-                  </button>
+                    {isLoading ? t("common.saving") : t("common.save")}
+                  </Button>
                 </div>
               </form>
             </motion.div>

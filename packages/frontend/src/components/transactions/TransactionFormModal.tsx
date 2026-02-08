@@ -102,13 +102,13 @@ export function TransactionFormModal({
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">
                   {title}
                 </h2>
-                <button
+                <Button
                   onClick={onClose}
-                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={20} />}
                   disabled={isLoading}
-                >
-                  <X size={20} />
-                </button>
+                />
               </div>
 
               {/* Form */}

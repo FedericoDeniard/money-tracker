@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Button } from "../ui/Button";
 import { useTranslation } from "react-i18next";
 
 export interface FilterBarProps {
@@ -50,26 +51,18 @@ export function FilterBar({
         {periods.map((period) => {
           const isSelected = selectedPeriod === period.value;
           return (
-            <button
+            <Button
               key={period.value}
               onClick={() =>
                 onPeriodChange(period.value as "30" | "90" | "365")
               }
-              className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
-                isSelected
-                  ? "text-white"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-              }`}
+              variant="outline"
+              size="sm"
+              selected={isSelected}
+              className="flex-1 sm:flex-none"
             >
-              {isSelected && (
-                <motion.div
-                  layoutId="activePeriod"
-                  className="absolute inset-0 bg-[var(--primary)] rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">{period.label}</span>
-            </button>
+              {period.label}
+            </Button>
           );
         })}
       </div>

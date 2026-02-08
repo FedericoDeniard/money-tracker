@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { Button } from "./Button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
@@ -56,13 +57,13 @@ export function ConfirmModal({
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">
                   {title}
                 </h2>
-                <button
+                <Button
                   onClick={onClose}
-                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={20} />}
                   disabled={isLoading}
-                >
-                  <X size={20} />
-                </button>
+                />
               </div>
 
               {/* Message or Content */}
@@ -72,24 +73,23 @@ export function ConfirmModal({
 
               {/* Actions */}
               <div className="flex gap-3 mt-6">
-                <button
+                <Button
                   onClick={onClose}
+                  variant="secondary"
+                  size="md"
                   disabled={isLoading}
-                  className="flex-1 py-3 px-4 rounded-2xl bg-gray-100 text-[var(--text-primary)] font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
                   {cancelText || t("common.cancel")}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onConfirm}
+                  variant={isDestructive ? "danger" : "primary"}
+                  size="md"
                   disabled={isLoading}
-                  className={`flex-1 py-3 px-4 rounded-2xl font-medium transition-colors disabled:opacity-50 ${
-                    isDestructive
-                      ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]"
-                  }`}
+                  loading={isLoading}
                 >
-                  {isLoading ? t("common.loading") : confirmText || t("common.confirm")}
-                </button>
+                  {confirmText || (isDestructive ? t("common.delete") : t("common.confirm"))}
+                </Button>
               </div>
             </motion.div>
           </div>

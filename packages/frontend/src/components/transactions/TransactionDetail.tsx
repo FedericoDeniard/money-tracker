@@ -7,6 +7,7 @@ import {
   ArrowUp,
   X,
 } from "lucide-react";
+import { Button } from "../ui/Button";
 import type { Transaction } from "../../services/transactions.service";
 import { getTransactionType } from "../../utils/transactionUtils";
 import { useState } from "react";
@@ -25,7 +26,7 @@ interface TransactionDetailProps {
 
 export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: TransactionDetailProps) {
   const { t } = useTranslation();
-  const { isIncome } = getTransactionType(transaction.transaction_type);
+  const { isIncome } = getTransactionType(transaction.transaction_type as 'income' | 'expense' | 'ingreso' | 'egreso');
   const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -72,12 +73,13 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
     <div className="h-full flex flex-col bg-white lg:rounded-3xl p-6 relative lg:shadow-sm lg:border border-gray-100">
       {/* Mobile Close Button */}
       {onClose && (
-        <button
+        <Button
           onClick={onClose}
-          className="lg:hidden absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <X size={20} />
-        </button>
+          variant="ghost"
+          size="sm"
+          icon={<X size={20} />}
+          className="lg:hidden absolute top-4 right-4"
+        />
       )}
 
       {/* Header with Icon */}
@@ -152,17 +154,13 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
             <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
               {transaction.source_message_id}
             </span>
-            <button
+            <Button
               onClick={handleCopyId}
-              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 hover:bg-gray-100 rounded"
+              variant="ghost"
+              size="sm"
+              icon={copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
               title={t("common.copy")}
-            >
-              {copied ? (
-                <Check size={14} className="text-green-500" />
-              ) : (
-                <Copy size={14} />
-              )}
-            </button>
+            />
           </div>
         </div>
       </div>
@@ -170,20 +168,24 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
       {/* Footer Actions */}
       <div className="mt-auto pt-8">
         <div className="flex gap-3">
-          <button 
+          <Button 
             onClick={() => setShowDeleteModal(true)}
-            className="flex-1 py-3.5 px-4 rounded-2xl bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+            variant="danger"
+            size="md"
+            icon={<Trash2 size={16} />}
+            fullWidth
           >
-            <Trash2 size={16} />
             {t("transactions.delete")}
-          </button>
-          <button 
+          </Button>
+          <Button 
             onClick={() => setShowEditModal(true)}
-            className="flex-1 py-3.5 px-4 rounded-2xl bg-gray-50 text-[var(--text-primary)] font-medium text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            variant="secondary"
+            size="md"
+            icon={<Edit size={16} />}
+            fullWidth
           >
-            <Edit size={16} />
             {t("transactions.edit")}
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
+import { Button } from '../ui/Button';
 import { useTranslation } from 'react-i18next';
 
 type AddTransactionButtonProps = {
@@ -14,13 +15,14 @@ export function AddTransactionButton({ onManualAdd, onUpload }: AddTransactionBu
 
   return (
     <div className="fixed bottom-6 right-6 z-40">
-      <button
+      <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-lg hover:bg-white hover:text-[var(--primary)] hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-[var(--primary)]"
+        variant="primary"
+        size="md"
+        icon={<Plus size={24} />}
+        className="w-14 h-14 rounded-full shadow-lg hover:scale-105 transition-all duration-200"
         aria-label={t('transactions.addTransaction')}
-      >
-        <Plus size={24} />
-      </button>
+      />
 
       <AnimatePresence>
         {isOpen && (
@@ -30,24 +32,30 @@ export function AddTransactionButton({ onManualAdd, onUpload }: AddTransactionBu
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className="absolute bottom-16 right-0 bg-white rounded-xl shadow-lg p-2 w-64"
           >
-            <button
+            <Button
               onClick={() => {
                 setIsOpen(false);
                 onManualAdd();
               }}
-              className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors"
+              variant="ghost"
+              size="md"
+              fullWidth
+              className="text-left justify-start"
             >
               {t('transactions.addManually')}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setIsOpen(false);
                 onUpload();
               }}
-              className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors"
+              variant="ghost"
+              size="md"
+              fullWidth
+              className="text-left justify-start"
             >
               {t('transactions.uploadDocument')}
-            </button>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
