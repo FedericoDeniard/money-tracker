@@ -4,9 +4,7 @@
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.45.4",
     "googleapis": "npm:googleapis@^170.1.0",
     "tesseract.js": "npm:tesseract.js@^5.0.4",
-    "@langfuse/tracing": "npm:@langfuse/tracing@^4.5.1",
-    "@langfuse/otel": "npm:@langfuse/otel@^4.5.1",
-    "@opentelemetry/sdk-node": "npm:@opentelemetry/sdk-node@^0.211.0"
+    "langfuse": "npm:langfuse@^3.0.0"
   },
   "compilerOptions": {
     "allowJs": true,
