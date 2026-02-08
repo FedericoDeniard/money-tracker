@@ -438,6 +438,13 @@ function extractBodyText(payload: any): string {
           break
         }
       }
+      // If multipart, search recursively
+      if (part.mimeType?.startsWith('multipart/')) {
+        const nestedText = extractBodyText(part)
+        if (nestedText.trim()) {
+          text = nestedText
+        }
+      }
     }
 
     // If no text/plain found, try text/html

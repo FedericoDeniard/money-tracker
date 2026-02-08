@@ -432,7 +432,7 @@ async function processMessage(
     console.error('Error in AI processing:', error)
     
     // Fallback to keyword detection
-    const transactionKeywords = ['purchase', 'payment', 'charge', 'debit', 'credit', 'invoice', 'receipt']
+    const transactionKeywords = ['purchase', 'payment', 'charge', 'debit', 'credit', 'invoice', 'receipt', '$', '€', '£']
     const hasTransactionKeywords = transactionKeywords.some(keyword => 
       subject.toLowerCase().includes(keyword) || bodyText.toLowerCase().includes(keyword)
     )
