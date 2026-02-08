@@ -53,11 +53,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Parse multipart form data
-    const formData = await req.formData()
-    const file = formData.get('file') as File
+    // Parse request body as raw binary
+    const contentType = req.headers.get('content-type') || ''
+    const fileName = req.headers.get('x-file-name') || 'unknown'
 
-    if (!file) {
+    const arrayBuffer = await req.arrayBuffer()
+    const fileBytes = new Uint8Array(arrayBuffer)
+
+    if (fileBytes.length === 0) {
       return new Response(
         JSON.stringify({ error: 'No file provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -66,7 +69,7 @@ Deno.serve(async (req) => {
 
     // Validate file
     const MAX_SIZE = 5 * 1024 * 1024 // 5MB
-    if (file.size > MAX_SIZE) {
+    if (fileBytes.length > MAX_SIZE) {
       return new Response(
         JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -74,21 +77,17 @@ Deno.serve(async (req) => {
     }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
-    if (!allowedTypes.includes(file.type)) {
+    if (!allowedTypes.includes(contentType)) {
       return new Response(
         JSON.stringify({ error: 'Unsupported file type. Only PDF and image files are allowed.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Convert file to Uint8Array
-    const arrayBuffer = await file.arrayBuffer()
-    const fileBytes = new Uint8Array(arrayBuffer)
-
     let images: ImageAttachment[] = []
     let pdfTexts: string[] = []
 
-    if (file.type === 'application/pdf') {
+    if (contentType === 'application/pdf') {
       // Process PDF
       try {
         const pdf = await getDocumentProxy(fileBytes)
@@ -96,7 +95,7 @@ Deno.serve(async (req) => {
 
         if (text && text.trim()) {
           pdfTexts.push(text)
-          console.log(`Extracted PDF text: ${file.name} (${text.length} chars)`)
+          console.log(`Extracted PDF text: ${fileName} (${text.length} chars)`)
         } else {
           return new Response(
             JSON.stringify({ error: 'Could not extract text from PDF' }),
@@ -114,10 +113,10 @@ Deno.serve(async (req) => {
       // Process image - convert to ImageAttachment format
       images.push({
         data: fileBytes,
-        mimeType: file.type === 'image/jpg' ? 'image/jpeg' : file.type,
-        filename: file.name,
+        mimeType: contentType === 'image/jpg' ? 'image/jpeg' : contentType,
+        filename: fileName,
       })
-      console.log(`Prepared image for AI analysis: ${file.name} (${fileBytes.length} bytes)`)
+      console.log(`Prepared image for AI analysis: ${fileName} (${fileBytes.length} bytes)`)
     }
 
     // Get user full name for AI context
@@ -133,7 +132,7 @@ Deno.serve(async (req) => {
     }
 
     // Analyze document with AI
-    const documentContent = `Uploaded document: ${file.name}\nThis is a ${file.type === 'application/pdf' ? 'PDF document' : 'receipt/invoice image'} uploaded by the user for transaction analysis.`
+    const documentContent = `Uploaded document: ${fileName}\nThis is a ${contentType === 'application/pdf' ? 'PDF document' : 'receipt/invoice image'} uploaded by the user for transaction analysis.`
 
     const aiResult = await extractTransactionFromEmail(documentContent, userFullName, images, pdfTexts)
 

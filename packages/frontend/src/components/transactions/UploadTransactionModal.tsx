@@ -1,9 +1,8 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, File, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../hooks/useAuth';
-import { getConfig } from '../../config';
+import { uploadDocumentForAnalysis } from '../../services/document-upload.service';
 
 export type TransactionFormData = {
   transaction_type: 'income' | 'expense';
@@ -17,7 +16,7 @@ export type TransactionFormData = {
 interface UploadTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (data: TransactionFormData) => void;
+  onSuccess: () => void;
   onError: (error: string) => void;
 }
 
@@ -44,13 +43,11 @@ export function UploadTransactionModal({
   onError,
 }: UploadTransactionModalProps) {
   const { t } = useTranslation();
-  const { session } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const validateFile = (file: File): string | null => {
     if (!SUPPORTED_TYPES.includes(file.type)) {
@@ -100,9 +97,9 @@ export function UploadTransactionModal({
     }
   }, [handleFileSelect]);
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = useCallback((e: React.ChangeEvent<React.ElementRef<'input'>>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
+    if (files && files.length > 0 && files[0]) {
       handleFileSelect(files[0]);
     }
   }, [handleFileSelect]);
@@ -110,42 +107,16 @@ export function UploadTransactionModal({
   const uploadFile = async () => {
     if (!selectedFile) return;
 
-    if (!session?.access_token) {
-      setErrorMessage('Authentication required');
-      setUploadState('error');
-      onError('Authentication required');
-      return;
-    }
-
     setUploadState('uploading');
 
     try {
-      // Get the Supabase functions URL using the same approach as gmail service
-      const config = await getConfig();
-      const functionsUrl = `${config.supabase.url.replace(/\/+$/, '')}/functions/v1/process-document`;
-
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      const response = await fetch(functionsUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-
+      const fileData = await selectedFile.arrayBuffer();
       setUploadState('processing');
-
-      const result = await response.json();
+      const result = await uploadDocumentForAnalysis(fileData, selectedFile.name, selectedFile.type);
 
       if (result.success && result.transaction) {
         setUploadState('success');
-        // Transaction was already saved to database, just close the modal
+        onSuccess();
         setTimeout(() => {
           onClose();
           resetModal();
@@ -154,7 +125,6 @@ export function UploadTransactionModal({
         throw new Error(result.error || 'Processing failed');
       }
     } catch (error) {
-      console.error('Upload error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
       setErrorMessage(errorMsg);
       setUploadState('error');
@@ -167,6 +137,7 @@ export function UploadTransactionModal({
     setUploadState('idle');
     setErrorMessage('');
     setDragActive(false);
+    setFileInputKey(prev => prev + 1);
   };
 
   const handleClose = () => {
@@ -247,19 +218,16 @@ export function UploadTransactionModal({
                     <p className="text-sm text-[var(--text-secondary)] mb-4">
                       {t('upload.supportedFormats', 'Supports PDF and image files (JPG, PNG, etc.)')}
                     </p>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors"
-                    >
+                    <label className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors cursor-pointer inline-block">
                       {t('upload.selectFile', 'Select File')}
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept={SUPPORTED_TYPES.join(',')}
-                      onChange={handleFileInput}
-                      className="hidden"
-                    />
+                      <input
+                        key={fileInputKey}
+                        type="file"
+                        accept={SUPPORTED_TYPES.join(',')}
+                        onChange={handleFileInput}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                 ) : (
                   /* File Preview */
