@@ -33,6 +33,7 @@ export interface TransactionFilters {
   type?: 'income' | 'expense' | 'ingreso' | 'egreso' | 'all';
   startDate?: string;
   endDate?: string;
+  sortBy?: 'created_at' | 'transaction_date';
 }
 
 export interface PaginationParams {
@@ -88,7 +89,8 @@ export class TransactionsService {
       query = query.range(pagination.from, pagination.to);
     }
 
-    const { data, error, count } = await query.order('transaction_date', { ascending: false });
+    const sortColumn = filters?.sortBy || 'created_at';
+    const { data, error, count } = await query.order(sortColumn, { ascending: false });
 
     if (error) throw error;
 

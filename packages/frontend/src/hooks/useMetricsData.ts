@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useAllTransactions, flattenTransactionsData } from './useTransactions';
-import { Transaction } from '../services/transactions.service';
+import { useTransactionFilters } from './useTransactionFilters';
+import type { Transaction } from '../services/transactions.service';
 
 interface MetricsData {
   totalIncome: number;
@@ -42,10 +43,20 @@ export function useMetricsData({
     enabled,
   });
 
+  // Auto-fetch all pages so metrics cover ALL transactions
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   // Flatten all pages into a single array
   const allTransactions = useMemo(() => {
     return flattenTransactionsData(transactionsData);
   }, [transactionsData]);
+
+  // Get available currencies from RPC (queries ALL transactions, not just loaded pages)
+  const { currencies: availableCurrencies } = useTransactionFilters();
 
   // Filter transactions based on selected period and currency
   const filteredTransactions = useMemo(() => {
@@ -62,15 +73,6 @@ export function useMetricsData({
       return dateMatch && currencyMatch;
     });
   }, [allTransactions, selectedPeriod, selectedCurrency]);
-
-  // Get available currencies from transactions
-  const availableCurrencies = useMemo(() => {
-    if (!allTransactions.length) return [];
-    const currencies = [
-      ...new Set(allTransactions.map((tx: Transaction) => tx.currency)),
-    ].sort();
-    return currencies;
-  }, [allTransactions]);
 
   // Calculate metrics for current and previous period
   const metrics = useMemo((): MetricsData => {
