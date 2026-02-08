@@ -1,6 +1,12 @@
 import { getSupabase } from '../lib/supabase';
 import { getConfig } from '../config';
 
+// Helper to get edge functions base URL from supabase config
+async function getEdgeFunctionsUrl(): Promise<string> {
+  const config = await getConfig();
+  return `${config.supabase.url.replace(/\/+$/, '')}/functions/v1`;
+}
+
 export interface GmailConnection {
   id: string;
   gmail_email: string;
@@ -70,7 +76,7 @@ export const gmailService = {
 
   async connectGmail(): Promise<void> {
     const supabase = await getSupabase();
-    const config = await getConfig();
+    const edgeFunctionsUrl = await getEdgeFunctionsUrl();
 
     // Get the current session token
     const { data: { session }, error } = await supabase.auth.getSession();
@@ -87,13 +93,13 @@ export const gmailService = {
     }
 
     // Redirect to Supabase Edge Function auth endpoint
-    window.location.href = `${config.backendUrl}/auth-start?token=${session.access_token}`;
+    window.location.href = `${edgeFunctionsUrl}/auth-start?token=${session.access_token}`;
   },
 
   async disconnectGmail(connectionId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const supabase = await getSupabase();
-      const config = await getConfig();
+      const edgeFunctionsUrl = await getEdgeFunctionsUrl();
 
       // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
@@ -102,8 +108,8 @@ export const gmailService = {
         throw new Error('No active session');
       }
 
-      // Call the gmail-disconnect Edge Function
-      const response = await fetch(`${config.backendUrl}/gmail-disconnect/${connectionId}`, {
+      // Call the gmail-disconnect Edge Function (uses path param for connectionId)
+      const response = await fetch(`${edgeFunctionsUrl}/gmail-disconnect/${connectionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
