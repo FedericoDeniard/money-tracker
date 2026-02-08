@@ -401,6 +401,10 @@ async function processMessage(
   try {
     const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images, pdfTexts)
     
+    // Flush Langfuse events before returning (critical for serverless)
+    const { flushLangfuse } = await import("../_shared/lib/langfuse.ts")
+    await flushLangfuse()
+    
     if (aiResult.hasTransaction) {
       const transaction = aiResult.data
       

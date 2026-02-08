@@ -319,6 +319,10 @@ Deno.serve(async (req) => {
     try {
       const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images, pdfTexts)
       
+      // Flush Langfuse events before returning (critical for serverless)
+      const { flushLangfuse } = await import("../_shared/lib/langfuse.ts")
+      await flushLangfuse()
+      
       if (aiResult.hasTransaction) {
         console.log('Transaction detected by AI', { fromEmail, subject })
         const transaction = aiResult.data

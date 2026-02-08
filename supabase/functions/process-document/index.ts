@@ -136,6 +136,10 @@ Deno.serve(async (req) => {
 
     const aiResult = await extractTransactionFromEmail(documentContent, userFullName, images, pdfTexts)
 
+    // Flush Langfuse events before returning (critical for serverless)
+    const { flushLangfuse } = await import("../_shared/lib/langfuse.ts")
+    await flushLangfuse()
+
     if (aiResult.hasTransaction) {
       console.log('AI successfully extracted transaction from uploaded document')
 

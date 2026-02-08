@@ -1,12 +1,57 @@
 import { startActiveObservation } from "npm:@langfuse/tracing";
+import { LangfuseSpanProcessor } from "npm:@langfuse/otel";
+import { NodeSDK } from "npm:@opentelemetry/sdk-node";
 
-// Helper function to create traces with proper error handling
-export async function createTrace<T>(
-  name: string,
-  operation: (span: any) => Promise<T>,
+let envLogged = false;
+let sdkInitialized = false;
+
+// Initialize OpenTelemetry once at module level
+function initializeOpenTelemetry() {
+  if (sdkInitialized) return;
+  sdkInitialized = true;
+
+  try {
+    const sdk = new NodeSDK({
+      spanProcessors: [new LangfuseSpanProcessor()],
+    });
+    sdk.start();
+    console.log('[Langfuse] OpenTelemetry initialized');
+  } catch (error) {
+    console.error('[Langfuse] Failed to initialize OpenTelemetry', error);
+  }
+}
+
+// Initialize OpenTelemetry immediately when module loads
+initializeOpenTelemetry();
+
+function logLangfuseEnvOnce() {
+  if (envLogged) return;
+  envLogged = true;
+
+  try {
+    const hasSecret = Boolean(Deno.env.get('LANGFUSE_SECRET_KEY'));
+    const hasPublic = Boolean(Deno.env.get('LANGFUSE_PUBLIC_KEY'));
+    const baseUrl = Deno.env.get('LANGFUSE_BASE_URL') ?? 'missing';
+
+    console.log('[Langfuse]', {
+      secretKey: hasSecret ? '✓' : '✗',
+      publicKey: hasPublic ? '✓' : '✗',
+      baseUrl,
+    });
+  } catch (error) {
+    console.error('[Langfuse] Unable to read environment variables', error);
+  }
+}
+
+// Simple trace wrapper for operations
+export async function traceOperation<T>(
+  operationName: string,
+  operation: () => Promise<T>,
   input?: any
 ): Promise<T> {
-  return await startActiveObservation(name, async (span) => {
+  logLangfuseEnvOnce();
+  
+  return await startActiveObservation(operationName, async (span) => {
     try {
       // Set input if provided
       if (input !== undefined) {
@@ -15,7 +60,7 @@ export async function createTrace<T>(
         });
       }
 
-      const result = await operation(span);
+      const result = await operation();
       
       // Mark as successful
       span.update({
@@ -34,13 +79,11 @@ export async function createTrace<T>(
   });
 }
 
-// Simple trace wrapper for operations
-export async function traceOperation<T>(
-  operationName: string,
-  operation: () => Promise<T>,
-  input?: any
-): Promise<T> {
-  return await createTrace(operationName, async () => {
-    return await operation();
-  }, input);
+// Flush all pending events (critical for serverless/edge functions)
+export async function flushLangfuse(): Promise<void> {
+  try {
+    console.log('[Langfuse] Trace completed');
+  } catch (error) {
+    console.error('[Langfuse] Flush error', error);
+  }
 }
