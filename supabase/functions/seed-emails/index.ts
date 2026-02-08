@@ -64,6 +64,20 @@ Deno.serve(async (req) => {
 
     // --- RESUME MODE: continue processing an existing seed ---
     if (body.resume && body.seedId) {
+      // Verify seed belongs to authenticated user
+      const { data: seedOwner } = await supabase
+        .from('seeds')
+        .select('user_id')
+        .eq('id', body.seedId)
+        .maybeSingle()
+
+      if (!seedOwner || seedOwner.user_id !== userId) {
+        return new Response(
+          JSON.stringify({ error: 'Seed not found or unauthorized' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       const result = await processChunk(supabase, body.seedId, token)
       return new Response(
         JSON.stringify(result),
