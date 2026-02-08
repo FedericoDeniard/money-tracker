@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
+import { extractImageAttachments } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
 
 const corsHeaders = {
@@ -372,50 +373,14 @@ async function processMessage(
   // Extract body text
   const bodyText = extractBodyText(message.payload)
 
-  // Combine all content sources for AI analysis
-  const contentParts = [bodyText]
+  // Extract image attachments for vision analysis
+  const images = await extractImageAttachments(accessToken, message.id || messageId, message.payload)
 
-  // Note: PDF and image processing temporarily disabled to reduce bundle size
-  // These features will be re-enabled with lazy loading in a future update
-  /*
-  // Process PDF attachments
+  const fullContent = bodyText
+
+  // Use AI to extract transaction information (with images if available)
   try {
-    const gmailClient = new google.gmail_v1.Gmail({ 
-      auth: { 
-        bearer: accessToken 
-      } 
-    })
-    const pdfTexts = await extractPdfAttachments(gmailClient, messageId)
-    if (pdfTexts.length > 0) {
-      contentParts.push('--- PDF ATTACHMENT ---')
-      contentParts.push(...pdfTexts)
-    }
-  } catch (error) {
-    console.warn('Error processing PDF attachments:', error)
-  }
-
-  // Process image attachments
-  try {
-    const gmailClient = new google.gmail_v1.Gmail({ 
-      auth: { 
-        bearer: accessToken 
-      } 
-    })
-    const imageTexts = await extractImageAttachments(gmailClient, messageId)
-    if (imageTexts.length > 0) {
-      contentParts.push('--- IMAGE ATTACHMENT (OCR) ---')
-      contentParts.push(...imageTexts)
-    }
-  } catch (error) {
-    console.warn('Error processing image attachments:', error)
-  }
-  */
-
-  const fullContent = contentParts.filter(t => t.trim()).join('\n\n')
-
-  // Use AI to extract transaction information
-  try {
-    const aiResult = await extractTransactionFromEmail(fullContent, userFullName)
+    const aiResult = await extractTransactionFromEmail(fullContent, userFullName, images)
     
     if (aiResult.hasTransaction) {
       const transaction = aiResult.data

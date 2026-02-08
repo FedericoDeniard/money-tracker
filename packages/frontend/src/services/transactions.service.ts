@@ -255,7 +255,7 @@ export class TransactionsService {
       return currencies.sort();
     }
 
-    return (data || []).sort();
+    return (data || []).map((item: any) => typeof item === 'string' ? item : item.currency).sort();
   }
 
   async getAvailableEmails(): Promise<string[]> {

@@ -2,13 +2,15 @@ import { TransactionResponseSchema, type TransactionResponse } from './schemas.t
 import { EMAIL_EXTRACTION_SYSTEM } from '../prompts/email-extraction.ts';
 import { generateText, Output } from 'npm:ai';
 import { createXai } from 'npm:@ai-sdk/xai';
+import type { ImageAttachment } from '../lib/attachment-extractor.ts';
 
 const MODEL = 'grok-4-1-fast-non-reasoning';
 const TEMPERATURE = 0.1;
 
 export async function extractTransactionFromEmail(
   emailContent: string,
-  userFullName?: string
+  userFullName?: string,
+  images?: ImageAttachment[]
 ): Promise<TransactionResponse> {
   try {
     const xai = createXai({
@@ -23,15 +25,54 @@ export async function extractTransactionFromEmail(
 
     dynamicPrompt += `Email to analyze:\n${emailContent}`;
 
-    const { output } = await generateText({
+    if (images && images.length > 0) {
+      dynamicPrompt += `\n\nNote: ${images.length} image attachment(s) are included below. These may contain receipts, invoices, or transaction details. Analyze them along with the email text.`;
+    }
+
+    // Build generateText options
+    const baseOptions = {
       model: xai(MODEL),
       system: EMAIL_EXTRACTION_SYSTEM,
-      prompt: dynamicPrompt,
       temperature: TEMPERATURE,
       output: Output.object({
         schema: TransactionResponseSchema,
       }),
-    });
+    };
+
+    let output;
+
+    if (images && images.length > 0) {
+      // Use messages format with image parts
+      const contentParts: any[] = [
+        { type: 'text' as const, text: dynamicPrompt },
+      ];
+
+      for (const img of images) {
+        contentParts.push({
+          type: 'image' as const,
+          image: img.data,
+          mimeType: img.mimeType,
+        });
+      }
+
+      const result = await generateText({
+        ...baseOptions,
+        messages: [
+          {
+            role: 'user',
+            content: contentParts,
+          },
+        ],
+      });
+      output = result.output;
+    } else {
+      // Text-only: use simple prompt format
+      const result = await generateText({
+        ...baseOptions,
+        prompt: dynamicPrompt,
+      });
+      output = result.output;
+    }
 
     if (output.hasTransaction) {
       if (output.data.amount === 0) {
