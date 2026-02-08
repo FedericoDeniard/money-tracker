@@ -16,7 +16,7 @@ const server = serve({
     "/api/config": () => {
       const config = {
         supabase: {
-          url: process.env.SUPABASE_URL,
+          url: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''),
           anonKey: process.env.SUPABASE_ANON_KEY,
         },
         backendUrl: `${(process.env.SUPABASE_URL || '').replace(/\/+$/, '')}/functions/v1`,

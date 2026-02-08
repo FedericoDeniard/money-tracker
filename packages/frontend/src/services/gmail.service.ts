@@ -109,10 +109,12 @@ export const gmailService = {
       }
 
       // Call the gmail-disconnect Edge Function (uses path param for connectionId)
+      const config = await getConfig();
       const response = await fetch(`${edgeFunctionsUrl}/gmail-disconnect/${connectionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
+          'apikey': config.supabase.anonKey,
         },
       });
 

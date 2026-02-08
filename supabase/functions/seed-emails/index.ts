@@ -43,21 +43,25 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '')
 
-    // Verify token with Supabase
-    const supabaseAnon = createSupabaseClient()
+    // Verify token with Supabase using anon client
+    const supabaseAnon = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!
+    )
     const { data: { user }, error } = await supabaseAnon.auth.getUser(token)
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
     if (error || !user) {
+      console.error('Auth error:', error?.message, 'Token prefix:', token.substring(0, 20))
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
 
     const userId = user.id
     const body: SeedRequest = await req.json()
