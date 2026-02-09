@@ -81,6 +81,7 @@ export async function extractTransactionFromEmail(
     };
 
     let output;
+    let usage: any = null;
 
     if (images && images.length > 0) {
       // Use messages format with image parts
@@ -106,6 +107,7 @@ export async function extractTransactionFromEmail(
         ],
       });
       output = result.output;
+      usage = result.usage; // Capture usage from AI SDK
     } else {
       // Text-only: use simple prompt format
       const result = await generateText({
@@ -113,6 +115,7 @@ export async function extractTransactionFromEmail(
         prompt: dynamicPrompt,
       });
       output = result.output;
+      usage = result.usage; // Capture usage from AI SDK
     }
 
     if (output.hasTransaction) {
@@ -130,18 +133,22 @@ export async function extractTransactionFromEmail(
           merchant: output.data.merchant || 'Unknown',
           date: validateAndFixDate(output.data.date),
         },
+        usage, // Include usage information for Langfuse tracking
       };
+
     }
 
     return {
       hasTransaction: false,
       reason: output.reason,
+      usage, // Include usage information even for no-transaction cases
     };
   } catch (error) {
     console.error('AI extraction error', error);
     return {
       hasTransaction: false,
       reason: 'AI processing failed',
+      usage: null, // No usage info on error
     };
   }
   }, {
