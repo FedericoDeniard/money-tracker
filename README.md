@@ -79,7 +79,8 @@ bun run docker:db:types
 Notas:
 - `docker:db:reset` ejecuta seeds definidos en `supabase/config.toml`.
 - Los seeds estan configurados como `sql_paths = ["./seeds/*.sql"]`.
-- Primer seed creado: `supabase/seeds/001_auth_test_user.sql` (`test@gmail.com` / `password123`).
+- Primer seed creado: `supabase/seeds/001_auth_test_user.sql` (`user@test.com` / `password123`).
+- Segundo seed: `supabase/seeds/002_transactions_test_user.sql` (transacciones demo para `user@test.com`).
 - `docker:db:migration:up` aplica pendientes con `--include-all --local`.
 - `supabase-cli` usa `network_mode: host` para evitar errores de health-check de Supabase CLI dentro de Docker (flujo validado en Linux).
 

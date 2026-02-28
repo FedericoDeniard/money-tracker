@@ -32,7 +32,7 @@ INSERT INTO auth.users (
     gen_random_uuid(),
     'authenticated',
     'authenticated',
-    'test@gmail.com',
+    'user@test.com',
     crypt('password123', gen_salt('bf')),
     now(),
     now(),
@@ -54,7 +54,7 @@ INSERT INTO auth.users (
   WHERE NOT EXISTS (
     SELECT 1
     FROM auth.users
-    WHERE email = 'test@gmail.com'
+    WHERE email = 'user@test.com'
   );
 
 -- 2) Keep credentials and metadata deterministic on every run
@@ -63,7 +63,7 @@ SET
   encrypted_password = crypt('password123', gen_salt('bf')),
   raw_user_meta_data = '{"name":"Test User"}'::jsonb,
   updated_at = now()
-WHERE email = 'test@gmail.com';
+WHERE email = 'user@test.com';
 
 -- 3) Ensure identity exists
 INSERT INTO auth.identities (
@@ -86,7 +86,7 @@ SELECT
   now(),
   now()
 FROM auth.users u
-WHERE u.email = 'test@gmail.com'
+WHERE u.email = 'user@test.com'
 AND NOT EXISTS (
   SELECT 1
   FROM auth.identities i
