@@ -1,9 +1,8 @@
 import { Mail, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { seedService } from "../../services/seed.service";
-import { toast } from "../../utils/toast";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import { startSeedWithFeedback } from "../../utils/seedImport";
 
 interface SeedEmailsModalProps {
   isOpen: boolean;
@@ -22,29 +21,13 @@ export function SeedEmailsModal({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartSeed = async () => {
-    console.log("[SeedModal] Starting seed for connection:", connectionId);
     setIsLoading(true);
 
     try {
-      console.log("[SeedModal] Calling seedService.startSeed...");
-      const result = await seedService.startSeed(connectionId);
-      console.log("[SeedModal] Seed started successfully:", result);
-      
-      toast.success(
-        t("settings.seedStartedSuccess") || "Importación iniciada. Las transacciones aparecerán pronto."
-      );
-
-      onClose();
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error("[SeedModal] Error starting seed:", error.message);
-      
-      // Check if error is because a seed is already in progress
-      const errorMessage = error.message.includes("already in progress")
-        ? (t("settings.seedAlreadyInProgress") || "Ya hay una importación en progreso para esta cuenta. Por favor espera a que termine.")
-        : (t("settings.seedStartError") || "Error al iniciar la importación. Intenta de nuevo.");
-      
-      toast.error(errorMessage);
+      const started = await startSeedWithFeedback(connectionId, t);
+      if (started) {
+        onClose();
+      }
     } finally {
       setIsLoading(false);
     }

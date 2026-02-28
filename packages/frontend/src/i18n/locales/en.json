@@ -280,6 +280,96 @@
     "seedCompletedDescription": "Check your transactions to see the new movements.",
     "seedFailedDescription": "There was an error processing the emails. Please try again."
   },
+  "dashboardActionFirst": {
+    "headerDescription": "Quick action panel to keep your finances and automations up to date.",
+    "badges": {
+      "pending": "Pending",
+      "activeConnections": "Active connections",
+      "toReview": "To review"
+    },
+    "quickActions": {
+      "addTransaction": {
+        "title": "Add transaction",
+        "description": "Create a manual transaction in a few steps."
+      },
+      "connectGmail": {
+        "title": "Connect Gmail",
+        "description": "Link or recover accounts for automatic imports.",
+        "action": "Connect now"
+      },
+      "forceSync": {
+        "title": "Force sync",
+        "description": "Run an immediate historical email import.",
+        "action": "Sync now",
+        "syncing": "Syncing...",
+        "available": "Available",
+        "noConnection": "No connection"
+      },
+      "openTransactions": {
+        "title": "Open transactions",
+        "description": "Review and fix pending movements quickly.",
+        "action": "Open list"
+      }
+    },
+    "smartTasks": {
+      "title": "Smart tasks",
+      "manageConnections": "Manage connections",
+      "empty": "All set. No pending tasks right now."
+    },
+    "tasks": {
+      "reviewFallback": {
+        "title": "Low-confidence transactions detected",
+        "description": "{{count}} movements with zero amount or incomplete data need manual review.",
+        "action": "Review now"
+      },
+      "reviewUncategorized": {
+        "title": "Pending categorization",
+        "description": "You have {{count}} transactions without final category.",
+        "action": "Open transactions"
+      },
+      "reconnectGmail": {
+        "title": "Gmail connections to reconnect",
+        "description": "{{count}} account(s) need reconnection to keep importing.",
+        "action": "Go to settings"
+      },
+      "renewWatch": {
+        "title": "Notifications expiring soon",
+        "description": "{{count}} Gmail watch subscription(s) will expire soon.",
+        "action": "View status"
+      },
+      "seedProcessing": {
+        "title": "Synchronization in progress",
+        "description": "Analyzing {{totalEmails}} emails ({{processedByAi}} processed by AI)."
+      },
+      "seedFailed": {
+        "title": "Last synchronization failed",
+        "description": "There was an error importing emails.",
+        "action": "Retry"
+      }
+    },
+    "priority": {
+      "info": "Info",
+      "warning": "Medium",
+      "critical": "High"
+    },
+    "aiActivity": {
+      "title": "AI activity (7 days)",
+      "processedEmails": "Processed emails",
+      "foundTransactions": "Found transactions",
+      "skippedEmails": "Skipped emails"
+    },
+    "quickStatus": {
+      "title": "Quick status",
+      "uncategorized": "Uncategorized",
+      "aiFallback": "AI fallback",
+      "reconnections": "Reconnections",
+      "expiringWatches": "Expiring watches"
+    },
+    "errors": {
+      "connectGmail": "Could not start the connection.",
+      "startSync": "Could not start the import."
+    }
+  },
   "kbar": {
     "placeholder": "Type a command or search...",
     "navigation": "Navigation",

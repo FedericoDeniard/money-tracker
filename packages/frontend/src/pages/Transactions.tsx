@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
+import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 
 export function Transactions() {
   const { t } = useTranslation();
@@ -121,18 +122,7 @@ export function Transactions() {
   }, [t]);
 
   const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction({
-      transaction_type: formData.transaction_type,
-      merchant: formData.merchant,
-      amount: parseFloat(formData.amount),
-      currency: formData.currency,
-      category: formData.category,
-      transaction_date: formData.transaction_date,
-      transaction_description: formData.merchant,
-      date: new Date().toISOString(),
-      source_email: '',
-      source_message_id: '',
-    });
+    await createTransaction(mapTransactionFormDataToInsert(formData));
   };
 
   if (loadingFilters) {
