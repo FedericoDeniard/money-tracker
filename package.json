@@ -9,9 +9,9 @@
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "docker:shell": "docker compose exec supabase-cli sh",
-    "db:reset": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase db reset --local --no-seed\"",
-    "db:migration:up": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase migration up --include-all --local\"",
-    "db:types": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts\"",
+    "docker:db:reset": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase db reset --local\"",
+    "docker:db:migration:up": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase migration up --include-all --local\"",
+    "docker:db:types": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts\"",
     "prepare": "husky"
   },
   "devDependencies": {

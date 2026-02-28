@@ -63,7 +63,7 @@ Dentro del toolbox podes ejecutar comandos de Supabase CLI sin instalarlo localm
 ## Comandos de DB (local)
 
 ```bash
-docker compose run --rm supabase-cli sh -lc "supabase start && supabase db reset --local --no-seed"
+docker compose run --rm supabase-cli sh -lc "supabase start && supabase db reset --local"
 docker compose run --rm supabase-cli sh -lc "supabase start && supabase migration up --include-all --local"
 docker compose run --rm supabase-cli sh -lc "supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts"
 ```
@@ -71,14 +71,16 @@ docker compose run --rm supabase-cli sh -lc "supabase start && supabase gen type
 Wrappers opcionales:
 
 ```bash
-bun run db:reset
-bun run db:migration:up
-bun run db:types
+bun run docker:db:reset
+bun run docker:db:migration:up
+bun run docker:db:types
 ```
 
 Notas:
-- `db:reset` usa `--no-seed` para evitar fallos si no existe `supabase/seed.sql`.
-- `db:migration:up` aplica pendientes con `--include-all --local`.
+- `docker:db:reset` ejecuta seeds definidos en `supabase/config.toml`.
+- Los seeds estan configurados como `sql_paths = ["./seeds/*.sql"]`.
+- Primer seed creado: `supabase/seeds/001_auth_test_user.sql` (`test@gmail.com` / `password123`).
+- `docker:db:migration:up` aplica pendientes con `--include-all --local`.
 - `supabase-cli` usa `network_mode: host` para evitar errores de health-check de Supabase CLI dentro de Docker (flujo validado en Linux).
 
 ## Variables de entorno
