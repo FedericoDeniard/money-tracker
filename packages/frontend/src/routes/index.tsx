@@ -56,7 +56,8 @@ export function AppRoutes() {
       >
         <Route index element={<Home />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="emails" element={<Transactions />} />
+        <Route path="transactions" element={<Transactions />} />
+        <Route path="emails" element={<Navigate to="/transactions" replace />} />
         <Route path="metrics" element={<Metrics />} />
         <Route path="*" element={<NotFound />} />
       </Route>

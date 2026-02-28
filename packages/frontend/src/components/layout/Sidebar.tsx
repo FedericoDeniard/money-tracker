@@ -26,7 +26,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const links = [
     { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/" },
-    { icon: Receipt, label: t("navigation.transactions"), path: "/emails" },
+    { icon: Receipt, label: t("navigation.transactions"), path: "/transactions" },
     { icon: TrendingUp, label: t("navigation.metrics"), path: "/metrics" },
     { icon: Settings, label: t("navigation.settings"), path: "/settings" },
   ];

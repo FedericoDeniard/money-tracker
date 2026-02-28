@@ -74,7 +74,7 @@ function KBarInner() {
       shortcut: ["t"],
       keywords: t("kbar.keywords.transactions"),
       section: t("kbar.navigation"),
-      perform: () => navigate("/emails"),
+      perform: () => navigate("/transactions"),
     },
     {
       id: "metrics",
