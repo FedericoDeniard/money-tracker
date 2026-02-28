@@ -1,5 +1,6 @@
 import { getSupabase } from '../lib/supabase';
 import { getConfig } from '../config';
+import type { Database } from '../types/database.types';
 
 // Helper to get edge functions base URL from supabase config
 async function getEdgeFunctionsUrl(): Promise<string> {
@@ -12,11 +13,15 @@ export interface GmailConnection {
   gmail_email: string;
   connected_at: string;
   expires_at?: string;
+  is_active: boolean;
+  status: 'connected' | 'needs_reconnect';
 }
 
 export interface GmailStatus {
   connections: GmailConnection[];
   total: number;
+  connectedTotal: number;
+  needsReconnectTotal: number;
 }
 
 export interface GmailWatch {
@@ -34,8 +39,20 @@ const gmailStatusCache = new Map<
   { status: GmailStatus; expiresAt: number }
 >();
 const gmailStatusInFlight = new Map<string, Promise<GmailStatus>>();
+type UserOauthTokenRow = Database['public']['Tables']['user_oauth_tokens']['Row'];
 
 export const gmailService = {
+  clearConnectionStatusCache(userId?: string): void {
+    if (userId) {
+      gmailStatusCache.delete(userId);
+      gmailStatusInFlight.delete(userId);
+      return;
+    }
+
+    gmailStatusCache.clear();
+    gmailStatusInFlight.clear();
+  },
+
   async getConnectionStatus(userId: string): Promise<GmailStatus> {
     const now = Date.now();
     const cached = gmailStatusCache.get(userId);
@@ -53,9 +70,8 @@ export const gmailService = {
 
       const { data, error } = await supabase
         .from('user_oauth_tokens')
-        .select('id, gmail_email, created_at, expires_at')
+        .select('id, gmail_email, created_at, expires_at, is_active')
         .eq('user_id', userId)
-        .eq('is_active', true) // Only show active connections
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -63,16 +79,34 @@ export const gmailService = {
         return { connections: [], total: 0 };
       }
 
-      const connections: GmailConnection[] = (data || []).map(item => ({
-        id: item.id,
-        gmail_email: item.gmail_email,
-        connected_at: item.created_at,
-        expires_at: item.expires_at,
-      }));
+      const tokenRows = ((data || []) as UserOauthTokenRow[]).filter(
+        (item) => !!item.gmail_email,
+      );
+
+      const connections: GmailConnection[] = tokenRows
+        .map((item) => {
+          const isActive = item.is_active === true;
+          return {
+            id: item.id,
+            gmail_email: item.gmail_email!,
+            connected_at: item.created_at ?? '',
+            expires_at: item.expires_at ?? undefined,
+            is_active: isActive,
+            status: isActive ? 'connected' : 'needs_reconnect',
+          };
+        })
+        .sort((a, b) => Number(b.is_active) - Number(a.is_active));
+
+      const connectedTotal = connections.filter(
+        (connection) => connection.status === 'connected',
+      ).length;
+      const needsReconnectTotal = connections.length - connectedTotal;
 
       const status = {
         connections,
         total: connections.length,
+        connectedTotal,
+        needsReconnectTotal,
       };
 
       gmailStatusCache.set(userId, {

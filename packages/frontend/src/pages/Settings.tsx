@@ -51,6 +51,7 @@ export function Settings() {
       setSearchParams({});
       
       // Refresh Gmail status and show seed modal
+      gmailService.clearConnectionStatusCache(user?.id);
       invalidateGmailQueries();
       // Wait a bit for the cache to update, then show seed modal
       setTimeout(() => {
@@ -128,6 +129,7 @@ export function Settings() {
       const result = await gmailService.disconnectGmail(connectionId);
 
       if (result.success) {
+        gmailService.clearConnectionStatusCache(user?.id);
         setNotification({
           type: "success",
           message: t("settings.gmailDisconnectedSuccess"),
@@ -215,12 +217,22 @@ export function Settings() {
                       size={16}
                     />
                   ) : gmailStatus && gmailStatus.total > 0 ? (
-                    <span className="flex items-center gap-1 text-sm text-green-600">
-                      <CheckCircle size={16} />
-                      {t("settings.connectedCount", {
-                        count: gmailStatus.total,
-                      })}
-                    </span>
+                    gmailStatus.needsReconnectTotal > 0 ? (
+                      <span className="flex items-center gap-1 text-sm text-amber-600">
+                        <AlertCircle size={16} />
+                        {t("settings.connectedAndReconnectCount", {
+                          connected: gmailStatus.connectedTotal,
+                          reconnect: gmailStatus.needsReconnectTotal,
+                        })}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-sm text-green-600">
+                        <CheckCircle size={16} />
+                        {t("settings.connectedCount", {
+                          count: gmailStatus.connectedTotal,
+                        })}
+                      </span>
+                    )
                   ) : (
                     <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)]">
                       <AlertCircle size={16} />
@@ -247,28 +259,54 @@ export function Settings() {
                               {connection.gmail_email}
                             </p>
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {t("settings.connectedAt")}{" "}
-                              {new Date(
-                                connection.connected_at,
-                              ).toLocaleDateString()}
+                              {connection.status === "connected"
+                                ? `${t("settings.connectedAt")} ${new Date(
+                                    connection.connected_at,
+                                  ).toLocaleDateString()}`
+                                : t("settings.needsReconnect")}
                             </p>
+                            {connection.status === "needs_reconnect" && (
+                              <p className="text-xs text-amber-700 mt-1">
+                                {t("settings.reconnectHint")}
+                              </p>
+                            )}
                           </div>
                         </div>
                         
                         <div className="flex gap-2 self-end sm:self-auto shrink-0">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={<Download size={16} />}
-                            onClick={() =>
-                              handleStartSeed(
-                                connection.id,
-                                connection.gmail_email,
-                              )
-                            }
-                          >
-                            {t("settings.importEmails") || "Importar"}
-                          </Button>
+                          {connection.status === "connected" ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<Download size={16} />}
+                              onClick={() =>
+                                handleStartSeed(
+                                  connection.id,
+                                  connection.gmail_email,
+                                )
+                              }
+                            >
+                              {t("settings.importEmails") || "Importar"}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={
+                                isConnecting ? (
+                                  <Loader2 className="animate-spin" size={16} />
+                                ) : (
+                                  <Mail size={16} />
+                                )
+                              }
+                              onClick={handleConnectEmail}
+                              disabled={!isConnectButtonEnabled}
+                            >
+                              {isConnecting
+                                ? t("settings.connecting")
+                                : t("settings.reconnectGmail")}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
