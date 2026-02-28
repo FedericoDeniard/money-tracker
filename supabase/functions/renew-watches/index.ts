@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
         const { data: tokenData } = await supabase
           .from('user_oauth_tokens')
           .select('*')
+          .eq('user_id', watch.user_id)
           .eq('gmail_email', watch.gmail_email)
           .eq('is_active', true)
           .limit(1)
@@ -101,6 +102,42 @@ Deno.serve(async (req) => {
             labelFilterAction: 'include',
           }),
         })
+
+        if (watchResponse.status === 401) {
+          console.warn(`Invalid credentials for ${watch.gmail_email}. Disconnecting account for user ${watch.user_id}.`)
+
+          const { error: deactivateError } = await supabase
+            .from('user_oauth_tokens')
+            .update({
+              is_active: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', watch.user_id)
+            .eq('gmail_email', watch.gmail_email)
+            .eq('is_active', true)
+
+          if (deactivateError) {
+            console.error(`Failed to deactivate token for ${watch.gmail_email}:`, deactivateError)
+          }
+
+          const { error: deleteWatchError } = await supabase
+            .from('gmail_watches')
+            .delete()
+            .eq('user_id', watch.user_id)
+            .eq('gmail_email', watch.gmail_email)
+
+          if (deleteWatchError) {
+            console.error(`Failed to delete watch for ${watch.gmail_email}:`, deleteWatchError)
+          }
+
+          results.push({
+            email: watch.gmail_email,
+            status: 'disconnected',
+            error: 'Invalid Gmail credentials. Account disconnected; user must reconnect.',
+          })
+          failedCount++
+          continue
+        }
 
         if (!watchResponse.ok) {
           const errorText = await watchResponse.text()
