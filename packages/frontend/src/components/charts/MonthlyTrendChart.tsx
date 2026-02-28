@@ -88,15 +88,19 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
         />
         <XAxis
           dataKey="month"
+          type="category"
+          scale="band"
           axisLine={false}
           tickLine={false}
           tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
         />
         <YAxis
+          type="number"
+          scale="linear"
           stroke="var(--text-secondary)"
           tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
           ticks={yAxisTicks}
-          tickFormatter={(value) => {
+          tickFormatter={(value: number) => {
             if (Math.abs(value) >= 1000) {
               return `$${(value / 1000).toFixed(1)}k`;
             }

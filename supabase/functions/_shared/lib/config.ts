@@ -21,7 +21,3 @@ export function getXAIConfig() {
     apiKey: Deno.env.get('XAI_API_KEY')
   }
 }
-
-export function getEncryptionSecret(): string {
-  return Deno.env.get('ENCRYPTION_SECRET') || 'fallback-encryption-secret-32-chars-long'
-}

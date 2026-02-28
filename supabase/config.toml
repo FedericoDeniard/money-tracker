@@ -60,7 +60,7 @@ schema_paths = []
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = ["./seeds/*.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -389,18 +389,10 @@ verify_jwt = false
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
 GOOGLE_CLIENT_SECRET = "env(GOOGLE_CLIENT_SECRET)"
-
-# Langfuse Configuration
-LANGFUSE_SECRET_KEY = "env(LANGFUSE_SECRET_KEY)"
-LANGFUSE_PUBLIC_KEY = "env(LANGFUSE_PUBLIC_KEY)"
-LANGFUSE_BASE_URL = "env(LANGFUSE_BASE_URL)"
 XAI_API_KEY = "env(XAI_API_KEY)"
 GOOGLE_PROJECT_ID = "env(GOOGLE_PROJECT_ID)"
 OAUTH_REDIRECT_URI = "env(OAUTH_REDIRECT_URI)"
 PUBSUB_TOPIC = "env(PUBSUB_TOPIC)"
-
-# Encryption
-ENCRYPTION_SECRET = "env(ENCRYPTION_KEY)"
 
 [analytics]
 enabled = true

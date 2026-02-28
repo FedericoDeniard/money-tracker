@@ -1,0 +1,36 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    depends_on:
+      - supabase-cli
+    working_dir: /app/packages/frontend
+    command: ["sh", "-lc", "bun install --frozen-lockfile && bun run dev"]
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./packages/frontend/.env
+    volumes:
+      - ./:/app
+      - bun_cache:/root/.bun/install/cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  supabase-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.supabase-cli
+    network_mode: "host"
+    working_dir: /workspace
+    command: ["sh", "-lc", "supabase start && sleep infinity"]
+    tty: true
+    stdin_open: true
+    env_file:
+      - ./supabase/functions/.env
+    volumes:
+      - ./:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  bun_cache:

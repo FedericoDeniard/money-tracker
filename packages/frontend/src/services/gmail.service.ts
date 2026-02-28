@@ -28,33 +28,67 @@ export interface GmailWatch {
   is_active: boolean;
 }
 
+const GMAIL_STATUS_TTL_MS = 60 * 1000;
+const gmailStatusCache = new Map<
+  string,
+  { status: GmailStatus; expiresAt: number }
+>();
+const gmailStatusInFlight = new Map<string, Promise<GmailStatus>>();
+
 export const gmailService = {
   async getConnectionStatus(userId: string): Promise<GmailStatus> {
-    const supabase = await getSupabase();
-
-    const { data, error } = await supabase
-      .from('user_oauth_tokens')
-      .select('id, gmail_email, created_at, expires_at')
-      .eq('user_id', userId)
-      .eq('is_active', true) // Only show active connections
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error checking Gmail status:', error);
-      return { connections: [], total: 0 };
+    const now = Date.now();
+    const cached = gmailStatusCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      return cached.status;
     }
 
-    const connections: GmailConnection[] = (data || []).map(item => ({
-      id: item.id,
-      gmail_email: item.gmail_email,
-      connected_at: item.created_at,
-      expires_at: item.expires_at,
-    }));
+    const inFlight = gmailStatusInFlight.get(userId);
+    if (inFlight) {
+      return inFlight;
+    }
 
-    return {
-      connections,
-      total: connections.length,
-    };
+    const request = (async () => {
+      const supabase = await getSupabase();
+
+      const { data, error } = await supabase
+        .from('user_oauth_tokens')
+        .select('id, gmail_email, created_at, expires_at')
+        .eq('user_id', userId)
+        .eq('is_active', true) // Only show active connections
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error checking Gmail status:', error);
+        return { connections: [], total: 0 };
+      }
+
+      const connections: GmailConnection[] = (data || []).map(item => ({
+        id: item.id,
+        gmail_email: item.gmail_email,
+        connected_at: item.created_at,
+        expires_at: item.expires_at,
+      }));
+
+      const status = {
+        connections,
+        total: connections.length,
+      };
+
+      gmailStatusCache.set(userId, {
+        status,
+        expiresAt: Date.now() + GMAIL_STATUS_TTL_MS,
+      });
+
+      return status;
+    })();
+
+    gmailStatusInFlight.set(userId, request);
+    try {
+      return await request;
+    } finally {
+      gmailStatusInFlight.delete(userId);
+    }
   },
 
   async getWatches(userId: string): Promise<GmailWatch[]> {
