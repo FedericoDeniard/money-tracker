@@ -7,7 +7,12 @@ export function useGmailStatus(userId?: string) {
     queryKey: queryKeys.gmail.status(userId),
     queryFn: async () => {
       if (!userId) {
-        return { connections: [], total: 0 } as GmailStatus;
+        return {
+          connections: [],
+          total: 0,
+          connectedTotal: 0,
+          needsReconnectTotal: 0,
+        } as GmailStatus;
       }
       return await gmailService.getConnectionStatus(userId);
     },
