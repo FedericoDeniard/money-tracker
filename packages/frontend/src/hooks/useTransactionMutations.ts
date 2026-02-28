@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 import { getSupabase } from '../lib/supabase';
-import { createTransactionsService, type Transaction } from '../services/transactions.service';
+import { createTransactionsService, type Transaction, type TransactionsService } from '../services/transactions.service';
 import { queryKeys } from '../lib/query-client';
 import type { TransactionPage } from '../services/transactions.service';
-import type { TransactionRow } from '../types/database.types';
+
+type CreateTransactionInput = Parameters<TransactionsService['createTransaction']>[0];
 
 interface UseTransactionMutationsReturn {
-  createTransaction: (newTransaction: Omit<TransactionRow, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
-  updateTransaction: (id: string, updates: Partial<Transaction>) => void;
+  createTransaction: (newTransaction: CreateTransactionInput) => Promise<Transaction>;
+  deleteTransaction: (id: string) => Promise<string>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<{ id: string; updates: Partial<Transaction> }>;
   isCreating: boolean;
   isDeleting: boolean;
   isUpdating: boolean;
@@ -66,6 +67,8 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
       // Also invalidate metrics since they depend on transaction data
       queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
+      // Dashboard action-first cards depend on transaction aggregates
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 
@@ -115,11 +118,13 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
       // Also invalidate metrics since they depend on transaction data
       queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
+      // Dashboard action-first cards depend on transaction aggregates
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (newTransaction: Omit<TransactionRow, 'id'>) => {
+    mutationFn: async (newTransaction: CreateTransactionInput) => {
       const supabase = await getSupabase();
       const service = createTransactionsService(supabase);
       return await service.createTransaction(newTransaction);
@@ -139,6 +144,7 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
           const optimisticTransaction: Transaction = {
             ...newTransaction,
             id: newId,
+            user_id: 'optimistic-user',
             recipient_email: '',
             created_at: new Date().toISOString(),
             amount: newTransaction.amount,
@@ -152,7 +158,7 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
             transaction_description: newTransaction.transaction_description,
             transaction_type: newTransaction.transaction_type,
             updated_at: null,
-            user_oauth_token_id: newTransaction.user_oauth_token_id || null
+            user_oauth_token_id: newTransaction.user_oauth_token_id ?? null
           };
           
           return {
@@ -180,13 +186,14 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 
   return {
-    createTransaction: createMutation.mutate,
-    deleteTransaction: deleteMutation.mutate,
-    updateTransaction: (id, updates) => updateMutation.mutate({ id, updates }),
+    createTransaction: createMutation.mutateAsync,
+    deleteTransaction: deleteMutation.mutateAsync,
+    updateTransaction: (id, updates) => updateMutation.mutateAsync({ id, updates }),
     isCreating: createMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isUpdating: updateMutation.isPending,

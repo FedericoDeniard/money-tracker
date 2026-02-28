@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { Button } from "../ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Transaction } from "../../services/transactions.service";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { getCurrencySymbol } from "../../utils/currency";
@@ -46,7 +46,7 @@ export function EditTransactionModal({
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     transaction_type: transaction.transaction_type,
     merchant: transaction.merchant || "",
@@ -55,6 +55,19 @@ export function EditTransactionModal({
     category: transaction.category,
     transaction_date: transaction.transaction_date || transaction.date,
   });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setFormData({
+      transaction_type: transaction.transaction_type,
+      merchant: transaction.merchant || "",
+      amount: transaction.amount.toString(),
+      currency: transaction.currency,
+      category: transaction.category,
+      transaction_date: transaction.transaction_date || transaction.date,
+    });
+  }, [transaction, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,6 +195,7 @@ export function EditTransactionModal({
                   <input
                     type="number"
                     step="0.01"
+                    min="0.01"
                     value={formData.amount}
                     onChange={(e) =>
                       setFormData({ ...formData, amount: e.target.value })

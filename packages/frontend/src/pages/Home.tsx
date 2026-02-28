@@ -81,9 +81,9 @@ export function Home() {
 
   const dashboardData = data ?? {
     tasks: [],
-    uncategorizedCount: 0,
-    fallbackCount: 0,
     inactiveConnectionsCount: 0,
+    expiredWatchCount: 0,
+    expiringSoonWatchCount: 0,
     expiringWatchCount: 0,
     activeConnectionCount: 0,
     primaryConnectionId: null,
@@ -96,22 +96,6 @@ export function Home() {
 
   const getTaskContent = (task: DashboardTask) => {
     switch (task.type) {
-      case "review_fallback":
-        return {
-          title: t("dashboardActionFirst.tasks.reviewFallback.title"),
-          description: t("dashboardActionFirst.tasks.reviewFallback.description", {
-            count: task.count ?? 0,
-          }),
-          actionLabel: t("dashboardActionFirst.tasks.reviewFallback.action"),
-        };
-      case "review_uncategorized":
-        return {
-          title: t("dashboardActionFirst.tasks.reviewUncategorized.title"),
-          description: t("dashboardActionFirst.tasks.reviewUncategorized.description", {
-            count: task.count ?? 0,
-          }),
-          actionLabel: t("dashboardActionFirst.tasks.reviewUncategorized.action"),
-        };
       case "reconnect_gmail":
         return {
           title: t("dashboardActionFirst.tasks.reconnectGmail.title"),
@@ -182,9 +166,6 @@ export function Home() {
           <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
             {t("dashboardActionFirst.badges.activeConnections")}:{" "}
             {dashboardData.activeConnectionCount}
-          </span>
-          <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
-            {t("dashboardActionFirst.badges.toReview")}: {dashboardData.uncategorizedCount}
           </span>
         </div>
       </section>
@@ -321,20 +302,12 @@ export function Home() {
             </h2>
             <ul className="space-y-2 text-sm text-[var(--text-secondary)]">
               <li>
-                {t("dashboardActionFirst.quickStatus.uncategorized")}:{" "}
-                {dashboardData.uncategorizedCount}
-              </li>
-              <li>
-                {t("dashboardActionFirst.quickStatus.aiFallback")}:{" "}
-                {dashboardData.fallbackCount}
-              </li>
-              <li>
-                {t("dashboardActionFirst.quickStatus.reconnections")}:{" "}
+                {t("dashboardActionFirst.quickStatus.accountsToReconnect")}:{" "}
                 {dashboardData.inactiveConnectionsCount}
               </li>
               <li>
-                {t("dashboardActionFirst.quickStatus.expiringWatches")}:{" "}
-                {dashboardData.expiringWatchCount}
+                {t("dashboardActionFirst.quickStatus.expiringWatches72h")}:{" "}
+                {dashboardData.expiringSoonWatchCount}
               </li>
             </ul>
           </div>

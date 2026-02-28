@@ -360,10 +360,10 @@
     },
     "quickStatus": {
       "title": "Quick status",
-      "uncategorized": "Uncategorized",
-      "aiFallback": "AI fallback",
-      "reconnections": "Reconnections",
-      "expiringWatches": "Expiring watches"
+      "pendingReview": "Pending review",
+      "accountsToReconnect": "Accounts to reconnect",
+      "expiredWatches": "Expired Gmail subscriptions",
+      "expiringWatches72h": "Gmail subscriptions expiring (72h)"
     },
     "errors": {
       "connectGmail": "Could not start the connection.",

@@ -8,8 +8,6 @@ const ACTIVITY_WINDOW_DAYS = 7;
 export interface DashboardTask {
   id: string;
   type:
-    | "review_uncategorized"
-    | "review_fallback"
     | "reconnect_gmail"
     | "renew_watch"
     | "seed_processing"
@@ -42,9 +40,9 @@ export interface DashboardActivitySummary {
 
 export interface DashboardTasksData {
   tasks: DashboardTask[];
-  uncategorizedCount: number;
-  fallbackCount: number;
   inactiveConnectionsCount: number;
+  expiredWatchCount: number;
+  expiringSoonWatchCount: number;
   expiringWatchCount: number;
   activeConnectionCount: number;
   primaryConnectionId: string | null;
@@ -104,9 +102,9 @@ export function useDashboardTasks(userId?: string) {
       if (!userId) {
         return {
           tasks: [],
-          uncategorizedCount: 0,
-          fallbackCount: 0,
           inactiveConnectionsCount: 0,
+          expiredWatchCount: 0,
+          expiringSoonWatchCount: 0,
           expiringWatchCount: 0,
           activeConnectionCount: 0,
           primaryConnectionId: null,
@@ -128,8 +126,6 @@ export function useDashboardTasks(userId?: string) {
       );
 
       const [
-        uncategorizedResult,
-        fallbackResult,
         inactiveConnectionsResult,
         watchesResult,
         activeConnectionsResult,
@@ -137,17 +133,6 @@ export function useDashboardTasks(userId?: string) {
         emailTransactionsActivityResult,
         discardedEmailsActivityResult,
       ] = await Promise.all([
-        supabase
-          .from("transactions")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", userId)
-          .in("category", ["uncategorized", "other"]),
-        supabase
-          .from("transactions")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", userId)
-          .eq("category", "uncategorized")
-          .eq("amount", 0),
         supabase
           .from("user_oauth_tokens")
           .select("id, gmail_email")
@@ -190,8 +175,6 @@ export function useDashboardTasks(userId?: string) {
           .gte("discarded_at", activityStart.toISOString()),
       ]);
 
-      if (uncategorizedResult.error) throw uncategorizedResult.error;
-      if (fallbackResult.error) throw fallbackResult.error;
       if (inactiveConnectionsResult.error) throw inactiveConnectionsResult.error;
       if (watchesResult.error) throw watchesResult.error;
       if (activeConnectionsResult.error) throw activeConnectionsResult.error;
@@ -203,15 +186,24 @@ export function useDashboardTasks(userId?: string) {
         throw discardedEmailsActivityResult.error;
       }
 
-      const uncategorizedCount = uncategorizedResult.count ?? 0;
-      const fallbackCount = fallbackResult.count ?? 0;
       const inactiveConnectionsCount = inactiveConnectionsResult.data.length;
 
-      const expiringWatchCount = watchesResult.data.filter((watch) => {
+      let expiredWatchCount = 0;
+      let expiringSoonWatchCount = 0;
+      for (const watch of watchesResult.data) {
         const expirationDate = parseWatchExpiration(watch.expiration);
-        if (!expirationDate) return false;
-        return expirationDate <= watchWarningThreshold;
-      }).length;
+        if (!expirationDate) continue;
+
+        if (expirationDate <= now) {
+          expiredWatchCount += 1;
+          continue;
+        }
+
+        if (expirationDate <= watchWarningThreshold) {
+          expiringSoonWatchCount += 1;
+        }
+      }
+      const expiringWatchCount = expiredWatchCount + expiringSoonWatchCount;
 
       const activeConnectionCount = activeConnectionsResult.data.length;
       const primaryConnectionId = activeConnectionsResult.data[0]?.id ?? null;
@@ -226,26 +218,6 @@ export function useDashboardTasks(userId?: string) {
       };
 
       const tasks: DashboardTask[] = [];
-
-      if (fallbackCount > 0) {
-        tasks.push({
-          id: "fallback-review",
-          type: "review_fallback",
-          count: fallbackCount,
-          level: "critical",
-          actionPath: "/transactions",
-        });
-      }
-
-      if (uncategorizedCount > 0) {
-        tasks.push({
-          id: "uncategorized-review",
-          type: "review_uncategorized",
-          count: uncategorizedCount,
-          level: "warning",
-          actionPath: "/transactions",
-        });
-      }
 
       if (inactiveConnectionsCount > 0) {
         tasks.push({
@@ -289,9 +261,9 @@ export function useDashboardTasks(userId?: string) {
 
       return {
         tasks,
-        uncategorizedCount,
-        fallbackCount,
         inactiveConnectionsCount,
+        expiredWatchCount,
+        expiringSoonWatchCount,
         expiringWatchCount,
         activeConnectionCount,
         primaryConnectionId,
