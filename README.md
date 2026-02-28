@@ -77,6 +77,7 @@ bun run docker:db:types
 ```
 
 Notas:
+- Frontend Docker usa `oven/bun:1.3.9` para mantener paridad con Bun local y evitar diferencias de runtime.
 - `docker:db:reset` ejecuta seeds definidos en `supabase/config.toml`.
 - Los seeds estan configurados como `sql_paths = ["./seeds/*.sql"]`.
 - Primer seed creado: `supabase/seeds/001_auth_test_user.sql` (`user@test.com` / `password123`).
