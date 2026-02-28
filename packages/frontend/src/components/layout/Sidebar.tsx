@@ -35,12 +35,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     <div className="flex flex-col h-full bg-[var(--bg-primary)] border-r border-[var(--text-secondary)]/20">
       <div className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10">
-            <DecorativeSquare size={40} className="absolute" />
+          <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
+            <DecorativeSquare size={40} className="absolute inset-0 m-auto" />
             <img
               src={logo}
               alt="Money Tracker Logo"
-              className="absolute inset-0 w-full h-full object-contain"
+              className="relative z-10 w-full h-full p-1.5 object-contain"
             />
           </div>
           <h1 className="text-xl font-bold text-[var(--text-primary)]">

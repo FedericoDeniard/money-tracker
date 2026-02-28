@@ -14,12 +14,12 @@ export function DashboardLayout() {
       {/* Mobile Header */}
       <header className="lg:hidden bg-[var(--bg-primary)] border-b border-[var(--text-secondary)]/20 p-4 sticky top-0 z-30 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8">
-            <DecorativeSquare size={32} className="absolute" />
+          <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+            <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
             <img
               src={logo}
               alt="Money Tracker Logo"
-              className="absolute inset-0 w-full h-full object-contain"
+              className="relative z-10 w-full h-full p-1 object-contain"
             />
           </div>
           <h1 className="text-lg font-bold text-[var(--text-primary)]">
