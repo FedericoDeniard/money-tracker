@@ -280,6 +280,96 @@
     "seedCompletedDescription": "Revisa tus transacciones para ver los nuevos movimientos.",
     "seedFailedDescription": "Hubo un error al procesar los correos. Intenta de nuevo."
   },
+  "dashboardActionFirst": {
+    "headerDescription": "Panel de acciones rápidas para mantener tus finanzas y automatizaciones al día.",
+    "badges": {
+      "pending": "Pendientes",
+      "activeConnections": "Conexiones activas",
+      "toReview": "Revisar"
+    },
+    "quickActions": {
+      "addTransaction": {
+        "title": "Cargar transacción",
+        "description": "Añade un movimiento manualmente en pocos pasos."
+      },
+      "connectGmail": {
+        "title": "Conectar Gmail",
+        "description": "Vincula o recupera cuentas para importación automática.",
+        "action": "Conectar ahora"
+      },
+      "forceSync": {
+        "title": "Forzar sincronización",
+        "description": "Ejecuta una importación inmediata de correos históricos.",
+        "action": "Sincronizar",
+        "syncing": "Sincronizando...",
+        "available": "Disponible",
+        "noConnection": "Sin conexión"
+      },
+      "openTransactions": {
+        "title": "Ver transacciones",
+        "description": "Revisa y corrige movimientos pendientes rápidamente.",
+        "action": "Abrir listado"
+      }
+    },
+    "smartTasks": {
+      "title": "Pendientes inteligentes",
+      "manageConnections": "Gestionar conexiones",
+      "empty": "Todo al día. No hay tareas pendientes ahora mismo."
+    },
+    "tasks": {
+      "reviewFallback": {
+        "title": "Transacciones detectadas con baja confianza",
+        "description": "{{count}} movimientos con monto 0 o datos incompletos necesitan revisión manual.",
+        "action": "Revisar ahora"
+      },
+      "reviewUncategorized": {
+        "title": "Pendientes de categorizar",
+        "description": "Tienes {{count}} transacciones sin categoría final.",
+        "action": "Abrir transacciones"
+      },
+      "reconnectGmail": {
+        "title": "Conexiones de Gmail a reconectar",
+        "description": "{{count}} cuenta(s) requieren reconexión para seguir importando.",
+        "action": "Ir a configuración"
+      },
+      "renewWatch": {
+        "title": "Notificaciones por vencer",
+        "description": "{{count}} suscripción(es) de Gmail vencen pronto.",
+        "action": "Ver estado"
+      },
+      "seedProcessing": {
+        "title": "Sincronización en progreso",
+        "description": "Analizando {{totalEmails}} correos ({{processedByAi}} procesados por IA)."
+      },
+      "seedFailed": {
+        "title": "Última sincronización falló",
+        "description": "Hubo un error al importar correos.",
+        "action": "Reintentar"
+      }
+    },
+    "priority": {
+      "info": "Info",
+      "warning": "Media",
+      "critical": "Alta"
+    },
+    "aiActivity": {
+      "title": "Actividad de IA (7 días)",
+      "processedEmails": "Correos procesados",
+      "foundTransactions": "Transacciones encontradas",
+      "skippedEmails": "Correos descartados"
+    },
+    "quickStatus": {
+      "title": "Estado rápido",
+      "pendingReview": "Pendientes de revisión",
+      "accountsToReconnect": "Cuentas por reconectar",
+      "expiredWatches": "Suscripciones Gmail vencidas",
+      "expiringWatches72h": "Suscripciones Gmail por vencer (72h)"
+    },
+    "errors": {
+      "connectGmail": "No se pudo iniciar la conexión.",
+      "startSync": "No se pudo iniciar la importación."
+    }
+  },
   "kbar": {
     "placeholder": "Escribe un comando o busca...",
     "navigation": "Navegación",

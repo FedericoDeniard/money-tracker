@@ -16,18 +16,25 @@ import { useTransactions, flattenTransactionsData, getTotalCount, hasMorePages }
 import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
+import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 
 export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [filters, setFilters] = useState<TransactionFilters>({});
+  const [filters, setFilters] = useState<TransactionFilters>(() => {
+    const category = searchParams.get("category");
+    return {
+      category: category || undefined,
+    };
+  });
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [preFilledData, setPreFilledData] = useState<TransactionFormData | undefined>();
@@ -121,18 +128,7 @@ export function Transactions() {
   }, [t]);
 
   const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction({
-      transaction_type: formData.transaction_type,
-      merchant: formData.merchant,
-      amount: parseFloat(formData.amount),
-      currency: formData.currency,
-      category: formData.category,
-      transaction_date: formData.transaction_date,
-      transaction_description: formData.merchant,
-      date: new Date().toISOString(),
-      source_email: '',
-      source_message_id: '',
-    });
+    await createTransaction(mapTransactionFormDataToInsert(formData));
   };
 
   if (loadingFilters) {

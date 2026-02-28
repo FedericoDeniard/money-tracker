@@ -54,6 +54,11 @@ export const queryKeys = {
     status: (userId?: string) => [...queryKeys.gmail.all, 'status', userId] as const,
     watches: (userId?: string) => [...queryKeys.gmail.all, 'watches', userId] as const,
   },
+  dashboard: {
+    all: ['dashboard'] as const,
+    tasks: (userId?: string) =>
+      [...queryKeys.dashboard.all, 'tasks', userId] as const,
+  },
   serverConfig: {
     all: ['server-config'] as const,
   },

@@ -14,6 +14,22 @@ export interface Transaction extends TransactionRow {
   recipient_email?: string;
 }
 
+export type TransactionCreateInput = Pick<
+  TransactionRow,
+  | 'transaction_type'
+  | 'merchant'
+  | 'amount'
+  | 'currency'
+  | 'category'
+  | 'transaction_date'
+  | 'transaction_description'
+  | 'date'
+  | 'source_email'
+  | 'source_message_id'
+> & {
+  user_oauth_token_id?: string | null;
+};
+
 // Maps a joined query row to the application Transaction type
 function mapJoinedTransaction(item: JoinedTransactionRow): Transaction {
   const { user_oauth_tokens, ...transaction } = item;
@@ -161,7 +177,6 @@ export class TransactionsService {
     if (filters?.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
     }
-
     if (filters?.type && filters.type !== 'all') {
       if (filters.type === 'income' || filters.type === 'ingreso') {
         query = query.in('transaction_type', ['income', 'ingreso']);
@@ -287,12 +302,20 @@ export class TransactionsService {
     if (error) throw error;
   }
 
-  async createTransaction(transaction: Omit<TransactionRow, 'id' | 'created_at'>): Promise<Transaction> {
+  async createTransaction(transaction: TransactionCreateInput): Promise<Transaction> {
+    const {
+      data: { user },
+    } = await this.supabase.auth.getUser();
+
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
     const { data, error } = await this.supabase
       .from('transactions')
       .insert({
         ...transaction,
-        user_id: (await this.supabase.auth.getUser()).data.user?.id
+        user_id: user.id
       })
       .select('*, user_oauth_tokens!user_oauth_token_id (gmail_email)')
       .single();
