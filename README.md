@@ -1,74 +1,90 @@
-# Money Tracker - Docker Dev
+# Money Tracker
 
-Este repo se puede levantar en desarrollo con Docker/Compose como unica dependencia en host.
+A personal finance app that automatically extracts transactions from your Gmail inbox and uploaded documents using AI. It tracks income and expenses, categorizes them, and provides financial insights across multiple currencies.
 
-## Prerequisito
+## Highlights
 
-- Docker + Docker Compose instalados y en ejecucion.
+- Automatic transaction extraction from Gmail emails using AI (xAI Grok).
+- Real-time processing of new emails via Gmail Watch and Pub/Sub.
+- Upload receipts and invoices (PDF/images) for AI-powered extraction.
+- Multi-currency support with comparative analytics.
+- Monthly trends, category breakdowns, and savings insights.
+- Multi-language interface (English / Spanish).
 
-## Levantar toda la app
+## How it works
 
-```bash
-docker compose up --build
-```
+1. Sign up and connect your Gmail account via OAuth.
+2. Money Tracker imports your last 3 months of transaction emails automatically.
+3. New emails are processed in real time as they arrive.
+4. AI extracts amount, currency, merchant, category, date, and transaction type.
+5. View your finances in the dashboard with filters, charts, and metrics.
 
-Esto:
-- levanta el contenedor toolbox `supabase-cli`,
-- arranca Supabase local dentro del toolbox (`supabase start`) automaticamente,
-- levanta el frontend con watch en `http://localhost:3000`.
+You can also add transactions manually or upload documents (PDFs, images) for AI extraction.
 
-Antes de levantar, asegurate de tener:
-- `packages/frontend/.env`
-- `supabase/functions/.env`
+## Tech stack
 
-Podes crearlos desde los examples:
+- **Frontend**: React, React Router, TanStack Query, Tailwind CSS, Framer Motion
+- **Backend**: Supabase (Auth, PostgreSQL, Edge Functions, Realtime)
+- **AI**: xAI Grok with structured output (Zod schemas)
+- **Integrations**: Gmail API, Google OAuth, Google Pub/Sub
+- **Observability**: Langfuse for AI operation tracing
+
+## Getting started
+
+### Prerequisites
+
+- Docker and Docker Compose
+
+### Setup
+
+Create environment files from the provided examples:
 
 ```bash
 cp packages/frontend/.env.example packages/frontend/.env
 cp supabase/functions/.env.example supabase/functions/.env
 ```
 
-Tambien podes usar el wrapper opcional:
+Edit each `.env` file with your actual credentials (Supabase keys, Google OAuth, xAI API key, etc.).
+
+### Run the app
 
 ```bash
-bun run docker:up
+docker compose up --build
 ```
 
-## Parar todo
+This starts:
+- The frontend with hot reload at `http://localhost:3000`
+- A Supabase local stack (database, auth, edge functions, studio)
+
+No local installation of Bun or Supabase CLI is required.
+
+### Stop the app
 
 ```bash
 docker compose down
 ```
 
-Wrapper opcional:
+## Database commands
 
-```bash
-bun run docker:down
-```
-
-## Entrar al contenedor toolbox
-
-```bash
-docker compose exec supabase-cli sh
-```
-
-Wrapper opcional:
-
-```bash
-bun run docker:shell
-```
-
-Dentro del toolbox podes ejecutar comandos de Supabase CLI sin instalarlo localmente.
-
-## Comandos de DB (local)
+Reset the database (applies all migrations and seeds):
 
 ```bash
 docker compose run --rm supabase-cli sh -lc "supabase start && supabase db reset --local"
+```
+
+Apply pending migrations:
+
+```bash
 docker compose run --rm supabase-cli sh -lc "supabase start && supabase migration up --include-all --local"
+```
+
+Generate TypeScript types from the database schema:
+
+```bash
 docker compose run --rm supabase-cli sh -lc "supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts"
 ```
 
-Wrappers opcionales:
+NPM/Bun wrappers are also available:
 
 ```bash
 bun run docker:db:reset
@@ -76,18 +92,38 @@ bun run docker:db:migration:up
 bun run docker:db:types
 ```
 
-Notas:
-- Frontend Docker usa `oven/bun:1.3.9` para mantener paridad con Bun local y evitar diferencias de runtime.
-- `docker:db:reset` ejecuta seeds definidos en `supabase/config.toml`.
-- Los seeds estan configurados como `sql_paths = ["./seeds/*.sql"]`.
-- Primer seed creado: `supabase/seeds/001_auth_test_user.sql` (`user@test.com` / `password123`).
-- Segundo seed: `supabase/seeds/002_transactions_test_user.sql` (transacciones demo para `user@test.com`).
-- `docker:db:migration:up` aplica pendientes con `--include-all --local`.
-- `supabase-cli` usa `network_mode: host` para evitar errores de health-check de Supabase CLI dentro de Docker (flujo validado en Linux).
+## Seed data
 
-## Variables de entorno
+Seeds are configured in `supabase/config.toml` as `sql_paths = ["./seeds/*.sql"]` and run automatically on `db reset`.
 
-- Frontend: `packages/frontend/.env.example`
-- Supabase Edge Functions: `supabase/functions/.env.example`
+| File | Description |
+|------|-------------|
+| `001_auth_test_user.sql` | Creates test account `user@test.com` / `password123` |
+| `002_transactions_test_user.sql` | Inserts 132 demo transactions for the test account |
 
-El archivo `.env.example` de la raiz queda solo como guia y no como fuente principal de variables.
+## Environment variables
+
+| Location | Purpose |
+|----------|---------|
+| `packages/frontend/.env` | Frontend (Supabase URL, anon key, port) |
+| `supabase/functions/.env` | Edge Functions (OAuth, AI keys, Langfuse, etc.) |
+
+See each `.env.example` for the full list of required variables.
+
+## Toolbox container
+
+You can enter the Supabase CLI container to run any command manually:
+
+```bash
+docker compose exec supabase-cli sh
+```
+
+Inside the container you have full access to the Supabase CLI without installing it locally.
+
+## Troubleshooting
+
+- Use **service names** with `docker compose exec` (e.g. `frontend`, `supabase-cli`), not container names.
+- If the frontend fails to load config, verify that `packages/frontend/.env` exists and has valid `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+- Stream frontend logs with `docker compose logs -f frontend`.
+- The frontend Docker image is pinned to `oven/bun:1.3.9` for runtime parity with local development.
+- The `supabase-cli` service uses `network_mode: host` to avoid health-check issues on Linux.
