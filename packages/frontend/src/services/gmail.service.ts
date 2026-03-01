@@ -72,6 +72,7 @@ export const gmailService = {
         .from('user_oauth_tokens')
         .select('id, gmail_email, created_at, expires_at, is_active')
         .eq('user_id', userId)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -83,24 +84,17 @@ export const gmailService = {
         (item) => !!item.gmail_email,
       );
 
-      const connections: GmailConnection[] = tokenRows
-        .map((item) => {
-          const isActive = item.is_active === true;
-          return {
-            id: item.id,
-            gmail_email: item.gmail_email!,
-            connected_at: item.created_at ?? '',
-            expires_at: item.expires_at ?? undefined,
-            is_active: isActive,
-            status: isActive ? 'connected' : 'needs_reconnect',
-          };
-        })
-        .sort((a, b) => Number(b.is_active) - Number(a.is_active));
+      const connections: GmailConnection[] = tokenRows.map((item) => ({
+        id: item.id,
+        gmail_email: item.gmail_email!,
+        connected_at: item.created_at ?? '',
+        expires_at: item.expires_at ?? undefined,
+        is_active: true,
+        status: 'connected',
+      }));
 
-      const connectedTotal = connections.filter(
-        (connection) => connection.status === 'connected',
-      ).length;
-      const needsReconnectTotal = connections.length - connectedTotal;
+      const connectedTotal = connections.length;
+      const needsReconnectTotal = 0;
 
       const status = {
         connections,
