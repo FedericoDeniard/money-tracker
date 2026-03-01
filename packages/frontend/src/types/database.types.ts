@@ -116,6 +116,158 @@ export type Database = {
           },
         ]
       }
+      notification_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          label_i18n_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label_i18n_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label_i18n_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_types: {
+        Row: {
+          body_i18n_key: string
+          category_id: string
+          created_at: string
+          default_importance: Database["public"]["Enums"]["notification_importance"]
+          description_i18n_key: string
+          id: string
+          is_active: boolean
+          key: string
+          label_i18n_key: string
+          title_i18n_key: string
+          updated_at: string
+        }
+        Insert: {
+          body_i18n_key: string
+          category_id: string
+          created_at?: string
+          default_importance?: Database["public"]["Enums"]["notification_importance"]
+          description_i18n_key: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label_i18n_key: string
+          title_i18n_key: string
+          updated_at?: string
+        }
+        Update: {
+          body_i18n_key?: string
+          category_id?: string
+          created_at?: string
+          default_importance?: Database["public"]["Enums"]["notification_importance"]
+          description_i18n_key?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label_i18n_key?: string
+          title_i18n_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_types_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "notification_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          action_path: string | null
+          avatar_url: string | null
+          body_i18n_key: string
+          created_at: string
+          dedupe_key: string | null
+          i18n_params: Json
+          icon_key: string | null
+          id: string
+          importance: Database["public"]["Enums"]["notification_importance"]
+          is_archived: boolean
+          is_muted: boolean
+          metadata: Json
+          notification_type_id: string
+          read_at: string | null
+          title_i18n_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_path?: string | null
+          avatar_url?: string | null
+          body_i18n_key: string
+          created_at?: string
+          dedupe_key?: string | null
+          i18n_params?: Json
+          icon_key?: string | null
+          id?: string
+          importance?: Database["public"]["Enums"]["notification_importance"]
+          is_archived?: boolean
+          is_muted?: boolean
+          metadata?: Json
+          notification_type_id: string
+          read_at?: string | null
+          title_i18n_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_path?: string | null
+          avatar_url?: string | null
+          body_i18n_key?: string
+          created_at?: string
+          dedupe_key?: string | null
+          i18n_params?: Json
+          icon_key?: string | null
+          id?: string
+          importance?: Database["public"]["Enums"]["notification_importance"]
+          is_archived?: boolean
+          is_muted?: boolean
+          metadata?: Json
+          notification_type_id?: string
+          read_at?: string | null
+          title_i18n_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_notification_type_id_fkey"
+            columns: ["notification_type_id"]
+            isOneToOne: false
+            referencedRelation: "notification_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pubsub_subscriptions: {
         Row: {
           ack_deadline_seconds: number | null
@@ -341,6 +493,54 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          is_muted: boolean
+          muted_until: string | null
+          notification_type_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          is_muted?: boolean
+          muted_until?: string | null
+          notification_type_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          is_muted?: boolean
+          muted_until?: string | null
+          notification_type_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_notification_type_id_fkey"
+            columns: ["notification_type_id"]
+            isOneToOne: false
+            referencedRelation: "notification_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
@@ -407,6 +607,7 @@ export type Database = {
       stop_all_watches_for_user: { Args: never; Returns: undefined }
     }
     Enums: {
+      notification_importance: "low" | "normal" | "high" | "critical"
       seed_status: "pending" | "completed" | "failed" | "processing"
     }
     CompositeTypes: {
@@ -538,6 +739,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      notification_importance: ["low", "normal", "high", "critical"],
       seed_status: ["pending", "completed", "failed", "processing"],
     },
   },

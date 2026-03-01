@@ -4,6 +4,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
 import { extractImageAttachments, extractPdfTexts } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
+import { createSystemNotification } from "../_shared/notifications.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -82,11 +83,40 @@ Deno.serve(async (req) => {
         )
       }
 
-      const result = await processChunk(supabase, body.seedId, token)
-      return new Response(
-        JSON.stringify(result),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      try {
+        const result = await processChunk(supabase, body.seedId, token)
+        return new Response(
+          JSON.stringify(result),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } catch (processError) {
+        await supabase.from('seeds').update({
+          status: 'failed',
+          error_message: processError instanceof Error ? processError.message : 'Seed processing failed',
+          updated_at: new Date().toISOString(),
+        }).eq('id', body.seedId)
+
+        await createSystemNotification({
+          typeKey: 'seed_failed',
+          userId,
+          actionPath: '/settings',
+          iconKey: 'alert',
+          i18nParams: {
+            reason: processError instanceof Error ? processError.message : 'Unknown error',
+          },
+          metadata: {
+            seedId: body.seedId,
+            stage: 'resume',
+          },
+          dedupeKey: `seed-failed-${body.seedId}`,
+          dedupeWindowMinutes: 60,
+        })
+
+        return new Response(
+          JSON.stringify({ error: 'Failed to process seed chunk' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // --- NEW SEED MODE ---
@@ -171,7 +201,37 @@ Deno.serve(async (req) => {
     console.log('Seed created', { seedId: newSeed.id, userId, gmailEmail: tokenData.gmail_email, totalMessages: messageIds.length })
 
     // Process first chunk
-    const result = await processChunk(supabase, newSeed.id, token)
+    let result
+    try {
+      result = await processChunk(supabase, newSeed.id, token)
+    } catch (processError) {
+      await supabase.from('seeds').update({
+        status: 'failed',
+        error_message: processError instanceof Error ? processError.message : 'Seed processing failed',
+        updated_at: new Date().toISOString(),
+      }).eq('id', newSeed.id)
+
+      await createSystemNotification({
+        typeKey: 'seed_failed',
+        userId,
+        actionPath: '/settings',
+        iconKey: 'alert',
+        i18nParams: {
+          reason: processError instanceof Error ? processError.message : 'Unknown error',
+        },
+        metadata: {
+          seedId: newSeed.id,
+          stage: 'initial',
+        },
+        dedupeKey: `seed-failed-${newSeed.id}`,
+        dedupeWindowMinutes: 60,
+      })
+
+      return new Response(
+        JSON.stringify({ error: 'Failed to process initial seed chunk' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     return new Response(
       JSON.stringify({ seedId: newSeed.id, status: 'processing', ...result }),
@@ -220,6 +280,27 @@ async function processChunk(
       last_processed_index: messageIds.length,
       updated_at: new Date().toISOString(),
     }).eq('id', seedId)
+
+    await createSystemNotification({
+      typeKey: (seed.transactions_found || 0) > 0
+        ? 'seed_completed_with_transactions'
+        : 'seed_completed_no_new',
+      userId: seed.user_id,
+      actionPath: '/transactions',
+      iconKey: 'mail',
+      i18nParams: {
+        count: seed.transactions_found || 0,
+        totalEmails: messageIds.length,
+      },
+      metadata: {
+        seedId,
+        totalEmails: messageIds.length,
+        transactionsFound: seed.transactions_found || 0,
+      },
+      dedupeKey: `seed-completed-${seedId}`,
+      dedupeWindowMinutes: 60,
+    })
+
     return { done: true, processed: messageIds.length, transactions: seed.transactions_found || 0, total: messageIds.length }
   }
 
@@ -278,6 +359,26 @@ async function processChunk(
     transactions_found: transactionsFound,
     updated_at: new Date().toISOString(),
   }).eq('id', seedId)
+
+  if (isDone) {
+    await createSystemNotification({
+      typeKey: transactionsFound > 0 ? 'seed_completed_with_transactions' : 'seed_completed_no_new',
+      userId: seed.user_id,
+      actionPath: '/transactions',
+      iconKey: 'mail',
+      i18nParams: {
+        count: transactionsFound,
+        totalEmails: messageIds.length,
+      },
+      metadata: {
+        seedId,
+        totalEmails: messageIds.length,
+        transactionsFound,
+      },
+      dedupeKey: `seed-completed-${seedId}`,
+      dedupeWindowMinutes: 60,
+    })
+  }
 
   console.log(`Chunk done: ${processedCount} processed, ${transactionsFound} transactions total, ${isDone ? 'COMPLETED' : `${messageIds.length - newIndex} remaining`}`)
 

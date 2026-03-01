@@ -280,6 +280,109 @@
     "seedCompletedDescription": "Check your transactions to see the new movements.",
     "seedFailedDescription": "There was an error processing the emails. Please try again."
   },
+  "notifications": {
+    "title": "Notifications",
+    "loading": "Loading notifications...",
+    "empty": "You have no notifications yet.",
+    "closePanel": "Close notifications panel",
+    "selectItem": "Select notification",
+    "categories": {
+      "system": "System"
+    },
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "muted": "Muted",
+      "important": "Important"
+    },
+    "actions": {
+      "selectAll": "Select all",
+      "unselectAll": "Clear selection",
+      "setImportant": "Set importance",
+      "markUnread": "Mark unread",
+      "markRead": "Mark read",
+      "mute": "Mute",
+      "archive": "Archive",
+      "delete": "Delete"
+    },
+    "state": {
+      "muted": "Muted"
+    },
+    "importance": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "settings": {
+      "title": "Notification preferences",
+      "description": "Choose which system notifications you want to receive.",
+      "receive": "Receive",
+      "mute": "Mute",
+      "empty": "No notification types configured.",
+      "uncategorized": "Other"
+    },
+    "types": {
+      "seed_completed_with_transactions": {
+        "label": "Import completed with new transactions",
+        "description": "Notifies when a seed/import process ends and new transactions are found."
+      },
+      "seed_completed_no_new": {
+        "label": "Import completed without changes",
+        "description": "Notifies when import ends but there are no new transactions."
+      },
+      "seed_failed": {
+        "label": "Import failed",
+        "description": "Notifies when import process fails."
+      },
+      "gmail_reconnect_required": {
+        "label": "Gmail reconnect required",
+        "description": "Notifies when Gmail credentials expire and require reconnect."
+      },
+      "gmail_watch_expiring": {
+        "label": "Gmail watch expiring",
+        "description": "Notifies when Gmail webhook watch is close to expiration."
+      },
+      "gmail_watch_renew_failed": {
+        "label": "Gmail watch renewal failed",
+        "description": "Notifies when automatic watch renewal fails."
+      },
+      "gmail_sync_error": {
+        "label": "Gmail sync error",
+        "description": "Notifies when synchronization with Gmail fails."
+      }
+    },
+    "templates": {
+      "seed_completed_with_transactions": {
+        "title": "Import completed",
+        "body": "{{count}} new transaction(s) were found while processing {{totalEmails}} emails."
+      },
+      "seed_completed_no_new": {
+        "title": "Import completed",
+        "body": "No new transactions were found after processing {{totalEmails}} emails."
+      },
+      "seed_failed": {
+        "title": "Import failed",
+        "body": "We couldn't process your emails. Reason: {{reason}}."
+      },
+      "gmail_reconnect_required": {
+        "title": "Reconnect your Gmail account",
+        "body": "The account {{email}} requires reconnection to continue syncing."
+      },
+      "gmail_watch_expiring": {
+        "title": "Gmail subscription expiring soon",
+        "body": "The subscription for {{email}} is close to expiration."
+      },
+      "gmail_watch_renew_failed": {
+        "title": "Could not renew Gmail subscription",
+        "body": "Automatic renewal for {{email}} failed."
+      },
+      "gmail_sync_error": {
+        "title": "Gmail sync error",
+        "body": "There was an error syncing {{email}}. {{reason}}"
+      }
+    }
+  },
   "dashboardActionFirst": {
     "headerDescription": "Quick action panel to keep your finances and automations up to date.",
     "badges": {

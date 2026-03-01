@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { SeedEmailsModal } from "../components/settings/SeedEmailsModal";
+import { NotificationPreferencesChecklist } from "../components/notifications/NotificationPreferencesChecklist";
 
 export function Settings() {
   const { user, loading } = useAuth();
@@ -410,6 +411,18 @@ export function Settings() {
               </div>
               <LanguageSwitcher />
             </div>
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6">
+          <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
+            {t("notifications.settings.title")}
+          </h2>
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
+            <p className="mb-4 text-sm text-[var(--text-secondary)]">
+              {t("notifications.settings.description")}
+            </p>
+            <NotificationPreferencesChecklist />
           </div>
         </div>
 
