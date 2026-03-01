@@ -280,6 +280,109 @@
     "seedCompletedDescription": "Revisa tus transacciones para ver los nuevos movimientos.",
     "seedFailedDescription": "Hubo un error al procesar los correos. Intenta de nuevo."
   },
+  "notifications": {
+    "title": "Notificaciones",
+    "loading": "Cargando notificaciones...",
+    "empty": "Todavía no tenés notificaciones.",
+    "closePanel": "Cerrar panel de notificaciones",
+    "selectItem": "Seleccionar notificación",
+    "categories": {
+      "system": "Sistema"
+    },
+    "filters": {
+      "all": "Todas",
+      "unread": "No leídas",
+      "muted": "Silenciadas",
+      "important": "Importantes"
+    },
+    "actions": {
+      "selectAll": "Seleccionar todo",
+      "unselectAll": "Limpiar selección",
+      "setImportant": "Establecer importancia",
+      "markUnread": "Marcar no leída",
+      "markRead": "Marcar leída",
+      "mute": "Silenciar",
+      "archive": "Archivar",
+      "delete": "Eliminar"
+    },
+    "state": {
+      "muted": "Silenciada"
+    },
+    "importance": {
+      "low": "Baja",
+      "normal": "Normal",
+      "high": "Alta",
+      "critical": "Crítica"
+    },
+    "settings": {
+      "title": "Preferencias de notificaciones",
+      "description": "Elegí qué notificaciones de sistema querés recibir.",
+      "receive": "Recibir",
+      "mute": "Silenciar",
+      "empty": "No hay tipos de notificación configurados.",
+      "uncategorized": "Otros"
+    },
+    "types": {
+      "seed_completed_with_transactions": {
+        "label": "Importación completada con transacciones nuevas",
+        "description": "Notifica cuando una importación termina y se encuentran transacciones nuevas."
+      },
+      "seed_completed_no_new": {
+        "label": "Importación completada sin cambios",
+        "description": "Notifica cuando la importación termina pero no hay transacciones nuevas."
+      },
+      "seed_failed": {
+        "label": "Importación fallida",
+        "description": "Notifica cuando falla el proceso de importación."
+      },
+      "gmail_reconnect_required": {
+        "label": "Reconexión de Gmail requerida",
+        "description": "Notifica cuando las credenciales de Gmail vencen y hay que reconectar."
+      },
+      "gmail_watch_expiring": {
+        "label": "Suscripción de Gmail por vencer",
+        "description": "Notifica cuando la suscripción de webhook de Gmail está por expirar."
+      },
+      "gmail_watch_renew_failed": {
+        "label": "Falló la renovación de la suscripción de Gmail",
+        "description": "Notifica cuando falla la renovación automática de la suscripción."
+      },
+      "gmail_sync_error": {
+        "label": "Error de sincronización de Gmail",
+        "description": "Notifica cuando falla la sincronización con Gmail."
+      }
+    },
+    "templates": {
+      "seed_completed_with_transactions": {
+        "title": "Importación completada",
+        "body": "Se encontraron {{count}} transacción(es) nueva(s) al procesar {{totalEmails}} correos."
+      },
+      "seed_completed_no_new": {
+        "title": "Importación completada",
+        "body": "No se encontraron transacciones nuevas después de procesar {{totalEmails}} correos."
+      },
+      "seed_failed": {
+        "title": "Importación fallida",
+        "body": "No pudimos procesar tus correos. Motivo: {{reason}}."
+      },
+      "gmail_reconnect_required": {
+        "title": "Volvé a conectar tu cuenta de Gmail",
+        "body": "La cuenta {{email}} requiere reconexión para continuar sincronizando."
+      },
+      "gmail_watch_expiring": {
+        "title": "Suscripción de Gmail por vencer",
+        "body": "La suscripción de {{email}} está próxima a vencer."
+      },
+      "gmail_watch_renew_failed": {
+        "title": "No se pudo renovar la suscripción de Gmail",
+        "body": "Falló la renovación automática de {{email}}."
+      },
+      "gmail_sync_error": {
+        "title": "Error de sincronización de Gmail",
+        "body": "Hubo un error sincronizando {{email}}. {{reason}}"
+      }
+    }
+  },
   "dashboardActionFirst": {
     "headerDescription": "Panel de acciones rápidas para mantener tus finanzas y automatizaciones al día.",
     "badges": {

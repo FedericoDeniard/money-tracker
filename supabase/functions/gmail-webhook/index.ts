@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent.ts'
 import { extractImageAttachments, extractPdfTexts } from '../_shared/lib/attachment-extractor.ts'
+import { createSystemNotification } from '../_shared/notifications.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -208,6 +209,23 @@ Deno.serve(async (req) => {
 
     if (!historyResponse.ok) {
       console.error('Failed to fetch history:', historyResponse.statusText)
+      await createSystemNotification({
+        typeKey: 'gmail_sync_error',
+        userId: firstToken.user_id,
+        actionPath: '/settings',
+        iconKey: 'alert',
+        i18nParams: {
+          email: gmailEmail,
+          reason: historyResponse.statusText,
+        },
+        metadata: {
+          gmailEmail,
+          stage: 'history_fetch',
+          status: historyResponse.status,
+        },
+        dedupeKey: `gmail-sync-error-${firstToken.user_id}-${gmailEmail}-history`,
+        dedupeWindowMinutes: 180,
+      })
       return new Response('OK', { status: 200 })
     }
 
@@ -266,6 +284,24 @@ Deno.serve(async (req) => {
 
     if (!messageResponse.ok) {
       console.error('Failed to fetch message:', messageResponse.statusText)
+      await createSystemNotification({
+        typeKey: 'gmail_sync_error',
+        userId: firstToken.user_id,
+        actionPath: '/settings',
+        iconKey: 'alert',
+        i18nParams: {
+          email: gmailEmail,
+          reason: messageResponse.statusText,
+        },
+        metadata: {
+          gmailEmail,
+          stage: 'message_fetch',
+          status: messageResponse.status,
+          messageId,
+        },
+        dedupeKey: `gmail-sync-error-${firstToken.user_id}-${gmailEmail}-message`,
+        dedupeWindowMinutes: 180,
+      })
       return new Response('OK', { status: 200 })
     }
 

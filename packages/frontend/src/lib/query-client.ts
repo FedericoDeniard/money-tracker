@@ -59,6 +59,15 @@ export const queryKeys = {
     tasks: (userId?: string) =>
       [...queryKeys.dashboard.all, 'tasks', userId] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+    list: (filters: Record<string, unknown>) =>
+      [...queryKeys.notifications.all, 'list', filters] as const,
+  },
+  notificationPreferences: {
+    all: ['notification-preferences'] as const,
+    list: () => [...queryKeys.notificationPreferences.all, 'list'] as const,
+  },
   serverConfig: {
     all: ['server-config'] as const,
   },

@@ -1,6 +1,7 @@
 // Gmail Watch Renewal Edge Function - Renews expiring Gmail watches
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createSystemNotification } from '../_shared/notifications.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,6 +67,21 @@ Deno.serve(async (req) => {
 
     for (const watch of expiringWatches) {
       try {
+        await createSystemNotification({
+          typeKey: 'gmail_watch_expiring',
+          userId: watch.user_id,
+          actionPath: '/settings',
+          iconKey: 'mail',
+          i18nParams: { email: watch.gmail_email },
+          metadata: {
+            gmailEmail: watch.gmail_email,
+            expiration: watch.expiration,
+          },
+          dedupeKey: `watch-expiring-${watch.user_id}-${watch.gmail_email}`,
+          dedupeWindowMinutes: 360,
+          importance: 'normal',
+        })
+
         // Get user tokens
         const { data: tokenData } = await supabase
           .from('user_oauth_tokens')
@@ -77,6 +93,20 @@ Deno.serve(async (req) => {
           .maybeSingle()
 
         if (!tokenData) {
+          await createSystemNotification({
+            typeKey: 'gmail_watch_renew_failed',
+            userId: watch.user_id,
+            actionPath: '/settings',
+            iconKey: 'mail',
+            i18nParams: { email: watch.gmail_email },
+            metadata: {
+              gmailEmail: watch.gmail_email,
+              reason: 'No active OAuth tokens found',
+            },
+            dedupeKey: `watch-renew-failed-${watch.user_id}-${watch.gmail_email}-no-token`,
+            dedupeWindowMinutes: 180,
+          })
+
           results.push({ 
             email: watch.gmail_email, 
             status: 'no_tokens',
@@ -135,6 +165,22 @@ Deno.serve(async (req) => {
             status: 'disconnected',
             error: 'Invalid Gmail credentials. Account disconnected; user must reconnect.',
           })
+
+          await createSystemNotification({
+            typeKey: 'gmail_reconnect_required',
+            userId: watch.user_id,
+            actionPath: '/settings',
+            iconKey: 'mail',
+            i18nParams: { email: watch.gmail_email },
+            metadata: {
+              gmailEmail: watch.gmail_email,
+              reason: 'invalid_credentials',
+            },
+            dedupeKey: `gmail-reconnect-required-${watch.user_id}-${watch.gmail_email}`,
+            dedupeWindowMinutes: 360,
+            importance: 'high',
+          })
+
           failedCount++
           continue
         }
@@ -174,6 +220,21 @@ Deno.serve(async (req) => {
 
       } catch (error) {
         console.error(`Failed to renew watch for ${watch.gmail_email}:`, error)
+        await createSystemNotification({
+          typeKey: 'gmail_watch_renew_failed',
+          userId: watch.user_id,
+          actionPath: '/settings',
+          iconKey: 'mail',
+          i18nParams: { email: watch.gmail_email },
+          metadata: {
+            gmailEmail: watch.gmail_email,
+            reason: error instanceof Error ? error.message : 'Unknown error',
+          },
+          dedupeKey: `watch-renew-failed-${watch.user_id}-${watch.gmail_email}`,
+          dedupeWindowMinutes: 180,
+          importance: 'high',
+        })
+
         results.push({ 
           email: watch.gmail_email, 
           status: 'failed',
