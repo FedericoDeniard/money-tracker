@@ -111,7 +111,7 @@ function NotificationRow({
       <button
         type="button"
         onClick={onOpen}
-        className="flex-1 text-left"
+        className="flex-1 text-left min-w-0"
       >
         <div className="flex items-start gap-3">
           {/* Ícono / Avatar */}
@@ -140,7 +140,7 @@ function NotificationRow({
               </span>
             </div>
             
-            <p className={`mt-1 line-clamp-2 text-sm leading-relaxed ${unread ? "text-[var(--text-primary)] opacity-90" : "text-[var(--text-secondary)]"}`}>
+            <p className={`mt-1 line-clamp-2 text-sm leading-relaxed break-words ${unread ? "text-[var(--text-primary)] opacity-90" : "text-[var(--text-secondary)]"}`}>
               {body}
             </p>
 
