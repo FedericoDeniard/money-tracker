@@ -92,15 +92,12 @@ export const gmailService = {
         (item) => !!item.gmail_email,
       );
 
-      const nowTs = Date.now();
       const connections: GmailConnection[] = tokenRows.map((item) => {
         const expiresAt = item.expires_at ?? undefined;
-        const isExpired = Boolean(expiresAt) && new Date(expiresAt!).getTime() <= nowTs;
-        const status: GmailConnection['status'] = !item.is_active
-          ? 'disconnected'
-          : isExpired
-            ? 'needs_reconnect'
-            : 'connected';
+        // UI status must depend on auth health (is_active), not on local expires_at.
+        const status: GmailConnection['status'] = item.is_active
+          ? 'connected'
+          : 'needs_reconnect';
 
         return {
           id: item.id,
