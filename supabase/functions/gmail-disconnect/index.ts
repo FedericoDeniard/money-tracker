@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
       .from('user_oauth_tokens')
       .update({
         is_active: false,
+        expires_at: null,
         updated_at: new Date().toISOString()
       })
       .eq('id', connectionId)
