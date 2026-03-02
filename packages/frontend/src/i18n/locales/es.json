@@ -278,7 +278,10 @@
     "seedCompletedSuccess": "¡Importación completada! Se encontraron nuevas transacciones.",
     "seedFailedError": "Importación fallida",
     "seedCompletedDescription": "Revisa tus transacciones para ver los nuevos movimientos.",
-    "seedFailedDescription": "Hubo un error al procesar los correos. Intenta de nuevo."
+    "seedFailedDescription": "Hubo un error al procesar los correos. Intenta de nuevo.",
+    "disconnectedAccountsTitle": "Cuentas desconectadas",
+    "disconnectedAccountsDescription": "Estas cuentas no tienen token activo, pero se mantienen para preservar el historial y permitir reconexión.",
+    "disconnectedNoToken": "Desconectada (sin token activo)"
   },
   "notifications": {
     "title": "Notificaciones",

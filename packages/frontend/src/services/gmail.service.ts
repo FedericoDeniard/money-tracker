@@ -14,14 +14,16 @@ export interface GmailConnection {
   connected_at: string;
   expires_at?: string;
   is_active: boolean;
-  status: 'connected' | 'needs_reconnect';
+  status: 'connected' | 'needs_reconnect' | 'disconnected';
 }
 
 export interface GmailStatus {
   connections: GmailConnection[];
   total: number;
+  activeTotal: number;
   connectedTotal: number;
   needsReconnectTotal: number;
+  disconnectedTotal: number;
 }
 
 export interface GmailWatch {
@@ -72,35 +74,56 @@ export const gmailService = {
         .from('user_oauth_tokens')
         .select('id, gmail_email, created_at, expires_at, is_active')
         .eq('user_id', userId)
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error checking Gmail status:', error);
-        return { connections: [], total: 0 };
+        return {
+          connections: [],
+          total: 0,
+          activeTotal: 0,
+          connectedTotal: 0,
+          needsReconnectTotal: 0,
+          disconnectedTotal: 0,
+        };
       }
 
       const tokenRows = ((data || []) as UserOauthTokenRow[]).filter(
         (item) => !!item.gmail_email,
       );
 
-      const connections: GmailConnection[] = tokenRows.map((item) => ({
-        id: item.id,
-        gmail_email: item.gmail_email!,
-        connected_at: item.created_at ?? '',
-        expires_at: item.expires_at ?? undefined,
-        is_active: true,
-        status: 'connected',
-      }));
+      const nowTs = Date.now();
+      const connections: GmailConnection[] = tokenRows.map((item) => {
+        const expiresAt = item.expires_at ?? undefined;
+        const isExpired = Boolean(expiresAt) && new Date(expiresAt!).getTime() <= nowTs;
+        const status: GmailConnection['status'] = !item.is_active
+          ? 'disconnected'
+          : isExpired
+            ? 'needs_reconnect'
+            : 'connected';
 
-      const connectedTotal = connections.length;
-      const needsReconnectTotal = 0;
+        return {
+          id: item.id,
+          gmail_email: item.gmail_email!,
+          connected_at: item.created_at ?? '',
+          expires_at: expiresAt,
+          is_active: Boolean(item.is_active),
+          status,
+        };
+      });
+
+      const connectedTotal = connections.filter((c) => c.status === 'connected').length;
+      const needsReconnectTotal = connections.filter((c) => c.status === 'needs_reconnect').length;
+      const disconnectedTotal = connections.filter((c) => c.status === 'disconnected').length;
+      const activeTotal = connectedTotal + needsReconnectTotal;
 
       const status = {
         connections,
         total: connections.length,
+        activeTotal,
         connectedTotal,
         needsReconnectTotal,
+        disconnectedTotal,
       };
 
       gmailStatusCache.set(userId, {

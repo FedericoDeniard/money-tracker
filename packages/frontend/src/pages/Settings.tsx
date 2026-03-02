@@ -158,6 +158,15 @@ export function Settings() {
     });
   };
 
+  const activeConnections =
+    gmailStatus?.connections.filter(
+      (connection) => connection.status !== "disconnected",
+    ) ?? [];
+  const disconnectedConnections =
+    gmailStatus?.connections.filter(
+      (connection) => connection.status === "disconnected",
+    ) ?? [];
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
       <div className="bg-white shadow rounded-lg p-4 sm:p-6">
@@ -218,7 +227,8 @@ export function Settings() {
                       size={16}
                     />
                   ) : gmailStatus && gmailStatus.total > 0 ? (
-                    gmailStatus.needsReconnectTotal > 0 ? (
+                    gmailStatus.activeTotal > 0 ? (
+                      gmailStatus.needsReconnectTotal > 0 ? (
                       <span className="flex items-center gap-1 text-sm text-amber-600">
                         <AlertCircle size={16} />
                         {t("settings.connectedAndReconnectCount", {
@@ -226,12 +236,18 @@ export function Settings() {
                           reconnect: gmailStatus.needsReconnectTotal,
                         })}
                       </span>
-                    ) : (
+                      ) : (
                       <span className="flex items-center gap-1 text-sm text-green-600">
                         <CheckCircle size={16} />
                         {t("settings.connectedCount", {
                           count: gmailStatus.connectedTotal,
                         })}
+                      </span>
+                      )
+                    ) : (
+                      <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)]">
+                        <AlertCircle size={16} />
+                        {t("settings.notConnected")}
                       </span>
                     )
                   ) : (
@@ -248,7 +264,7 @@ export function Settings() {
                       {t("settings.notificationsDescription")}
                     </p>
 
-                    {gmailStatus.connections.map((connection) => (
+                    {activeConnections.map((connection) => (
                       <div
                         key={connection.id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-gray-200 gap-3"
@@ -333,6 +349,56 @@ export function Settings() {
                         </div>
                       </div>
                     ))}
+
+                    {disconnectedConnections.length > 0 && (
+                      <div className="pt-3 border-t border-gray-200 space-y-2">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                          {t("settings.disconnectedAccountsTitle")}
+                        </p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {t("settings.disconnectedAccountsDescription")}
+                        </p>
+
+                        {disconnectedConnections.map((connection) => (
+                          <div
+                            key={connection.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-gray-200 gap-3"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Mail className="text-gray-500 shrink-0" size={20} />
+                              <div className="min-w-0">
+                                <p className="font-medium text-[var(--text-primary)] truncate">
+                                  {connection.gmail_email}
+                                </p>
+                                <p className="text-xs text-[var(--text-secondary)]">
+                                  {t("settings.disconnectedNoToken")}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 self-end sm:self-auto shrink-0">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={
+                                  isConnecting ? (
+                                    <Loader2 className="animate-spin" size={16} />
+                                  ) : (
+                                    <Mail size={16} />
+                                  )
+                                }
+                                onClick={handleConnectEmail}
+                                disabled={!isConnectButtonEnabled}
+                              >
+                                {isConnecting
+                                  ? t("settings.connecting")
+                                  : t("settings.reconnectGmail")}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="pt-3 border-t border-gray-200">
                       <Button

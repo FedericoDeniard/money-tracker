@@ -10,8 +10,10 @@ export function useGmailStatus(userId?: string) {
         return {
           connections: [],
           total: 0,
+          activeTotal: 0,
           connectedTotal: 0,
           needsReconnectTotal: 0,
+          disconnectedTotal: 0,
         } as GmailStatus;
       }
       return await gmailService.getConnectionStatus(userId);
