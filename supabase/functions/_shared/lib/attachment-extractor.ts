@@ -32,6 +32,17 @@ interface InlineImage {
   mimeType: string;
 }
 
+interface AttachmentDataPayload {
+  data?: string;
+}
+
+export interface AttachmentRequestOptions {
+  fetchAttachmentData?: (
+    messageId: string,
+    attachmentId: string,
+  ) => Promise<AttachmentDataPayload | null>;
+}
+
 /**
  * Detect attachments recursively in a Gmail message payload
  */
@@ -121,7 +132,8 @@ function gmailBase64ToUint8Array(data: string): Uint8Array {
 export async function extractImageAttachments(
   accessToken: string,
   messageId: string,
-  payload: any
+  payload: any,
+  options?: AttachmentRequestOptions,
 ): Promise<ImageAttachment[]> {
   try {
     const images: ImageAttachment[] = [];
@@ -134,23 +146,14 @@ export async function extractImageAttachments(
 
     for (const attachment of toProcess) {
       try {
-        const response = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachment.attachmentId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          }
+        const data = await getAttachmentData(
+          accessToken,
+          messageId,
+          attachment.attachmentId,
+          options,
         );
-
-        if (!response.ok) {
-          console.warn(`Failed to download attachment ${attachment.filename}: ${response.statusText}`);
-          continue;
-        }
-
-        const data = await response.json();
-
-        if (!data.data) {
+        if (!data?.data) {
+          console.warn(`Failed to download attachment ${attachment.filename}`);
           continue;
         }
 
@@ -203,21 +206,11 @@ export async function extractImageAttachments(
 async function downloadAttachment(
   accessToken: string,
   messageId: string,
-  attachmentId: string
+  attachmentId: string,
+  options?: AttachmentRequestOptions,
 ): Promise<Uint8Array | null> {
-  const response = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  if (!response.ok) return null;
-
-  const data = await response.json();
-  if (!data.data) return null;
+  const data = await getAttachmentData(accessToken, messageId, attachmentId, options);
+  if (!data?.data) return null;
 
   return gmailBase64ToUint8Array(data.data);
 }
@@ -233,7 +226,8 @@ async function downloadAttachment(
 export async function extractPdfTexts(
   accessToken: string,
   messageId: string,
-  payload: any
+  payload: any,
+  options?: AttachmentRequestOptions,
 ): Promise<string[]> {
   try {
     const detected = detectAttachments(payload, ['application/pdf']);
@@ -250,7 +244,7 @@ export async function extractPdfTexts(
 
     for (const attachment of toProcess) {
       try {
-        const bytes = await downloadAttachment(accessToken, messageId, attachment.attachmentId);
+        const bytes = await downloadAttachment(accessToken, messageId, attachment.attachmentId, options);
         if (!bytes) continue;
 
         const pdf = await getDocumentProxy(bytes);
@@ -270,4 +264,27 @@ export async function extractPdfTexts(
     console.warn('Error detecting PDF attachments:', error);
     return [];
   }
+}
+
+async function getAttachmentData(
+  accessToken: string,
+  messageId: string,
+  attachmentId: string,
+  options?: AttachmentRequestOptions,
+): Promise<AttachmentDataPayload | null> {
+  if (options?.fetchAttachmentData) {
+    return options.fetchAttachmentData(messageId, attachmentId);
+  }
+
+  const response = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+  return response.json();
 }

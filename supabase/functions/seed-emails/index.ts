@@ -5,6 +5,12 @@ import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
 import { extractImageAttachments, extractPdfTexts } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
 import { createSystemNotification } from "../_shared/notifications.ts"
+import {
+  type OAuthTokenRow,
+  GmailReconnectRequiredError,
+  ensureFreshAccessToken,
+  fetchGmailWithRecovery,
+} from "../_shared/lib/gmail-auth.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,147 +26,6 @@ interface SeedRequest {
 const MONTHS_TO_SEED = 3
 const CHUNK_SIZE = 30
 const CONCURRENCY = 10
-
-type OAuthTokenRow = {
-  id: string
-  user_id: string
-  gmail_email: string | null
-  access_token: string | null
-  refresh_token: string | null
-  expires_at: string | null
-  is_active: boolean
-}
-
-class GmailReconnectRequiredError extends Error {
-  code = 'GMAIL_RECONNECT_REQUIRED' as const
-}
-
-async function deactivateTokenAndNotify(
-  supabase: any,
-  tokenData: OAuthTokenRow,
-  reason: string,
-  stage: string,
-) {
-  await supabase
-    .from('user_oauth_tokens')
-    .update({
-      is_active: false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', tokenData.id)
-    .eq('user_id', tokenData.user_id)
-
-  await createSystemNotification({
-    typeKey: 'gmail_reconnect_required',
-    userId: tokenData.user_id,
-    actionPath: '/settings',
-    iconKey: 'mail',
-    i18nParams: { email: tokenData.gmail_email || 'Gmail' },
-    metadata: {
-      gmailEmail: tokenData.gmail_email,
-      reason,
-      stage,
-      tokenId: tokenData.id,
-    },
-    dedupeKey: `gmail-reconnect-required-${tokenData.user_id}-${tokenData.gmail_email || tokenData.id}`,
-    dedupeWindowMinutes: 360,
-    importance: 'high',
-  })
-}
-
-async function refreshAccessToken(
-  supabase: any,
-  tokenData: OAuthTokenRow,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  if (!tokenData.refresh_token) {
-    return { ok: false, reason: 'missing_refresh_token' }
-  }
-
-  const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      client_id: Deno.env.get('GOOGLE_CLIENT_ID') || '',
-      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
-      refresh_token: tokenData.refresh_token,
-      grant_type: 'refresh_token',
-    }),
-  })
-
-  if (!refreshResponse.ok) {
-    const reason = await refreshResponse.text()
-    return { ok: false, reason: `refresh_failed:${reason}` }
-  }
-
-  const refreshData = await refreshResponse.json()
-  const newExpiresAt = refreshData.expires_in
-    ? new Date(Date.now() + refreshData.expires_in * 1000).toISOString()
-    : null
-
-  await supabase
-    .from('user_oauth_tokens')
-    .update({
-      access_token: refreshData.access_token,
-      expires_at: newExpiresAt,
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', tokenData.id)
-
-  tokenData.access_token = refreshData.access_token
-  tokenData.expires_at = newExpiresAt
-  return { ok: true }
-}
-
-async function ensureFreshAccessToken(
-  supabase: any,
-  tokenData: OAuthTokenRow,
-  stage: string,
-) {
-  const now = new Date()
-  const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null
-
-  if (!tokenData.access_token || (expiresAt && now >= expiresAt)) {
-    const refreshed = await refreshAccessToken(supabase, tokenData)
-    if (!refreshed.ok) {
-      await deactivateTokenAndNotify(supabase, tokenData, refreshed.reason, stage)
-      throw new GmailReconnectRequiredError('Gmail authentication expired. Reconnect your account.')
-    }
-  }
-}
-
-async function fetchGmailWithRecovery(
-  supabase: any,
-  tokenData: OAuthTokenRow,
-  input: string,
-  init: RequestInit,
-  stage: string,
-) {
-  await ensureFreshAccessToken(supabase, tokenData, `${stage}_preflight`)
-
-  const headers = new Headers(init.headers || {})
-  headers.set('Authorization', `Bearer ${tokenData.access_token}`)
-
-  let response = await fetch(input, { ...init, headers })
-  if (response.status !== 401) return response
-
-  const refreshed = await refreshAccessToken(supabase, tokenData)
-  if (!refreshed.ok) {
-    await deactivateTokenAndNotify(supabase, tokenData, refreshed.reason, stage)
-    throw new GmailReconnectRequiredError('Gmail authentication expired. Reconnect your account.')
-  }
-
-  headers.set('Authorization', `Bearer ${tokenData.access_token}`)
-  response = await fetch(input, { ...init, headers })
-  if (response.status === 401) {
-    await deactivateTokenAndNotify(supabase, tokenData, 'unauthorized_after_refresh', stage)
-    throw new GmailReconnectRequiredError('Gmail authentication expired. Reconnect your account.')
-  }
-
-  return response
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -682,8 +547,31 @@ async function processMessage(
 
   // Extract attachments for AI analysis
   const currentAccessToken = tokenData.access_token || ''
-  const images = await extractImageAttachments(currentAccessToken, message.id || messageId, message.payload)
-  const pdfTexts = await extractPdfTexts(currentAccessToken, message.id || messageId, message.payload)
+  const attachmentOptions = {
+    fetchAttachmentData: async (targetMessageId: string, attachmentId: string) => {
+      const attachmentResponse = await fetchGmailWithRecovery(
+        supabase,
+        tokenData,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
+        { method: 'GET' },
+        'seed_fetch_attachment',
+      )
+      if (!attachmentResponse.ok) return null
+      return await attachmentResponse.json()
+    },
+  }
+  const images = await extractImageAttachments(
+    currentAccessToken,
+    message.id || messageId,
+    message.payload,
+    attachmentOptions,
+  )
+  const pdfTexts = await extractPdfTexts(
+    currentAccessToken,
+    message.id || messageId,
+    message.payload,
+    attachmentOptions,
+  )
 
   const fullContent = bodyText
 

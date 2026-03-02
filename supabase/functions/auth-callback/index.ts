@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     // Check if token already exists
     const { data: existingToken } = await supabase
       .from('user_oauth_tokens')
-      .select('id, is_active')
+      .select('id, is_active, refresh_token')
       .eq('user_id', userId)
       .eq('gmail_email', gmailEmail)
       .maybeSingle()
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
         .from('user_oauth_tokens')
         .update({
           access_token: accessToken,
-          refresh_token: refreshToken,
+          refresh_token: refreshToken || existingToken.refresh_token || null,
           token_type: tokens.token_type || 'Bearer',
           expires_at: expiresAt,
           scope: tokens.scope || null,

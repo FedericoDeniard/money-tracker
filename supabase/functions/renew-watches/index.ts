@@ -2,6 +2,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { createSystemNotification } from '../_shared/notifications.ts'
+import {
+  type OAuthTokenRow,
+  GmailReconnectRequiredError,
+  ensureFreshAccessToken,
+  fetchGmailWithRecovery,
+} from '../_shared/lib/gmail-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -116,74 +122,26 @@ Deno.serve(async (req) => {
           continue
         }
 
-        // Use plain text tokens directly
-        const accessToken = tokenData.access_token
+        const oauthToken = tokenData as OAuthTokenRow
+        await ensureFreshAccessToken(supabase, oauthToken, 'renew_watch_preflight')
 
-        // Renew the watch via Gmail API
-        const watchResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/watch', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            labelIds: ['INBOX'],
-            topicName: watch.topic_name,
-            labelFilterAction: 'include',
-          }),
-        })
-
-        if (watchResponse.status === 401) {
-          console.warn(`Invalid credentials for ${watch.gmail_email}. Disconnecting account for user ${watch.user_id}.`)
-
-          const { error: deactivateError } = await supabase
-            .from('user_oauth_tokens')
-            .update({
-              is_active: false,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', watch.user_id)
-            .eq('gmail_email', watch.gmail_email)
-            .eq('is_active', true)
-
-          if (deactivateError) {
-            console.error(`Failed to deactivate token for ${watch.gmail_email}:`, deactivateError)
-          }
-
-          const { error: deleteWatchError } = await supabase
-            .from('gmail_watches')
-            .delete()
-            .eq('user_id', watch.user_id)
-            .eq('gmail_email', watch.gmail_email)
-
-          if (deleteWatchError) {
-            console.error(`Failed to delete watch for ${watch.gmail_email}:`, deleteWatchError)
-          }
-
-          results.push({
-            email: watch.gmail_email,
-            status: 'disconnected',
-            error: 'Invalid Gmail credentials. Account disconnected; user must reconnect.',
-          })
-
-          await createSystemNotification({
-            typeKey: 'gmail_reconnect_required',
-            userId: watch.user_id,
-            actionPath: '/settings',
-            iconKey: 'mail',
-            i18nParams: { email: watch.gmail_email },
-            metadata: {
-              gmailEmail: watch.gmail_email,
-              reason: 'invalid_credentials',
+        const watchResponse = await fetchGmailWithRecovery(
+          supabase,
+          oauthToken,
+          'https://www.googleapis.com/gmail/v1/users/me/watch',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
             },
-            dedupeKey: `gmail-reconnect-required-${watch.user_id}-${watch.gmail_email}`,
-            dedupeWindowMinutes: 360,
-            importance: 'high',
-          })
-
-          failedCount++
-          continue
-        }
+            body: JSON.stringify({
+              labelIds: ['INBOX'],
+              topicName: watch.topic_name,
+              labelFilterAction: 'include',
+            }),
+          },
+          'renew_watch',
+        )
 
         if (!watchResponse.ok) {
           const errorText = await watchResponse.text()
@@ -219,6 +177,26 @@ Deno.serve(async (req) => {
         })
 
       } catch (error) {
+        if (error instanceof GmailReconnectRequiredError) {
+          const { error: deleteWatchError } = await supabase
+            .from('gmail_watches')
+            .delete()
+            .eq('user_id', watch.user_id)
+            .eq('gmail_email', watch.gmail_email)
+
+          if (deleteWatchError) {
+            console.error(`Failed to delete watch for ${watch.gmail_email}:`, deleteWatchError)
+          }
+
+          results.push({
+            email: watch.gmail_email,
+            status: 'disconnected',
+            error: 'Invalid Gmail credentials. Account disconnected; user must reconnect.',
+          })
+          failedCount++
+          continue
+        }
+
         console.error(`Failed to renew watch for ${watch.gmail_email}:`, error)
         await createSystemNotification({
           typeKey: 'gmail_watch_renew_failed',
