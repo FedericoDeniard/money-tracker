@@ -81,7 +81,7 @@ export function Transactions() {
   ];
 
   // Derive hasConnections from cached Gmail status
-  const hasConnections = gmailStatus ? gmailStatus.total > 0 : null;
+  const hasConnections = gmailStatus ? gmailStatus.activeTotal > 0 : null;
 
   const handleDeleteTransaction = async (id: string) => {
     try {

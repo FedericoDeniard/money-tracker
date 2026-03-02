@@ -5,6 +5,12 @@ import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
 import { extractImageAttachments, extractPdfTexts } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
 import { createSystemNotification } from "../_shared/notifications.ts"
+import {
+  type OAuthTokenRow,
+  GmailReconnectRequiredError,
+  ensureFreshAccessToken,
+  fetchGmailWithRecovery,
+} from "../_shared/lib/gmail-auth.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,6 +102,17 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         }).eq('id', body.seedId)
 
+        if (processError instanceof GmailReconnectRequiredError) {
+          return new Response(
+            JSON.stringify({
+              error: processError.message,
+              code: processError.code,
+              reconnectRequired: true,
+            }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
         await createSystemNotification({
           typeKey: 'seed_failed',
           userId,
@@ -131,7 +148,7 @@ Deno.serve(async (req) => {
     // Verify connection belongs to user
     const { data: tokenData, error: tokenError } = await supabase
       .from('user_oauth_tokens')
-      .select('id, gmail_email, access_token')
+      .select('id, user_id, gmail_email, access_token, refresh_token, expires_at, is_active')
       .eq('id', connectionId)
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -160,12 +177,12 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all Gmail message IDs
-    const accessToken = tokenData.access_token
+    await ensureFreshAccessToken(supabase, tokenData as OAuthTokenRow, 'seed_start')
     const threeMonthsAgo = new Date()
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - MONTHS_TO_SEED)
     const afterDate = threeMonthsAgo.toISOString().split('T')[0]?.replace(/-/g, '/') || ''
     const query = `after:${afterDate}`
-    const messageIds = await getAllMessageIds(accessToken, query)
+    const messageIds = await getAllMessageIds(supabase, tokenData as OAuthTokenRow, query)
 
     if (messageIds.length === 0) {
       return new Response(
@@ -211,6 +228,17 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       }).eq('id', newSeed.id)
 
+      if (processError instanceof GmailReconnectRequiredError) {
+        return new Response(
+          JSON.stringify({
+            error: processError.message,
+            code: processError.code,
+            reconnectRequired: true,
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       await createSystemNotification({
         typeKey: 'seed_failed',
         userId,
@@ -239,6 +267,17 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    if (error instanceof GmailReconnectRequiredError) {
+      return new Response(
+        JSON.stringify({
+          error: error.message,
+          code: error.code,
+          reconnectRequired: true,
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     console.error('Error in seed-emails:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
@@ -313,7 +352,7 @@ async function processChunk(
 
   if (!tokenData) throw new Error('OAuth tokens not found')
 
-  const accessToken = tokenData.access_token
+  await ensureFreshAccessToken(supabase, tokenData as OAuthTokenRow, 'seed_chunk')
 
   // Get user full name for AI context
   let userFullName: string | undefined
@@ -334,8 +373,18 @@ async function processChunk(
     const results = await Promise.all(
       batch.map(async (messageId: string) => {
         try {
-          return await processMessage(supabase, accessToken, messageId, seed.user_id, tokenData.id, userFullName)
+          return await processMessage(
+            supabase,
+            tokenData as OAuthTokenRow,
+            messageId,
+            seed.user_id,
+            tokenData.id,
+            userFullName,
+          )
         } catch (error) {
+          if (error instanceof GmailReconnectRequiredError) {
+            throw error
+          }
           console.error(`Error processing message ${messageId}:`, error)
           return { transactionFound: false }
         }
@@ -398,18 +447,20 @@ async function processChunk(
   return { done: isDone, processed: newIndex, transactions: transactionsFound, total: messageIds.length }
 }
 
-async function getAllMessageIds(accessToken: string, query: string): Promise<string[]> {
+async function getAllMessageIds(supabase: any, tokenData: OAuthTokenRow, query: string): Promise<string[]> {
   const messageIds: string[] = []
   let pageToken: string | undefined
 
   while (true) {
     const url = `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}${pageToken ? `&pageToken=${pageToken}` : ''}`
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    })
+
+    const response = await fetchGmailWithRecovery(
+      supabase,
+      tokenData,
+      url,
+      { method: 'GET' },
+      'seed_list_messages',
+    )
 
     if (!response.ok) {
       throw new Error(`Failed to fetch messages: ${response.statusText}`)
@@ -430,18 +481,20 @@ async function getAllMessageIds(accessToken: string, query: string): Promise<str
 
 async function processMessage(
   supabase: any,
-  accessToken: string,
+  tokenData: OAuthTokenRow,
   messageId: string,
   userId: string,
   tokenId: string,
   userFullName?: string
 ): Promise<{ transactionFound: boolean }> {
   // Get message details
-  const response = await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  })
+  const response = await fetchGmailWithRecovery(
+    supabase,
+    tokenData,
+    `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+    { method: 'GET' },
+    'seed_fetch_message',
+  )
 
   if (!response.ok) {
     throw new Error(`Failed to fetch message: ${response.statusText}`)
@@ -493,8 +546,32 @@ async function processMessage(
   const bodyText = extractBodyText(message.payload)
 
   // Extract attachments for AI analysis
-  const images = await extractImageAttachments(accessToken, message.id || messageId, message.payload)
-  const pdfTexts = await extractPdfTexts(accessToken, message.id || messageId, message.payload)
+  const currentAccessToken = tokenData.access_token || ''
+  const attachmentOptions = {
+    fetchAttachmentData: async (targetMessageId: string, attachmentId: string) => {
+      const attachmentResponse = await fetchGmailWithRecovery(
+        supabase,
+        tokenData,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
+        { method: 'GET' },
+        'seed_fetch_attachment',
+      )
+      if (!attachmentResponse.ok) return null
+      return await attachmentResponse.json()
+    },
+  }
+  const images = await extractImageAttachments(
+    currentAccessToken,
+    message.id || messageId,
+    message.payload,
+    attachmentOptions,
+  )
+  const pdfTexts = await extractPdfTexts(
+    currentAccessToken,
+    message.id || messageId,
+    message.payload,
+    attachmentOptions,
+  )
 
   const fullContent = bodyText
 

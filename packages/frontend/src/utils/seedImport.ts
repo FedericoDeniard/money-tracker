@@ -12,7 +12,10 @@ export async function startSeedWithFeedback(
     return true;
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    const errorMessage = error.message.includes("already in progress")
+    const errorWithCode = error as Error & { code?: string };
+    const errorMessage = errorWithCode.code === "GMAIL_RECONNECT_REQUIRED"
+      ? t("settings.reconnectHint")
+      : error.message.includes("already in progress")
       ? t("settings.seedAlreadyInProgress")
       : t("settings.seedStartError");
     toast.error(errorMessage);

@@ -4,6 +4,12 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent.ts'
 import { extractImageAttachments, extractPdfTexts } from '../_shared/lib/attachment-extractor.ts'
 import { createSystemNotification } from '../_shared/notifications.ts'
+import {
+  type OAuthTokenRow,
+  GmailReconnectRequiredError,
+  ensureFreshAccessToken,
+  fetchGmailWithRecovery,
+} from '../_shared/lib/gmail-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,79 +89,17 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${allTokens.length} active token(s) for ${gmailEmail}`)
 
-    // Verify which tokens are valid
-    const validTokens = []
-
-    for (const tokenData of allTokens) {
+    // Keep only tokens that can be refreshed/used.
+    const validTokens: OAuthTokenRow[] = []
+    for (const tokenData of allTokens as OAuthTokenRow[]) {
       try {
-        // Check if token is expired by date first
-        const now = new Date()
-        const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at) : null
-
-        if (expiresAt && now >= expiresAt) {
-          // Try to refresh if we have refresh token
-          if (tokenData.refresh_token) {
-            console.log(`Attempting to refresh expired token for user ${tokenData.user_id}`)
-            const refreshToken = tokenData.refresh_token
-
-            const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: new URLSearchParams({
-                client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
-                client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
-                refresh_token: refreshToken,
-                grant_type: 'refresh_token',
-              }),
-            })
-
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json()
-              const newExpiresAt = refreshData.expires_in
-                ? new Date(Date.now() + refreshData.expires_in * 1000).toISOString()
-                : null
-
-              await supabase
-                .from('user_oauth_tokens')
-                .update({
-                  access_token: refreshData.access_token,
-                  expires_at: newExpiresAt,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', tokenData.id)
-
-              // Update tokenData with new credentials
-              tokenData.access_token = refreshData.access_token
-              tokenData.expires_at = newExpiresAt
-
-              validTokens.push(tokenData)
-              console.log(`Token refreshed successfully for user ${tokenData.user_id}`)
-            } else {
-              console.warn(`Failed to refresh token for user ${tokenData.user_id}`)
-              continue
-            }
-          } else {
-            console.warn(`Expired token without refresh_token for user ${tokenData.user_id}`)
-            continue
-          }
-        } else {
-          // Token not expired by date, verify with Google
-          const accessToken = tokenData.access_token
-
-          const response = await fetch(
-            `https://oauth2.googleapis.com/tokeninfo?access_token=${accessToken}`
-          )
-
-          if (response.ok) {
-            validTokens.push(tokenData)
-            console.log(`Valid token for user ${tokenData.user_id}`)
-          } else {
-            console.warn(`Invalid token for user ${tokenData.user_id}`)
-          }
-        }
+        await ensureFreshAccessToken(supabase, tokenData, 'webhook_token_check')
+        validTokens.push(tokenData)
       } catch (error) {
+        if (error instanceof GmailReconnectRequiredError) {
+          console.warn(`Token deactivated for user ${tokenData.user_id} during webhook preflight`)
+          continue
+        }
         console.error(`Error verifying token for user ${tokenData.user_id}`, { error })
       }
     }
@@ -201,11 +145,22 @@ Deno.serve(async (req) => {
     // Use History API to find new INBOX messages since last processed historyId
     const historyUrl = `https://www.googleapis.com/gmail/v1/users/me/history?startHistoryId=${watchData.history_id}&historyTypes=messageAdded&labelId=INBOX`
     
-    const historyResponse = await fetch(historyUrl, {
-      headers: {
-        'Authorization': `Bearer ${firstToken.access_token}`,
-      },
-    })
+    let historyResponse: Response
+    try {
+      historyResponse = await fetchGmailWithRecovery(
+        supabase,
+        firstToken,
+        historyUrl,
+        { method: 'GET' },
+        'webhook_history_fetch',
+      )
+    } catch (error) {
+      if (error instanceof GmailReconnectRequiredError) {
+        console.warn(`Token requires reconnect while fetching history for ${gmailEmail}`)
+        return new Response('OK', { status: 200 })
+      }
+      throw error
+    }
 
     if (!historyResponse.ok) {
       console.error('Failed to fetch history:', historyResponse.statusText)
@@ -273,14 +228,22 @@ Deno.serve(async (req) => {
       .eq('is_active', true)
 
     // Get full message details
-    const messageResponse = await fetch(
-      `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
-      {
-        headers: {
-          'Authorization': `Bearer ${firstToken.access_token}`,
-        },
+    let messageResponse: Response
+    try {
+      messageResponse = await fetchGmailWithRecovery(
+        supabase,
+        firstToken,
+        `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+        { method: 'GET' },
+        'webhook_message_fetch',
+      )
+    } catch (error) {
+      if (error instanceof GmailReconnectRequiredError) {
+        console.warn(`Token requires reconnect while fetching message for ${gmailEmail}`)
+        return new Response('OK', { status: 200 })
       }
-    )
+      throw error
+    }
 
     if (!messageResponse.ok) {
       console.error('Failed to fetch message:', messageResponse.statusText)
@@ -340,8 +303,31 @@ Deno.serve(async (req) => {
     }
 
     // Extract attachments for AI analysis
-    const images = await extractImageAttachments(firstToken.access_token, message.id, message.payload)
-    const pdfTexts = await extractPdfTexts(firstToken.access_token, message.id, message.payload)
+    const attachmentOptions = {
+      fetchAttachmentData: async (targetMessageId: string, attachmentId: string) => {
+        const attachmentResponse = await fetchGmailWithRecovery(
+          supabase,
+          firstToken,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
+          { method: 'GET' },
+          'webhook_fetch_attachment',
+        )
+        if (!attachmentResponse.ok) return null
+        return await attachmentResponse.json()
+      },
+    }
+    const images = await extractImageAttachments(
+      firstToken.access_token || '',
+      message.id,
+      message.payload,
+      attachmentOptions,
+    )
+    const pdfTexts = await extractPdfTexts(
+      firstToken.access_token || '',
+      message.id,
+      message.payload,
+      attachmentOptions,
+    )
 
     const fullContent = bodyText
 
@@ -481,6 +467,10 @@ Deno.serve(async (req) => {
     return new Response('OK', { status: 200 })
 
   } catch (error) {
+    if (error instanceof GmailReconnectRequiredError) {
+      console.warn('Webhook token requires reconnect')
+      return new Response('OK', { status: 200 })
+    }
     console.error('Error processing webhook', { error })
     return new Response('OK', { status: 500 })
   }
