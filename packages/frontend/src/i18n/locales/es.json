@@ -281,7 +281,9 @@
     "seedFailedDescription": "Hubo un error al procesar los correos. Intenta de nuevo.",
     "disconnectedAccountsTitle": "Cuentas desconectadas",
     "disconnectedAccountsDescription": "Estas cuentas no tienen token activo, pero se mantienen para preservar el historial y permitir reconexión.",
-    "disconnectedNoToken": "Desconectada (sin token activo)"
+    "disconnectedNoToken": "Desconectada (sin token activo)",
+    "gmailReconnectWarning": "Detectamos una o más cuentas con token o suscripción de webhook no válida. Probá reconectar la cuenta para restablecer la sincronización.",
+    "gmailMissingWatchWarning": "{{count}} cuenta(s) conectada(s) no tienen watch activo de Gmail en este momento."
   },
   "notifications": {
     "title": "Notificaciones",
