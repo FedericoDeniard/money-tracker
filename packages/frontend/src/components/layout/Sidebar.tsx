@@ -5,7 +5,6 @@ import {
   LogOut,
   TrendingUp,
   Repeat,
-  X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -49,14 +48,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             Money Tracker
           </h1>
         </div>
-        {onClose && (
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="sm"
-            icon={<X size={24} />}
-          />
-        )}
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
