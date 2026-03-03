@@ -22,6 +22,7 @@
   "navigation": {
     "dashboard": "Panel Principal",
     "transactions": "Transacciones",
+    "subscriptions": "Suscripciones",
     "metrics": "Métricas",
     "settings": "Configuración",
     "logout": "Cerrar Sesión",
@@ -191,6 +192,26 @@
     "avgTransactionSize": "Transacción Promedio",
     "avgTransaction": "transacción promedio",
     "vsLastPeriod": "vs período anterior"
+  },
+  "subscriptions": {
+    "title": "Suscripciones",
+    "betaLabel": "Beta",
+    "description": "Posibles pagos recurrentes detectados automáticamente a partir de tus transacciones.",
+    "emptyTitle": "No encontramos suscripciones todavía",
+    "emptyDescription": "Cuando detectemos pagos recurrentes con suficiente confianza aparecerán aquí.",
+    "confidence": "Confianza {{value}}%",
+    "avgAmount": "Monto promedio",
+    "occurrences": "Cobros detectados",
+    "lastDate": "Último cobro",
+    "nextDate": "Próximo estimado",
+    "sourceConsistency": "Origen",
+    "consistent": "Consistente",
+    "variable": "Variable",
+    "frequency": {
+      "monthly": "Mensual",
+      "yearly": "Anual",
+      "unknown": "Sin frecuencia"
+    }
   },
   "categories": {
     "salary": "Salario",
@@ -486,6 +507,7 @@
     "keywords": {
       "dashboard": "inicio dashboard home principal",
       "transactions": "transacciones emails movimientos finanzas",
+      "subscriptions": "suscripciones recurrentes pagos mensuales anuales",
       "metrics": "metricas estadisticas analisis graficos reportes finanzas",
       "settings": "configuracion preferencias ajustes",
       "logout": "salir cerrar sesion logout"

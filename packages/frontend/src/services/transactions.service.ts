@@ -39,6 +39,29 @@ function mapJoinedTransaction(item: JoinedTransactionRow): Transaction {
   };
 }
 
+function mapSubscriptionCandidate(item: Record<string, unknown>): SubscriptionCandidate {
+  const rawConfidence = Number(item.confidence_score || 0);
+  const confidence = Math.min(100, Math.max(0, rawConfidence));
+
+  return {
+    merchant_display: String(item.merchant_display || ''),
+    merchant_normalized: String(item.merchant_normalized || ''),
+    currency: String(item.currency || 'USD'),
+    avg_amount: Number(item.avg_amount || 0),
+    min_amount: Number(item.min_amount || 0),
+    max_amount: Number(item.max_amount || 0),
+    occurrences: Number(item.occurrences || 0),
+    interval_days_avg: Number(item.interval_days_avg || 0),
+    interval_stddev: Number(item.interval_stddev || 0),
+    frequency: String(item.frequency || 'unknown'),
+    last_date: String(item.last_date || ''),
+    next_estimated_date: item.next_estimated_date ? String(item.next_estimated_date) : null,
+    category: String(item.category || 'other'),
+    source_email_consistent: Boolean(item.source_email_consistent),
+    confidence_score: confidence,
+  };
+}
+
 export interface TransactionFilters {
   currency?: string;
   email?: string;
@@ -58,6 +81,24 @@ export interface TransactionPage {
   transactions: Transaction[];
   hasMore: boolean;
   total?: number;
+}
+
+export interface SubscriptionCandidate {
+  merchant_display: string;
+  merchant_normalized: string;
+  currency: string;
+  avg_amount: number;
+  min_amount: number;
+  max_amount: number;
+  occurrences: number;
+  interval_days_avg: number;
+  interval_stddev: number;
+  frequency: string;
+  last_date: string;
+  next_estimated_date: string | null;
+  category: string;
+  source_email_consistent: boolean;
+  confidence_score: number;
 }
 
 export class TransactionsService {
@@ -257,6 +298,19 @@ export class TransactionsService {
 
     const emails = (data || []).map((item) => item.gmail_email);
     return emails.sort();
+  }
+
+  async getSubscriptionCandidates(options?: {
+    minConfidence?: number;
+    minOccurrences?: number;
+  }): Promise<SubscriptionCandidate[]> {
+    const { data, error } = await this.supabase.rpc('get_subscription_candidates', {
+      p_min_confidence: options?.minConfidence ?? 50,
+      p_min_occurrences: options?.minOccurrences ?? 3,
+    });
+
+    if (error) throw error;
+    return (data || []).map((item) => mapSubscriptionCandidate(item as Record<string, unknown>));
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {

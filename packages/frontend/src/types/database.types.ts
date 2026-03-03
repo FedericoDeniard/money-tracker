@@ -437,6 +437,54 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          is_muted: boolean
+          muted_until: string | null
+          notification_type_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          is_muted?: boolean
+          muted_until?: string | null
+          notification_type_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          is_muted?: boolean
+          muted_until?: string | null
+          notification_type_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_notification_type_id_fkey"
+            columns: ["notification_type_id"]
+            isOneToOne: false
+            referencedRelation: "notification_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_oauth_tokens: {
         Row: {
           access_token: string | null
@@ -486,54 +534,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_oauth_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_notification_preferences: {
-        Row: {
-          created_at: string
-          id: string
-          is_enabled: boolean
-          is_muted: boolean
-          muted_until: string | null
-          notification_type_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_enabled?: boolean
-          is_muted?: boolean
-          muted_until?: string | null
-          notification_type_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_enabled?: boolean
-          is_muted?: boolean
-          muted_until?: string | null
-          notification_type_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_notification_preferences_notification_type_id_fkey"
-            columns: ["notification_type_id"]
-            isOneToOne: false
-            referencedRelation: "notification_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_notification_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -592,6 +592,26 @@ export type Database = {
         Args: never
         Returns: {
           currency: string
+        }[]
+      }
+      get_subscription_candidates: {
+        Args: { p_min_confidence?: number; p_min_occurrences?: number }
+        Returns: {
+          avg_amount: number
+          category: string
+          confidence_score: number
+          currency: string
+          frequency: string
+          interval_days_avg: number
+          interval_stddev: number
+          last_date: string
+          max_amount: number
+          merchant_display: string
+          merchant_normalized: string
+          min_amount: number
+          next_estimated_date: string
+          occurrences: number
+          source_email_consistent: boolean
         }[]
       }
       health_check: {
