@@ -10,10 +10,11 @@ import {
   ArrowUpDown,
   LayoutList,
   Calendar,
+  Search,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { TransactionFilters } from "../../services/transactions.service";
 
 interface TransactionFiltersProps {
@@ -35,18 +36,42 @@ export function TransactionFiltersComponent({
 }: TransactionFiltersProps) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState(filters.serviceName || "");
 
   const updateFilter = (key: keyof TransactionFilters, value: string) => {
+    const normalizedValue =
+      value === "all" || value.trim() === "" ? undefined : value;
     onFiltersChange({
       ...filters,
-      [key]: value === "all" ? undefined : value,
+      [key]: normalizedValue,
     });
   };
 
   const clearFilters = () => {
     onFiltersChange({});
     setShowDatePicker(false);
+    setServiceSearch("");
   };
+
+  // Keep local input in sync when filters are changed externally.
+  useEffect(() => {
+    setServiceSearch(filters.serviceName || "");
+  }, [filters.serviceName]);
+
+  // Debounce service-name search to avoid querying on every keystroke.
+  useEffect(() => {
+    const normalized = serviceSearch.trim() === "" ? undefined : serviceSearch.trim();
+    if (normalized === filters.serviceName) return;
+
+    const timeoutId = setTimeout(() => {
+      onFiltersChange({
+        ...filters,
+        serviceName: normalized,
+      });
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [serviceSearch, filters, onFiltersChange]);
 
   const hasActiveFilters = Object.values(filters).some(
     (value) => value !== undefined && value !== "all",
@@ -155,6 +180,21 @@ export function TransactionFiltersComponent({
 
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 flex-1">
+            {/* Service Name Search */}
+            <div className="relative flex-1 min-w-[180px] sm:flex-none">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                placeholder={t("transactions.serviceNamePlaceholder")}
+                className="w-full sm:w-[220px] pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-500 focus:outline-none focus:border-[var(--primary)]"
+              />
+            </div>
+
             {/* Currency */}
             <div className="flex-1 min-w-[140px] sm:flex-none">
               <FilterDropdown

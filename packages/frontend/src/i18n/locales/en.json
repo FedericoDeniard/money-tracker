@@ -119,6 +119,8 @@
     "connectAccount": "Go to Settings →",
     "filters": "Filters",
     "clearFilters": "Clear Filters",
+    "serviceName": "Service",
+    "serviceNamePlaceholder": "Search service (e.g. CloudSafe)",
     "currency": "Currency",
     "email": "Email Account",
     "allCurrencies": "All Currencies",
