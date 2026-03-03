@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSeedNotifications } from '../hooks/useSeedNotifications';
-import { useGmailStatus, useInvalidateGmailQueries } from '../hooks/useGmailStatus';
+import {
+  useGmailStatus,
+  useGmailWatches,
+  useInvalidateGmailQueries,
+} from '../hooks/useGmailStatus';
 import { Button } from '../components/ui/Button';
 import { Mail, CheckCircle, AlertCircle, Loader2, X, Download } from "lucide-react";
 import { useSearchParams } from 'react-router-dom';
@@ -23,6 +27,7 @@ export function Settings() {
   const [isDisconnecting, setIsDisconnecting] = useState<string | null>(null);
   const invalidateGmailQueries = useInvalidateGmailQueries();
   const { data: gmailStatus, isLoading: isLoadingStatus } = useGmailStatus(user?.id);
+  const { data: gmailWatches, isLoading: isLoadingWatches } = useGmailWatches(user?.id);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -166,6 +171,15 @@ export function Settings() {
     gmailStatus?.connections.filter(
       (connection) => connection.status === "disconnected",
     ) ?? [];
+  const connectedConnections =
+    activeConnections.filter((connection) => connection.status === "connected") ?? [];
+  const watchedEmails = new Set((gmailWatches ?? []).map((watch) => watch.gmail_email));
+  const connectionsWithoutWatch = connectedConnections.filter(
+    (connection) => !watchedEmails.has(connection.gmail_email),
+  );
+  const showWebhookWarning =
+    (gmailStatus?.needsReconnectTotal ?? 0) > 0 ||
+    (!isLoadingWatches && connectionsWithoutWatch.length > 0);
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
@@ -263,6 +277,21 @@ export function Settings() {
                     <p className="text-sm text-[var(--text-secondary)]">
                       {t("settings.notificationsDescription")}
                     </p>
+                    {showWebhookWarning && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-sm text-amber-800">
+                          <strong>{t("common.note")}:</strong>{" "}
+                          {t("settings.gmailReconnectWarning")}
+                        </p>
+                        {connectionsWithoutWatch.length > 0 && (
+                          <p className="mt-1 text-xs text-amber-700">
+                            {t("settings.gmailMissingWatchWarning", {
+                              count: connectionsWithoutWatch.length,
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {activeConnections.map((connection) => (
                       <div

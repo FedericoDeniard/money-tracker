@@ -1,5 +1,5 @@
 -- Seed type: transactions
--- Creates 132 deterministic sample transactions for user@test.com.
+-- Creates 132 deterministic sample transactions + recurring subscription-like charges for user@test.com.
 
 WITH test_user AS (
   SELECT id
@@ -95,3 +95,91 @@ SELECT
   END,
   r.category
 FROM seed_rows r;
+
+-- Add deterministic recurring charges to exercise subscription detection
+WITH test_user AS (
+  SELECT id
+  FROM auth.users
+  WHERE email = 'user@test.com'
+  LIMIT 1
+),
+deleted AS (
+  DELETE FROM public.transactions t
+  USING test_user u
+  WHERE t.user_id = u.id
+    AND t.source_message_id LIKE 'seed-test-subscription-%'
+),
+monthly_seed AS (
+  SELECT
+    u.id AS user_id,
+    gs.n AS seq,
+    (date_trunc('month', now())::date - make_interval(months => (11 - gs.n))::interval)::date AS tx_date
+  FROM test_user u
+  CROSS JOIN generate_series(0, 11) AS gs(n)
+),
+yearly_seed AS (
+  SELECT
+    u.id AS user_id,
+    gs.n AS seq,
+    (date_trunc('month', now())::date - make_interval(years => (2 - gs.n))::interval)::date AS tx_date
+  FROM test_user u
+  CROSS JOIN generate_series(0, 2) AS gs(n)
+)
+INSERT INTO public.transactions (
+  id,
+  user_id,
+  source_email,
+  source_message_id,
+  date,
+  amount,
+  currency,
+  transaction_type,
+  transaction_description,
+  transaction_date,
+  merchant,
+  category
+)
+SELECT
+  gen_random_uuid(),
+  m.user_id,
+  'billing@streamflix.com',
+  format('seed-test-subscription-streamflix-%s', lpad(m.seq::text, 2, '0')),
+  (m.tx_date + interval '09:30:00'),
+  19.99,
+  'USD',
+  'expense',
+  'StreamFlix monthly subscription',
+  m.tx_date,
+  'StreamFlix',
+  'services'
+FROM monthly_seed m
+UNION ALL
+SELECT
+  gen_random_uuid(),
+  m.user_id,
+  'payments@musicbox.com',
+  format('seed-test-subscription-musicbox-%s', lpad(m.seq::text, 2, '0')),
+  (m.tx_date + interval '11:00:00'),
+  9.99,
+  'USD',
+  'expense',
+  'MusicBox premium plan',
+  m.tx_date,
+  'MusicBox',
+  'services'
+FROM monthly_seed m
+UNION ALL
+SELECT
+  gen_random_uuid(),
+  y.user_id,
+  'billing@cloudsafe.com',
+  format('seed-test-subscription-cloudsafe-%s', lpad(y.seq::text, 2, '0')),
+  (y.tx_date + interval '08:00:00'),
+  99.00,
+  'USD',
+  'expense',
+  'CloudSafe annual plan',
+  y.tx_date,
+  'CloudSafe',
+  'services'
+FROM yearly_seed y;

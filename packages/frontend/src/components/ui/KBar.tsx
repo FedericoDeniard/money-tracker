@@ -85,6 +85,14 @@ function KBarInner() {
       perform: () => navigate("/metrics"),
     },
     {
+      id: "subscriptions",
+      name: t("navigation.subscriptions"),
+      shortcut: ["u"],
+      keywords: t("kbar.keywords.subscriptions"),
+      section: t("kbar.navigation"),
+      perform: () => navigate("/subscriptions"),
+    },
+    {
       id: "settings",
       name: t("navigation.settings"),
       shortcut: ["c"],
@@ -139,6 +147,8 @@ function KBarInner() {
                       ? "📊"
                       : item.id === "transactions"
                         ? "💰"
+                        : item.id === "subscriptions"
+                          ? "🔁"
                         : item.id === "settings"
                           ? "⚙️"
                         : item.id === "language"

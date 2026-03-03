@@ -22,6 +22,7 @@
   "navigation": {
     "dashboard": "Panel Principal",
     "transactions": "Transacciones",
+    "subscriptions": "Suscripciones",
     "metrics": "Métricas",
     "settings": "Configuración",
     "logout": "Cerrar Sesión",
@@ -192,6 +193,26 @@
     "avgTransaction": "transacción promedio",
     "vsLastPeriod": "vs período anterior"
   },
+  "subscriptions": {
+    "title": "Suscripciones",
+    "betaLabel": "Beta",
+    "description": "Posibles pagos recurrentes detectados automáticamente a partir de tus transacciones.",
+    "emptyTitle": "No encontramos suscripciones todavía",
+    "emptyDescription": "Cuando detectemos pagos recurrentes con suficiente confianza aparecerán aquí.",
+    "confidence": "Confianza {{value}}%",
+    "avgAmount": "Monto promedio",
+    "occurrences": "Cobros detectados",
+    "lastDate": "Último cobro",
+    "nextDate": "Próximo estimado",
+    "sourceConsistency": "Origen",
+    "consistent": "Consistente",
+    "variable": "Variable",
+    "frequency": {
+      "monthly": "Mensual",
+      "yearly": "Anual",
+      "unknown": "Sin frecuencia"
+    }
+  },
   "categories": {
     "salary": "Salario",
     "entertainment": "Entretenimiento",
@@ -281,7 +302,9 @@
     "seedFailedDescription": "Hubo un error al procesar los correos. Intenta de nuevo.",
     "disconnectedAccountsTitle": "Cuentas desconectadas",
     "disconnectedAccountsDescription": "Estas cuentas no tienen token activo, pero se mantienen para preservar el historial y permitir reconexión.",
-    "disconnectedNoToken": "Desconectada (sin token activo)"
+    "disconnectedNoToken": "Desconectada (sin token activo)",
+    "gmailReconnectWarning": "Detectamos una o más cuentas con token o suscripción de webhook no válida. Probá reconectar la cuenta para restablecer la sincronización.",
+    "gmailMissingWatchWarning": "{{count}} cuenta(s) conectada(s) no tienen watch activo de Gmail en este momento."
   },
   "notifications": {
     "title": "Notificaciones",
@@ -484,6 +507,7 @@
     "keywords": {
       "dashboard": "inicio dashboard home principal",
       "transactions": "transacciones emails movimientos finanzas",
+      "subscriptions": "suscripciones recurrentes pagos mensuales anuales",
       "metrics": "metricas estadisticas analisis graficos reportes finanzas",
       "settings": "configuracion preferencias ajustes",
       "logout": "salir cerrar sesion logout"

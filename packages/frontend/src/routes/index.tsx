@@ -5,6 +5,7 @@ import { Register } from "../pages/Register";
 import { Settings } from "../pages/Settings";
 import { Transactions } from "../pages/Transactions";
 import { Metrics } from "../pages/Metrics";
+import { Subscriptions } from "../pages/Subscriptions";
 import { NotFound } from "../pages/NotFound";
 import { AuthCallback } from "../pages/AuthCallback";
 import { ForgotPassword } from "../pages/ForgotPassword";
@@ -57,6 +58,7 @@ export function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="settings" element={<Settings />} />
         <Route path="transactions" element={<Transactions />} />
+        <Route path="subscriptions" element={<Subscriptions />} />
         <Route path="emails" element={<Navigate to="/transactions" replace />} />
         <Route path="metrics" element={<Metrics />} />
         <Route path="*" element={<NotFound />} />

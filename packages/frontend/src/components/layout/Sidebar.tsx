@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   LogOut,
   TrendingUp,
+  Repeat,
   X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -27,6 +28,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const links = [
     { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/" },
     { icon: Receipt, label: t("navigation.transactions"), path: "/transactions" },
+    { icon: Repeat, label: t("navigation.subscriptions"), path: "/subscriptions" },
     { icon: TrendingUp, label: t("navigation.metrics"), path: "/metrics" },
     { icon: Settings, label: t("navigation.settings"), path: "/settings" },
   ];

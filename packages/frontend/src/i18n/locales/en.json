@@ -22,6 +22,7 @@
   "navigation": {
     "dashboard": "Dashboard",
     "transactions": "Transactions",
+    "subscriptions": "Subscriptions",
     "metrics": "Metrics",
     "settings": "Settings",
     "logout": "Logout",
@@ -192,6 +193,26 @@
     "avgTransaction": "avg transaction",
     "vsLastPeriod": "vs last period"
   },
+  "subscriptions": {
+    "title": "Subscriptions",
+    "betaLabel": "Beta",
+    "description": "Possible recurring payments detected automatically from your transactions.",
+    "emptyTitle": "No subscriptions detected yet",
+    "emptyDescription": "Detected recurring charges with enough confidence will appear here.",
+    "confidence": "Confidence {{value}}%",
+    "avgAmount": "Average amount",
+    "occurrences": "Detected charges",
+    "lastDate": "Last charge",
+    "nextDate": "Next estimate",
+    "sourceConsistency": "Source",
+    "consistent": "Consistent",
+    "variable": "Variable",
+    "frequency": {
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "unknown": "No frequency"
+    }
+  },
   "categories": {
     "salary": "Salary",
     "entertainment": "Entertainment",
@@ -281,7 +302,9 @@
     "seedFailedDescription": "There was an error processing the emails. Please try again.",
     "disconnectedAccountsTitle": "Disconnected accounts",
     "disconnectedAccountsDescription": "These accounts have no active token, but are kept to preserve history and allow reconnection.",
-    "disconnectedNoToken": "Disconnected (no active token)"
+    "disconnectedNoToken": "Disconnected (no active token)",
+    "gmailReconnectWarning": "We detected one or more accounts with an invalid token or webhook subscription. Try reconnecting the account to restore synchronization.",
+    "gmailMissingWatchWarning": "{{count}} connected account(s) currently have no active Gmail watch."
   },
   "notifications": {
     "title": "Notifications",
@@ -484,6 +507,7 @@
     "keywords": {
       "dashboard": "home dashboard main panel",
       "transactions": "transactions emails movements finances",
+      "subscriptions": "subscriptions recurring monthly yearly payments",
       "metrics": "metrics statistics analysis charts reports finances",
       "settings": "configuration preferences settings",
       "logout": "sign out exit logout"

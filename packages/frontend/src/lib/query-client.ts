@@ -49,6 +49,11 @@ export const queryKeys = {
     all: ['metrics'] as const,
     data: (filters: Record<string, unknown>) => [...queryKeys.metrics.all, 'data', filters] as const,
   },
+  subscriptions: {
+    all: ['subscriptions'] as const,
+    candidates: (params: Record<string, unknown>) =>
+      [...queryKeys.subscriptions.all, 'candidates', params] as const,
+  },
   gmail: {
     all: ['gmail'] as const,
     status: (userId?: string) => [...queryKeys.gmail.all, 'status', userId] as const,
