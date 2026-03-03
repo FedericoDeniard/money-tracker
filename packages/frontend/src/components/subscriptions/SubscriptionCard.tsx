@@ -39,7 +39,7 @@ export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
         <div className="rounded-lg bg-[var(--bg-secondary)] p-3">
           <p className="text-[var(--text-secondary)]">{t("subscriptions.avgAmount")}</p>
           <p className="font-semibold text-[var(--text-primary)]">
-            {formatCurrency(candidate.avg_amount, candidate.currency)}
+            {formatCurrency(candidate.avg_amount, candidate.currency)} {candidate.currency}
           </p>
         </div>
         <div className="rounded-lg bg-[var(--bg-secondary)] p-3">
