@@ -63,6 +63,7 @@ function mapSubscriptionCandidate(item: Record<string, unknown>): SubscriptionCa
 }
 
 export interface TransactionFilters {
+  serviceName?: string;
   currency?: string;
   email?: string;
   category?: string;
@@ -139,6 +140,10 @@ export class TransactionsService {
     if (filters?.currency && filters.currency !== 'all') {
       query = query.eq('currency', filters.currency);
     }
+    if (filters?.serviceName?.trim()) {
+      const term = filters.serviceName.trim();
+      query = query.or(`merchant.ilike.%${term}%,transaction_description.ilike.%${term}%`);
+    }
     if (tokenId) {
       query = query.eq('user_oauth_token_id', tokenId);
     }
@@ -192,6 +197,10 @@ export class TransactionsService {
     // Apply filters
     if (filters?.currency && filters.currency !== 'all') {
       query = query.eq('currency', filters.currency);
+    }
+    if (filters?.serviceName?.trim()) {
+      const term = filters.serviceName.trim();
+      query = query.or(`merchant.ilike.%${term}%,transaction_description.ilike.%${term}%`);
     }
 
     if (filters?.email && filters.email !== 'all') {

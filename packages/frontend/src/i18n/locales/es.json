@@ -119,6 +119,8 @@
     "connectAccount": "Ir a Configuración →",
     "filters": "Filtros",
     "clearFilters": "Limpiar Filtros",
+    "serviceName": "Servicio",
+    "serviceNamePlaceholder": "Buscar servicio (ej. CloudSafe)",
     "currency": "Moneda",
     "email": "Cuenta de Email",
     "allCurrencies": "Todas las Monedas",
