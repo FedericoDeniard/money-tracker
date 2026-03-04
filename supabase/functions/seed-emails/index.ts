@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
+import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts"
 import { extractImageAttachments, extractPdfTexts } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
 import { createSystemNotification } from "../_shared/notifications.ts"
@@ -11,11 +12,6 @@ import {
   ensureFreshAccessToken,
   fetchGmailWithRecovery,
 } from "../_shared/lib/gmail-auth.ts"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 interface SeedRequest {
   connectionId?: string
@@ -28,9 +24,11 @@ const CHUNK_SIZE = 30
 const CONCURRENCY = 10
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflightResponse = handleCorsPreflightRequest(req)
+  if (preflightResponse) {
+    return preflightResponse
   }
+  const corsHeaders = getCorsHeaders(req)
 
   if (req.method !== 'POST') {
     return new Response(

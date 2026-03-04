@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from '../_shared/ai/transaction-agent.ts'
 import { extractImageAttachments, extractPdfTexts } from '../_shared/lib/attachment-extractor.ts'
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts'
 import { createSystemNotification } from '../_shared/notifications.ts'
 import {
   type OAuthTokenRow,
@@ -11,19 +12,15 @@ import {
   fetchGmailWithRecovery,
 } from '../_shared/lib/gmail-auth.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 // Set to avoid processing the same message multiple times
 const processedMessages = new Set<string>()
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflightResponse = handleCorsPreflightRequest(req)
+  if (preflightResponse) {
+    return preflightResponse
   }
+  const corsHeaders = getCorsHeaders(req)
 
   if (req.method !== 'POST') {
     return new Response(
@@ -51,7 +48,7 @@ Deno.serve(async (req) => {
       console.error('Invalid webhook payload structure')
       return new Response(
         JSON.stringify({ error: 'Invalid payload' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -64,7 +61,7 @@ Deno.serve(async (req) => {
     // Avoid processing the same historyId multiple times
     const historyKey = `${gmailEmail}-${historyId}`
     if (processedMessages.has(historyKey)) {
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
     
     processedMessages.add(historyKey)
@@ -84,7 +81,7 @@ Deno.serve(async (req) => {
 
     if (tokenError || !allTokens || allTokens.length === 0) {
       console.error('No active tokens found for', { gmailEmail })
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     console.log(`Found ${allTokens.length} active token(s) for ${gmailEmail}`)
@@ -106,7 +103,7 @@ Deno.serve(async (req) => {
 
     if (validTokens.length === 0) {
       console.error('No valid tokens to process this email')
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     console.log(`${validTokens.length} valid token(s) found`)
@@ -139,7 +136,7 @@ Deno.serve(async (req) => {
         },
         { onConflict: 'user_id,gmail_email' }
       )
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     // Use History API to find new INBOX messages since last processed historyId
@@ -157,7 +154,7 @@ Deno.serve(async (req) => {
     } catch (error) {
       if (error instanceof GmailReconnectRequiredError) {
         console.warn(`Token requires reconnect while fetching history for ${gmailEmail}`)
-        return new Response('OK', { status: 200 })
+        return new Response('OK', { status: 200, headers: corsHeaders })
       }
       throw error
     }
@@ -181,7 +178,7 @@ Deno.serve(async (req) => {
         dedupeKey: `gmail-sync-error-${firstToken.user_id}-${gmailEmail}-history`,
         dedupeWindowMinutes: 180,
       })
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     const historyData = await historyResponse.json()
@@ -195,7 +192,7 @@ Deno.serve(async (req) => {
         .eq('gmail_email', gmailEmail)
         .eq('is_active', true)
       console.log('No new INBOX messages (probably a draft/label/read event)')
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     const addedMessages = history
@@ -209,13 +206,13 @@ Deno.serve(async (req) => {
         .eq('gmail_email', gmailEmail)
         .eq('is_active', true)
       console.log('No new messages in INBOX')
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     const latestMessage = addedMessages[addedMessages.length - 1]
     const messageId = latestMessage?.message?.id
     if (!messageId) {
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     console.log('Processing message', { messageId })
@@ -240,7 +237,7 @@ Deno.serve(async (req) => {
     } catch (error) {
       if (error instanceof GmailReconnectRequiredError) {
         console.warn(`Token requires reconnect while fetching message for ${gmailEmail}`)
-        return new Response('OK', { status: 200 })
+        return new Response('OK', { status: 200, headers: corsHeaders })
       }
       throw error
     }
@@ -265,7 +262,7 @@ Deno.serve(async (req) => {
         dedupeKey: `gmail-sync-error-${firstToken.user_id}-${gmailEmail}-message`,
         dedupeWindowMinutes: 180,
       })
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     const message = await messageResponse.json()
@@ -273,7 +270,7 @@ Deno.serve(async (req) => {
     // Verify that the email is in INBOX and not in SPAM
     const labelIds = message.labelIds || []
     if (!labelIds.includes('INBOX') || labelIds.includes('SPAM') || labelIds.includes('TRASH')) {
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
 
     // Extract important headers
@@ -464,15 +461,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response('OK', { status: 200 })
+    return new Response('OK', { status: 200, headers: corsHeaders })
 
   } catch (error) {
     if (error instanceof GmailReconnectRequiredError) {
       console.warn('Webhook token requires reconnect')
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200, headers: corsHeaders })
     }
     console.error('Error processing webhook', { error })
-    return new Response('OK', { status: 500 })
+    return new Response('OK', { status: 500, headers: corsHeaders })
   }
 })
 

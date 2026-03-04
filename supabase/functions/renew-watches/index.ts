@@ -1,6 +1,7 @@
 // Gmail Watch Renewal Edge Function - Renews expiring Gmail watches
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts'
 import { createSystemNotification } from '../_shared/notifications.ts'
 import {
   type OAuthTokenRow,
@@ -9,16 +10,12 @@ import {
   fetchGmailWithRecovery,
 } from '../_shared/lib/gmail-auth.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflightResponse = handleCorsPreflightRequest(req)
+  if (preflightResponse) {
+    return preflightResponse
   }
+  const corsHeaders = getCorsHeaders(req)
 
   if (req.method !== 'POST') {
     return new Response(
