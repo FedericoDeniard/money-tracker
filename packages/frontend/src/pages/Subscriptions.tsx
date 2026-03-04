@@ -3,21 +3,24 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-import { SubscriptionCard, SubscriptionsHeader } from "../components/subscriptions";
+import { SubscriptionCard, SubscriptionListItem, SubscriptionsHeader } from "../components/subscriptions";
 import type {
   SubscriptionSortBy,
   SubscriptionStatusFilter,
+  SubscriptionViewMode,
 } from "../components/subscriptions/SubscriptionsHeader";
 import { getSubscriptionStatus, getSubscriptionStatusRank } from "../components/subscriptions/subscriptionStatus";
 import { useSubscriptionCandidates } from "../hooks/useSubscriptionCandidates";
 
 const DEFAULT_STATUS_FILTER: SubscriptionStatusFilter = "all";
 const DEFAULT_SORT_BY: SubscriptionSortBy = "status";
+const DEFAULT_VIEW_MODE: SubscriptionViewMode = "grid";
 
 export function Subscriptions() {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatusFilter>(DEFAULT_STATUS_FILTER);
   const [sortBy, setSortBy] = useState<SubscriptionSortBy>(DEFAULT_SORT_BY);
+  const [viewMode, setViewMode] = useState<SubscriptionViewMode>(DEFAULT_VIEW_MODE);
   const {
     data: candidates = [],
     isLoading,
@@ -120,6 +123,8 @@ export function Subscriptions() {
         sortBy={sortBy}
         onStatusFilterChange={setStatusFilter}
         onSortByChange={setSortBy}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onClearFilters={clearFilters}
         hasActiveFilters={hasActiveFilters}
       />
@@ -145,13 +150,20 @@ export function Subscriptions() {
           />
         </section>
       ) : (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visibleCandidates.map((candidate) => (
-            <SubscriptionCard
-              key={`${candidate.merchant_normalized}-${candidate.currency}`}
-              candidate={candidate}
-            />
-          ))}
+        <section className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}>
+          {visibleCandidates.map((candidate) =>
+            viewMode === "grid" ? (
+              <SubscriptionCard
+                key={`${candidate.merchant_normalized}-${candidate.currency}`}
+                candidate={candidate}
+              />
+            ) : (
+              <SubscriptionListItem
+                key={`${candidate.merchant_normalized}-${candidate.currency}`}
+                candidate={candidate}
+              />
+            ),
+          )}
         </section>
       )}
     </div>

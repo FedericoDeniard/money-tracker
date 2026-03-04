@@ -230,6 +230,10 @@
     "filters": {
       "clear": "Limpiar filtros",
       "sortLabel": "Ordenar suscripciones",
+      "view": {
+        "grid": "Cuadrícula",
+        "list": "Lista"
+      },
       "status": {
         "all": "Todas",
         "active": "Activas",

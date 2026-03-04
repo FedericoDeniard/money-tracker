@@ -230,6 +230,10 @@
     "filters": {
       "clear": "Clear filters",
       "sortLabel": "Sort subscriptions",
+      "view": {
+        "grid": "Grid",
+        "list": "List"
+      },
       "status": {
         "all": "All",
         "active": "Active",

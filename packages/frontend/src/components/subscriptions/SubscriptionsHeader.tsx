@@ -1,4 +1,4 @@
-import { ArrowUpDown, RefreshCw, X } from "lucide-react";
+import { ArrowUpDown, Grid3X3, List, RefreshCw, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
 
@@ -10,6 +10,7 @@ export type SubscriptionSortBy =
   | "next_date_asc"
   | "confidence_desc"
   | "merchant_asc";
+export type SubscriptionViewMode = "grid" | "list";
 
 interface SubscriptionsHeaderProps {
   isRefreshing: boolean;
@@ -18,6 +19,8 @@ interface SubscriptionsHeaderProps {
   sortBy: SubscriptionSortBy;
   onStatusFilterChange: (status: SubscriptionStatusFilter) => void;
   onSortByChange: (sort: SubscriptionSortBy) => void;
+  viewMode: SubscriptionViewMode;
+  onViewModeChange: (viewMode: SubscriptionViewMode) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
 }
@@ -29,6 +32,8 @@ export function SubscriptionsHeader({
   sortBy,
   onStatusFilterChange,
   onSortByChange,
+  viewMode,
+  onViewModeChange,
   onClearFilters,
   hasActiveFilters,
 }: SubscriptionsHeaderProps) {
@@ -77,6 +82,27 @@ export function SubscriptionsHeader({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div className="bg-[var(--bg-secondary)] p-1 rounded-lg flex items-center gap-1">
+            <Button
+              onClick={() => onViewModeChange("grid")}
+              variant="outline"
+              size="sm"
+              selected={viewMode === "grid"}
+              icon={<Grid3X3 size={14} />}
+            >
+              {t("subscriptions.filters.view.grid")}
+            </Button>
+            <Button
+              onClick={() => onViewModeChange("list")}
+              variant="outline"
+              size="sm"
+              selected={viewMode === "list"}
+              icon={<List size={14} />}
+            >
+              {t("subscriptions.filters.view.list")}
+            </Button>
+          </div>
+
           <div className="relative group">
             <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:border-gray-300 min-w-[220px]">
               <ArrowUpDown size={14} className="text-gray-500" />
