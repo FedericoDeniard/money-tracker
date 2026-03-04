@@ -556,5 +556,73 @@
     "loadingError": "Loading error",
     "networkError": "Network error",
     "unknownError": "Unknown error"
+  },
+  "landing": {
+    "hero": {
+      "badge": "Smart Finance Tracking on Autopilot",
+      "titlePart1": "Your Finances,",
+      "titlePart2": "Automated by AI.",
+      "description": "Connect your Gmail, and let Money Tracker automatically extract, categorize, and track your expenses in real-time.",
+      "getStarted": "Get Started Now",
+      "readDocs": "Read Docs"
+    },
+    "features": {
+      "title": "Everything you need for",
+      "subtitle": "automated finance tracking",
+      "description": "Powerful features designed to give you complete visibility without the manual data entry.",
+      "gmail": {
+        "title": "Gmail Integration",
+        "description": "Real-time email processing. Stop manual entry and let Money Tracker watch your inbox for receipts."
+      },
+      "ai": {
+        "title": "AI Extraction",
+        "description": "Powered by xAI Grok to accurately extract amounts, merchants, dates, and auto-categorize expenses."
+      },
+      "currency": {
+        "title": "Multi-Currency",
+        "description": "Effortlessly track expenses in multiple currencies with live exchange rates and comparative analytics."
+      },
+      "documents": {
+        "title": "Document Uploads",
+        "description": "Drag-and-drop PDFs and images for instant AI extraction of offline receipts."
+      },
+      "subscriptions": {
+        "title": "Subscriptions",
+        "description": "Automatic detection and monitoring of your recurring payments and digital subscriptions."
+      },
+      "security": {
+        "title": "Secure & Private",
+        "description": "Read-only access to your emails. Data is encrypted at rest and never shared."
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "description": "Stop wasting hours spreadsheeting your life. Money Tracker automates the tedious parts of personal finance so you can focus on building wealth.",
+      "step1": {
+        "title": "Connect Account",
+        "description": "Securely link your Gmail via OAuth. We only ask for the permissions needed to read receipt emails."
+      },
+      "step2": {
+        "title": "AI Extraction",
+        "description": "Our AI instantly processes new emails and uploaded documents to extract precise financial data."
+      },
+      "step3": {
+        "title": "Gain Insights",
+        "description": "View beautiful charts, categorize expenses effortlessly, and take control of your spending."
+      },
+      "cta": {
+        "title": "Ready to see it in action?",
+        "description": "Join today and let Money Tracker import your last 3 months of transaction emails automatically.",
+        "button": "Create free account",
+        "footer": "No credit card required. Setup takes 2 minutes."
+      }
+    },
+    "nav": {
+      "signIn": "Sign In",
+      "getStarted": "Get Started",
+      "documentation": "Documentation",
+      "github": "GitHub",
+      "personalProject": "Personal project."
+    }
   }
 }

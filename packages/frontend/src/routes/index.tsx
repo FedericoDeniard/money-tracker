@@ -10,6 +10,7 @@ import { NotFound } from "../pages/NotFound";
 import { AuthCallback } from "../pages/AuthCallback";
 import { ForgotPassword } from "../pages/ForgotPassword";
 import { ResetPassword } from "../pages/ResetPassword";
+import { LandingPage } from "../pages/LandingPage";
 import { useAuth } from "../hooks/useAuth";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 
@@ -47,8 +48,8 @@ export function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* "/" is empty for now — will be the landing page in the future */}
-      <Route path="/" element={<NotFound />} />
+      {/* Landing page at root */}
+      <Route path="/" element={<LandingPage />} />
 
       {/* Protected routes with dashboard layout */}
       <Route
