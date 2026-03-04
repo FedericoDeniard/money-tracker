@@ -10,10 +10,12 @@ import {
   useNotificationsRealtime,
   useUnreadNotificationsCount,
 } from '../../hooks/useNotifications';
+import { useTranslation } from 'react-i18next';
 
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const { t } = useTranslation();
   const unreadCountQuery = useUnreadNotificationsCount();
   useNotificationsRealtime();
 
@@ -41,7 +43,7 @@ export function DashboardLayout() {
             type="button"
             onClick={() => setIsNotificationsOpen(true)}
             className="relative rounded-md p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-            aria-label="Abrir notificaciones"
+            aria-label={t("settings.notifications")}
           >
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -61,17 +63,17 @@ export function DashboardLayout() {
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      <main className="flex-1 p-4 lg:p-8 lg:ml-64 min-h-[calc(100vh-64px)] lg:min-h-screen w-full overflow-x-hidden">
-        <div className="mb-4 hidden lg:flex justify-end">
+      <main className="relative flex-1 p-4 lg:p-8 lg:ml-64 min-h-[calc(100vh-64px)] lg:min-h-screen w-full overflow-x-hidden">
+        <div className="fixed right-0 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
           <button
             type="button"
             onClick={() => setIsNotificationsOpen(true)}
-            className="relative rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            aria-label="Abrir notificaciones"
+            className="group relative flex items-center rounded-l-xl border border-r-0 border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-3 py-3 text-[var(--text-secondary)] shadow-sm transition-colors hover:text-[var(--text-primary)]"
+            aria-label={t("settings.notifications")}
           >
-            <Bell size={20} />
+            <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -right-2 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-semibold text-white">
+              <span className="absolute -left-2 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-semibold text-white">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
