@@ -49,7 +49,7 @@ Edit each `.env` file with your actual credentials (Supabase keys, Google OAuth,
 ### Run the app
 
 ```bash
-docker compose up --build
+PROJECT_ROOT=$(pwd) docker compose up --build
 ```
 
 This starts:
@@ -61,7 +61,7 @@ No local installation of Bun or Supabase CLI is required.
 ### Stop the app
 
 ```bash
-docker compose down
+PROJECT_ROOT=$(pwd) docker compose down
 ```
 
 ## Database commands
@@ -69,19 +69,19 @@ docker compose down
 Reset the database (applies all migrations and seeds):
 
 ```bash
-docker compose run --rm supabase-cli sh -lc "supabase start && supabase db reset --local"
+PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc "supabase start && supabase db reset --local"
 ```
 
 Apply pending migrations:
 
 ```bash
-docker compose run --rm supabase-cli sh -lc "supabase start && supabase migration up --include-all --local"
+PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc "supabase start && supabase migration up --include-all --local"
 ```
 
 Generate TypeScript types from the database schema:
 
 ```bash
-docker compose run --rm supabase-cli sh -lc "supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts"
+PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc "supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts"
 ```
 
 NPM/Bun wrappers are also available:
@@ -115,7 +115,7 @@ See each `.env.example` for the full list of required variables.
 You can enter the Supabase CLI container to run any command manually:
 
 ```bash
-docker compose exec supabase-cli sh
+PROJECT_ROOT=$(pwd) docker compose exec supabase-cli sh
 ```
 
 Inside the container you have full access to the Supabase CLI without installing it locally.
@@ -123,7 +123,7 @@ Inside the container you have full access to the Supabase CLI without installing
 ## Troubleshooting
 
 - Use **service names** with `docker compose exec` (e.g. `frontend`, `supabase-cli`), not container names.
+- Run compose commands with `PROJECT_ROOT=$(pwd)` (already included in `bun run docker:*` scripts). This keeps host and in-container paths identical so Supabase nested Docker mounts work on both macOS and Linux.
 - If the frontend fails to load config, verify that `packages/frontend/.env` exists and has valid `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 - Stream frontend logs with `docker compose logs -f frontend`.
 - The frontend Docker image is pinned to `oven/bun:1.3.9` for runtime parity with local development.
-- The `supabase-cli` service uses `network_mode: host` to avoid health-check issues on Linux.
