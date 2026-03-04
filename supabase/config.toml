@@ -385,6 +385,12 @@ verify_jwt = false
 [functions.seed-emails]
 verify_jwt = false
 
+[functions.process-document]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
+
 [edge_runtime.secrets]
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"

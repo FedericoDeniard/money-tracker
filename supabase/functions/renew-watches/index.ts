@@ -1,6 +1,7 @@
 // Gmail Watch Renewal Edge Function - Renews expiring Gmail watches
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { requireInternalAuth } from '../_shared/auth.ts'
 import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts'
 import { createSystemNotification } from '../_shared/notifications.ts'
 import {
@@ -28,6 +29,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const internalAuth = requireInternalAuth(req, corsHeaders)
+    if (internalAuth instanceof Response) {
+      return internalAuth
+    }
+
     // Initialize Supabase with service role key
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

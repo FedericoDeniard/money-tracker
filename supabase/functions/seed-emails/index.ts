@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
+import { requireUserAuth } from "../_shared/auth.ts"
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts"
 import { extractImageAttachments, extractPdfTexts } from "../_shared/lib/attachment-extractor.ts"
 import { createSupabaseClient } from "../_shared/lib/supabase.ts"
@@ -38,30 +39,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const auth = await requireUserAuth(req, corsHeaders)
+    if (auth instanceof Response) {
+      return auth
     }
-
-    const token = authHeader.replace('Bearer ', '')
-
-    // Verify token with Supabase using anon client
-    const supabaseAnon = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    )
-    const { data: { user }, error } = await supabaseAnon.auth.getUser(token)
-
-    if (error || !user) {
-      console.error('Auth error:', error?.message, 'Token prefix:', token.substring(0, 20))
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const { user, token } = auth
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
