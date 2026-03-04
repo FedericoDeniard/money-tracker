@@ -21,15 +21,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.supabase-cli
+    # Needed so `supabase start` health checks to 127.0.0.1 resolve correctly
+    # from inside this container on both Linux and Docker Desktop.
     network_mode: "host"
-    working_dir: /workspace
+    # The Supabase CLI talks to the host Docker daemon through docker.sock.
+    # To make nested mounts work on macOS/Linux, the in-container path must
+    # match the real absolute host path (PROJECT_ROOT).
+    working_dir: ${PROJECT_ROOT}
     command: ["sh", "-lc", "supabase start && sleep infinity"]
     tty: true
     stdin_open: true
     env_file:
       - ./supabase/functions/.env
     volumes:
-      - ./:/workspace
+      - ${PROJECT_ROOT}:${PROJECT_ROOT}
       - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:

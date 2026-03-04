@@ -6,12 +6,12 @@
   ],
   "scripts": {
     "dev": "bun --filter '*' dev",
-    "docker:up": "docker compose up --build",
-    "docker:down": "docker compose down",
-    "docker:shell": "docker compose exec supabase-cli sh",
-    "docker:db:reset": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase db reset --local\"",
-    "docker:db:migration:up": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase migration up --include-all --local\"",
-    "docker:db:types": "docker compose run --rm supabase-cli sh -lc \"supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts\"",
+    "docker:up": "PROJECT_ROOT=$(pwd) docker compose up --build",
+    "docker:down": "PROJECT_ROOT=$(pwd) docker compose down",
+    "docker:shell": "PROJECT_ROOT=$(pwd) docker compose exec supabase-cli sh",
+    "docker:db:reset": "PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc \"supabase start && supabase db reset --local\"",
+    "docker:db:migration:up": "PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc \"supabase start && supabase migration up --include-all --local\"",
+    "docker:db:types": "PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc \"supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts\"",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 -- Seed type: transactions
--- Creates 132 deterministic sample transactions + recurring subscription-like charges for user@test.com.
+-- Creates 132 deterministic sample transactions + recurring subscription-like charges (including an inactive historical case) for user@test.com.
 
 WITH test_user AS (
   SELECT id
@@ -124,6 +124,14 @@ yearly_seed AS (
     (date_trunc('month', now())::date - make_interval(years => (2 - gs.n))::interval)::date AS tx_date
   FROM test_user u
   CROSS JOIN generate_series(0, 2) AS gs(n)
+),
+inactive_seed AS (
+  SELECT
+    u.id AS user_id,
+    gs.n AS seq,
+    (date '2025-09-05' + make_interval(months => gs.n))::date AS tx_date
+  FROM test_user u
+  CROSS JOIN generate_series(0, 2) AS gs(n)
 )
 INSERT INTO public.transactions (
   id,
@@ -182,4 +190,19 @@ SELECT
   y.tx_date,
   'CloudSafe',
   'services'
-FROM yearly_seed y;
+FROM yearly_seed y
+UNION ALL
+SELECT
+  gen_random_uuid(),
+  i.user_id,
+  'billing@oldflix.com',
+  format('seed-test-subscription-oldflix-%s', to_char(i.tx_date, 'YYYY-MM')),
+  (i.tx_date + interval '10:15:00'),
+  14.99,
+  'USD',
+  'expense',
+  'OldFlix legacy monthly plan',
+  i.tx_date,
+  'OldFlix',
+  'services'
+FROM inactive_seed i;

@@ -207,8 +207,14 @@
     "lastDate": "Last charge",
     "nextDate": "Next estimate",
     "sourceConsistency": "Source",
+    "statusLabel": "Status",
     "consistent": "Consistent",
     "variable": "Variable",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "unknown": "No estimated date"
+    },
     "frequency": {
       "monthly": "Monthly",
       "yearly": "Yearly",
