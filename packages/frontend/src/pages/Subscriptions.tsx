@@ -14,7 +14,7 @@ import { useSubscriptionCandidates } from "../hooks/useSubscriptionCandidates";
 
 const DEFAULT_STATUS_FILTER: SubscriptionStatusFilter = "all";
 const DEFAULT_SORT_BY: SubscriptionSortBy = "status";
-const DEFAULT_VIEW_MODE: SubscriptionViewMode = "grid";
+const DEFAULT_VIEW_MODE: SubscriptionViewMode = "list";
 
 export function Subscriptions() {
   const { t } = useTranslation();
