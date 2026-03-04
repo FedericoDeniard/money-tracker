@@ -115,7 +115,7 @@ export function Subscriptions() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="flex h-[calc(100vh-5rem)] flex-col gap-4 animate-in fade-in duration-500">
       <SubscriptionsHeader
         isRefreshing={isFetching}
         onRefresh={() => refetch()}
@@ -129,43 +129,45 @@ export function Subscriptions() {
         hasActiveFilters={hasActiveFilters}
       />
 
-      {candidates.length === 0 ? (
-        <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)]">
-          <EmptyState
-            icon={AlertCircle}
-            title={t("subscriptions.emptyTitle")}
-            description={t("subscriptions.emptyDescription")}
-          />
-        </section>
-      ) : visibleCandidates.length === 0 ? (
-        <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)]">
-          <EmptyState
-            icon={AlertCircle}
-            title={t("subscriptions.filteredEmptyTitle")}
-            description={t("subscriptions.filteredEmptyDescription")}
-            action={{
-              label: t("subscriptions.filters.clear"),
-              onClick: clearFilters,
-            }}
-          />
-        </section>
-      ) : (
-        <section className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}>
-          {visibleCandidates.map((candidate) =>
-            viewMode === "grid" ? (
-              <SubscriptionCard
-                key={`${candidate.merchant_normalized}-${candidate.currency}`}
-                candidate={candidate}
-              />
-            ) : (
-              <SubscriptionListItem
-                key={`${candidate.merchant_normalized}-${candidate.currency}`}
-                candidate={candidate}
-              />
-            ),
-          )}
-        </section>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {candidates.length === 0 ? (
+          <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)]">
+            <EmptyState
+              icon={AlertCircle}
+              title={t("subscriptions.emptyTitle")}
+              description={t("subscriptions.emptyDescription")}
+            />
+          </section>
+        ) : visibleCandidates.length === 0 ? (
+          <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)]">
+            <EmptyState
+              icon={AlertCircle}
+              title={t("subscriptions.filteredEmptyTitle")}
+              description={t("subscriptions.filteredEmptyDescription")}
+              action={{
+                label: t("subscriptions.filters.clear"),
+                onClick: clearFilters,
+              }}
+            />
+          </section>
+        ) : (
+          <section className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}>
+            {visibleCandidates.map((candidate) =>
+              viewMode === "grid" ? (
+                <SubscriptionCard
+                  key={`${candidate.merchant_normalized}-${candidate.currency}`}
+                  candidate={candidate}
+                />
+              ) : (
+                <SubscriptionListItem
+                  key={`${candidate.merchant_normalized}-${candidate.currency}`}
+                  candidate={candidate}
+                />
+              ),
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
