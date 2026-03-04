@@ -25,7 +25,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
 
   const links = [
-    { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/" },
+    { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/dashboard" },
     { icon: Receipt, label: t("navigation.transactions"), path: "/transactions" },
     { icon: Repeat, label: t("navigation.subscriptions"), path: "/subscriptions" },
     { icon: TrendingUp, label: t("navigation.metrics"), path: "/metrics" },
@@ -58,11 +58,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               key={link.path}
               to={link.path}
               onClick={onClose}
-              className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${
-                isActive
+              className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${isActive
                   ? "text-white"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
+                }`}
             >
               {isActive && (
                 <motion.div
@@ -74,9 +73,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div className="relative flex items-center gap-3 z-10">
                 <link.icon
                   size={20}
-                  className={`transition-transform duration-200 ${
-                    isActive ? "scale-110" : "group-hover:scale-110"
-                  }`}
+                  className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"
+                    }`}
                 />
                 <span className="font-medium">{link.label}</span>
               </div>

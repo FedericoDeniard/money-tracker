@@ -19,19 +19,19 @@ export function ResetPassword() {
     const checkSession = async () => {
       const supabase = await getSupabase();
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         // No session means the reset link is invalid or expired
         navigate("/login");
       }
     };
-    
+
     checkSession();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       setMessage({
         type: "error",
@@ -53,14 +53,14 @@ export function ResetPassword() {
 
     try {
       const supabase = await getSupabase();
-      
+
       // Check current session
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
+
       if (!currentSession) {
         throw new Error("No active session found. Please try requesting a new reset link.");
       }
-      
+
       // Fire the update request without waiting (workaround for SDK not resolving)
       supabase.auth.updateUser({ password: password })
         .catch(() => {
@@ -76,7 +76,7 @@ export function ResetPassword() {
 
       // Redirect to home after 1.5 seconds with a full page reload
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = "/dashboard";
       }, 1500);
     } catch (error: unknown) {
       const errorMessage =
@@ -105,11 +105,10 @@ export function ResetPassword() {
         {/* Message */}
         {message && (
           <div
-            className={`mb-6 p-4 rounded-2xl ${
-              message.type === "success"
+            className={`mb-6 p-4 rounded-2xl ${message.type === "success"
                 ? "bg-green-50 text-green-800 border border-green-200"
                 : "bg-red-50 text-red-800 border border-red-200"
-            }`}
+              }`}
           >
             {message.text}
           </div>

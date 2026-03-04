@@ -10,6 +10,7 @@ import { NotFound } from "../pages/NotFound";
 import { AuthCallback } from "../pages/AuthCallback";
 import { ForgotPassword } from "../pages/ForgotPassword";
 import { ResetPassword } from "../pages/ResetPassword";
+import { LandingPage } from "../pages/LandingPage";
 import { useAuth } from "../hooks/useAuth";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 
@@ -34,37 +35,38 @@ export function AppRoutes() {
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/" replace /> : <Login />}
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
       />
       <Route
         path="/register"
-        element={user ? <Navigate to="/" replace /> : <Register />}
+        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
       />
       <Route
         path="/forgot-password"
-        element={user ? <Navigate to="/" replace /> : <ForgotPassword />}
+        element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
       />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
+      {/* Landing page at root */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Protected routes with dashboard layout */}
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <DashboardLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Home />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="transactions" element={<Transactions />} />
-        <Route path="subscriptions" element={<Subscriptions />} />
-        <Route path="emails" element={<Navigate to="/transactions" replace />} />
-        <Route path="metrics" element={<Metrics />} />
-        <Route path="*" element={<NotFound />} />
+        <Route path="/dashboard" element={<Home />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/emails" element={<Navigate to="/transactions" replace />} />
+        <Route path="/metrics" element={<Metrics />} />
       </Route>
 
-      {/* Fallback for non-auth routes */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

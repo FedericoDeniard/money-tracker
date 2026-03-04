@@ -12,7 +12,7 @@ export function AuthCallback() {
     const handleCallback = async () => {
       try {
         const supabase = await getSupabase();
-        
+
         // Supabase automatically handles the OAuth callback and sets the session
         // We just need to check if the session was established
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -25,7 +25,7 @@ export function AuthCallback() {
 
         if (session) {
           // Successfully authenticated, redirect to home
-          navigate("/", { replace: true });
+          navigate("/dashboard", { replace: true });
         } else {
           // No session, redirect to login
           navigate("/login");
