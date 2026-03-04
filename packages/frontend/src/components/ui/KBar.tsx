@@ -66,7 +66,7 @@ function KBarInner() {
       shortcut: ["d"],
       keywords: t("kbar.keywords.dashboard"),
       section: t("kbar.navigation"),
-      perform: () => navigate("/"),
+      perform: () => navigate("/dashboard"),
     },
     {
       id: "transactions",
@@ -113,7 +113,7 @@ function KBarInner() {
   ];
 
   // Combine actions based on auth state
-  const actions = user 
+  const actions = user
     ? [...baseActions, ...authActions]
     : [...baseActions, ...guestActions];
 
@@ -136,11 +136,10 @@ function KBarInner() {
                 </div>
               ) : (
                 <div
-                  className={`px-4 py-3 text-sm cursor-pointer flex items-center gap-3 transition-colors ${
-                    active
+                  className={`px-4 py-3 text-sm cursor-pointer flex items-center gap-3 transition-colors ${active
                       ? "bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
                       : "text-gray-900 dark:text-gray-100"
-                  }`}
+                    }`}
                 >
                   <span className="text-lg">
                     {item.id === "dashboard"
@@ -149,17 +148,17 @@ function KBarInner() {
                         ? "💰"
                         : item.id === "subscriptions"
                           ? "🔁"
-                        : item.id === "settings"
-                          ? "⚙️"
-                        : item.id === "language"
-                          ? "🌐"
-                        : item.id === "login"
-                          ? "🔑"
-                        : item.id === "register"
-                          ? "👤"
-                        : item.id === "logout"
-                          ? "⚡"
-                          : "📄"}
+                          : item.id === "settings"
+                            ? "⚙️"
+                            : item.id === "language"
+                              ? "🌐"
+                              : item.id === "login"
+                                ? "🔑"
+                                : item.id === "register"
+                                  ? "👤"
+                                  : item.id === "logout"
+                                    ? "⚡"
+                                    : "📄"}
                   </span>
                   <div className="flex-1">{item.name}</div>
                   {item.shortcut && (

@@ -41,7 +41,7 @@ export function NotFound() {
           <Button
             icon={<Home size={20} />}
             iconPosition="left"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
           >
             {t("errors.goHome")}
           </Button>
