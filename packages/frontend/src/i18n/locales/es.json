@@ -207,8 +207,14 @@
     "lastDate": "Último cobro",
     "nextDate": "Próximo estimado",
     "sourceConsistency": "Origen",
+    "statusLabel": "Estado",
     "consistent": "Consistente",
     "variable": "Variable",
+    "status": {
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "unknown": "Sin fecha estimada"
+    },
     "frequency": {
       "monthly": "Mensual",
       "yearly": "Anual",

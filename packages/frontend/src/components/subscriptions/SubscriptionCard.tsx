@@ -4,9 +4,31 @@ import { useFormatDate } from "../../hooks/useFormatDate";
 import type { SubscriptionCandidate } from "../../services/transactions.service";
 import { formatCurrency } from "../../utils/currency";
 
+const SUBSCRIPTION_INACTIVE_GRACE_DAYS = 10;
+
+type SubscriptionStatus = "active" | "inactive" | "unknown";
+
 function getConfidenceClass(score: number): string {
   if (score >= 75) return "bg-emerald-100 text-emerald-700";
   if (score >= 50) return "bg-yellow-100 text-yellow-700";
+  return "bg-gray-100 text-gray-700";
+}
+
+function getSubscriptionStatus(nextEstimatedDate: string | null): SubscriptionStatus {
+  if (!nextEstimatedDate) return "unknown";
+
+  const nextDate = new Date(`${nextEstimatedDate}T00:00:00`);
+  if (Number.isNaN(nextDate.getTime())) return "unknown";
+
+  const inactiveDeadline = new Date(nextDate);
+  inactiveDeadline.setDate(inactiveDeadline.getDate() + SUBSCRIPTION_INACTIVE_GRACE_DAYS);
+
+  return new Date() > inactiveDeadline ? "inactive" : "active";
+}
+
+function getStatusClass(status: SubscriptionStatus): string {
+  if (status === "active") return "bg-emerald-100 text-emerald-700";
+  if (status === "inactive") return "bg-rose-100 text-rose-700";
   return "bg-gray-100 text-gray-700";
 }
 
@@ -18,16 +40,27 @@ export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
   const { t } = useTranslation();
   const { formatShortDate } = useFormatDate();
   const confidence = Math.min(100, Math.max(0, Math.round(candidate.confidence_score)));
+  const status = getSubscriptionStatus(candidate.next_estimated_date);
 
   return (
     <article className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-          {candidate.merchant_display || candidate.merchant_normalized}
-        </h2>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(confidence)}`}>
-          {t("subscriptions.confidence", { value: confidence })}
-        </span>
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+            {candidate.merchant_display || candidate.merchant_normalized}
+          </h2>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+            {t("subscriptions.statusLabel")}: {t(`subscriptions.status.${status}`)}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(confidence)}`}>
+            {t("subscriptions.confidence", { value: confidence })}
+          </span>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(status)}`}>
+            {t(`subscriptions.status.${status}`)}
+          </span>
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
