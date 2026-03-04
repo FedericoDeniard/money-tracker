@@ -10,7 +10,7 @@ interface UseSubscriptionCandidatesOptions {
 
 export function useSubscriptionCandidates(options?: UseSubscriptionCandidatesOptions) {
   const minConfidence = options?.minConfidence ?? 50;
-  const minOccurrences = options?.minOccurrences ?? 3;
+  const minOccurrences = options?.minOccurrences ?? 2;
 
   return useQuery({
     queryKey: queryKeys.subscriptions.candidates({

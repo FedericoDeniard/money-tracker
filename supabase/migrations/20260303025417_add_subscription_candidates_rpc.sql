@@ -1,6 +1,6 @@
 -- Detect recurring subscription-like expenses from existing transactions.
 CREATE OR REPLACE FUNCTION public.get_subscription_candidates(
-  p_min_occurrences integer DEFAULT 3,
+  p_min_occurrences integer DEFAULT 2,
   p_min_confidence numeric DEFAULT 50
 )
 RETURNS TABLE (
