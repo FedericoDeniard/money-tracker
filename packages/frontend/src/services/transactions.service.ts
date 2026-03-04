@@ -315,7 +315,7 @@ export class TransactionsService {
   }): Promise<SubscriptionCandidate[]> {
     const { data, error } = await this.supabase.rpc('get_subscription_candidates', {
       p_min_confidence: options?.minConfidence ?? 50,
-      p_min_occurrences: options?.minOccurrences ?? 3,
+      p_min_occurrences: options?.minOccurrences ?? 2,
     });
 
     if (error) throw error;
