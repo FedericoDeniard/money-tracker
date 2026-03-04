@@ -29,7 +29,6 @@ export function Subscriptions() {
     isFetching,
   } = useSubscriptionCandidates({
     minConfidence: 50,
-    minOccurrences: 3,
   });
 
   const visibleCandidates = useMemo(() => {
