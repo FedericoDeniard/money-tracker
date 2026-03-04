@@ -217,6 +217,11 @@
       "inactive": "Inactiva",
       "unknown": "Sin fecha estimada"
     },
+    "gracePeriod": {
+      "title": "En período de gracia",
+      "description_one": "Ya pasó la fecha estimada. Queda {{days}} día para marcarla inactiva (margen de {{total}} días).",
+      "description_other": "Ya pasó la fecha estimada. Quedan {{days}} días para marcarla inactiva (margen de {{total}} días)."
+    },
     "frequency": {
       "monthly": "Mensual",
       "yearly": "Anual",

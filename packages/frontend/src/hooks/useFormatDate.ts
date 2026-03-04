@@ -17,10 +17,11 @@ export function useFormatDate() {
     });
   };
 
-  const formatShortDate = (dateString: string): string => {
+  const formatShortDate = (dateString: string, includeYear = false): string => {
     return new Date(dateString).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'short',
+      ...(includeYear ? { year: 'numeric' } : {}),
     });
   };
 

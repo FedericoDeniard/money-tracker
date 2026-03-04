@@ -132,6 +132,19 @@ inactive_seed AS (
     (date '2025-09-05' + make_interval(months => gs.n))::date AS tx_date
   FROM test_user u
   CROSS JOIN generate_series(0, 2) AS gs(n)
+),
+missed_march_seed AS (
+  SELECT
+    u.id AS user_id,
+    v.seq,
+    v.tx_date
+  FROM test_user u
+  CROSS JOIN (
+    VALUES
+      (0, date '2025-11-28'),
+      (1, date '2025-12-28'),
+      (2, date '2026-01-28')
+  ) AS v(seq, tx_date)
 )
 INSERT INTO public.transactions (
   id,
@@ -191,6 +204,21 @@ SELECT
   'CloudSafe',
   'services'
 FROM yearly_seed y
+UNION ALL
+SELECT
+  gen_random_uuid(),
+  mm.user_id,
+  'billing@fitprime.com',
+  format('seed-test-subscription-fitprime-%s', lpad(mm.seq::text, 2, '0')),
+  (mm.tx_date + interval '07:45:00'),
+  24.99,
+  'USD',
+  'expense',
+  'FitPrime monthly plan',
+  mm.tx_date,
+  'FitPrime',
+  'services'
+FROM missed_march_seed mm
 UNION ALL
 SELECT
   gen_random_uuid(),

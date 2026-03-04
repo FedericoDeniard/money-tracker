@@ -217,6 +217,11 @@
       "inactive": "Inactive",
       "unknown": "No estimated date"
     },
+    "gracePeriod": {
+      "title": "In grace period",
+      "description_one": "The estimated date already passed. {{days}} day left before it becomes inactive ({{total}}-day grace).",
+      "description_other": "The estimated date already passed. {{days}} days left before it becomes inactive ({{total}}-day grace)."
+    },
     "frequency": {
       "monthly": "Monthly",
       "yearly": "Yearly",
