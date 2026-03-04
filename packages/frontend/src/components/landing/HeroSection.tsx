@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { useTranslation } from "react-i18next";
 import logo from "../../logo.svg";
+import { SubscriptionListItem } from "../subscriptions/SubscriptionListItem";
 
 export function HeroSection() {
     const { t } = useTranslation();
@@ -87,47 +88,57 @@ export function HeroSection() {
                             <div className="w-3 h-3 rounded-full bg-amber-400" />
                             <div className="w-3 h-3 rounded-full bg-green-400" />
                         </div>
-                        <div className="p-8 pb-32 grid grid-cols-1 md:grid-cols-3 gap-6 opacity-80 pointer-events-none select-none">
-                            {/* Fake dashboard cards */}
-                            <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between">
-                                <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-                                    <DecorativeSquare size={40} className="absolute inset-0 m-auto" />
-                                    <img
-                                        src={logo}
-                                        alt="Money Tracker Logo"
-                                        className="relative z-10 w-full h-full p-1.5 object-contain"
-                                    />
-                                </div>
+                        <div className="p-8 pb-12 opacity-90 pointer-events-none select-none flex flex-col gap-6">
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                                    <div className="h-8 w-32 bg-gray-300 rounded" />
+                                    <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                                        {t("navigation.subscriptions", "Subscriptions")}
+                                    </h2>
+                                    <p className="text-[var(--text-secondary)]">
+                                        {t("subscriptions.emptyDescription", "Automatic detection and tracking")}
+                                    </p>
+                                </div>
+                                <div className="text-right hidden sm:block">
+                                    <div className="text-sm text-[var(--text-secondary)]">Total (Monthly)</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)]">$71.18</div>
                                 </div>
                             </div>
-                            <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between hidden md:flex">
-                                <div className="w-10 h-10 rounded-lg bg-[var(--success)]/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 rounded bg-[var(--success)]/50" />
-                                </div>
-                                <div>
-                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                                    <div className="h-8 w-32 bg-[var(--success)]/30 rounded" />
-                                </div>
-                            </div>
-                            <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between hidden md:flex">
-                                <div className="w-10 h-10 rounded-lg bg-[var(--warning)]/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 rounded bg-[var(--warning)]/50" />
-                                </div>
-                                <div>
-                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                                    <div className="h-8 w-32 bg-[var(--warning)]/30 rounded" />
-                                </div>
-                            </div>
-                            <div className="md:col-span-3 h-64 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6">
-                                <div className="h-6 w-48 bg-gray-200 rounded mb-6" />
-                                <div className="flex items-end gap-2 h-40">
-                                    {[40, 70, 45, 90, 65, 85, 55, 100, 75, 60].map((h, i) => (
-                                        <div key={i} className="flex-1 bg-[var(--primary)]/20 rounded-t-sm" style={{ height: `${h}%` }} />
-                                    ))}
-                                </div>
+
+                            <div className="flex flex-col gap-3">
+                                {[
+                                    {
+                                        merchant_normalized: "netflix",
+                                        merchant_display: "Netflix",
+                                        avg_amount: 15.99,
+                                        currency: "USD",
+                                        frequency: "monthly" as const,
+                                        confidence_score: 95,
+                                        next_estimated_date: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
+                                        source_email_consistent: true,
+                                    },
+                                    {
+                                        merchant_normalized: "spotify",
+                                        merchant_display: "Spotify",
+                                        avg_amount: 9.99,
+                                        currency: "USD",
+                                        frequency: "monthly" as const,
+                                        confidence_score: 98,
+                                        next_estimated_date: new Date(Date.now() + 86400000 * 12).toISOString().split("T")[0],
+                                        source_email_consistent: true,
+                                    },
+                                    {
+                                        merchant_normalized: "aws",
+                                        merchant_display: "Amazon Web Services",
+                                        avg_amount: 45.20,
+                                        currency: "USD",
+                                        frequency: "monthly" as const,
+                                        confidence_score: 85,
+                                        next_estimated_date: new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0],
+                                        source_email_consistent: false,
+                                    }
+                                ].map((sub, i) => (
+                                    <SubscriptionListItem key={i} candidate={sub as any} />
+                                ))}
                             </div>
                         </div>
                     </div>
