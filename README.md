@@ -46,6 +46,14 @@ cp supabase/functions/.env.example supabase/functions/.env
 
 Edit each `.env` file with your actual credentials (Supabase keys, Google OAuth, xAI API key, etc.).
 
+For local internal edge-function auth, keep this value in `supabase/functions/.env`:
+
+```bash
+INTERNAL_FUNCTIONS_SECRET=local-dev-internal-secret
+```
+
+On local `db reset`, seeds populate Vault with the same value under `INTERNAL_FUNCTIONS_SECRET`.
+
 ### Run the app
 
 ```bash
@@ -100,6 +108,7 @@ Seeds are configured in `supabase/config.toml` as `sql_paths = ["./seeds/*.sql"]
 |------|-------------|
 | `001_auth_test_user.sql` | Creates test account `user@test.com` / `password123` |
 | `002_transactions_test_user.sql` | Inserts 132 demo transactions for the test account |
+| `005_internal_functions_secret_local.sql` | Upserts local Vault secret `INTERNAL_FUNCTIONS_SECRET=local-dev-internal-secret` |
 
 ## Environment variables
 
