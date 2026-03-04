@@ -201,6 +201,8 @@
     "description": "Posibles pagos recurrentes detectados automáticamente a partir de tus transacciones.",
     "emptyTitle": "No encontramos suscripciones todavía",
     "emptyDescription": "Cuando detectemos pagos recurrentes con suficiente confianza aparecerán aquí.",
+    "filteredEmptyTitle": "Ninguna suscripción coincide con tus filtros",
+    "filteredEmptyDescription": "Probá cambiando o limpiando los filtros para ver más suscripciones.",
     "confidence": "Confianza {{value}}%",
     "avgAmount": "Monto promedio",
     "occurrences": "Cobros detectados",
@@ -219,6 +221,23 @@
       "monthly": "Mensual",
       "yearly": "Anual",
       "unknown": "Sin frecuencia"
+    },
+    "filters": {
+      "clear": "Limpiar filtros",
+      "sortLabel": "Ordenar suscripciones",
+      "status": {
+        "all": "Todas",
+        "active": "Activas",
+        "inactive": "Inactivas"
+      },
+      "sort": {
+        "status": "Activas primero",
+        "amount_desc": "Mayor monto",
+        "amount_asc": "Menor monto",
+        "next_date_asc": "Próximo cobro",
+        "confidence_desc": "Más confianza",
+        "merchant_asc": "A-Z"
+      }
     }
   },
   "categories": {

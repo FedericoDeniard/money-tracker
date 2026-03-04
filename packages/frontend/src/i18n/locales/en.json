@@ -201,6 +201,8 @@
     "description": "Possible recurring payments detected automatically from your transactions.",
     "emptyTitle": "No subscriptions detected yet",
     "emptyDescription": "Detected recurring charges with enough confidence will appear here.",
+    "filteredEmptyTitle": "No subscriptions match your filters",
+    "filteredEmptyDescription": "Try changing or clearing filters to see more subscriptions.",
     "confidence": "Confidence {{value}}%",
     "avgAmount": "Average amount",
     "occurrences": "Detected charges",
@@ -219,6 +221,23 @@
       "monthly": "Monthly",
       "yearly": "Yearly",
       "unknown": "No frequency"
+    },
+    "filters": {
+      "clear": "Clear filters",
+      "sortLabel": "Sort subscriptions",
+      "status": {
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "sort": {
+        "status": "Active first",
+        "amount_desc": "Highest amount",
+        "amount_asc": "Lowest amount",
+        "next_date_asc": "Next charge",
+        "confidence_desc": "Highest confidence",
+        "merchant_asc": "A-Z"
+      }
     }
   },
   "categories": {

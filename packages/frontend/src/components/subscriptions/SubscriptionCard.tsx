@@ -3,27 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useFormatDate } from "../../hooks/useFormatDate";
 import type { SubscriptionCandidate } from "../../services/transactions.service";
 import { formatCurrency } from "../../utils/currency";
-
-const SUBSCRIPTION_INACTIVE_GRACE_DAYS = 10;
-
-type SubscriptionStatus = "active" | "inactive" | "unknown";
+import { getSubscriptionStatus, type SubscriptionStatus } from "./subscriptionStatus";
 
 function getConfidenceClass(score: number): string {
   if (score >= 75) return "bg-emerald-100 text-emerald-700";
   if (score >= 50) return "bg-yellow-100 text-yellow-700";
   return "bg-gray-100 text-gray-700";
-}
-
-function getSubscriptionStatus(nextEstimatedDate: string | null): SubscriptionStatus {
-  if (!nextEstimatedDate) return "unknown";
-
-  const nextDate = new Date(`${nextEstimatedDate}T00:00:00`);
-  if (Number.isNaN(nextDate.getTime())) return "unknown";
-
-  const inactiveDeadline = new Date(nextDate);
-  inactiveDeadline.setDate(inactiveDeadline.getDate() + SUBSCRIPTION_INACTIVE_GRACE_DAYS);
-
-  return new Date() > inactiveDeadline ? "inactive" : "active";
 }
 
 function getStatusClass(status: SubscriptionStatus): string {
