@@ -119,6 +119,89 @@ Seeds are configured in `supabase/config.toml` as `sql_paths = ["./seeds/*.sql"]
 
 See each `.env.example` for the full list of required variables.
 
+## Production secrets checklist
+
+### Edge Functions secrets (remote)
+
+Set these in your remote project (Dashboard or CLI):
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `FRONTEND_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `OAUTH_REDIRECT_URI`
+- `GOOGLE_PROJECT_ID`
+- `PUBSUB_TOPIC`
+- `XAI_API_KEY`
+- `LANGFUSE_SECRET_KEY`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_BASE_URL`
+- `CORS_ALLOWED_ORIGINS`
+- `CORS_ALLOW_CREDENTIALS`
+- `INTERNAL_FUNCTIONS_SECRET`
+
+Example with CLI:
+
+```bash
+supabase secrets set \
+  SUPABASE_URL=... \
+  SUPABASE_ANON_KEY=... \
+  SUPABASE_SERVICE_ROLE_KEY=... \
+  FRONTEND_URL=... \
+  GOOGLE_CLIENT_ID=... \
+  GOOGLE_CLIENT_SECRET=... \
+  OAUTH_REDIRECT_URI=... \
+  GOOGLE_PROJECT_ID=... \
+  PUBSUB_TOPIC=... \
+  XAI_API_KEY=... \
+  LANGFUSE_SECRET_KEY=... \
+  LANGFUSE_PUBLIC_KEY=... \
+  LANGFUSE_BASE_URL=... \
+  CORS_ALLOWED_ORIGINS=https://bun-react-template-production.up.railway.app \
+  CORS_ALLOW_CREDENTIALS=false \
+  INTERNAL_FUNCTIONS_SECRET=...
+```
+
+### Vault secret (remote database)
+
+`renew_gmail_watches()` reads `INTERNAL_FUNCTIONS_SECRET` from Vault, so this value must also exist in `vault.decrypted_secrets` with the same name.
+
+Create:
+
+```sql
+select vault.create_secret(
+  'YOUR_INTERNAL_FUNCTIONS_SECRET',
+  'INTERNAL_FUNCTIONS_SECRET',
+  'Internal token used by renew_gmail_watches()'
+);
+```
+
+Update:
+
+```sql
+select vault.update_secret(
+  (
+    select id
+    from vault.decrypted_secrets
+    where name = 'INTERNAL_FUNCTIONS_SECRET'
+    limit 1
+  ),
+  'YOUR_INTERNAL_FUNCTIONS_SECRET',
+  'INTERNAL_FUNCTIONS_SECRET',
+  'Internal token used by renew_gmail_watches()'
+);
+```
+
+Verify:
+
+```sql
+select name, length(decrypted_secret) as secret_len, updated_at
+from vault.decrypted_secrets
+where name = 'INTERNAL_FUNCTIONS_SECRET';
+```
+
 ## Toolbox container
 
 You can enter the Supabase CLI container to run any command manually:
