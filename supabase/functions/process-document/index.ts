@@ -2,12 +2,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts"
+import { requireUserAuth } from "../_shared/auth.ts"
+import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts"
 import { extractText, getDocumentProxy } from 'npm:unpdf'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 interface ImageAttachment {
   data: Uint8Array;
@@ -16,9 +13,11 @@ interface ImageAttachment {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflightResponse = handleCorsPreflightRequest(req)
+  if (preflightResponse) {
+    return preflightResponse
   }
+  const corsHeaders = getCorsHeaders(req)
 
   if (req.method !== 'POST') {
     return new Response(
@@ -28,30 +27,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authenticate user
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const auth = await requireUserAuth(req, corsHeaders)
+    if (auth instanceof Response) {
+      return auth
     }
-
-    const token = authHeader.replace('Bearer ', '')
-
-    // Verify token with Supabase
-    const supabaseAnon = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    )
-    const { data: { user }, error } = await supabaseAnon.auth.getUser(token)
-
-    if (error || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const { user } = auth
 
     // Parse request body as raw binary
     const contentType = req.headers.get('content-type') || ''

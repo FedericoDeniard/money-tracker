@@ -1,18 +1,19 @@
 // Gmail Disconnect Edge Function - Handles Gmail disconnection
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { requireUserAuth } from '../_shared/auth.ts'
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const corsHeaderOverrides = {
   'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflightResponse = handleCorsPreflightRequest(req, corsHeaderOverrides)
+  if (preflightResponse) {
+    return preflightResponse
   }
+  const corsHeaders = getCorsHeaders(req, corsHeaderOverrides)
 
   try {
     // Only allow DELETE method
@@ -41,35 +42,11 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get authorization token
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    const auth = await requireUserAuth(req, corsHeaders)
+    if (auth instanceof Response) {
+      return auth
     }
-
-    const token = authHeader.replace('Bearer ', '')
-
-    // Verify user is authenticated using anon client
-    const supabaseAnon = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
-    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token)
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
+    const { user } = auth
 
     // Use service role for DB operations
     const supabase = createClient(

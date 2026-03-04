@@ -1,17 +1,14 @@
 // OAuth Start Edge Function - Initiates Google OAuth flow
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { requireUserToken } from '../_shared/auth.ts'
+import { getCorsHeaders, handleCorsPreflightRequest } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflightResponse = handleCorsPreflightRequest(req)
+  if (preflightResponse) {
+    return preflightResponse
   }
+  const corsHeaders = getCorsHeaders(req)
 
   if (req.method !== 'GET') {
     return new Response(
@@ -38,24 +35,9 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    )
-
-    // Verify the token and get user
-    const { data: { user }, error } = await supabase.auth.getUser(token)
-    
-    if (error || !user) {
-      console.error('Auth verification failed:', error)
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    const authResult = await requireUserToken(token || '', corsHeaders)
+    if (authResult instanceof Response) {
+      return authResult
     }
 
     // Get Google OAuth configuration
