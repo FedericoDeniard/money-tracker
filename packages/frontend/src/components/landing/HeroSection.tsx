@@ -3,6 +3,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { useTranslation } from "react-i18next";
+import logo from "../../logo.svg";
 
 export function HeroSection() {
     const { t } = useTranslation();
@@ -89,8 +90,13 @@ export function HeroSection() {
                         <div className="p-8 pb-32 grid grid-cols-1 md:grid-cols-3 gap-6 opacity-80 pointer-events-none select-none">
                             {/* Fake dashboard cards */}
                             <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between">
-                                <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center">
-                                    <DecorativeSquare size={24} className="text-[var(--primary)]" />
+                                <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
+                                    <DecorativeSquare size={40} className="absolute inset-0 m-auto" />
+                                    <img
+                                        src={logo}
+                                        alt="Money Tracker Logo"
+                                        className="relative z-10 w-full h-full p-1.5 object-contain"
+                                    />
                                 </div>
                                 <div>
                                     <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
