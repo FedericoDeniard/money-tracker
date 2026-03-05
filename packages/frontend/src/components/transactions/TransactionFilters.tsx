@@ -149,6 +149,41 @@ export function TransactionFiltersComponent({
         <div className="flex flex-col xl:flex-row gap-3 xl:items-center xl:justify-end xl:flex-1 shrink-0">
 
           <div className="flex flex-row flex-wrap gap-2 items-center justify-start xl:justify-end w-full xl:w-auto">
+            {/* Service Name Search */}
+            <div className="relative flex-1 min-w-[140px] sm:flex-none">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                placeholder={t("transactions.serviceNamePlaceholder")}
+                className="w-full sm:w-[180px] pl-9 pr-3 py-1.5 md:py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm h-8 md:h-9 text-gray-700 placeholder:text-gray-500 focus:outline-none focus:border-[var(--primary)]"
+              />
+            </div>
+
+            {/* Date Range Button */}
+            <Button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              variant="outline"
+              size="sm"
+              selected={!!(filters.startDate || filters.endDate || showDatePicker)}
+              className="flex-1 sm:flex-none text-xs md:text-sm h-8 md:h-9 px-2 md:px-3"
+              icon={<Calendar size={14} />}
+            >
+              <span className="text-xs md:text-sm font-medium whitespace-nowrap">
+                {filters.startDate || filters.endDate
+                  ? `${filters.startDate || "..."} - ${filters.endDate || "..."}`
+                  : t("transactions.dateRange")}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`opacity-50 transition-transform ${showDatePicker ? "rotate-180" : ""}`}
+              />
+            </Button>
+
             {/* Type Filter - Segmented Control Style */}
             <div className="bg-[var(--bg-secondary)] p-1 rounded-lg flex items-center gap-1 w-full sm:w-auto overflow-x-auto shrink-0">
               {[
@@ -171,45 +206,6 @@ export function TransactionFiltersComponent({
                   </Button>
                 );
               })}
-            </div>
-
-            {/* Service Name Search */}
-            <div className="relative flex-1 min-w-[140px] sm:flex-none">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-              />
-              <input
-                type="text"
-                value={serviceSearch}
-                onChange={(e) => setServiceSearch(e.target.value)}
-                placeholder={t("transactions.serviceNamePlaceholder")}
-                className="w-full sm:w-[180px] pl-9 pr-3 py-1.5 md:py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm h-8 md:h-9 text-gray-700 placeholder:text-gray-500 focus:outline-none focus:border-[var(--primary)]"
-              />
-            </div>
-
-            {/* Currency */}
-            <div className="flex-1 min-w-[120px] sm:flex-none">
-              <FilterDropdown
-                icon={Wallet}
-                label={t("transactions.currency")}
-                value={filters.currency}
-                allLabel={t("transactions.allCurrencies")}
-                onChange={(val) => updateFilter("currency", val)}
-                options={availableCurrencies.map((c) => ({ value: c, label: c }))}
-              />
-            </div>
-
-            {/* Email */}
-            <div className="flex-1 min-w-[120px] sm:flex-none">
-              <FilterDropdown
-                icon={Mail}
-                label={t("transactions.email")}
-                value={filters.email}
-                allLabel={t("transactions.allEmails")}
-                onChange={(val) => updateFilter("email", val)}
-                options={availableEmails.map((e) => ({ value: e, label: e }))}
-              />
             </div>
 
             {/* Category */}
@@ -248,25 +244,29 @@ export function TransactionFiltersComponent({
               </select>
             </div>
 
-            {/* Date Range Button */}
-            <Button
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              variant="outline"
-              size="sm"
-              selected={!!(filters.startDate || filters.endDate || showDatePicker)}
-              className="flex-1 sm:flex-none text-xs md:text-sm h-8 md:h-9 px-2 md:px-3"
-              icon={<Calendar size={14} />}
-            >
-              <span className="text-xs md:text-sm font-medium whitespace-nowrap">
-                {filters.startDate || filters.endDate
-                  ? `${filters.startDate || "..."} - ${filters.endDate || "..."}`
-                  : t("transactions.dateRange")}
-              </span>
-              <ChevronDown
-                size={14}
-                className={`opacity-50 transition-transform ${showDatePicker ? "rotate-180" : ""}`}
+            {/* Currency */}
+            <div className="flex-1 min-w-[120px] sm:flex-none">
+              <FilterDropdown
+                icon={Wallet}
+                label={t("transactions.currency")}
+                value={filters.currency}
+                allLabel={t("transactions.allCurrencies")}
+                onChange={(val) => updateFilter("currency", val)}
+                options={availableCurrencies.map((c) => ({ value: c, label: c }))}
               />
-            </Button>
+            </div>
+
+            {/* Email */}
+            <div className="flex-1 min-w-[120px] sm:flex-none">
+              <FilterDropdown
+                icon={Mail}
+                label={t("transactions.email")}
+                value={filters.email}
+                allLabel={t("transactions.allEmails")}
+                onChange={(val) => updateFilter("email", val)}
+                options={availableEmails.map((e) => ({ value: e, label: e }))}
+              />
+            </div>
 
             {/* Clear Filters Button */}
             {hasActiveFilters && (

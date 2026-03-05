@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { useTranslation } from "react-i18next";
-import logo from "../../logo.svg";
 import { SubscriptionListItem } from "../subscriptions/SubscriptionListItem";
 import { useState, useEffect } from "react";
 
@@ -12,10 +10,10 @@ export function HeroSection() {
     const [activeTab, setActiveTab] = useState(0);
 
     useEffect(() => {
-        const interval = setInterval(() => {
+        const interval = window.setInterval(() => {
             setActiveTab((prev) => (prev === 0 ? 1 : 0));
         }, 5000);
-        return () => clearInterval(interval);
+        return () => window.clearInterval(interval);
     }, []);
 
     const subscriptionsMock = (
@@ -48,34 +46,55 @@ export function HeroSection() {
                         merchant_normalized: "netflix",
                         merchant_display: "Netflix",
                         avg_amount: 15.99,
+                        min_amount: 15.99,
+                        max_amount: 15.99,
+                        occurrences: 12,
+                        interval_days_avg: 30,
+                        interval_stddev: 0.5,
                         currency: "USD",
-                        frequency: "monthly" as const,
+                        frequency: "monthly",
+                        last_date: new Date().toISOString().substring(0, 10),
+                        next_estimated_date: new Date(Date.now() + 86400000 * 5).toISOString().substring(0, 10),
+                        category: "entertainment",
                         confidence_score: 95,
-                        next_estimated_date: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
                         source_email_consistent: true,
                     },
                     {
                         merchant_normalized: "spotify",
                         merchant_display: "Spotify",
                         avg_amount: 9.99,
+                        min_amount: 9.99,
+                        max_amount: 9.99,
+                        occurrences: 24,
+                        interval_days_avg: 30,
+                        interval_stddev: 0.2,
                         currency: "USD",
-                        frequency: "monthly" as const,
+                        frequency: "monthly",
+                        last_date: new Date().toISOString().substring(0, 10),
+                        next_estimated_date: new Date(Date.now() + 86400000 * 12).toISOString().substring(0, 10),
+                        category: "entertainment",
                         confidence_score: 98,
-                        next_estimated_date: new Date(Date.now() + 86400000 * 12).toISOString().split("T")[0],
                         source_email_consistent: true,
                     },
                     {
                         merchant_normalized: "aws",
                         merchant_display: "Amazon Web Services",
                         avg_amount: 45.20,
+                        min_amount: 40.00,
+                        max_amount: 50.00,
+                        occurrences: 6,
+                        interval_days_avg: 30,
+                        interval_stddev: 2.5,
                         currency: "USD",
-                        frequency: "monthly" as const,
+                        frequency: "monthly",
+                        last_date: new Date().toISOString().substring(0, 10),
+                        next_estimated_date: new Date(Date.now() - 86400000 * 2).toISOString().substring(0, 10),
+                        category: "services",
                         confidence_score: 85,
-                        next_estimated_date: new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0],
                         source_email_consistent: false,
                     }
                 ].map((sub, i) => (
-                    <SubscriptionListItem key={i} candidate={sub as any} />
+                    <SubscriptionListItem key={i} candidate={sub} />
                 ))}
             </div>
         </motion.div>

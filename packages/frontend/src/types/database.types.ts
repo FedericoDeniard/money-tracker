@@ -614,6 +614,32 @@ export type Database = {
           source_email_consistent: boolean
         }[]
       }
+      get_subscription_transactions: {
+        Args: { p_currency: string; p_merchant_normalized: string }
+        Returns: {
+          amount: number
+          category: string
+          created_at: string | null
+          currency: string
+          date: string
+          id: string
+          merchant: string
+          source_email: string
+          source_message_id: string
+          transaction_date: string
+          transaction_description: string
+          transaction_type: string
+          updated_at: string | null
+          user_id: string
+          user_oauth_token_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "transactions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       health_check: {
         Args: never
         Returns: {
