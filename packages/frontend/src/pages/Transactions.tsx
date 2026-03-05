@@ -185,23 +185,25 @@ export function Transactions() {
       )}
 
       {/* Filters */}
-      <TransactionFiltersComponent
-        filters={filters}
-        onFiltersChange={setFilters}
-        availableCurrencies={availableCurrencies}
-        availableEmails={availableEmails}
-        categories={categories}
-        isLoading={loading}
-      />
+      <div className="shrink-0">
+        <TransactionFiltersComponent
+          filters={filters}
+          onFiltersChange={setFilters}
+          availableCurrencies={availableCurrencies}
+          availableEmails={availableEmails}
+          categories={categories}
+          isLoading={loading}
+        />
+      </div>
 
       <div className="flex flex-1 gap-4 min-h-0 relative">
         {/* Transaction List */}
         <div className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? 'hidden' : 'block'}`}>
           <div className="p-4 border-b border-[var(--text-secondary)]/20">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                <Receipt size={20} />
-                {t("navigation.transactions")} ({totalCount})
+              <h2 className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-2">
+                <Receipt size={16} />
+                {totalCount} {t("navigation.transactions").toLowerCase()}
                 {loading && <LoadingSpinner size="sm" className="ml-2" />}
               </h2>
               <Button
@@ -230,8 +232,8 @@ export function Transactions() {
         {!isMobile && (
           <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
             {selectedTransaction ? (
-              <TransactionDetail 
-                transaction={selectedTransaction} 
+              <TransactionDetail
+                transaction={selectedTransaction}
                 onDelete={handleDeleteTransaction}
                 onUpdate={handleUpdateTransaction}
               />
@@ -256,8 +258,8 @@ export function Transactions() {
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="fixed inset-0 z-50 bg-[var(--bg-secondary)] lg:hidden"
             >
-              <TransactionDetail 
-                transaction={selectedTransaction} 
+              <TransactionDetail
+                transaction={selectedTransaction}
                 onDelete={handleDeleteTransaction}
                 onUpdate={handleUpdateTransaction}
                 onClose={() => setSelectedTransaction(null)}
@@ -267,9 +269,9 @@ export function Transactions() {
         </AnimatePresence>
 
         {/* Add the button to trigger transaction creation */}
-        <AddTransactionButton 
-          onManualAdd={() => setIsFormModalOpen(true)} 
-          onUpload={() => setIsUploadModalOpen(true)} 
+        <AddTransactionButton
+          onManualAdd={() => setIsFormModalOpen(true)}
+          onUpload={() => setIsUploadModalOpen(true)}
         />
 
         {/* Transaction form modal */}

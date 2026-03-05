@@ -176,7 +176,7 @@ export function Metrics() {
     return (
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+        <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-6 shadow-sm flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">
               {t("metrics.title")}
@@ -194,7 +194,7 @@ export function Metrics() {
             onPeriodChange={setSelectedPeriod}
             onCurrencyChange={setSelectedCurrency}
           />
-        </div>
+        </section>
 
         {/* Currency Comparison */}
         <div>
@@ -212,7 +212,7 @@ export function Metrics() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-6 shadow-sm flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             {t("metrics.title")}
@@ -230,7 +230,7 @@ export function Metrics() {
           onPeriodChange={setSelectedPeriod}
           onCurrencyChange={setSelectedCurrency}
         />
-      </div>
+      </section>
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,12 +1,133 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { useTranslation } from "react-i18next";
 import logo from "../../logo.svg";
+import { SubscriptionListItem } from "../subscriptions/SubscriptionListItem";
+import { useState, useEffect } from "react";
 
 export function HeroSection() {
     const { t } = useTranslation();
+    const [activeTab, setActiveTab] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setActiveTab((prev) => (prev === 0 ? 1 : 0));
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const subscriptionsMock = (
+        <motion.div
+            key="subscriptions"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 p-8 pb-12 opacity-90 pointer-events-none select-none flex flex-col gap-6"
+        >
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                        {t("navigation.subscriptions", "Subscriptions")}
+                    </h2>
+                    <p className="text-[var(--text-secondary)]">
+                        {t("subscriptions.emptyDescription", "Automatic detection and tracking")}
+                    </p>
+                </div>
+                <div className="text-right hidden sm:block">
+                    <div className="text-sm text-[var(--text-secondary)]">Total (Monthly)</div>
+                    <div className="text-xl font-bold text-[var(--text-primary)]">$71.18</div>
+                </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+                {[
+                    {
+                        merchant_normalized: "netflix",
+                        merchant_display: "Netflix",
+                        avg_amount: 15.99,
+                        currency: "USD",
+                        frequency: "monthly" as const,
+                        confidence_score: 95,
+                        next_estimated_date: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
+                        source_email_consistent: true,
+                    },
+                    {
+                        merchant_normalized: "spotify",
+                        merchant_display: "Spotify",
+                        avg_amount: 9.99,
+                        currency: "USD",
+                        frequency: "monthly" as const,
+                        confidence_score: 98,
+                        next_estimated_date: new Date(Date.now() + 86400000 * 12).toISOString().split("T")[0],
+                        source_email_consistent: true,
+                    },
+                    {
+                        merchant_normalized: "aws",
+                        merchant_display: "Amazon Web Services",
+                        avg_amount: 45.20,
+                        currency: "USD",
+                        frequency: "monthly" as const,
+                        confidence_score: 85,
+                        next_estimated_date: new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0],
+                        source_email_consistent: false,
+                    }
+                ].map((sub, i) => (
+                    <SubscriptionListItem key={i} candidate={sub as any} />
+                ))}
+            </div>
+        </motion.div>
+    );
+
+    const transactionsMock = (
+        <motion.div
+            key="transactions"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 p-8 pb-12 opacity-90 pointer-events-none select-none flex flex-col gap-6"
+        >
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                        {t("navigation.transactions", "Transactions")}
+                    </h2>
+                    <p className="text-[var(--text-secondary)]">
+                        {t("landing.features.gmail.title", "Recent Expenses")}
+                    </p>
+                </div>
+                <div className="text-right hidden sm:block">
+                    <div className="text-sm text-[var(--text-secondary)]">Balance</div>
+                    <div className="text-xl font-bold text-emerald-600">+$2,450.00</div>
+                </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+                {[
+                    { title: "Payment to Uber", category: "Transport • Uber", date: "Today", amount: "-$12.40", currency: "USD", color: "text-rose-600" },
+                    { title: "CloudSafe annual plan", category: "Services • CloudSafe", date: "Feb 28", amount: "-$99", currency: "USD", color: "text-rose-600" },
+                    { title: "Salary Deposit", category: "Income • Acme Corp", date: "Oct 24", amount: "+$3,200.00", currency: "USD", color: "text-emerald-500" },
+                ].map((tx, i) => (
+                    <div key={i} className="relative p-4 rounded-2xl transition-all shadow-sm bg-white border border-[var(--text-secondary)]/10 hover:bg-gray-50">
+                        <div className="relative flex items-center gap-4">
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-bold truncate text-[var(--text-primary)]">{tx.title}</h3>
+                                <p className="text-sm truncate text-[var(--text-secondary)]">{tx.category}</p>
+                                <p className="text-xs mt-0.5 text-gray-400">{tx.date}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <span className={`text-lg font-bold block ${tx.color}`}>{tx.amount}</span>
+                                <span className="text-xs block text-gray-400">{tx.currency}</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </motion.div>
+    );
 
     return (
         <div className="relative overflow-hidden bg-[var(--bg-primary)] pt-16 sm:pt-24 lg:pt-32 pb-16">
@@ -81,54 +202,17 @@ export function HeroSection() {
                     className="mt-20 relative max-w-5xl mx-auto"
                 >
                     <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)] via-transparent to-transparent z-10 pointer-events-none" />
-                    <div className="relative rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-secondary)] shadow-2xl overflow-hidden">
-                        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--text-secondary)]/10 bg-white/50">
+                    <div className="relative rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-secondary)] shadow-2xl overflow-hidden h-[500px]">
+                        <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--text-secondary)]/10 bg-white/50 relative z-20">
                             <div className="w-3 h-3 rounded-full bg-red-400" />
                             <div className="w-3 h-3 rounded-full bg-amber-400" />
                             <div className="w-3 h-3 rounded-full bg-green-400" />
                         </div>
-                        <div className="p-8 pb-32 grid grid-cols-1 md:grid-cols-3 gap-6 opacity-80 pointer-events-none select-none">
-                            {/* Fake dashboard cards */}
-                            <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between">
-                                <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-                                    <DecorativeSquare size={40} className="absolute inset-0 m-auto" />
-                                    <img
-                                        src={logo}
-                                        alt="Money Tracker Logo"
-                                        className="relative z-10 w-full h-full p-1.5 object-contain"
-                                    />
-                                </div>
-                                <div>
-                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                                    <div className="h-8 w-32 bg-gray-300 rounded" />
-                                </div>
-                            </div>
-                            <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between hidden md:flex">
-                                <div className="w-10 h-10 rounded-lg bg-[var(--success)]/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 rounded bg-[var(--success)]/50" />
-                                </div>
-                                <div>
-                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                                    <div className="h-8 w-32 bg-[var(--success)]/30 rounded" />
-                                </div>
-                            </div>
-                            <div className="h-40 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6 flex flex-col justify-between hidden md:flex">
-                                <div className="w-10 h-10 rounded-lg bg-[var(--warning)]/10 flex items-center justify-center">
-                                    <div className="w-6 h-6 rounded bg-[var(--warning)]/50" />
-                                </div>
-                                <div>
-                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                                    <div className="h-8 w-32 bg-[var(--warning)]/30 rounded" />
-                                </div>
-                            </div>
-                            <div className="md:col-span-3 h-64 rounded-xl bg-white border border-[var(--text-secondary)]/10 p-6">
-                                <div className="h-6 w-48 bg-gray-200 rounded mb-6" />
-                                <div className="flex items-end gap-2 h-40">
-                                    {[40, 70, 45, 90, 65, 85, 55, 100, 75, 60].map((h, i) => (
-                                        <div key={i} className="flex-1 bg-[var(--primary)]/20 rounded-t-sm" style={{ height: `${h}%` }} />
-                                    ))}
-                                </div>
-                            </div>
+
+                        <div className="relative w-full h-[calc(100%-49px)] overflow-hidden">
+                            <AnimatePresence initial={false}>
+                                {activeTab === 0 ? subscriptionsMock : transactionsMock}
+                            </AnimatePresence>
                         </div>
                     </div>
                 </motion.div>
