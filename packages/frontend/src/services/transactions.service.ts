@@ -322,6 +322,23 @@ export class TransactionsService {
     return (data || []).map((item) => mapSubscriptionCandidate(item as Record<string, unknown>));
   }
 
+  async getSubscriptionTransactions(merchantNormalized: string, currency: string): Promise<Transaction[]> {
+    const { data, error } = await this.supabase
+      .rpc('get_subscription_transactions', {
+        p_merchant_normalized: merchantNormalized,
+        p_currency: currency,
+      })
+      .select(`
+        *,
+        user_oauth_tokens!user_oauth_token_id (
+          gmail_email
+        )
+      `);
+
+    if (error) throw error;
+    return (data as unknown as JoinedTransactionRow[] || []).map(mapJoinedTransaction);
+  }
+
   async deleteTransaction(transactionId: string): Promise<void> {
     // 1. Obtener datos de la transacción antes de borrarla
     const { data: transaction, error: fetchError } = await this.supabase

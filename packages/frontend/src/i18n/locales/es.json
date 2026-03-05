@@ -113,6 +113,7 @@
     "deleteConfirmation": "Esta acción es permanente y no se puede deshacer. ¿Estás seguro de que deseas eliminar esta transacción?",
     "deleteSuccess": "Transacción eliminada exitosamente",
     "deleteError": "Error al eliminar la transacción",
+    "history": "Historial de transacciones",
     "updateSuccess": "Transacción actualizada exitosamente",
     "updateError": "Error al actualizar la transacción",
     "noAccountsConnected": "No tienes cuentas de Gmail conectadas",
