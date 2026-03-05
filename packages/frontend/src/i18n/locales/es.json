@@ -77,6 +77,7 @@
   },
   "transactions": {
     "title": "Transacciones",
+    "pageDescription": "Gestioná y seguí todos tus ingresos y gastos en un solo lugar.",
     "addTransaction": "Agregar Transacción",
     "addManually": "Agregar manualmente",
     "uploadDocument": "Subir documento",

@@ -19,7 +19,7 @@ import { NotificationPreferencesChecklist } from "../components/notifications/No
 export function Settings() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
-  
+
   // Enable seed notifications
   useSeedNotifications(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,7 +37,7 @@ export function Settings() {
     connectionId: string;
     email: string;
   }>({ isOpen: false, connectionId: '', email: '' });
-  
+
   // Seed modal state
   const [seedModal, setSeedModal] = useState<{
     isOpen: boolean;
@@ -55,7 +55,7 @@ export function Settings() {
         message: t("settings.emailConfiguredSuccess"),
       });
       setSearchParams({});
-      
+
       // Refresh Gmail status and show seed modal
       gmailService.clearConnectionStatusCache(user?.id);
       invalidateGmailQueries();
@@ -63,11 +63,13 @@ export function Settings() {
       setTimeout(() => {
         if (gmailStatus && gmailStatus.connections.length > 0) {
           const latestConnection = gmailStatus.connections[0];
-          setSeedModal({
-            isOpen: true,
-            connectionId: latestConnection.id,
-            gmailEmail: latestConnection.gmail_email,
-          });
+          if (latestConnection) {
+            setSeedModal({
+              isOpen: true,
+              connectionId: latestConnection.id,
+              gmailEmail: latestConnection.gmail_email,
+            });
+          }
         }
       }, 1000);
     } else if (error === 'auth_failed') {
@@ -131,7 +133,7 @@ export function Settings() {
     try {
       setIsDisconnecting(connectionId);
       setDisconnectModal({ isOpen: false, connectionId: '', email: '' });
-      
+
       const result = await gmailService.disconnectGmail(connectionId);
 
       if (result.success) {
@@ -182,19 +184,23 @@ export function Settings() {
     (!isLoadingWatches && connectionsWithoutWatch.length > 0);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-8">
-      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-6">
+    <div className="max-w-4xl mx-auto p-4 sm:p-8 flex flex-col gap-4">
+      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm shrink-0">
+        <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
           {t("settings.title")}
         </h1>
+        <p className="mt-1 text-xs md:text-sm text-[var(--text-secondary)]">
+          {t("settings.pageDescription", "Manage your account preferences and integrations.")}
+        </p>
+      </section>
 
+      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 sm:p-6 shadow-sm flex-1 mb-8">
         {notification && (
           <div
-            className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
-              notification.type === "success"
-                ? "bg-green-50 border border-green-200"
-                : "bg-red-50 border border-red-200"
-            }`}
+            className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${notification.type === "success"
+              ? "bg-green-50 border border-green-200"
+              : "bg-red-50 border border-red-200"
+              }`}
           >
             {notification.type === "success" ? (
               <CheckCircle
@@ -208,11 +214,10 @@ export function Settings() {
               />
             )}
             <p
-              className={`text-sm ${
-                notification.type === "success"
-                  ? "text-green-800"
-                  : "text-red-800"
-              }`}
+              className={`text-sm ${notification.type === "success"
+                ? "text-green-800"
+                : "text-red-800"
+                }`}
             >
               {notification.message}
             </p>
@@ -243,20 +248,20 @@ export function Settings() {
                   ) : gmailStatus && gmailStatus.total > 0 ? (
                     gmailStatus.activeTotal > 0 ? (
                       gmailStatus.needsReconnectTotal > 0 ? (
-                      <span className="flex items-center gap-1 text-sm text-amber-600">
-                        <AlertCircle size={16} />
-                        {t("settings.connectedAndReconnectCount", {
-                          connected: gmailStatus.connectedTotal,
-                          reconnect: gmailStatus.needsReconnectTotal,
-                        })}
-                      </span>
+                        <span className="flex items-center gap-1 text-sm text-amber-600">
+                          <AlertCircle size={16} />
+                          {t("settings.connectedAndReconnectCount", {
+                            connected: gmailStatus.connectedTotal,
+                            reconnect: gmailStatus.needsReconnectTotal,
+                          })}
+                        </span>
                       ) : (
-                      <span className="flex items-center gap-1 text-sm text-green-600">
-                        <CheckCircle size={16} />
-                        {t("settings.connectedCount", {
-                          count: gmailStatus.connectedTotal,
-                        })}
-                      </span>
+                        <span className="flex items-center gap-1 text-sm text-green-600">
+                          <CheckCircle size={16} />
+                          {t("settings.connectedCount", {
+                            count: gmailStatus.connectedTotal,
+                          })}
+                        </span>
                       )
                     ) : (
                       <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)]">
@@ -307,8 +312,8 @@ export function Settings() {
                             <p className="text-xs text-[var(--text-secondary)]">
                               {connection.status === "connected"
                                 ? `${t("settings.connectedAt")} ${new Date(
-                                    connection.connected_at,
-                                  ).toLocaleDateString()}`
+                                  connection.connected_at,
+                                ).toLocaleDateString()}`
                                 : t("settings.needsReconnect")}
                             </p>
                             {connection.status === "needs_reconnect" && (
@@ -318,7 +323,7 @@ export function Settings() {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-2 self-end sm:self-auto shrink-0">
                           {connection.status === "connected" ? (
                             <Button
@@ -446,8 +451,8 @@ export function Settings() {
                         {loading
                           ? t("common.loading")
                           : isConnecting
-                          ? t("settings.connecting")
-                          : t("settings.addAnotherAccount")}
+                            ? t("settings.connecting")
+                            : t("settings.addAnotherAccount")}
                       </Button>
                     </div>
                   </div>
@@ -472,8 +477,8 @@ export function Settings() {
                       {loading
                         ? t("common.loading")
                         : isConnecting
-                        ? t("settings.connecting")
-                        : t("settings.connectGmail")}
+                          ? t("settings.connecting")
+                          : t("settings.connectGmail")}
                     </Button>
                   </>
                 )}
@@ -535,7 +540,7 @@ export function Settings() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Disconnect Gmail Confirmation Modal */}
       <ConfirmModal
@@ -547,7 +552,7 @@ export function Settings() {
         confirmText={t("settings.disconnect")}
         isDestructive
       />
-      
+
       {/* Seed Emails Modal */}
       <SeedEmailsModal
         isOpen={seedModal.isOpen}
@@ -555,6 +560,6 @@ export function Settings() {
         connectionId={seedModal.connectionId}
         gmailEmail={seedModal.gmailEmail}
       />
-    </div>
+    </div >
   );
 }
