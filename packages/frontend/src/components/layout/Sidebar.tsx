@@ -1,10 +1,10 @@
 import {
-  Settings,
-  Receipt,
-  LayoutDashboard,
+  PieChart,
+  ArrowRightLeft,
+  CalendarClock,
+  BarChart3,
+  SlidersHorizontal,
   LogOut,
-  TrendingUp,
-  Repeat,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -25,11 +25,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
 
   const links = [
-    { icon: LayoutDashboard, label: t("navigation.dashboard"), path: "/dashboard" },
-    { icon: Receipt, label: t("navigation.transactions"), path: "/transactions" },
-    { icon: Repeat, label: t("navigation.subscriptions"), path: "/subscriptions" },
-    { icon: TrendingUp, label: t("navigation.metrics"), path: "/metrics" },
-    { icon: Settings, label: t("navigation.settings"), path: "/settings" },
+    { icon: PieChart, label: t("navigation.dashboard"), path: "/dashboard" },
+    { icon: ArrowRightLeft, label: t("navigation.transactions"), path: "/transactions" },
+    { icon: CalendarClock, label: t("navigation.subscriptions"), path: "/subscriptions" },
+    { icon: BarChart3, label: t("navigation.metrics"), path: "/metrics" },
+    { icon: SlidersHorizontal, label: t("navigation.settings"), path: "/settings" },
   ];
 
   const sidebarContent = (
@@ -59,8 +59,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               to={link.path}
               onClick={onClose}
               className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${isActive
-                  ? "text-white"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "text-white"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
             >
               {isActive && (
