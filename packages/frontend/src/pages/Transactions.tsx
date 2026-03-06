@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { type Transaction, type TransactionFilters } from "../services/transactions.service";
@@ -13,7 +13,6 @@ import type { TransactionFormData } from '../components/transactions/Transaction
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../hooks/useAuth";
 import { useTransactions, flattenTransactionsData, getTotalCount, hasMorePages } from "../hooks/useTransactions";
-import { useTransactionFilters } from "../hooks/useTransactionFilters";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link, useSearchParams } from "react-router-dom";
@@ -21,151 +20,58 @@ import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { motion, AnimatePresence } from "framer-motion";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
+import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
-export function Transactions() {
+const categories = [
+  "salary", "entertainment", "investment", "food", "transport",
+  "services", "health", "education", "housing", "clothing", "other",
+];
+
+// ─── Data section — suspends on transactions + gmail status ──────────────────
+interface TransactionsListProps {
+  userId: string | undefined;
+  filters: TransactionFilters;
+  onFiltersChange: (f: TransactionFilters) => void;
+  selectedTransaction: Transaction | null;
+  onSelectTransaction: (t: Transaction | null) => void;
+  onDelete: (id: string) => Promise<void>;
+  onUpdate: (id: string, updates: Partial<Transaction>) => Promise<void>;
+  isMobile: boolean;
+}
+
+function TransactionsList({
+  userId,
+  filters,
+  selectedTransaction,
+  onSelectTransaction,
+  isMobile,
+}: TransactionsListProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [searchParams] = useSearchParams();
-  const isMobile = useMediaQuery("(max-width: 1024px)");
-  const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
-  const [filters, setFilters] = useState<TransactionFilters>(() => {
-    const category = searchParams.get("category");
-    return {
-      category: category || undefined,
-    };
-  });
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [preFilledData, setPreFilledData] = useState<TransactionFormData | undefined>();
 
-  // Use TanStack Query hooks
+  const { data: gmailStatus } = useGmailStatus(userId);
   const {
     data: transactionsData,
-    isLoading: loading,
-    error,
     fetchNextPage,
     isFetchingNextPage: loadingMore,
     refetch,
   } = useTransactions({ filters });
 
-  const { currencies: availableCurrencies, emails: availableEmails, isLoading: loadingFilters } = useTransactionFilters();
-  const { deleteTransaction, updateTransaction, createTransaction } = useTransactionMutations();
-  const { data: gmailStatus } = useGmailStatus(user?.id);
-
-  // Flatten transactions data from infinite query
   const transactions = flattenTransactionsData(transactionsData);
   const totalCount = getTotalCount(transactionsData);
   const hasMore = hasMorePages(transactionsData);
-
-  // Handle load more with TanStack Query
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchNextPage();
-    }
-  }, [fetchNextPage, loadingMore, hasMore]);
-
-  // Categories are static
-  const categories = [
-    "salary",
-    "entertainment",
-    "investment",
-    "food",
-    "transport",
-    "services",
-    "health",
-    "education",
-    "housing",
-    "clothing",
-    "other",
-  ];
-
-  // Derive hasConnections from cached Gmail status
   const hasConnections = gmailStatus ? gmailStatus.activeTotal > 0 : null;
 
-  const handleDeleteTransaction = async (id: string) => {
-    try {
-      await deleteTransaction(id);
-
-      // Clear selection if the deleted transaction was selected
-      if (selectedTransaction?.id === id) {
-        setSelectedTransaction(null);
-      }
-
-      toast.success(t("transactions.deleteSuccess"));
-    } catch (error) {
-      console.error("Error deleting transaction:", error);
-      toast.error(t("transactions.deleteError"));
-      throw error;
-    }
-  };
-
-  const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
-    try {
-      await updateTransaction(id, updates);
-
-      // Update selected transaction
-      if (selectedTransaction?.id === id) {
-        setSelectedTransaction({ ...selectedTransaction, ...updates });
-      }
-
-      toast.success(t("transactions.updateSuccess"));
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-      toast.error(t("transactions.updateError"));
-      throw error;
-    }
-  };
-
-  const handleUploadSuccess = useCallback(() => {
-    // Transaction was already saved to database by the Edge Function
-    // Just show success - no need to open manual form
-    toast.success(t("upload.success", "Document processed successfully!"));
-  }, [t]);
-
-  const handleUploadError = useCallback((error: string) => {
-    toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
-  }, [t]);
-
-  const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction(mapTransactionFormDataToInsert(formData));
-  };
-
-  if (loadingFilters) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-[var(--error)] mb-2">{t("errors.loadingError")}</p>
-          <Button
-            onClick={() => refetch()}
-            variant="primary"
-            size="md"
-          >
-            {t("common.retry")}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore) fetchNextPage();
+  }, [fetchNextPage, loadingMore, hasMore]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] gap-4">
-      {/* Warning banner when no Gmail accounts connected */}
+    <>
+      {/* Warning banner */}
       {hasConnections === false && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shrink-0">
           <div className="flex items-start gap-3">
-            <AlertCircle
-              className="text-yellow-600 flex-shrink-0 mt-0.5"
-              size={20}
-            />
+            <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
             <div className="flex-1">
               <h3 className="text-sm font-medium text-yellow-800">
                 {t("transactions.noAccountsConnected")}
@@ -184,51 +90,122 @@ export function Transactions() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="shrink-0">
-        <TransactionFiltersComponent
-          filters={filters}
-          onFiltersChange={setFilters}
-          availableCurrencies={availableCurrencies}
-          availableEmails={availableEmails}
-          categories={categories}
-          isLoading={loading}
-        />
-      </div>
-
-      <div className="flex flex-1 gap-4 min-h-0 relative">
-        {/* Transaction List */}
-        <div className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? 'hidden' : 'block'}`}>
-          <div className="p-4 border-b border-[var(--text-secondary)]/20">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-2">
-                <Receipt size={16} />
-                {totalCount} {t("navigation.transactions").toLowerCase()}
-                {loading && <LoadingSpinner size="sm" className="ml-2" />}
-              </h2>
-              <Button
-                onClick={() => refetch()}
-                disabled={loading}
-                variant="ghost"
-                size="sm"
-                icon={<RefreshCw size={18} className={loading ? "animate-spin" : ""} />}
-                title={t("common.refresh") || "Actualizar"}
-              />
-            </div>
-          </div>
-          <div className="overflow-y-auto flex-1 p-4">
-            <TransactionList
-              transactions={transactions || []}
-              selectedTransactionId={selectedTransaction?.id || null}
-              onSelectTransaction={setSelectedTransaction}
-              onLoadMore={handleLoadMore}
-              hasMore={hasMore}
-              isLoadingMore={loadingMore}
+      {/* Transaction List */}
+      <div className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? 'hidden' : 'block'}`}>
+        <div className="p-4 border-b border-[var(--text-secondary)]/20">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-2">
+              <Receipt size={16} />
+              {totalCount} {t("navigation.transactions").toLowerCase()}
+              {loadingMore && <LoadingSpinner size="sm" className="ml-2" />}
+            </h2>
+            <Button
+              onClick={() => refetch()}
+              disabled={loadingMore}
+              variant="ghost"
+              size="sm"
+              icon={<RefreshCw size={18} className={loadingMore ? "animate-spin" : ""} />}
+              title={t("common.refresh") || "Actualizar"}
             />
           </div>
         </div>
+        <div className="overflow-y-auto flex-1 p-4">
+          <TransactionList
+            transactions={transactions || []}
+            selectedTransactionId={selectedTransaction?.id || null}
+            onSelectTransaction={onSelectTransaction}
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
+            isLoadingMore={loadingMore}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
 
-        {/* Transaction Detail - Desktop */}
+// ─── Page shell — renders immediately ────────────────────────────────────────
+export function Transactions() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isMobile = useMediaQuery("(max-width: 1024px)");
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [filters, setFilters] = useState<TransactionFilters>(() => {
+    const category = searchParams.get("category");
+    return { category: category || undefined };
+  });
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [preFilledData, setPreFilledData] = useState<TransactionFormData | undefined>();
+
+  const { deleteTransaction, updateTransaction, createTransaction } = useTransactionMutations();
+
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await deleteTransaction(id);
+      if (selectedTransaction?.id === id) setSelectedTransaction(null);
+      toast.success(t("transactions.deleteSuccess"));
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error(t("transactions.deleteError"));
+      throw error;
+    }
+  };
+
+  const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    try {
+      await updateTransaction(id, updates);
+      if (selectedTransaction?.id === id) {
+        setSelectedTransaction({ ...selectedTransaction, ...updates });
+      }
+      toast.success(t("transactions.updateSuccess"));
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast.error(t("transactions.updateError"));
+      throw error;
+    }
+  };
+
+  const handleUploadSuccess = useCallback(() => {
+    toast.success(t("upload.success", "Document processed successfully!"));
+  }, [t]);
+
+  const handleUploadError = useCallback((error: string) => {
+    toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
+  }, [t]);
+
+  const handleCreateTransaction = async (formData: TransactionFormData) => {
+    await createTransaction(mapTransactionFormDataToInsert(formData));
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-5rem)] gap-4">
+
+      {/* Filter card: title+description render immediately;
+          Currency+Email dropdowns inside have their own Suspense */}
+      <TransactionFiltersComponent
+        filters={filters}
+        onFiltersChange={setFilters}
+        categories={categories}
+      />
+
+      {/* Transaction list + warning banner — suspends while loading */}
+      <div className="flex flex-1 gap-4 min-h-0 relative">
+        <Suspense fallback={<SuspenseFallback rows={6} className="w-1/3" />}>
+          <TransactionsList
+            userId={user?.id}
+            filters={filters}
+            onFiltersChange={setFilters}
+            selectedTransaction={selectedTransaction}
+            onSelectTransaction={setSelectedTransaction}
+            onDelete={handleDeleteTransaction}
+            onUpdate={handleUpdateTransaction}
+            isMobile={isMobile}
+          />
+        </Suspense>
+
+        {/* Detail panel — always visible */}
         {!isMobile && (
           <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
             {selectedTransaction ? (
@@ -248,7 +225,7 @@ export function Transactions() {
           </div>
         )}
 
-        {/* Transaction Detail - Mobile Overlay */}
+        {/* Mobile overlay */}
         <AnimatePresence>
           {isMobile && selectedTransaction && (
             <motion.div
@@ -268,25 +245,19 @@ export function Transactions() {
           )}
         </AnimatePresence>
 
-        {/* Add the button to trigger transaction creation */}
         <AddTransactionButton
           onManualAdd={() => setIsFormModalOpen(true)}
           onUpload={() => setIsUploadModalOpen(true)}
         />
 
-        {/* Transaction form modal */}
         <TransactionFormModal
           isOpen={isFormModalOpen}
-          onClose={() => {
-            setIsFormModalOpen(false);
-            setPreFilledData(undefined);
-          }}
+          onClose={() => { setIsFormModalOpen(false); setPreFilledData(undefined); }}
           onSave={handleCreateTransaction}
           mode="create"
           initialData={preFilledData}
         />
 
-        {/* Upload transaction modal */}
         <UploadTransactionModal
           isOpen={isUploadModalOpen}
           onClose={() => setIsUploadModalOpen(false)}

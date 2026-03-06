@@ -1,18 +1,27 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Home } from "../pages/Home";
-import { Login } from "../pages/Login";
-import { Register } from "../pages/Register";
-import { Settings } from "../pages/Settings";
-import { Transactions } from "../pages/Transactions";
-import { Metrics } from "../pages/Metrics";
-import { Subscriptions } from "../pages/Subscriptions";
-import { NotFound } from "../pages/NotFound";
-import { AuthCallback } from "../pages/AuthCallback";
-import { ForgotPassword } from "../pages/ForgotPassword";
-import { ResetPassword } from "../pages/ResetPassword";
-import { LandingPage } from "../pages/LandingPage";
 import { useAuth } from "../hooks/useAuth";
+import { ErrorBoundary } from "../components/ui/ErrorBoundary";
+import { SuspenseFallbackPage } from "../components/ui/SuspenseFallback";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
+
+// Lazy-loaded pages — each page is a separate JS chunk
+// Suspense here is only for the brief JS chunk download (happens once).
+// Data-fetching Suspense boundaries live inside each page component.
+const Home = lazy(() => import("../pages/Home").then((m) => ({ default: m.Home })));
+const Login = lazy(() => import("../pages/Login").then((m) => ({ default: m.Login })));
+const Register = lazy(() => import("../pages/Register").then((m) => ({ default: m.Register })));
+const Settings = lazy(() => import("../pages/Settings").then((m) => ({ default: m.Settings })));
+const Transactions = lazy(() => import("../pages/Transactions").then((m) => ({ default: m.Transactions })));
+const Metrics = lazy(() => import("../pages/Metrics").then((m) => ({ default: m.Metrics })));
+const Subscriptions = lazy(() => import("../pages/Subscriptions").then((m) => ({ default: m.Subscriptions })));
+const NotFound = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFound })));
+const AuthCallback = lazy(() => import("../pages/AuthCallback").then((m) => ({ default: m.AuthCallback })));
+const ForgotPassword = lazy(() => import("../pages/ForgotPassword").then((m) => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import("../pages/ResetPassword").then((m) => ({ default: m.ResetPassword })));
+const LandingPage = lazy(() => import("../pages/LandingPage").then((m) => ({ default: m.LandingPage })));
+
+const chunkFallback = <SuspenseFallbackPage />;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,42 +53,36 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={<PublicOnlyRoute><Login /></PublicOnlyRoute>}
-      />
-      <Route
-        path="/register"
-        element={<PublicOnlyRoute><Register /></PublicOnlyRoute>}
-      />
-      <Route
-        path="/forgot-password"
-        element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>}
-      />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
+    // ErrorBoundary catches any unhandled query errors
+    <ErrorBoundary>
+      <Routes>
+        {/* Public-only routes */}
+        <Route path="/login" element={<PublicOnlyRoute><Suspense fallback={chunkFallback}><Login /></Suspense></PublicOnlyRoute>} />
+        <Route path="/register" element={<PublicOnlyRoute><Suspense fallback={chunkFallback}><Register /></Suspense></PublicOnlyRoute>} />
+        <Route path="/forgot-password" element={<PublicOnlyRoute><Suspense fallback={chunkFallback}><ForgotPassword /></Suspense></PublicOnlyRoute>} />
+        <Route path="/reset-password" element={<Suspense fallback={chunkFallback}><ResetPassword /></Suspense>} />
+        <Route path="/auth/callback" element={<Suspense fallback={chunkFallback}><AuthCallback /></Suspense>} />
+        <Route path="/" element={<PublicOnlyRoute><Suspense fallback={chunkFallback}><LandingPage /></Suspense></PublicOnlyRoute>} />
 
-      {/* Landing page at root */}
-      <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+        {/* Protected routes — DashboardLayout is imported statically so sidebar/header
+            are always visible. Each page handles its own data Suspense boundaries. */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<Suspense fallback={chunkFallback}><Home /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={chunkFallback}><Settings /></Suspense>} />
+          <Route path="/transactions" element={<Suspense fallback={chunkFallback}><Transactions /></Suspense>} />
+          <Route path="/subscriptions" element={<Suspense fallback={chunkFallback}><Subscriptions /></Suspense>} />
+          <Route path="/emails" element={<Navigate to="/transactions" replace />} />
+          <Route path="/metrics" element={<Suspense fallback={chunkFallback}><Metrics /></Suspense>} />
+        </Route>
 
-      {/* Protected routes with dashboard layout */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/dashboard" element={<Home />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/transactions" element={<Transactions />} />
-        <Route path="/subscriptions" element={<Subscriptions />} />
-        <Route path="/emails" element={<Navigate to="/transactions" replace />} />
-        <Route path="/metrics" element={<Metrics />} />
-      </Route>
-
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<Suspense fallback={chunkFallback}><NotFound /></Suspense>} />
+      </Routes>
+    </ErrorBoundary>
   );
 }
