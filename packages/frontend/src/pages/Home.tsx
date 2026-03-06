@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { Button } from "../components/ui/Button";
 import { TransactionFormModal } from "../components/transactions/TransactionFormModal";
 import type { TransactionFormData } from "../components/transactions/TransactionFormModal";
@@ -25,59 +24,19 @@ import { toast } from "../utils/toast";
 import type { DashboardTask } from "../hooks/useDashboardTasks";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { startSeedWithFeedback } from "../utils/seedImport";
+import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
-export function Home() {
+// ─── Data section — suspends while useDashboardTasks loads ───────────────────
+interface DashboardContentProps {
+  userId: string;
+  isSyncing: boolean;
+  onForceSync: (connectionId?: string | null) => void;
+}
+
+function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  useSeedNotifications(user?.id);
 
-  const { createTransaction } = useTransactionMutations();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const {
-    data,
-    isLoading: loading,
-    refetch,
-  } = useDashboardTasks(user?.id);
-
-  const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction(mapTransactionFormDataToInsert(formData));
-  };
-
-  const handleConnectGmail = async () => {
-    try {
-      await gmailService.connectGmail();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("dashboardActionFirst.errors.connectGmail");
-      toast.error(t("common.error"), message);
-    }
-  };
-
-  const handleForceSync = async (connectionId?: string | null) => {
-    if (!connectionId) return;
-
-    try {
-      setIsSyncing(true);
-      const started = await startSeedWithFeedback(connectionId, t);
-      if (started) {
-        await refetch();
-      }
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  const { data, refetch } = useDashboardTasks(userId);
 
   const dashboardData = data ?? {
     tasks: [],
@@ -129,36 +88,14 @@ export function Home() {
           actionLabel: t("dashboardActionFirst.tasks.seedFailed.action"),
         };
       default:
-        return {
-          title: "",
-          description: "",
-          actionLabel: undefined,
-        };
+        return { title: "", description: "", actionLabel: undefined };
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-              {t("navigation.dashboard")}
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {t("dashboardActionFirst.headerDescription")}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<RefreshCw size={16} />}
-            onClick={() => refetch()}
-          >
-            {t("common.refresh")}
-          </Button>
-        </div>
-
+    <>
+      {/* Header with live badge counts */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
             {t("dashboardActionFirst.badges.pending")}: {dashboardData.tasks.length}
@@ -168,49 +105,17 @@ export function Home() {
             {dashboardData.activeConnectionCount}
           </span>
         </div>
-      </section>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<RefreshCw size={16} />}
+          onClick={() => refetch()}
+        >
+          {t("common.refresh")}
+        </Button>
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.addTransaction.title")}
-          description={t("dashboardActionFirst.quickActions.addTransaction.description")}
-          icon={<ReceiptText size={18} />}
-          actionLabel={t("transactions.addManually")}
-          onClick={() => setIsCreateModalOpen(true)}
-        />
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.connectGmail.title")}
-          description={t("dashboardActionFirst.quickActions.connectGmail.description")}
-          icon={<Mail size={18} />}
-          actionLabel={t("dashboardActionFirst.quickActions.connectGmail.action")}
-          onClick={handleConnectGmail}
-        />
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.forceSync.title")}
-          description={t("dashboardActionFirst.quickActions.forceSync.description")}
-          icon={<RefreshCw size={18} />}
-          actionLabel={
-            isSyncing
-              ? t("dashboardActionFirst.quickActions.forceSync.syncing")
-              : t("dashboardActionFirst.quickActions.forceSync.action")
-          }
-          onClick={() => handleForceSync(dashboardData.primaryConnectionId)}
-          disabled={!dashboardData.primaryConnectionId || isSyncing}
-          badge={
-            dashboardData.primaryConnectionId
-              ? t("dashboardActionFirst.quickActions.forceSync.available")
-              : t("dashboardActionFirst.quickActions.forceSync.noConnection")
-          }
-        />
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.openTransactions.title")}
-          description={t("dashboardActionFirst.quickActions.openTransactions.description")}
-          icon={<CalendarClock size={18} />}
-          actionLabel={t("dashboardActionFirst.quickActions.openTransactions.action")}
-          href="/transactions"
-        />
-      </section>
-
+      {/* Tasks + AI activity */}
       <section className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-8">
           <div className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm">
@@ -248,7 +153,7 @@ export function Home() {
                       actionPath={task.type === "seed_failed" ? undefined : task.actionPath}
                       onAction={
                         task.type === "seed_failed"
-                          ? () => handleForceSync(task.connectionId)
+                          ? () => onForceSync(task.connectionId)
                           : undefined
                       }
                       disabled={task.type === "seed_failed" && isSyncing}
@@ -313,6 +218,105 @@ export function Home() {
           </div>
         </div>
       </section>
+    </>
+  );
+}
+
+// ─── Page shell — renders immediately (no data dependency) ───────────────────
+export function Home() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  useSeedNotifications(user?.id);
+
+  const { createTransaction } = useTransactionMutations();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleConnectGmail = async () => {
+    try {
+      await gmailService.connectGmail();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("dashboardActionFirst.errors.connectGmail");
+      toast.error(t("common.error"), message);
+    }
+  };
+
+  const handleForceSync = async (connectionId?: string | null) => {
+    if (!connectionId) return;
+    try {
+      setIsSyncing(true);
+      await startSeedWithFeedback(connectionId, t);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleCreateTransaction = async (formData: TransactionFormData) => {
+    await createTransaction(mapTransactionFormDataToInsert(formData));
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Static header — renders immediately */}
+      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-6 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            {t("navigation.dashboard")}
+          </h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            {t("dashboardActionFirst.headerDescription")}
+          </p>
+        </div>
+      </section>
+
+      {/* Static quick actions — renders immediately */}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <QuickActionCard
+          title={t("dashboardActionFirst.quickActions.addTransaction.title")}
+          description={t("dashboardActionFirst.quickActions.addTransaction.description")}
+          icon={<ReceiptText size={18} />}
+          actionLabel={t("transactions.addManually")}
+          onClick={() => setIsCreateModalOpen(true)}
+        />
+        <QuickActionCard
+          title={t("dashboardActionFirst.quickActions.connectGmail.title")}
+          description={t("dashboardActionFirst.quickActions.connectGmail.description")}
+          icon={<Mail size={18} />}
+          actionLabel={t("dashboardActionFirst.quickActions.connectGmail.action")}
+          onClick={handleConnectGmail}
+        />
+        <QuickActionCard
+          title={t("dashboardActionFirst.quickActions.forceSync.title")}
+          description={t("dashboardActionFirst.quickActions.forceSync.description")}
+          icon={<RefreshCw size={18} />}
+          actionLabel={isSyncing
+            ? t("dashboardActionFirst.quickActions.forceSync.syncing")
+            : t("dashboardActionFirst.quickActions.forceSync.action")}
+          onClick={() => handleForceSync(undefined)}
+          disabled={isSyncing}
+        />
+        <QuickActionCard
+          title={t("dashboardActionFirst.quickActions.openTransactions.title")}
+          description={t("dashboardActionFirst.quickActions.openTransactions.description")}
+          icon={<CalendarClock size={18} />}
+          actionLabel={t("dashboardActionFirst.quickActions.openTransactions.action")}
+          href="/transactions"
+        />
+      </section>
+
+      {/* Data-dependent section — shows skeleton while loading */}
+      {user?.id && (
+        <Suspense fallback={<SuspenseFallback rows={4} />}>
+          <DashboardContent
+            userId={user.id}
+            isSyncing={isSyncing}
+            onForceSync={handleForceSync}
+          />
+        </Suspense>
+      )}
 
       <TransactionFormModal
         isOpen={isCreateModalOpen}

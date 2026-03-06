@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { getSupabase } from '../lib/supabase';
 import { queryKeys } from '../lib/query-client';
 import { createTransactionsService } from '../services/transactions.service';
@@ -12,7 +12,7 @@ export function useSubscriptionCandidates(options?: UseSubscriptionCandidatesOpt
   const minConfidence = options?.minConfidence ?? 50;
   const minOccurrences = options?.minOccurrences ?? 2;
 
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: queryKeys.subscriptions.candidates({
       minConfidence,
       minOccurrences,

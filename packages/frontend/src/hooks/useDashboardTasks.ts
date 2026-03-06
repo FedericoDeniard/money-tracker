@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { getSupabase } from "../lib/supabase";
 import { queryKeys } from "../lib/query-client";
 
@@ -8,10 +8,10 @@ const ACTIVITY_WINDOW_DAYS = 7;
 export interface DashboardTask {
   id: string;
   type:
-    | "reconnect_gmail"
-    | "renew_watch"
-    | "seed_processing"
-    | "seed_failed";
+  | "reconnect_gmail"
+  | "renew_watch"
+  | "seed_processing"
+  | "seed_failed";
   count?: number;
   totalEmails?: number;
   processedByAi?: number;
@@ -80,23 +80,22 @@ function getSeedSummary(
   return {
     processing: processingRow
       ? {
-          totalEmails: processingRow.total_emails ?? 0,
-          processedByAi: processingRow.emails_processed_by_ai ?? 0,
-        }
+        totalEmails: processingRow.total_emails ?? 0,
+        processedByAi: processingRow.emails_processed_by_ai ?? 0,
+      }
       : null,
     failed: failedRow
       ? {
-          connectionId: failedRow.user_oauth_token_id,
-          errorMessage: failedRow.error_message,
-        }
+        connectionId: failedRow.user_oauth_token_id,
+        errorMessage: failedRow.error_message,
+      }
       : null,
   };
 }
 
 export function useDashboardTasks(userId?: string) {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: queryKeys.dashboard.tasks(userId),
-    enabled: !!userId,
     staleTime: 60 * 1000,
     queryFn: async (): Promise<DashboardTasksData> => {
       if (!userId) {

@@ -26,13 +26,13 @@ export function FilterBar({
   ];
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+    <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full sm:w-auto items-stretch sm:items-center">
       {/* Currency Selector */}
       <div className="flex gap-2">
         <motion.select
           value={selectedCurrency}
           onChange={(e) => onCurrencyChange(e.target.value)}
-          className="w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-transparent hover:border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer transition-all appearance-none"
+          className="w-full sm:w-auto px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-transparent hover:border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer transition-all appearance-none h-8 md:h-9"
           whileFocus={{ scale: 1.01 }}
           whileHover={{ scale: 1.01 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -47,7 +47,7 @@ export function FilterBar({
       </div>
 
       {/* Period Selector */}
-      <div className="flex gap-1 bg-[var(--bg-secondary)] p-1 rounded-xl overflow-x-auto sm:overflow-visible">
+      <div className="flex gap-1 bg-[var(--bg-secondary)] p-1 rounded-lg overflow-x-auto sm:overflow-visible shrink-0 items-center">
         {periods.map((period) => {
           const isSelected = selectedPeriod === period.value;
           return (
@@ -59,7 +59,7 @@ export function FilterBar({
               variant="outline"
               size="sm"
               selected={isSelected}
-              className="flex-1 sm:flex-none"
+              className="flex-1 sm:flex-none text-xs md:text-sm h-6 md:h-7 px-2 md:px-3 whitespace-nowrap"
             >
               {period.label}
             </Button>
