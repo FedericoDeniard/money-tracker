@@ -28,28 +28,40 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export function AppRoutes() {
-  const { user } = useAuth();
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+export function AppRoutes() {
   return (
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+        element={<PublicOnlyRoute><Login /></PublicOnlyRoute>}
       />
       <Route
         path="/register"
-        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
+        element={<PublicOnlyRoute><Register /></PublicOnlyRoute>}
       />
       <Route
         path="/forgot-password"
-        element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+        element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>}
       />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* Landing page at root */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
 
       {/* Protected routes with dashboard layout */}
       <Route
