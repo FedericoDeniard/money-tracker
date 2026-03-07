@@ -27,6 +27,20 @@ interface ChartDataItem {
   [key: string]: string | number;
 }
 
+interface ActiveShapeProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  startAngle: number;
+  endAngle: number;
+  fill: string;
+  payload: ChartDataItem;
+  percent: number;
+  value: number;
+}
+
 const COLORS = [
   "#3d5a80", // Slate Blue (Base brand)
   "#34d399", // Soft Emerald
@@ -65,8 +79,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
 
   const renderActiveShape = (props: unknown) => {
     const RADIAN = Math.PI / 180;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props as any;
+    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props as ActiveShapeProps;
     const sin = Math.sin(-RADIAN * midAngle);
     const cos = Math.cos(-RADIAN * midAngle);
 
