@@ -45,7 +45,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
 
   if (!data.length) {
     return (
-      <div className="h-64 flex items-center justify-center text-[var(--text-secondary)]">
+      <div className="h-[320px] flex items-center justify-center text-[var(--text-secondary)]">
         <div className="text-center">
           <p className="text-sm">{t("metrics.noData")}</p>
         </div>
@@ -70,12 +70,16 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     const sin = Math.sin(-RADIAN * midAngle);
     const cos = Math.cos(-RADIAN * midAngle);
 
-    // Start line strictly outside the expanded hover sector (outerRadius + 6)
-    const sx = cx + (outerRadius + 8) * cos;
-    const sy = cy + (outerRadius + 8) * sin;
-    const mx = cx + (outerRadius + 20) * cos;
-    const my = cy + (outerRadius + 20) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 12;
+    // Pull lines closer and shrink text slightly on mobile to prevent viewport clipping
+    const armOffset = isMobile ? 3 : 8;
+    const elbowOffset = isMobile ? 8 : 20;
+    const tailLength = isMobile ? 6 : 12;
+
+    const sx = cx + (outerRadius + armOffset) * cos;
+    const sy = cy + (outerRadius + armOffset) * sin;
+    const mx = cx + (outerRadius + elbowOffset) * cos;
+    const my = cy + (outerRadius + elbowOffset) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * tailLength;
     const ey = my;
     const textAnchor = cos >= 0 ? 'start' : 'end';
 
@@ -108,10 +112,10 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
         <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
         <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
 
-        <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey} dy={-2} textAnchor={textAnchor} fill="var(--text-primary)" style={{ fontSize: '13px', fontWeight: 'bold' }}>
+        <text x={ex + (cos >= 0 ? 1 : -1) * (isMobile ? 4 : 8)} y={ey} dy={-2} textAnchor={textAnchor} fill="var(--text-primary)" style={{ fontSize: isMobile ? '11px' : '13px', fontWeight: 'bold' }}>
           {`$${value.toFixed(2)}`}
         </text>
-        <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey} dy={14} textAnchor={textAnchor} fill="var(--text-secondary)" style={{ fontSize: '12px' }}>
+        <text x={ex + (cos >= 0 ? 1 : -1) * (isMobile ? 4 : 8)} y={ey} dy={14} textAnchor={textAnchor} fill="var(--text-secondary)" style={{ fontSize: isMobile ? '10px' : '12px' }}>
           {`(${(percent * 100).toFixed(1)}%)`}
         </text>
       </g>
@@ -119,9 +123,9 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-0">
-      <div className="w-full md:w-[65%] pb-4 md:pb-0">
-        <ResponsiveContainer width="100%" height={isMobile ? 300 : 280}>
+    <div className="flex flex-col items-center justify-center w-full">
+      <div className="w-full pb-4 md:pb-0">
+        <ResponsiveContainer width="100%" height={isMobile ? 300 : 320}>
           <PieChart style={{ overflow: "visible" }}>
             <Pie
               // @ts-expect-error Recharts typings issue
@@ -129,10 +133,10 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
               activeShape={renderActiveShape}
               key={`pie-${data.length}-${data.map((d) => d.amount).join("-")}`}
               data={chartData}
-              cx={isMobile ? "50%" : "45%"}
+              cx="50%"
               cy="50%"
-              innerRadius={isMobile ? 55 : 60}
-              outerRadius={isMobile ? 70 : 80}
+              innerRadius={isMobile ? 45 : 80}
+              outerRadius={isMobile ? 65 : 110}
               paddingAngle={5}
               fill="#8884d8"
               dataKey="value"
@@ -151,36 +155,6 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
             </Pie>
           </PieChart>
         </ResponsiveContainer>
-      </div>
-
-      <div className="w-full md:w-[35%] flex flex-col justify-center pl-0 md:pl-2">
-        <ul className="space-y-3">
-          {chartData.map((entry, index) => (
-            <li
-              key={`legend-${index}`}
-              className="flex items-center justify-between text-sm transition-colors hover:bg-[var(--bg-secondary)] rounded-lg p-1 -mx-1 cursor-default"
-              onMouseEnter={() => setActiveIndex(index)}
-            >
-              <div className="flex items-center gap-2 overflow-hidden min-w-0" style={{ flexShrink: 1 }}>
-                <span
-                  className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-[var(--text-primary)] truncate font-medium" title={entry.name}>
-                  {entry.name}
-                </span>
-              </div>
-              <div className="flex items-center justify-end overflow-hidden ml-2 text-[var(--text-secondary)] min-w-0" style={{ flexShrink: 99999 }}>
-                <span className="truncate" title={`$${entry.value.toFixed(2)}`}>
-                  ${entry.value.toFixed(2)}
-                </span>
-                <span className="whitespace-nowrap flex-shrink-0 ml-1">
-                  ({entry.percentage.toFixed(0)}%)
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );

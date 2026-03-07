@@ -29,7 +29,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
 
   if (!data.length) {
     return (
-      <div className="h-64 flex items-center justify-center text-[var(--text-secondary)]">
+      <div className="h-[320px] flex items-center justify-center text-[var(--text-secondary)]">
         <div className="text-center">
           <p className="text-sm">{t("metrics.noData")}</p>
         </div>
@@ -42,7 +42,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={256}>
+    <ResponsiveContainer width="100%" height={320}>
       <BarChart
         data={data}
         stackOffset="sign"
