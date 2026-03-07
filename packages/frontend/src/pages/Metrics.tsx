@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-import { TrendingUp, TrendingDown, DollarSign, CreditCard } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, CreditCard, PieChart as PieChartIcon, LayoutGrid } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { MonthlyTrendChart } from "../components/charts/MonthlyTrendChart";
 import { CategoryPieChart } from "../components/charts/CategoryPieChart";
+import { CategoryTreeMapChart } from "../components/charts/CategoryTreeMapChart";
 import {
   MetricCard,
   FilterBar,
@@ -33,6 +34,7 @@ export function Metrics() {
   const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<"30" | "90" | "365">("30");
   const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
+  const [breakdownChartType, setBreakdownChartType] = useState<"pie" | "treemap">("pie");
 
   // useMetricsData uses useAllTransactions (regular useInfiniteQuery, NOT suspense)
   // so loading is manual here — no Suspense boundary needed
@@ -157,9 +159,33 @@ export function Metrics() {
               <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">{t("metrics.monthlyTrend")}</h2>
               <MonthlyTrendChart data={monthlyData} />
             </div>
-            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">{t("metrics.categoryBreakdown")}</h2>
-              <CategoryPieChart data={categoryData} />
+            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t("metrics.categoryBreakdown")}</h2>
+                <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
+                  <button
+                    onClick={() => setBreakdownChartType("pie")}
+                    className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "pie" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                    title="Pie Chart"
+                    type="button"
+                  >
+                    <PieChartIcon size={16} />
+                  </button>
+                  <button
+                    onClick={() => setBreakdownChartType("treemap")}
+                    className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "treemap" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                    title="Treemap"
+                    type="button"
+                  >
+                    <LayoutGrid size={16} />
+                  </button>
+                </div>
+              </div>
+              {breakdownChartType === "pie" ? (
+                <CategoryPieChart data={categoryData} />
+              ) : (
+                <CategoryTreeMapChart data={categoryData} />
+              )}
             </div>
           </div>
 
