@@ -82,10 +82,8 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
             borderRadius: "8px",
           }}
           labelStyle={{ color: "var(--text-primary)" }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          itemSorter={(item: any) => (item.dataKey === "income" ? -1 : 1)}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(value: any, name: any) => {
+          itemSorter={(item: { dataKey?: unknown }) => (item.dataKey === "income" ? -1 : 1)}
+          formatter={(value: unknown, name: unknown) => {
             if (value === undefined || value === null) return ["", ""];
             const numericValue = typeof value === 'number' ? value : Number(value);
             const absValue = Math.abs(numericValue);
