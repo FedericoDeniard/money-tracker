@@ -50,7 +50,10 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
       >
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="var(--text-secondary)/20"
+          stroke="var(--text-secondary)"
+          strokeOpacity={0.2}
+          vertical={true}
+          horizontal={true}
         />
         <ReferenceLine y={0} stroke="var(--text-primary)" />
         <XAxis
@@ -79,10 +82,13 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
             borderRadius: "8px",
           }}
           labelStyle={{ color: "var(--text-primary)" }}
-          itemStyle={{ color: "var(--text-primary)" }}
-          formatter={(value: number | undefined, name: string | undefined) => {
-            if (!value) return ["", ""];
-            const absValue = Math.abs(value);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          itemSorter={(item: any) => (item.dataKey === "income" ? -1 : 1)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          formatter={(value: any, name: any) => {
+            if (value === undefined || value === null) return ["", ""];
+            const numericValue = typeof value === 'number' ? value : Number(value);
+            const absValue = Math.abs(numericValue);
             let label = "";
             if (name === "income") label = t("metrics.totalIncome");
             if (name === "expense") label = t("metrics.totalExpense");
