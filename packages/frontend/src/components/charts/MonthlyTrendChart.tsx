@@ -104,12 +104,12 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
         <Bar
           dataKey="income"
           stackId="a"
-          fill="#10b981"
+          fill="#34d399"
         />
         <Bar
           dataKey="expense"
           stackId="a"
-          fill="#ef4444"
+          fill="#f43f5e"
         />
       </BarChart>
     </ResponsiveContainer>

@@ -28,14 +28,14 @@ interface ChartDataItem {
 }
 
 const COLORS = [
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#8b5cf6", // purple
-  "#ec4899", // pink
-  "#14b8a6", // teal
-  "#f97316", // orange
+  "#3d5a80", // Slate Blue (Base brand)
+  "#34d399", // Soft Emerald
+  "#6366f1", // Muted Indigo
+  "#fb7185", // Warm Coral
+  "#fbbf24", // Golden Amber
+  "#38bdf8", // Pale Cerulean
+  "#a78bfa", // Lavender
+  "#f43f5e", // Rose
 ];
 
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
