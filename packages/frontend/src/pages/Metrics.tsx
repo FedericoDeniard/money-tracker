@@ -2,9 +2,10 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-import { TrendingUp, TrendingDown, DollarSign, CreditCard, PieChart as PieChartIcon, LayoutGrid } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, CreditCard, PieChart as PieChartIcon, LayoutGrid, BarChart2, Activity } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { MonthlyTrendChart } from "../components/charts/MonthlyTrendChart";
+import { MonthlyAreaChart } from "../components/charts/MonthlyAreaChart";
 import { CategoryPieChart } from "../components/charts/CategoryPieChart";
 import { CategoryTreeMapChart } from "../components/charts/CategoryTreeMapChart";
 import {
@@ -35,6 +36,7 @@ export function Metrics() {
   const [selectedPeriod, setSelectedPeriod] = useState<"30" | "90" | "365">("30");
   const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
   const [breakdownChartType, setBreakdownChartType] = useState<"pie" | "treemap">("pie");
+  const [trendChartType, setTrendChartType] = useState<"bar" | "area">("bar");
 
   // useMetricsData uses useAllTransactions (regular useInfiniteQuery, NOT suspense)
   // so loading is manual here — no Suspense boundary needed
@@ -155,9 +157,33 @@ export function Metrics() {
 
           {/* Charts */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-6">{t("metrics.monthlyTrend")}</h2>
-              <MonthlyTrendChart data={monthlyData} />
+            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t("metrics.monthlyTrend")}</h2>
+                <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
+                  <button
+                    onClick={() => setTrendChartType("bar")}
+                    className={`p-1.5 rounded-md transition-colors ${trendChartType === "bar" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                    title="Bar Chart"
+                    type="button"
+                  >
+                    <BarChart2 size={16} />
+                  </button>
+                  <button
+                    onClick={() => setTrendChartType("area")}
+                    className={`p-1.5 rounded-md transition-colors ${trendChartType === "area" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                    title="Area Chart"
+                    type="button"
+                  >
+                    <Activity size={16} />
+                  </button>
+                </div>
+              </div>
+              {trendChartType === "bar" ? (
+                <MonthlyTrendChart data={monthlyData} />
+              ) : (
+                <MonthlyAreaChart data={monthlyData} />
+              )}
             </div>
             <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
               <div className="flex items-center justify-between mb-6">
