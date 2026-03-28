@@ -20,7 +20,6 @@ jobs:
         run: bun install
       
       - name: Ejecutar lint en frontend
-        working-directory: packages/frontend
         run: bun run lint
       
       - name: Ejecutar build en frontend
