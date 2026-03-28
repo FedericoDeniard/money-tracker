@@ -3,9 +3,9 @@
  * Use useTransactions, useTransactionFilters, useMetricsData, etc. instead.
  * This hook will be removed in a future version.
  */
-import { useState, useEffect } from 'react';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { getSupabase } from '../lib/supabase';
+import { useState, useEffect } from "react";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabase } from "../lib/supabase";
 
 interface UseSupabaseQueryResult<T> {
   data: T | null;
@@ -16,7 +16,7 @@ interface UseSupabaseQueryResult<T> {
 
 export function useSupabaseQuery<T>(
   queryFn: (supabase: SupabaseClient) => Promise<T>,
-    dependencies: unknown[] = []
+  dependencies: unknown[] = []
 ): UseSupabaseQueryResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +30,8 @@ export function useSupabaseQuery<T>(
       const result = await queryFn(supabase);
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-      console.error('Supabase query error:', err);
+      setError(err instanceof Error ? err : new Error("Unknown error"));
+      console.error("Supabase query error:", err);
     } finally {
       setLoading(false);
     }

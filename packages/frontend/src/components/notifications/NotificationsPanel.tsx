@@ -12,7 +12,7 @@ import {
   VolumeX,
   X,
   MailOpen,
-  CheckSquare
+  CheckSquare,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -54,13 +54,29 @@ function relativeTime(date: string, locale: string): string {
 function getImportanceConfig(importance: NotificationImportance) {
   switch (importance) {
     case "critical":
-      return { icon: <AlertCircle size={16} />, colorClass: "text-red-600", bgClass: "bg-red-100" };
+      return {
+        icon: <AlertCircle size={16} />,
+        colorClass: "text-red-600",
+        bgClass: "bg-red-100",
+      };
     case "high":
-      return { icon: <Flag size={16} />, colorClass: "text-amber-600", bgClass: "bg-amber-100" };
+      return {
+        icon: <Flag size={16} />,
+        colorClass: "text-amber-600",
+        bgClass: "bg-amber-100",
+      };
     case "normal":
-      return { icon: <Info size={16} />, colorClass: "text-blue-600", bgClass: "bg-blue-100" };
+      return {
+        icon: <Info size={16} />,
+        colorClass: "text-blue-600",
+        bgClass: "bg-blue-100",
+      };
     default:
-      return { icon: <Circle size={16} />, colorClass: "text-[var(--text-secondary)]", bgClass: "bg-[var(--bg-secondary)]" };
+      return {
+        icon: <Circle size={16} />,
+        colorClass: "text-[var(--text-secondary)]",
+        bgClass: "bg-[var(--bg-secondary)]",
+      };
   }
 }
 
@@ -76,8 +92,14 @@ function NotificationRow({
   onOpen: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const title = t(item.title_i18n_key, item.i18n_params as Record<string, unknown>);
-  const body = t(item.body_i18n_key, item.i18n_params as Record<string, unknown>);
+  const title = t(
+    item.title_i18n_key,
+    item.i18n_params as Record<string, unknown>
+  );
+  const body = t(
+    item.body_i18n_key,
+    item.i18n_params as Record<string, unknown>
+  );
   const unread = !item.read_at;
   const importanceConfig = getImportanceConfig(item.importance);
 
@@ -95,16 +117,22 @@ function NotificationRow({
       )}
 
       {/* Checkbox (Aparece en hover o si está seleccionado) */}
-      <div className={`pt-1 transition-opacity duration-200 ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+      <div
+        className={`pt-1 transition-opacity duration-200 ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+      >
         <div className="relative flex items-center justify-center">
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={(event) => onSelect(event.target.checked)}
+            onChange={event => onSelect(event.target.checked)}
             className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-[var(--text-secondary)]/30 checked:border-[var(--button-primary)] checked:bg-[var(--button-primary)] hover:border-[var(--button-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary)]/30 focus:ring-offset-1 transition-all"
             aria-label={t("notifications.selectItem")}
           />
-          <CheckCheck size={14} className="pointer-events-none absolute text-white opacity-0 peer-checked:opacity-100" strokeWidth={3} />
+          <CheckCheck
+            size={14}
+            className="pointer-events-none absolute text-white opacity-0 peer-checked:opacity-100"
+            strokeWidth={3}
+          />
         </div>
       </div>
 
@@ -115,7 +143,9 @@ function NotificationRow({
       >
         <div className="flex items-start gap-3">
           {/* Ícono / Avatar */}
-          <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${importanceConfig.bgClass} ${importanceConfig.colorClass}`}>
+          <div
+            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${importanceConfig.bgClass} ${importanceConfig.colorClass}`}
+          >
             {item.avatar_url ? (
               <img
                 src={item.avatar_url}
@@ -123,7 +153,9 @@ function NotificationRow({
                 className="h-full w-full rounded-full object-cover"
               />
             ) : item.icon_key ? (
-              <span className="font-semibold text-sm capitalize">{item.icon_key.charAt(0)}</span>
+              <span className="font-semibold text-sm capitalize">
+                {item.icon_key.charAt(0)}
+              </span>
             ) : (
               <Bell size={18} />
             )}
@@ -132,15 +164,19 @@ function NotificationRow({
           {/* Contenido */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className={`truncate text-sm ${unread ? "font-semibold text-[var(--text-primary)]" : "font-medium text-[var(--text-primary)]"}`}>
+              <span
+                className={`truncate text-sm ${unread ? "font-semibold text-[var(--text-primary)]" : "font-medium text-[var(--text-primary)]"}`}
+              >
                 {title}
               </span>
               <span className="shrink-0 text-xs font-medium text-[var(--text-secondary)]">
                 {relativeTime(item.created_at, i18n.language)}
               </span>
             </div>
-            
-            <p className={`mt-1 line-clamp-2 text-sm leading-relaxed break-words ${unread ? "text-[var(--text-primary)] opacity-90" : "text-[var(--text-secondary)]"}`}>
+
+            <p
+              className={`mt-1 line-clamp-2 text-sm leading-relaxed break-words ${unread ? "text-[var(--text-primary)] opacity-90" : "text-[var(--text-secondary)]"}`}
+            >
               {body}
             </p>
 
@@ -148,7 +184,9 @@ function NotificationRow({
             {(item.importance !== "normal" || item.is_muted) && (
               <div className="mt-2 flex items-center gap-3 text-xs font-medium">
                 {item.importance !== "normal" && (
-                  <span className={`inline-flex items-center gap-1 ${importanceConfig.colorClass}`}>
+                  <span
+                    className={`inline-flex items-center gap-1 ${importanceConfig.colorClass}`}
+                  >
                     {importanceConfig.icon}
                     {t(`notifications.importance.${item.importance}`)}
                   </span>
@@ -168,7 +206,10 @@ function NotificationRow({
   );
 }
 
-export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps) {
+export function NotificationsPanel({
+  isOpen,
+  onClose,
+}: NotificationsPanelProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<PanelFilter>("all");
@@ -200,7 +241,8 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
 
   const notifications = notificationsQuery.data ?? [];
   const selectedCount = selectedIds.length;
-  const allVisibleSelected = selectedCount > 0 && selectedCount === notifications.length;
+  const allVisibleSelected =
+    selectedCount > 0 && selectedCount === notifications.length;
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -209,7 +251,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
       setSelectedIds([]);
       return;
     }
-    setSelectedIds(notifications.map((item) => item.id));
+    setSelectedIds(notifications.map(item => item.id));
   };
 
   const clearSelection = () => setSelectedIds([]);
@@ -277,7 +319,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
               <div className="min-h-[60px] border-b border-[var(--text-secondary)]/20 bg-[var(--bg-secondary)]/50 px-4 py-3 flex items-center justify-between">
                 <AnimatePresence mode="wait">
                   {selectedCount > 0 ? (
-                    <motion.div 
+                    <motion.div
                       key="actions"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -290,7 +332,11 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                           onClick={toggleSelectAll}
                           className="group relative flex h-5 w-5 items-center justify-center rounded border-2 border-[var(--button-primary)] bg-[var(--button-primary)] transition-all"
                         >
-                          <CheckCheck size={14} className="text-white" strokeWidth={3} />
+                          <CheckCheck
+                            size={14}
+                            className="text-white"
+                            strokeWidth={3}
+                          />
                         </button>
                         <span className="text-sm font-semibold text-[var(--text-primary)]">
                           {selectedCount} seleccionadas
@@ -305,7 +351,13 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                           className="!p-2"
                           title={t("notifications.actions.markRead")}
                           disabled={isBusy}
-                          onClick={() => runAction(() => actions.markAsRead.mutateAsync({ ids: selectedIds }))}
+                          onClick={() =>
+                            runAction(() =>
+                              actions.markAsRead.mutateAsync({
+                                ids: selectedIds,
+                              })
+                            )
+                          }
                         />
                         <Button
                           variant="ghost"
@@ -314,7 +366,11 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                           className="!p-2"
                           title={t("notifications.actions.archive")}
                           disabled={isBusy}
-                          onClick={() => runAction(() => actions.archive.mutateAsync({ ids: selectedIds }))}
+                          onClick={() =>
+                            runAction(() =>
+                              actions.archive.mutateAsync({ ids: selectedIds })
+                            )
+                          }
                         />
                         <div className="h-4 w-px bg-[var(--text-secondary)]/20 mx-1" />
                         <Button
@@ -324,12 +380,16 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                           className="!p-2"
                           title={t("notifications.actions.delete")}
                           disabled={isBusy}
-                          onClick={() => runAction(() => actions.remove.mutateAsync({ ids: selectedIds }))}
+                          onClick={() =>
+                            runAction(() =>
+                              actions.remove.mutateAsync({ ids: selectedIds })
+                            )
+                          }
                         />
                       </div>
                     </motion.div>
                   ) : (
-                    <motion.div 
+                    <motion.div
                       key="filters"
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -337,20 +397,22 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                       transition={{ duration: 0.2 }}
                       className="flex w-full gap-2 overflow-x-auto no-scrollbar"
                     >
-                      {(["all", "unread", "muted", "important"] as const).map((value) => {
-                        const isActive = filter === value;
-                        return (
-                          <Button
-                            key={value}
-                            variant={isActive ? "primary" : "secondary"}
-                            size="sm"
-                            onClick={() => setFilter(value)}
-                            className="whitespace-nowrap"
-                          >
-                            {t(`notifications.filters.${value}`)}
-                          </Button>
-                        );
-                      })}
+                      {(["all", "unread", "muted", "important"] as const).map(
+                        value => {
+                          const isActive = filter === value;
+                          return (
+                            <Button
+                              key={value}
+                              variant={isActive ? "primary" : "secondary"}
+                              size="sm"
+                              onClick={() => setFilter(value)}
+                              className="whitespace-nowrap"
+                            >
+                              {t(`notifications.filters.${value}`)}
+                            </Button>
+                          );
+                        }
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -361,7 +423,9 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                 {notificationsQuery.isLoading ? (
                   <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-80">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--text-secondary)]/20 border-t-[var(--button-primary)] mb-4" />
-                    <p className="text-sm font-medium">{t("notifications.loading")}</p>
+                    <p className="text-sm font-medium">
+                      {t("notifications.loading")}
+                    </p>
                   </div>
                 ) : notifications.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center -mt-8">
@@ -373,15 +437,16 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                   </div>
                 ) : (
                   <div className="space-y-3 pb-8">
-                    {notifications.map((item) => (
+                    {notifications.map(item => (
                       <NotificationRow
                         key={item.id}
                         item={item}
                         isSelected={selectedSet.has(item.id)}
-                        onSelect={(checked) => {
-                          setSelectedIds((current) => {
-                            if (checked) return [...new Set([...current, item.id])];
-                            return current.filter((id) => id !== item.id);
+                        onSelect={checked => {
+                          setSelectedIds(current => {
+                            if (checked)
+                              return [...new Set([...current, item.id])];
+                            return current.filter(id => id !== item.id);
                           });
                         }}
                         onOpen={() => openNotification(item)}

@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Bell, Menu } from 'lucide-react';
-import { Button } from '../ui/Button';
-import logo from '../../logo.svg';
-import { DecorativeSquare } from '../ui/DecorativeSquare';
-import { NotificationsPanel } from '../notifications/NotificationsPanel';
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "./Sidebar";
+import { Bell, Menu } from "lucide-react";
+import { Button } from "../ui/Button";
+import logo from "../../logo.svg";
+import { DecorativeSquare } from "../ui/DecorativeSquare";
+import { NotificationsPanel } from "../notifications/NotificationsPanel";
 import {
   useNotificationsRealtime,
   useUnreadNotificationsCount,
-} from '../../hooks/useNotifications';
-import { useTranslation } from 'react-i18next';
+} from "../../hooks/useNotifications";
+import { useTranslation } from "react-i18next";
 
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -62,7 +62,7 @@ export function DashboardLayout() {
       </header>
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       <main className="relative flex-1 p-4 lg:p-8 lg:ml-64 min-h-[calc(100vh-64px)] lg:min-h-screen w-full overflow-x-hidden">
         <div className="fixed right-0 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
           <button

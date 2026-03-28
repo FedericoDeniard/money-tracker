@@ -41,7 +41,7 @@ export function CurrencyComparison({
       }
     >();
 
-    transactions.forEach((tx) => {
+    transactions.forEach(tx => {
       const currency = tx.currency;
       if (!currencyMap.has(currency)) {
         currencyMap.set(currency, {
@@ -67,7 +67,7 @@ export function CurrencyComparison({
         const category = tx.category || "other";
         metrics.categories.set(
           category,
-          (metrics.categories.get(category) || 0) + tx.amount,
+          (metrics.categories.get(category) || 0) + tx.amount
         );
 
         // Update top category
@@ -78,7 +78,7 @@ export function CurrencyComparison({
     });
 
     // Calculate derived metrics for each currency
-    currencyMap.forEach((metrics) => {
+    currencyMap.forEach(metrics => {
       metrics.netBalance = metrics.totalIncome - metrics.totalExpense;
       metrics.savingsRate =
         metrics.totalIncome > 0
@@ -115,11 +115,11 @@ export function CurrencyComparison({
     <div className="space-y-6">
       {/* Currency Comparison Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {currencyMetrics.map((metrics) => (
+        {currencyMetrics.map(metrics => (
           <div
             key={metrics.currency}
             onClick={() => onCurrencySelect?.(metrics.currency)}
-            className={`bg-[var(--bg-secondary)] p-6 rounded-xl border border-transparent hover:border-[var(--border)] transition-all duration-300 ${onCurrencySelect ? 'cursor-pointer hover:shadow-md' : ''}`}
+            className={`bg-[var(--bg-secondary)] p-6 rounded-xl border border-transparent hover:border-[var(--border)] transition-all duration-300 ${onCurrencySelect ? "cursor-pointer hover:shadow-md" : ""}`}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
@@ -244,7 +244,7 @@ export function CurrencyComparison({
           </div>
           <div className="text-center p-4 bg-[var(--bg-primary)] rounded-xl border border-transparent hover:border-[var(--border)] transition-all">
             <p className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">
-              {currencyMetrics.find((m) => m.netBalance > 0)?.currency || "-"}
+              {currencyMetrics.find(m => m.netBalance > 0)?.currency || "-"}
             </p>
             <p className="text-sm font-medium text-[var(--text-secondary)] mt-1">
               {t("metrics.mostProfitableCurrency")}
@@ -259,7 +259,7 @@ export function CurrencyComparison({
           {t("metrics.categoryBreakdownByCurrency")}
         </h3>
         <div className="space-y-4">
-          {currencyMetrics.map((metrics) => (
+          {currencyMetrics.map(metrics => (
             <div
               key={metrics.currency}
               className="bg-[var(--bg-primary)] p-5 rounded-xl border border-transparent hover:border-[var(--border)] transition-all"
@@ -315,14 +315,14 @@ export function CurrencyComparison({
               <p className="text-2xl font-bold text-emerald-600">
                 {
                   currencyMetrics.reduce((best, current) =>
-                    current.savingsRate > best.savingsRate ? current : best,
+                    current.savingsRate > best.savingsRate ? current : best
                   ).currency
                 }
               </p>
               <p className="text-sm text-[var(--text-secondary)]">
                 {currencyMetrics
                   .reduce((best, current) =>
-                    current.savingsRate > best.savingsRate ? current : best,
+                    current.savingsRate > best.savingsRate ? current : best
                   )
                   .savingsRate.toFixed(1)}
                 % {t("metrics.savingsRate")}
@@ -341,7 +341,7 @@ export function CurrencyComparison({
                   currencyMetrics.reduce((highest, current) =>
                     current.totalExpense > highest.totalExpense
                       ? current
-                      : highest,
+                      : highest
                   ).currency
                 }
               </p>
@@ -350,14 +350,14 @@ export function CurrencyComparison({
                   currencyMetrics.reduce((highest, current) =>
                     current.totalExpense > highest.totalExpense
                       ? current
-                      : highest,
-                  ).currency,
+                      : highest
+                  ).currency
                 )}
                 {currencyMetrics
                   .reduce((highest, current) =>
                     current.totalExpense > highest.totalExpense
                       ? current
-                      : highest,
+                      : highest
                   )
                   .totalExpense.toFixed(0)}{" "}
                 {t("metrics.totalExpense")}
@@ -376,7 +376,7 @@ export function CurrencyComparison({
                   currencyMetrics.reduce((most, current) =>
                     current.transactionCount > most.transactionCount
                       ? current
-                      : most,
+                      : most
                   ).currency
                 }
               </p>
@@ -385,7 +385,7 @@ export function CurrencyComparison({
                   currencyMetrics.reduce((most, current) =>
                     current.transactionCount > most.transactionCount
                       ? current
-                      : most,
+                      : most
                   ).transactionCount
                 }{" "}
                 {t("metrics.transactions")}
@@ -404,7 +404,7 @@ export function CurrencyComparison({
                   currencyMetrics.reduce((largest, current) =>
                     current.avgTransactionSize > largest.avgTransactionSize
                       ? current
-                      : largest,
+                      : largest
                   ).currency
                 }
               </p>
@@ -413,14 +413,14 @@ export function CurrencyComparison({
                   currencyMetrics.reduce((largest, current) =>
                     current.avgTransactionSize > largest.avgTransactionSize
                       ? current
-                      : largest,
-                  ).currency,
+                      : largest
+                  ).currency
                 )}
                 {currencyMetrics
                   .reduce((largest, current) =>
                     current.avgTransactionSize > largest.avgTransactionSize
                       ? current
-                      : largest,
+                      : largest
                   )
                   .avgTransactionSize.toFixed(0)}{" "}
                 {t("metrics.avgTransaction")}

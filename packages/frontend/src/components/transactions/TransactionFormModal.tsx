@@ -1,15 +1,18 @@
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useState } from 'react';
-import { Button } from '../ui/Button';
-import { useTranslateCategory } from '../../hooks/useTranslateCategory';
+import { useState } from "react";
+import { Button } from "../ui/Button";
+import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { getCurrencySymbol } from "../../utils/currency";
-import { TRANSACTION_CATEGORIES, TRANSACTION_CURRENCIES } from "../../constants/transactions";
+import {
+  TRANSACTION_CATEGORIES,
+  TRANSACTION_CURRENCIES,
+} from "../../constants/transactions";
 import type { Transaction } from "../../services/transactions.service";
 
 export type TransactionFormData = {
-  transaction_type: 'income' | 'expense';
+  transaction_type: "income" | "expense";
   merchant: string;
   amount: string;
   currency: string;
@@ -21,7 +24,7 @@ interface TransactionFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: TransactionFormData) => Promise<void>;
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   transaction?: Transaction;
   initialData?: TransactionFormData;
 }
@@ -37,19 +40,23 @@ export function TransactionFormModal({
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Ensure all fields have fallback values - prioritize initialData over transaction data
   const [formData, setFormData] = useState<TransactionFormData>(() => {
     if (initialData) {
       return initialData;
     }
     return {
-      transaction_type: transaction?.transaction_type as 'income' | 'expense' || 'expense',
-      merchant: transaction?.merchant || '',
-      amount: transaction?.amount.toString() || '',
-      currency: transaction?.currency || 'USD',
-      category: transaction?.category || 'other',
-      transaction_date: transaction?.transaction_date || transaction?.date || new Date().toISOString().split('T')[0] as string,
+      transaction_type:
+        (transaction?.transaction_type as "income" | "expense") || "expense",
+      merchant: transaction?.merchant || "",
+      amount: transaction?.amount.toString() || "",
+      currency: transaction?.currency || "USD",
+      category: transaction?.category || "other",
+      transaction_date:
+        transaction?.transaction_date ||
+        transaction?.date ||
+        (new Date().toISOString().split("T")[0] as string),
     };
   });
 
@@ -67,13 +74,13 @@ export function TransactionFormModal({
     }
   };
 
-  const title = mode === 'create' 
-    ? t("transactions.addTransaction") 
-    : t("transactions.editTransaction");
-    
-  const saveButtonText = mode === 'create'
-    ? t("transactions.create")
-    : t("common.save");
+  const title =
+    mode === "create"
+      ? t("transactions.addTransaction")
+      : t("transactions.editTransaction");
+
+  const saveButtonText =
+    mode === "create" ? t("transactions.create") : t("common.save");
 
   return (
     <AnimatePresence>
@@ -95,7 +102,7 @@ export function TransactionFormModal({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
@@ -120,10 +127,12 @@ export function TransactionFormModal({
                   </label>
                   <select
                     value={formData.transaction_type}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({
                         ...formData,
-                        transaction_type: e.target.value as 'income' | 'expense',
+                        transaction_type: e.target.value as
+                          | "income"
+                          | "expense",
                       })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
@@ -142,7 +151,7 @@ export function TransactionFormModal({
                   <input
                     type="text"
                     value={formData.merchant}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({ ...formData, merchant: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
@@ -159,7 +168,7 @@ export function TransactionFormModal({
                   <input
                     type="date"
                     value={formData.transaction_date}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({
                         ...formData,
                         transaction_date: e.target.value,
@@ -181,7 +190,7 @@ export function TransactionFormModal({
                     step="0.01"
                     min="0.01"
                     value={formData.amount}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({ ...formData, amount: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
@@ -197,13 +206,13 @@ export function TransactionFormModal({
                   </label>
                   <select
                     value={formData.currency}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({ ...formData, currency: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
                   >
-                    {TRANSACTION_CURRENCIES.map((curr) => (
+                    {TRANSACTION_CURRENCIES.map(curr => (
                       <option key={curr} value={curr}>
                         {getCurrencySymbol(curr)} {curr}
                       </option>
@@ -218,7 +227,7 @@ export function TransactionFormModal({
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({
                         ...formData,
                         category: e.target.value,
@@ -227,7 +236,7 @@ export function TransactionFormModal({
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
                   >
-                    {TRANSACTION_CATEGORIES.map((cat) => (
+                    {TRANSACTION_CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>
                         {translateCategory(cat)}
                       </option>

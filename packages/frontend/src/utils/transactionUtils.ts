@@ -2,7 +2,7 @@
  * Transaction utility functions
  */
 
-export type TransactionType = 'income' | 'expense' | 'ingreso' | 'egreso';
+export type TransactionType = "income" | "expense" | "ingreso" | "egreso";
 
 export interface TransactionTypeResult {
   isExpense: boolean;
@@ -15,16 +15,24 @@ export interface TransactionTypeResult {
 /**
  * Determines transaction type properties
  */
-export function getTransactionType(transactionType: TransactionType): TransactionTypeResult {
-  const isExpense = transactionType === 'egreso' || transactionType === 'expense';
-  const isIncome = transactionType === 'ingreso' || transactionType === 'income';
-  
+export function getTransactionType(
+  transactionType: TransactionType
+): TransactionTypeResult {
+  const isExpense =
+    transactionType === "egreso" || transactionType === "expense";
+  const isIncome =
+    transactionType === "ingreso" || transactionType === "income";
+
   return {
     isExpense,
     isIncome,
-    displayType: isExpense ? 'Gasto' : isIncome ? 'Ingreso' : transactionType,
-    sign: isExpense ? '-' : '+',
-    colorClass: isExpense ? 'text-red-600' : isIncome ? 'text-green-600' : 'text-gray-900'
+    displayType: isExpense ? "Gasto" : isIncome ? "Ingreso" : transactionType,
+    sign: isExpense ? "-" : "+",
+    colorClass: isExpense
+      ? "text-red-600"
+      : isIncome
+        ? "text-green-600"
+        : "text-gray-900",
   };
 }
 
@@ -32,12 +40,12 @@ export function getTransactionType(transactionType: TransactionType): Transactio
  * Formats date to Spanish locale
  */
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(dateString).toLocaleString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -45,9 +53,9 @@ export function formatDate(dateString: string): string {
  * Formats date to short format (day month)
  */
 export function formatShortDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
+  return new Date(dateString).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
   });
 }
 

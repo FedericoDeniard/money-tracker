@@ -12,13 +12,18 @@ export function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     // Check if we have a valid session from the reset link
     const checkSession = async () => {
       const supabase = await getSupabase();
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         // No session means the reset link is invalid or expired
@@ -55,17 +60,20 @@ export function ResetPassword() {
       const supabase = await getSupabase();
 
       // Check current session
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
 
       if (!currentSession) {
-        throw new Error("No active session found. Please try requesting a new reset link.");
+        throw new Error(
+          "No active session found. Please try requesting a new reset link."
+        );
       }
 
       // Fire the update request without waiting (workaround for SDK not resolving)
-      supabase.auth.updateUser({ password: password })
-        .catch(() => {
-          // Silently handle errors - the password update happens server-side
-        });
+      supabase.auth.updateUser({ password: password }).catch(() => {
+        // Silently handle errors - the password update happens server-side
+      });
 
       // Show success message and redirect
       // The password update happens server-side, we just need to redirect
@@ -105,10 +113,11 @@ export function ResetPassword() {
         {/* Message */}
         {message && (
           <div
-            className={`mb-6 p-4 rounded-2xl ${message.type === "success"
+            className={`mb-6 p-4 rounded-2xl ${
+              message.type === "success"
                 ? "bg-green-50 text-green-800 border border-green-200"
                 : "bg-red-50 text-red-800 border border-red-200"
-              }`}
+            }`}
           >
             {message.text}
           </div>
@@ -132,7 +141,7 @@ export function ResetPassword() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 placeholder={t("auth.passwordPlaceholder")}
                 required
                 className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
@@ -157,7 +166,7 @@ export function ResetPassword() {
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={e => setConfirmPassword(e.target.value)}
                 placeholder={t("auth.confirmPasswordPlaceholder")}
                 required
                 className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"

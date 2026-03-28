@@ -44,7 +44,9 @@ export function useNotificationActions() {
   const queryClient = useQueryClient();
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
-    queryClient.invalidateQueries({ queryKey: queryKeys.notificationPreferences.all });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.notificationPreferences.all,
+    });
   };
 
   const markAsRead = useMutation({
@@ -115,8 +117,9 @@ export function useNotificationsRealtime() {
   useEffect(() => {
     if (!user?.id) return;
 
-    let channel: ReturnType<Awaited<ReturnType<typeof getSupabase>>["channel"]> | null =
-      null;
+    let channel: ReturnType<
+      Awaited<ReturnType<typeof getSupabase>>["channel"]
+    > | null = null;
 
     const setup = async () => {
       const supabase = await getSupabase();
@@ -131,8 +134,10 @@ export function useNotificationsRealtime() {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
-          },
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.notifications.all,
+            });
+          }
         )
         .subscribe();
     };

@@ -58,7 +58,12 @@ export function SubscriptionsHeader({
         <Button
           variant="ghost"
           size="sm"
-          icon={<RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />}
+          icon={
+            <RefreshCw
+              size={16}
+              className={isRefreshing ? "animate-spin" : ""}
+            />
+          }
           onClick={onRefresh}
           className="shrink-0 h-8 px-2 md:px-3"
         >
@@ -68,7 +73,7 @@ export function SubscriptionsHeader({
 
       <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="bg-[var(--bg-secondary)] p-1 rounded-lg flex items-center gap-1 w-full lg:w-auto overflow-x-auto">
-          {(["all", "active", "inactive"] as const).map((status) => (
+          {(["all", "active", "inactive"] as const).map(status => (
             <Button
               key={status}
               onClick={() => onStatusFilterChange(status)}
@@ -93,7 +98,9 @@ export function SubscriptionsHeader({
               className="h-8 px-2 text-xs md:text-sm"
               aria-label={t("subscriptions.filters.view.grid")}
             >
-              <span className="hidden sm:inline">{t("subscriptions.filters.view.grid")}</span>
+              <span className="hidden sm:inline">
+                {t("subscriptions.filters.view.grid")}
+              </span>
             </Button>
             <Button
               onClick={() => onViewModeChange("list")}
@@ -104,7 +111,9 @@ export function SubscriptionsHeader({
               className="h-8 px-2 text-xs md:text-sm"
               aria-label={t("subscriptions.filters.view.list")}
             >
-              <span className="hidden sm:inline">{t("subscriptions.filters.view.list")}</span>
+              <span className="hidden sm:inline">
+                {t("subscriptions.filters.view.list")}
+              </span>
             </Button>
           </div>
 
@@ -117,16 +126,30 @@ export function SubscriptionsHeader({
             </div>
             <select
               value={sortBy}
-              onChange={(e) => onSortByChange(e.target.value as SubscriptionSortBy)}
+              onChange={e =>
+                onSortByChange(e.target.value as SubscriptionSortBy)
+              }
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               aria-label={t("subscriptions.filters.sortLabel")}
             >
-              <option value="status">{t("subscriptions.filters.sort.status")}</option>
-              <option value="amount_desc">{t("subscriptions.filters.sort.amount_desc")}</option>
-              <option value="amount_asc">{t("subscriptions.filters.sort.amount_asc")}</option>
-              <option value="next_date_asc">{t("subscriptions.filters.sort.next_date_asc")}</option>
-              <option value="confidence_desc">{t("subscriptions.filters.sort.confidence_desc")}</option>
-              <option value="merchant_asc">{t("subscriptions.filters.sort.merchant_asc")}</option>
+              <option value="status">
+                {t("subscriptions.filters.sort.status")}
+              </option>
+              <option value="amount_desc">
+                {t("subscriptions.filters.sort.amount_desc")}
+              </option>
+              <option value="amount_asc">
+                {t("subscriptions.filters.sort.amount_asc")}
+              </option>
+              <option value="next_date_asc">
+                {t("subscriptions.filters.sort.next_date_asc")}
+              </option>
+              <option value="confidence_desc">
+                {t("subscriptions.filters.sort.confidence_desc")}
+              </option>
+              <option value="merchant_asc">
+                {t("subscriptions.filters.sort.merchant_asc")}
+              </option>
             </select>
           </div>
 
@@ -138,7 +161,9 @@ export function SubscriptionsHeader({
               icon={<X size={14} />}
               className="text-red-600 hover:bg-red-50 h-8 px-2 text-xs md:text-sm shrink-0"
             >
-              <span className="hidden sm:inline">{t("subscriptions.filters.clear")}</span>
+              <span className="hidden sm:inline">
+                {t("subscriptions.filters.clear")}
+              </span>
             </Button>
           )}
         </div>

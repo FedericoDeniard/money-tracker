@@ -1,6 +1,6 @@
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
-import { gmailService, type GmailStatus } from '../services/gmail.service';
-import { queryKeys } from '../lib/query-client';
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { gmailService, type GmailStatus } from "../services/gmail.service";
+import { queryKeys } from "../lib/query-client";
 
 export function useGmailStatus(userId?: string) {
   return useSuspenseQuery({

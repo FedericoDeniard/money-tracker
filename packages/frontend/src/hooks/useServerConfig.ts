@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { queryKeys } from '../lib/query-client';
-import { config } from '../config';
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "../lib/query-client";
+import { config } from "../config";
 
 interface ServerConfig {
   supabase: { url: string; anonKey: string };

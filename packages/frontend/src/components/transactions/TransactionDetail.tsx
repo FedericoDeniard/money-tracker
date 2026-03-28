@@ -1,12 +1,4 @@
-import {
-  Check,
-  Copy,
-  Edit,
-  Trash2,
-  ArrowDown,
-  ArrowUp,
-  X,
-} from "lucide-react";
+import { Check, Copy, Edit, Trash2, ArrowDown, ArrowUp, X } from "lucide-react";
 import { Button } from "../ui/Button";
 import type { Transaction } from "../../services/transactions.service";
 import { getTransactionType } from "../../utils/transactionUtils";
@@ -24,9 +16,16 @@ interface TransactionDetailProps {
   onClose?: () => void;
 }
 
-export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: TransactionDetailProps) {
+export function TransactionDetail({
+  transaction,
+  onDelete,
+  onUpdate,
+  onClose,
+}: TransactionDetailProps) {
   const { t } = useTranslation();
-  const { isIncome } = getTransactionType(transaction.transaction_type as 'income' | 'expense' | 'ingreso' | 'egreso');
+  const { isIncome } = getTransactionType(
+    transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
+  );
   const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -44,7 +43,7 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await onDelete(transaction.id);
@@ -66,7 +65,7 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
 
   // Format date and time
   const dateTimeStr = formatDateTime(
-    transaction.transaction_date || transaction.date,
+    transaction.transaction_date || transaction.date
   );
 
   return (
@@ -158,7 +157,13 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
               onClick={handleCopyId}
               variant="ghost"
               size="sm"
-              icon={copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+              icon={
+                copied ? (
+                  <Check size={14} className="text-green-500" />
+                ) : (
+                  <Copy size={14} />
+                )
+              }
               title={t("common.copy")}
             />
           </div>
@@ -168,7 +173,7 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
       {/* Footer Actions */}
       <div className="mt-auto pt-8">
         <div className="flex gap-3">
-          <Button 
+          <Button
             onClick={() => setShowDeleteModal(true)}
             variant="danger"
             size="md"
@@ -177,7 +182,7 @@ export function TransactionDetail({ transaction, onDelete, onUpdate, onClose }: 
           >
             {t("transactions.delete")}
           </Button>
-          <Button 
+          <Button
             onClick={() => setShowEditModal(true)}
             variant="secondary"
             size="md"

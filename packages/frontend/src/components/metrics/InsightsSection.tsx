@@ -69,7 +69,7 @@ export function InsightsSection({
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {insights.map((insight) => (
+        {insights.map(insight => (
           <div
             key={insight.title}
             className="p-5 bg-[var(--bg-primary)] rounded-xl border border-transparent hover:border-[var(--text-secondary)]/10 transition-colors duration-300 shadow-sm"

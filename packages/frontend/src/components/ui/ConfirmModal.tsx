@@ -50,7 +50,7 @@ export function ConfirmModal({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
@@ -67,7 +67,9 @@ export function ConfirmModal({
               </div>
 
               {/* Message or Content */}
-              {children ? children : (
+              {children ? (
+                children
+              ) : (
                 <p className="text-[var(--text-secondary)] mb-6">{message}</p>
               )}
 
@@ -88,7 +90,8 @@ export function ConfirmModal({
                   disabled={isLoading}
                   loading={isLoading}
                 >
-                  {confirmText || (isDestructive ? t("common.delete") : t("common.confirm"))}
+                  {confirmText ||
+                    (isDestructive ? t("common.delete") : t("common.confirm"))}
                 </Button>
               </div>
             </motion.div>

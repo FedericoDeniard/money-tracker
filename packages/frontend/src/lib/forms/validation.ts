@@ -4,7 +4,7 @@ interface ValidationRule {
   pattern?: RegExp;
   custom?: (
     value: string,
-    formData?: { [key: string]: string },
+    formData?: { [key: string]: string }
   ) => string | null;
 }
 
@@ -52,7 +52,7 @@ export class FormValidator {
       if (fieldRules.pattern && !fieldRules.pattern.test(value)) {
         const patternMessage = this.getPatternMessage(
           fieldName,
-          fieldRules.pattern,
+          fieldRules.pattern
         );
         errors[fieldName] = patternMessage;
         continue;

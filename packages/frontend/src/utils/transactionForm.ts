@@ -14,7 +14,7 @@ interface TransactionCreateInput {
 }
 
 export function mapTransactionFormDataToInsert(
-  formData: TransactionFormData,
+  formData: TransactionFormData
 ): TransactionCreateInput {
   return {
     transaction_type: formData.transaction_type,

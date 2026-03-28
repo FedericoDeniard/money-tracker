@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Sector,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 
@@ -67,7 +61,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     );
   }
 
-  const chartData: ChartDataItem[] = data.slice(0, 8).map((item) => ({
+  const chartData: ChartDataItem[] = data.slice(0, 8).map(item => ({
     name: t(`categories.${item.category}`),
     value: item.amount,
     percentage: item.percentage,
@@ -79,7 +73,19 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
 
   const renderActiveShape = (props: unknown) => {
     const RADIAN = Math.PI / 180;
-    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props as ActiveShapeProps;
+    const {
+      cx,
+      cy,
+      midAngle,
+      innerRadius,
+      outerRadius,
+      startAngle,
+      endAngle,
+      fill,
+      payload,
+      percent,
+      value,
+    } = props as ActiveShapeProps;
     const sin = Math.sin(-RADIAN * midAngle);
     const cos = Math.cos(-RADIAN * midAngle);
 
@@ -94,14 +100,24 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     const my = cy + (outerRadius + elbowOffset) * sin;
     const ex = mx + (cos >= 0 ? 1 : -1) * tailLength;
     const ey = my;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
+    const textAnchor = cos >= 0 ? "start" : "end";
 
     // Safely truncate name so it never escapes the donut hole
-    const shortName = payload.name.length > 20 ? payload.name.substring(0, 20) + '...' : payload.name;
+    const shortName =
+      payload.name.length > 20
+        ? payload.name.substring(0, 20) + "..."
+        : payload.name;
 
     return (
       <g>
-        <text x={cx} y={cy} dy={4} textAnchor="middle" fill={fill} style={{ fontSize: '14px', fontWeight: 'bold' }}>
+        <text
+          x={cx}
+          y={cy}
+          dy={4}
+          textAnchor="middle"
+          fill={fill}
+          style={{ fontSize: "14px", fontWeight: "bold" }}
+        >
           {shortName}
         </text>
         <Sector
@@ -122,13 +138,31 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
           outerRadius={outerRadius + 6}
           fill={fill}
         />
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+        <path
+          d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+          stroke={fill}
+          fill="none"
+        />
         <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
 
-        <text x={ex + (cos >= 0 ? 1 : -1) * (isMobile ? 4 : 8)} y={ey} dy={-2} textAnchor={textAnchor} fill="var(--text-primary)" style={{ fontSize: isMobile ? '11px' : '13px', fontWeight: 'bold' }}>
+        <text
+          x={ex + (cos >= 0 ? 1 : -1) * (isMobile ? 4 : 8)}
+          y={ey}
+          dy={-2}
+          textAnchor={textAnchor}
+          fill="var(--text-primary)"
+          style={{ fontSize: isMobile ? "11px" : "13px", fontWeight: "bold" }}
+        >
           {`$${value.toFixed(2)}`}
         </text>
-        <text x={ex + (cos >= 0 ? 1 : -1) * (isMobile ? 4 : 8)} y={ey} dy={14} textAnchor={textAnchor} fill="var(--text-secondary)" style={{ fontSize: isMobile ? '10px' : '12px' }}>
+        <text
+          x={ex + (cos >= 0 ? 1 : -1) * (isMobile ? 4 : 8)}
+          y={ey}
+          dy={14}
+          textAnchor={textAnchor}
+          fill="var(--text-secondary)"
+          style={{ fontSize: isMobile ? "10px" : "12px" }}
+        >
           {`(${(percent * 100).toFixed(1)}%)`}
         </text>
       </g>
@@ -144,7 +178,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
               // @ts-expect-error Recharts typings issue
               activeIndex={activeIndex}
               activeShape={renderActiveShape}
-              key={`pie-${data.length}-${data.map((d) => d.amount).join("-")}`}
+              key={`pie-${data.length}-${data.map(d => d.amount).join("-")}`}
               data={chartData}
               cx="50%"
               cy="50%"

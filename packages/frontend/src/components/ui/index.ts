@@ -1,2 +1,2 @@
-export { InsufficientData } from './InsufficientData';
-export { MultipleCurrencies } from './MultipleCurrencies';
+export { InsufficientData } from "./InsufficientData";
+export { MultipleCurrencies } from "./MultipleCurrencies";

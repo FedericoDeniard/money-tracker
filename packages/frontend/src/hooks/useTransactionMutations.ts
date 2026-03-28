@@ -1,16 +1,27 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { InfiniteData } from '@tanstack/react-query';
-import { getSupabase } from '../lib/supabase';
-import { createTransactionsService, type Transaction, type TransactionsService } from '../services/transactions.service';
-import { queryKeys } from '../lib/query-client';
-import type { TransactionPage } from '../services/transactions.service';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
+import { getSupabase } from "../lib/supabase";
+import {
+  createTransactionsService,
+  type Transaction,
+  type TransactionsService,
+} from "../services/transactions.service";
+import { queryKeys } from "../lib/query-client";
+import type { TransactionPage } from "../services/transactions.service";
 
-type CreateTransactionInput = Parameters<TransactionsService['createTransaction']>[0];
+type CreateTransactionInput = Parameters<
+  TransactionsService["createTransaction"]
+>[0];
 
 interface UseTransactionMutationsReturn {
-  createTransaction: (newTransaction: CreateTransactionInput) => Promise<Transaction>;
+  createTransaction: (
+    newTransaction: CreateTransactionInput
+  ) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<string>;
-  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<{ id: string; updates: Partial<Transaction> }>;
+  updateTransaction: (
+    id: string,
+    updates: Partial<Transaction>
+  ) => Promise<{ id: string; updates: Partial<Transaction> }>;
   isCreating: boolean;
   isDeleting: boolean;
   isUpdating: boolean;
@@ -29,12 +40,14 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
       await service.deleteTransaction(transactionId);
       return transactionId;
     },
-    onMutate: async (transactionId) => {
+    onMutate: async transactionId => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.transactions.all });
 
       // Snapshot previous values for rollback
-      const previousTransactions = queryClient.getQueryData(queryKeys.transactions.lists());
+      const previousTransactions = queryClient.getQueryData(
+        queryKeys.transactions.lists()
+      );
 
       // Optimistically remove from cache
       queryClient.setQueriesData(
@@ -47,7 +60,9 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
             ...oldData,
             pages: oldData.pages.map((page: TransactionPage) => ({
               ...page,
-              transactions: page.transactions.filter((t: Transaction) => t.id !== transactionId),
+              transactions: page.transactions.filter(
+                (t: Transaction) => t.id !== transactionId
+              ),
               total: page.total ? page.total - 1 : page.total,
             })),
           };
@@ -59,7 +74,10 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
     onError: (err, transactionId, context) => {
       // Rollback on error
       if (context?.previousTransactions) {
-        queryClient.setQueryData(queryKeys.transactions.lists(), context.previousTransactions);
+        queryClient.setQueryData(
+          queryKeys.transactions.lists(),
+          context.previousTransactions
+        );
       }
     },
     onSuccess: () => {
@@ -73,7 +91,13 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Transaction> }) => {
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<Transaction>;
+    }) => {
       const supabase = await getSupabase();
       const service = createTransactionsService(supabase);
       await service.updateTransaction(id, updates);
@@ -84,7 +108,9 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
       await queryClient.cancelQueries({ queryKey: queryKeys.transactions.all });
 
       // Snapshot previous values for rollback
-      const previousTransactions = queryClient.getQueryData(queryKeys.transactions.lists());
+      const previousTransactions = queryClient.getQueryData(
+        queryKeys.transactions.lists()
+      );
 
       // Optimistically update in cache
       queryClient.setQueriesData(
@@ -110,7 +136,10 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
     onError: (err, variables, context) => {
       // Rollback on error
       if (context?.previousTransactions) {
-        queryClient.setQueryData(queryKeys.transactions.lists(), context.previousTransactions);
+        queryClient.setQueryData(
+          queryKeys.transactions.lists(),
+          context.previousTransactions
+        );
       }
     },
     onSuccess: () => {
@@ -129,23 +158,25 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
       const service = createTransactionsService(supabase);
       return await service.createTransaction(newTransaction);
     },
-    onMutate: async (newTransaction) => {
+    onMutate: async newTransaction => {
       await queryClient.cancelQueries({ queryKey: queryKeys.transactions.all });
-      
-      const previousTransactions = queryClient.getQueryData(queryKeys.transactions.lists());
-      
+
+      const previousTransactions = queryClient.getQueryData(
+        queryKeys.transactions.lists()
+      );
+
       // Optimistically add to cache
       queryClient.setQueriesData(
         { queryKey: queryKeys.transactions.lists() },
         (oldData: InfiniteData<TransactionPage> | undefined) => {
           if (!oldData) return oldData;
-          
+
           const newId = `optimistic-${Date.now()}`;
           const optimisticTransaction: Transaction = {
             ...newTransaction,
             id: newId,
-            user_id: 'optimistic-user',
-            recipient_email: '',
+            user_id: "optimistic-user",
+            recipient_email: "",
             created_at: new Date().toISOString(),
             amount: newTransaction.amount,
             category: newTransaction.category,
@@ -158,13 +189,13 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
             transaction_description: newTransaction.transaction_description,
             transaction_type: newTransaction.transaction_type,
             updated_at: null,
-            user_oauth_token_id: newTransaction.user_oauth_token_id ?? null
+            user_oauth_token_id: newTransaction.user_oauth_token_id ?? null,
           };
-          
+
           return {
             ...oldData,
-            pages: oldData.pages.map((page: TransactionPage, i) => 
-              i === 0 
+            pages: oldData.pages.map((page: TransactionPage, i) =>
+              i === 0
                 ? {
                     ...page,
                     transactions: [optimisticTransaction, ...page.transactions],
@@ -175,12 +206,15 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
           };
         }
       );
-      
+
       return { previousTransactions };
     },
     onError: (err, newTransaction, context) => {
       if (context?.previousTransactions) {
-        queryClient.setQueryData(queryKeys.transactions.lists(), context.previousTransactions);
+        queryClient.setQueryData(
+          queryKeys.transactions.lists(),
+          context.previousTransactions
+        );
       }
     },
     onSuccess: () => {
@@ -193,7 +227,8 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
   return {
     createTransaction: createMutation.mutateAsync,
     deleteTransaction: deleteMutation.mutateAsync,
-    updateTransaction: (id, updates) => updateMutation.mutateAsync({ id, updates }),
+    updateTransaction: (id, updates) =>
+      updateMutation.mutateAsync({ id, updates }),
     isCreating: createMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isUpdating: updateMutation.isPending,

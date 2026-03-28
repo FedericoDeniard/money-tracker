@@ -28,7 +28,10 @@ interface SubscriptionCardProps {
 export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
   const { t } = useTranslation();
   const { formatShortDate } = useFormatDate();
-  const confidence = Math.min(100, Math.max(0, Math.round(candidate.confidence_score)));
+  const confidence = Math.min(
+    100,
+    Math.max(0, Math.round(candidate.confidence_score))
+  );
   const status = getSubscriptionStatus(candidate.next_estimated_date);
   const graceInfo = getSubscriptionGraceInfo(candidate.next_estimated_date);
   const shouldShowYearForYearly = candidate.frequency === "yearly";
@@ -41,15 +44,20 @@ export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
             {candidate.merchant_display || candidate.merchant_normalized}
           </h2>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            {t("subscriptions.statusLabel")}: {t(`subscriptions.status.${status}`)}
+            {t("subscriptions.statusLabel")}:{" "}
+            {t(`subscriptions.status.${status}`)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(confidence)}`}>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(confidence)}`}
+          >
             {t("subscriptions.confidence", { value: confidence })}
           </span>
           <div className="flex items-center gap-2">
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(status)}`}>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(status)}`}
+            >
               {t(`subscriptions.status.${status}`)}
             </span>
             {graceInfo?.isInGracePeriod && (
@@ -65,7 +73,9 @@ export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
                   role="tooltip"
                   className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-64 rounded-lg border border-amber-200 bg-amber-50 p-2 text-left text-xs text-amber-800 shadow-sm group-hover/grace:block group-focus-within/grace:block"
                 >
-                  <p className="font-medium">{t("subscriptions.gracePeriod.title")}</p>
+                  <p className="font-medium">
+                    {t("subscriptions.gracePeriod.title")}
+                  </p>
                   <p className="mt-1">
                     {t("subscriptions.gracePeriod.description", {
                       count: graceInfo.graceDaysRemaining,
@@ -87,27 +97,38 @@ export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-lg bg-[var(--bg-secondary)] p-3">
-          <p className="text-[var(--text-secondary)]">{t("subscriptions.avgAmount")}</p>
+          <p className="text-[var(--text-secondary)]">
+            {t("subscriptions.avgAmount")}
+          </p>
           <p className="font-semibold text-[var(--text-primary)]">
-            {formatCurrency(candidate.avg_amount, candidate.currency)} {candidate.currency}
+            {formatCurrency(candidate.avg_amount, candidate.currency)}{" "}
+            {candidate.currency}
           </p>
         </div>
         <div className="rounded-lg bg-[var(--bg-secondary)] p-3">
-          <p className="text-[var(--text-secondary)]">{t("subscriptions.occurrences")}</p>
-          <p className="font-semibold text-[var(--text-primary)]">{candidate.occurrences}</p>
+          <p className="text-[var(--text-secondary)]">
+            {t("subscriptions.occurrences")}
+          </p>
+          <p className="font-semibold text-[var(--text-primary)]">
+            {candidate.occurrences}
+          </p>
         </div>
       </div>
 
       <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
         <p className="flex items-center gap-2">
           <CalendarClock size={14} />
-          {t("subscriptions.lastDate")}: {formatShortDate(candidate.last_date, shouldShowYearForYearly)}
+          {t("subscriptions.lastDate")}:{" "}
+          {formatShortDate(candidate.last_date, shouldShowYearForYearly)}
         </p>
         <p className="flex items-center gap-2">
           <CalendarClock size={14} />
           {t("subscriptions.nextDate")}:{" "}
           {candidate.next_estimated_date
-            ? formatShortDate(candidate.next_estimated_date, shouldShowYearForYearly)
+            ? formatShortDate(
+                candidate.next_estimated_date,
+                shouldShowYearForYearly
+              )
             : t("errors.unknownError")}
         </p>
         <p className="flex items-center gap-2">

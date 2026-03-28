@@ -1,83 +1,89 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
   loading?: boolean;
   icon?: React.ReactNode;
-  iconPosition?: 'left' | 'right';
+  iconPosition?: "left" | "right";
   fullWidth?: boolean;
   selected?: boolean;
 }
 
 export function Button({
   children,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   icon,
-  iconPosition = 'left',
+  iconPosition = "left",
   fullWidth = false,
   selected = false,
   disabled,
-  className = '',
+  className = "",
   ...props
 }: ButtonProps) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+  const baseClasses =
+    "inline-flex items-center justify-center font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+
   const variantClasses = {
-    primary: 'bg-[var(--button-primary)] text-white hover:bg-[var(--button-primary-hover)] focus:ring-[var(--primary-focus)]',
-    secondary: 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--text-secondary)]/20 hover:bg-[var(--text-secondary)]/10 focus:ring-[var(--text-secondary)]',
-    outline: 'bg-transparent text-[var(--button-primary)] border border-[var(--button-primary)] hover:bg-[var(--button-primary)] hover:text-white focus:ring-[var(--button-primary)]',
-    ghost: 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] focus:ring-[var(--text-secondary)]',
-    danger: 'bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-300'
+    primary:
+      "bg-[var(--button-primary)] text-white hover:bg-[var(--button-primary-hover)] focus:ring-[var(--primary-focus)]",
+    secondary:
+      "bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--text-secondary)]/20 hover:bg-[var(--text-secondary)]/10 focus:ring-[var(--text-secondary)]",
+    outline:
+      "bg-transparent text-[var(--button-primary)] border border-[var(--button-primary)] hover:bg-[var(--button-primary)] hover:text-white focus:ring-[var(--button-primary)]",
+    ghost:
+      "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] focus:ring-[var(--text-secondary)]",
+    danger: "bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-300",
   };
-  
+
   const sizeClasses = {
-    sm: 'px-3 py-2 text-sm rounded-md',
-    md: 'px-4 py-3 text-sm rounded-lg',
-    lg: 'px-6 py-4 text-base rounded-lg'
+    sm: "px-3 py-2 text-sm rounded-md",
+    md: "px-4 py-3 text-sm rounded-lg",
+    lg: "px-6 py-4 text-base rounded-lg",
   };
 
-  const widthClasses = fullWidth ? 'w-full' : '';
+  const widthClasses = fullWidth ? "w-full" : "";
 
-  const classes = `${baseClasses} ${selected && variant === 'outline' ? variantClasses.primary : variantClasses[variant]} ${sizeClasses[size]} ${widthClasses} ${className}`;
+  const classes = `${baseClasses} ${selected && variant === "outline" ? variantClasses.primary : variantClasses[variant]} ${sizeClasses[size]} ${widthClasses} ${className}`;
 
   const renderIcon = () => {
     if (loading) {
-      return <Loader2 className="animate-spin" size={size === 'sm' ? 16 : size === 'lg' ? 20 : 18} />;
+      return (
+        <Loader2
+          className="animate-spin"
+          size={size === "sm" ? 16 : size === "lg" ? 20 : 18}
+        />
+      );
     }
     return icon;
   };
 
   const renderContent = () => {
-    if (icon && iconPosition === 'left') {
+    if (icon && iconPosition === "left") {
       return (
         <>
           {renderIcon()}
-          {children && <span className={icon ? 'ml-2' : ''}>{children}</span>}
+          {children && <span className={icon ? "ml-2" : ""}>{children}</span>}
         </>
       );
     }
-    
-    if (icon && iconPosition === 'right') {
+
+    if (icon && iconPosition === "right") {
       return (
         <>
-          {children && <span className={icon ? 'mr-2' : ''}>{children}</span>}
+          {children && <span className={icon ? "mr-2" : ""}>{children}</span>}
           {renderIcon()}
         </>
       );
     }
-    
+
     return children;
   };
 
   return (
-    <button
-      className={classes}
-      disabled={disabled || loading}
-      {...props}
-    >
+    <button className={classes} disabled={disabled || loading} {...props}>
       {renderContent()}
     </button>
   );

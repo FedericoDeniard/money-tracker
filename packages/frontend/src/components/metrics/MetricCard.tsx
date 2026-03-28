@@ -10,7 +10,13 @@ export interface MetricCardProps {
   currency?: string;
 }
 
-export function MetricCard({ title, value, change, icon, currency }: MetricCardProps) {
+export function MetricCard({
+  title,
+  value,
+  change,
+  icon,
+  currency,
+}: MetricCardProps) {
   const { t } = useTranslation();
   const isPositive = change !== null && change > 0;
   const isNeutral = change === null || change === 0;

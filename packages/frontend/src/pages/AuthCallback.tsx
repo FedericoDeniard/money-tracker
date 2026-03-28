@@ -15,7 +15,10 @@ export function AuthCallback() {
 
         // Supabase automatically handles the OAuth callback and sets the session
         // We just need to check if the session was established
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
         if (error) {
           console.error("Error during OAuth callback:", error);

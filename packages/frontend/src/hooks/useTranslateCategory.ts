@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 
 /**
  * Hook to translate transaction categories
@@ -11,11 +11,11 @@ export function useTranslateCategory() {
   };
 
   const translateTransactionType = (type: string): string => {
-    if (type === 'egreso' || type === 'expense') {
-      return t('transactions.expense');
+    if (type === "egreso" || type === "expense") {
+      return t("transactions.expense");
     }
-    if (type === 'ingreso' || type === 'income') {
-      return t('transactions.income');
+    if (type === "ingreso" || type === "income") {
+      return t("transactions.income");
     }
     return type;
   };

@@ -1,15 +1,18 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { useTranslation } from 'react-i18next';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus } from "lucide-react";
+import { Button } from "../ui/Button";
+import { useTranslation } from "react-i18next";
 
 type AddTransactionButtonProps = {
   onManualAdd: () => void;
   onUpload: () => void;
 };
 
-export function AddTransactionButton({ onManualAdd, onUpload }: AddTransactionButtonProps) {
+export function AddTransactionButton({
+  onManualAdd,
+  onUpload,
+}: AddTransactionButtonProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -21,7 +24,7 @@ export function AddTransactionButton({ onManualAdd, onUpload }: AddTransactionBu
         size="md"
         icon={<Plus size={24} />}
         className="w-14 h-14 rounded-full shadow-lg hover:scale-105 transition-all duration-200"
-        aria-label={t('transactions.addTransaction')}
+        aria-label={t("transactions.addTransaction")}
       />
 
       <AnimatePresence>
@@ -42,7 +45,7 @@ export function AddTransactionButton({ onManualAdd, onUpload }: AddTransactionBu
               fullWidth
               className="text-left justify-start"
             >
-              {t('transactions.addManually')}
+              {t("transactions.addManually")}
             </Button>
             <Button
               onClick={() => {
@@ -54,7 +57,7 @@ export function AddTransactionButton({ onManualAdd, onUpload }: AddTransactionBu
               fullWidth
               className="text-left justify-start"
             >
-              {t('transactions.uploadDocument')}
+              {t("transactions.uploadDocument")}
             </Button>
           </motion.div>
         )}
