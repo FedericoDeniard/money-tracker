@@ -23,7 +23,7 @@ export function useTransactionsRealtime() {
 
     const setupRealtimeSubscription = async () => {
       // Add small delay to avoid rapid reconnections during HMR
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const supabase = await getSupabase();
 
@@ -36,25 +36,27 @@ export function useTransactionsRealtime() {
             schema: "public",
             table: "transactions",
           },
-          (payload) => {
+          payload => {
             const newTransaction = payload.new as Transaction;
 
             // Invalidate all transaction-related queries to ensure cache consistency
-            queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.transactions.all,
+            });
             queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
 
             const isIncome =
               newTransaction.transaction_type === "income" ||
               newTransaction.transaction_type === "ingreso";
             const { sign } = getTransactionType(
-              newTransaction.transaction_type,
+              newTransaction.transaction_type
             );
             const title = isIncome
               ? t("transactions.newIncomeReceived")
               : t("transactions.newExpenseReceived");
 
             toast.custom(
-              (id) => (
+              id => (
                 <div
                   className="w-full rounded-xl shadow-lg border p-4 flex items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative overflow-hidden group"
                   style={{
@@ -66,7 +68,9 @@ export function useTransactionsRealtime() {
                   <div
                     className="absolute left-0 top-0 bottom-0 w-1"
                     style={{
-                      backgroundColor: isIncome ? "var(--success)" : "var(--error)",
+                      backgroundColor: isIncome
+                        ? "var(--success)"
+                        : "var(--error)",
                     }}
                   />
                   <div
@@ -135,7 +139,7 @@ export function useTransactionsRealtime() {
                       {sign}
                       {formatCurrency(
                         newTransaction.amount,
-                        newTransaction.currency,
+                        newTransaction.currency
                       )}
                     </span>
                     <span
@@ -149,9 +153,9 @@ export function useTransactionsRealtime() {
               ),
               {
                 duration: 5000,
-              },
+              }
             );
-          },
+          }
         )
         .subscribe();
     };

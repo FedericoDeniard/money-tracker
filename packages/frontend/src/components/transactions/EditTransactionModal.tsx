@@ -29,12 +29,61 @@ const CATEGORIES = [
 ] as const;
 
 const CURRENCIES = [
-  "USD", "EUR", "GBP", "JPY", "CNY", "INR", "AUD", "CAD", "CHF",
-  "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "HRK",
-  "RUB", "TRY", "MXN", "ARS", "CLP", "COP", "PEN", "UYU", "BOB",
-  "PYG", "ILS", "KRW", "THB", "VND", "IDR", "MYR", "PHP", "SGD",
-  "HKD", "NZD", "ZAR", "NGN", "GHS", "KES", "EGP", "MAD", "TND",
-  "DZD", "LBP", "JOD", "IQD", "BHD", "KWD", "QAR", "SAR", "AED", "OMR"
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CNY",
+  "INR",
+  "AUD",
+  "CAD",
+  "CHF",
+  "SEK",
+  "NOK",
+  "DKK",
+  "PLN",
+  "CZK",
+  "HUF",
+  "RON",
+  "BGN",
+  "HRK",
+  "RUB",
+  "TRY",
+  "MXN",
+  "ARS",
+  "CLP",
+  "COP",
+  "PEN",
+  "UYU",
+  "BOB",
+  "PYG",
+  "ILS",
+  "KRW",
+  "THB",
+  "VND",
+  "IDR",
+  "MYR",
+  "PHP",
+  "SGD",
+  "HKD",
+  "NZD",
+  "ZAR",
+  "NGN",
+  "GHS",
+  "KES",
+  "EGP",
+  "MAD",
+  "TND",
+  "DZD",
+  "LBP",
+  "JOD",
+  "IQD",
+  "BHD",
+  "KWD",
+  "QAR",
+  "SAR",
+  "AED",
+  "OMR",
 ] as const;
 
 export function EditTransactionModal({
@@ -110,7 +159,7 @@ export function EditTransactionModal({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
@@ -135,7 +184,7 @@ export function EditTransactionModal({
                   </label>
                   <select
                     value={formData.transaction_type}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({
                         ...formData,
                         transaction_type: e.target.value as
@@ -159,7 +208,7 @@ export function EditTransactionModal({
                   <input
                     type="text"
                     value={formData.merchant}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({ ...formData, merchant: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
@@ -175,7 +224,7 @@ export function EditTransactionModal({
                   <input
                     type="date"
                     value={formData.transaction_date}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({
                         ...formData,
                         transaction_date: e.target.value,
@@ -197,7 +246,7 @@ export function EditTransactionModal({
                     step="0.01"
                     min="0.01"
                     value={formData.amount}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({ ...formData, amount: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
@@ -213,13 +262,13 @@ export function EditTransactionModal({
                   </label>
                   <select
                     value={formData.currency}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({ ...formData, currency: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
                   >
-                    {CURRENCIES.map((curr) => (
+                    {CURRENCIES.map(curr => (
                       <option key={curr} value={curr}>
                         {getCurrencySymbol(curr)} {curr}
                       </option>
@@ -234,7 +283,7 @@ export function EditTransactionModal({
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) =>
+                    onChange={e =>
                       setFormData({
                         ...formData,
                         category: e.target.value as (typeof CATEGORIES)[number],
@@ -243,7 +292,7 @@ export function EditTransactionModal({
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                     disabled={isLoading}
                   >
-                    {CATEGORIES.map((cat) => (
+                    {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>
                         {translateCategory(cat)}
                       </option>

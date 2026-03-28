@@ -1,7 +1,7 @@
-import { useMemo, useEffect } from 'react';
-import { useAllTransactions, flattenTransactionsData } from './useTransactions';
-import { useTransactionFilters } from './useTransactionFilters';
-import type { Transaction } from '../services/transactions.service';
+import { useMemo, useEffect } from "react";
+import { useAllTransactions, flattenTransactionsData } from "./useTransactions";
+import { useTransactionFilters } from "./useTransactionFilters";
+import type { Transaction } from "../services/transactions.service";
 
 interface MetricsData {
   totalIncome: number;
@@ -27,7 +27,7 @@ interface UseMetricsDataOptions {
 export function useMetricsData({
   selectedPeriod,
   selectedCurrency,
-  enabled = true
+  enabled = true,
 }: UseMetricsDataOptions) {
   // Get all transactions using our cached hook
   const {
@@ -107,11 +107,11 @@ export function useMetricsData({
         acc[category] = (acc[category] || 0) + tx.amount;
         return acc;
       },
-      {} as Record<string, number>,
+      {} as Record<string, number>
     );
 
     const topCategory = Object.entries(categoryTotals).sort(
-      ([, a], [, b]) => b - a,
+      ([, a], [, b]) => b - a
     )[0];
 
     const averageTransaction =
@@ -122,10 +122,10 @@ export function useMetricsData({
     const now = new Date();
     const daysAgo = parseInt(selectedPeriod);
     const currentPeriodStart = new Date(
-      now.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+      now.getTime() - daysAgo * 24 * 60 * 60 * 1000
     );
     const previousPeriodStart = new Date(
-      currentPeriodStart.getTime() - daysAgo * 24 * 60 * 60 * 1000,
+      currentPeriodStart.getTime() - daysAgo * 24 * 60 * 60 * 1000
     );
 
     const previousPeriodTransactions =

@@ -59,11 +59,17 @@ export function TaskListItem({
         <div className="flex items-start gap-2">
           <div className="mt-0.5">{styles.icon}</div>
           <div>
-            <h4 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h4>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">{description}</p>
+            <h4 className="text-sm font-semibold text-[var(--text-primary)]">
+              {title}
+            </h4>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {description}
+            </p>
           </div>
         </div>
-        <span className={`text-xs font-medium ${styles.text}`}>{levelLabel}</span>
+        <span className={`text-xs font-medium ${styles.text}`}>
+          {levelLabel}
+        </span>
       </div>
 
       {actionLabel && (
@@ -75,7 +81,12 @@ export function TaskListItem({
               </Button>
             </Link>
           ) : (
-            <Button size="sm" variant="outline" onClick={onAction} disabled={disabled}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onAction}
+              disabled={disabled}
+            >
               {actionLabel}
             </Button>
           )}

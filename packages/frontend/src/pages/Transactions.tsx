@@ -1,18 +1,26 @@
 import { Suspense, useState, useCallback } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
-import { type Transaction, type TransactionFilters } from "../services/transactions.service";
+import {
+  type Transaction,
+  type TransactionFilters,
+} from "../services/transactions.service";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TransactionList } from "../components/transactions/TransactionList";
 import { TransactionDetail } from "../components/transactions/TransactionDetail";
 import { TransactionFiltersComponent } from "../components/transactions/TransactionFilters";
-import { AddTransactionButton } from '../components/transactions/AddTransactionButton';
-import { TransactionFormModal } from '../components/transactions/TransactionFormModal';
-import { UploadTransactionModal } from '../components/transactions/UploadTransactionModal';
-import type { TransactionFormData } from '../components/transactions/TransactionFormModal';
+import { AddTransactionButton } from "../components/transactions/AddTransactionButton";
+import { TransactionFormModal } from "../components/transactions/TransactionFormModal";
+import { UploadTransactionModal } from "../components/transactions/UploadTransactionModal";
+import type { TransactionFormData } from "../components/transactions/TransactionFormModal";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../hooks/useAuth";
-import { useTransactions, flattenTransactionsData, getTotalCount, hasMorePages } from "../hooks/useTransactions";
+import {
+  useTransactions,
+  flattenTransactionsData,
+  getTotalCount,
+  hasMorePages,
+} from "../hooks/useTransactions";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link, useSearchParams } from "react-router-dom";
@@ -23,8 +31,17 @@ import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
 const categories = [
-  "salary", "entertainment", "investment", "food", "transport",
-  "services", "health", "education", "housing", "clothing", "other",
+  "salary",
+  "entertainment",
+  "investment",
+  "food",
+  "transport",
+  "services",
+  "health",
+  "education",
+  "housing",
+  "clothing",
+  "other",
 ];
 
 // ─── Data section — suspends on transactions + gmail status ──────────────────
@@ -71,7 +88,10 @@ function TransactionsList({
       {hasConnections === false && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shrink-0">
           <div className="flex items-start gap-3">
-            <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+            <AlertCircle
+              className="text-yellow-600 flex-shrink-0 mt-0.5"
+              size={20}
+            />
             <div className="flex-1">
               <h3 className="text-sm font-medium text-yellow-800">
                 {t("transactions.noAccountsConnected")}
@@ -91,7 +111,9 @@ function TransactionsList({
       )}
 
       {/* Transaction List */}
-      <div className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? 'hidden' : 'block'}`}>
+      <div
+        className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? "hidden" : "block"}`}
+      >
         <div className="p-4 border-b border-[var(--text-secondary)]/20">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-2">
@@ -104,7 +126,12 @@ function TransactionsList({
               disabled={loadingMore}
               variant="ghost"
               size="sm"
-              icon={<RefreshCw size={18} className={loadingMore ? "animate-spin" : ""} />}
+              icon={
+                <RefreshCw
+                  size={18}
+                  className={loadingMore ? "animate-spin" : ""}
+                />
+              }
               title={t("common.refresh") || "Actualizar"}
             />
           </div>
@@ -130,16 +157,20 @@ export function Transactions() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isMobile = useMediaQuery("(max-width: 1024px)");
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>(() => {
     const category = searchParams.get("category");
     return { category: category || undefined };
   });
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [preFilledData, setPreFilledData] = useState<TransactionFormData | undefined>();
+  const [preFilledData, setPreFilledData] = useState<
+    TransactionFormData | undefined
+  >();
 
-  const { deleteTransaction, updateTransaction, createTransaction } = useTransactionMutations();
+  const { deleteTransaction, updateTransaction, createTransaction } =
+    useTransactionMutations();
 
   const handleDeleteTransaction = async (id: string) => {
     try {
@@ -153,7 +184,10 @@ export function Transactions() {
     }
   };
 
-  const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
+  const handleUpdateTransaction = async (
+    id: string,
+    updates: Partial<Transaction>
+  ) => {
     try {
       await updateTransaction(id, updates);
       if (selectedTransaction?.id === id) {
@@ -171,9 +205,12 @@ export function Transactions() {
     toast.success(t("upload.success", "Document processed successfully!"));
   }, [t]);
 
-  const handleUploadError = useCallback((error: string) => {
-    toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
-  }, [t]);
+  const handleUploadError = useCallback(
+    (error: string) => {
+      toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
+    },
+    [t]
+  );
 
   const handleCreateTransaction = async (formData: TransactionFormData) => {
     await createTransaction(mapTransactionFormDataToInsert(formData));
@@ -181,7 +218,6 @@ export function Transactions() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] gap-4">
-
       {/* Filter card: title+description render immediately;
           Currency+Email dropdowns inside have their own Suspense */}
       <TransactionFiltersComponent
@@ -252,7 +288,10 @@ export function Transactions() {
 
         <TransactionFormModal
           isOpen={isFormModalOpen}
-          onClose={() => { setIsFormModalOpen(false); setPreFilledData(undefined); }}
+          onClose={() => {
+            setIsFormModalOpen(false);
+            setPreFilledData(undefined);
+          }}
           onSave={handleCreateTransaction}
           mode="create"
           initialData={preFilledData}

@@ -78,7 +78,10 @@ export function NotificationPreferencesChecklist() {
   if (preferencesQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-8 text-sm text-[var(--text-secondary)]">
-        <Loader2 size={24} className="animate-spin text-[var(--button-primary)] mb-2" />
+        <Loader2
+          size={24}
+          className="animate-spin text-[var(--button-primary)] mb-2"
+        />
       </div>
     );
   }
@@ -93,7 +96,7 @@ export function NotificationPreferencesChecklist() {
 
   return (
     <div className="space-y-6">
-      {grouped.map((group) => (
+      {grouped.map(group => (
         <div key={group.categoryLabel}>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
             {group.categoryLabel}
@@ -119,7 +122,7 @@ export function NotificationPreferencesChecklist() {
                           {t(type.description_i18n_key)}
                         </p>
                       </div>
-                      
+
                       <div className="flex shrink-0 items-center gap-6 pt-2 sm:pt-0">
                         {/* Recibir Toggle */}
                         <div className="flex items-center gap-2">
@@ -130,7 +133,7 @@ export function NotificationPreferencesChecklist() {
                             checked={enabled}
                             disabled={disabled}
                             icon={Bell}
-                            onChange={(checked) =>
+                            onChange={checked =>
                               updatePreference.mutate({
                                 notification_type_id: type.id,
                                 is_enabled: checked,
@@ -142,7 +145,9 @@ export function NotificationPreferencesChecklist() {
                         </div>
 
                         {/* Silenciar Toggle (Only if enabled) */}
-                        <div className={`flex items-center gap-2 transition-opacity ${!enabled ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+                        <div
+                          className={`flex items-center gap-2 transition-opacity ${!enabled ? "opacity-40 pointer-events-none" : "opacity-100"}`}
+                        >
                           <span className="text-sm font-medium text-[var(--text-secondary)]">
                             {t("notifications.settings.mute")}
                           </span>
@@ -150,7 +155,7 @@ export function NotificationPreferencesChecklist() {
                             checked={muted}
                             disabled={disabled || !enabled}
                             icon={VolumeX}
-                            onChange={(checked) =>
+                            onChange={checked =>
                               updatePreference.mutate({
                                 notification_type_id: type.id,
                                 is_enabled: enabled,

@@ -1,13 +1,21 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { getSupabase } from '../../lib/supabase';
-import { loginSchema, registerSchema } from '../../lib/forms/schemas';
-import type { LoginFormData, RegisterFormData } from '../../lib/forms/schemas';
-import { Mail, Lock, AlertCircle, CheckCircle2, Banknote, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { getSupabase } from "../../lib/supabase";
+import { loginSchema, registerSchema } from "../../lib/forms/schemas";
+import type { LoginFormData, RegisterFormData } from "../../lib/forms/schemas";
+import {
+  Mail,
+  Lock,
+  AlertCircle,
+  CheckCircle2,
+  Banknote,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { Button } from "../ui/Button";
 
 interface AuthFormProps {
   initialIsSignUp?: boolean;
@@ -16,7 +24,10 @@ interface AuthFormProps {
 export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(initialIsSignUp);
@@ -30,14 +41,13 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
     mode: "onBlur",
   });
 
-
   const handleEmailAuth = async (data: LoginFormData | RegisterFormData) => {
     setLoading(true);
     setMessage(null);
 
     try {
       const supabase = await getSupabase();
-      
+
       if (isSignUp) {
         const registerData = data as RegisterFormData;
         const { data: authData, error } = await supabase.auth.signUp({
@@ -45,7 +55,7 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
           password: registerData.password,
         });
         if (error) throw error;
-        
+
         if (authData.user && !authData.user.confirmed_at) {
           setMessage({
             type: "success",

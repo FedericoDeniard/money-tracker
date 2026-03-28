@@ -7,11 +7,7 @@ const ACTIVITY_WINDOW_DAYS = 7;
 
 export interface DashboardTask {
   id: string;
-  type:
-  | "reconnect_gmail"
-  | "renew_watch"
-  | "seed_processing"
-  | "seed_failed";
+  type: "reconnect_gmail" | "renew_watch" | "seed_processing" | "seed_failed";
   count?: number;
   totalEmails?: number;
   processedByAi?: number;
@@ -72,23 +68,23 @@ function getSeedSummary(
     emails_processed_by_ai: number | null;
     user_oauth_token_id: string;
     error_message: string | null;
-  }>,
+  }>
 ): SeedSummary {
-  const processingRow = rows.find((row) => row.status === "processing");
-  const failedRow = rows.find((row) => row.status === "failed");
+  const processingRow = rows.find(row => row.status === "processing");
+  const failedRow = rows.find(row => row.status === "failed");
 
   return {
     processing: processingRow
       ? {
-        totalEmails: processingRow.total_emails ?? 0,
-        processedByAi: processingRow.emails_processed_by_ai ?? 0,
-      }
+          totalEmails: processingRow.total_emails ?? 0,
+          processedByAi: processingRow.emails_processed_by_ai ?? 0,
+        }
       : null,
     failed: failedRow
       ? {
-        connectionId: failedRow.user_oauth_token_id,
-        errorMessage: failedRow.error_message,
-      }
+          connectionId: failedRow.user_oauth_token_id,
+          errorMessage: failedRow.error_message,
+        }
       : null,
   };
 }
@@ -118,10 +114,10 @@ export function useDashboardTasks(userId?: string) {
       const supabase = await getSupabase();
       const now = new Date();
       const watchWarningThreshold = new Date(
-        now.getTime() + WATCH_WARNING_HOURS * 60 * 60 * 1000,
+        now.getTime() + WATCH_WARNING_HOURS * 60 * 60 * 1000
       );
       const activityStart = new Date(
-        now.getTime() - ACTIVITY_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+        now.getTime() - ACTIVITY_WINDOW_DAYS * 24 * 60 * 60 * 1000
       );
 
       const [
@@ -151,7 +147,7 @@ export function useDashboardTasks(userId?: string) {
         supabase
           .from("seeds")
           .select(
-            "status, total_emails, emails_processed_by_ai, user_oauth_token_id, error_message, updated_at",
+            "status, total_emails, emails_processed_by_ai, user_oauth_token_id, error_message, updated_at"
           )
           .eq("user_id", userId)
           .in("status", ["processing", "failed"])
@@ -174,7 +170,8 @@ export function useDashboardTasks(userId?: string) {
           .gte("discarded_at", activityStart.toISOString()),
       ]);
 
-      if (inactiveConnectionsResult.error) throw inactiveConnectionsResult.error;
+      if (inactiveConnectionsResult.error)
+        throw inactiveConnectionsResult.error;
       if (watchesResult.error) throw watchesResult.error;
       if (activeConnectionsResult.error) throw activeConnectionsResult.error;
       if (seedsStateResult.error) throw seedsStateResult.error;

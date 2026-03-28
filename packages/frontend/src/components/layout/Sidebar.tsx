@@ -26,10 +26,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const links = [
     { icon: PieChart, label: t("navigation.dashboard"), path: "/dashboard" },
-    { icon: ArrowRightLeft, label: t("navigation.transactions"), path: "/transactions" },
-    { icon: CalendarClock, label: t("navigation.subscriptions"), path: "/subscriptions" },
+    {
+      icon: ArrowRightLeft,
+      label: t("navigation.transactions"),
+      path: "/transactions",
+    },
+    {
+      icon: CalendarClock,
+      label: t("navigation.subscriptions"),
+      path: "/subscriptions",
+    },
     { icon: BarChart3, label: t("navigation.metrics"), path: "/metrics" },
-    { icon: SlidersHorizontal, label: t("navigation.settings"), path: "/settings" },
+    {
+      icon: SlidersHorizontal,
+      label: t("navigation.settings"),
+      path: "/settings",
+    },
   ];
 
   const sidebarContent = (
@@ -51,17 +63,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-        {links.map((link) => {
+        {links.map(link => {
           const isActive = location.pathname === link.path;
           return (
             <Link
               key={link.path}
               to={link.path}
               onClick={onClose}
-              className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${isActive
-                ? "text-white"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
+              className={`relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out group ${
+                isActive
+                  ? "text-white"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
             >
               {isActive && (
                 <motion.div
@@ -73,8 +86,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div className="relative flex items-center gap-3 z-10">
                 <link.icon
                   size={20}
-                  className={`transition-transform duration-200 ${isActive ? "scale-110" : "group-hover:scale-110"
-                    }`}
+                  className={`transition-transform duration-200 ${
+                    isActive ? "scale-110" : "group-hover:scale-110"
+                  }`}
                 />
                 <span className="font-medium">{link.label}</span>
               </div>

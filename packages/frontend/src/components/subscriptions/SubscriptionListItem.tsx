@@ -23,11 +23,15 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
   const { formatShortDate } = useFormatDate();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const confidence = Math.min(100, Math.max(0, Math.round(candidate.confidence_score)));
+  const confidence = Math.min(
+    100,
+    Math.max(0, Math.round(candidate.confidence_score))
+  );
   const status = getSubscriptionStatus(candidate.next_estimated_date);
   const shouldShowYearForYearly = candidate.frequency === "yearly";
 
-  const displayName = candidate.merchant_display || candidate.merchant_normalized;
+  const displayName =
+    candidate.merchant_display || candidate.merchant_normalized;
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
@@ -48,14 +52,17 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
               {displayName}
             </h2>
             {/* Status badge visible inline only on desktop */}
-            <span className={`hidden sm:inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${getStatusClass(status)}`}>
+            <span
+              className={`hidden sm:inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${getStatusClass(status)}`}
+            >
               {t(`subscriptions.status.${status}`)}
             </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
             <span className="flex items-center gap-1 font-medium bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded-md">
-              {candidate.occurrences} {t("subscriptions.occurrences").toLowerCase()}
+              {candidate.occurrences}{" "}
+              {t("subscriptions.occurrences").toLowerCase()}
             </span>
             <span className="flex items-center gap-1">
               <Repeat size={12} className="shrink-0" />
@@ -64,16 +71,23 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
             <span className="hidden sm:inline opacity-40">•</span>
             <span className="flex items-center gap-1">
               <CalendarClock size={12} className="shrink-0" />
-              <span className="hidden sm:inline">{t("subscriptions.nextDate")}:</span>
+              <span className="hidden sm:inline">
+                {t("subscriptions.nextDate")}:
+              </span>
               <span className="sm:hidden">{t("common.next", "Next")}:</span>{" "}
               {candidate.next_estimated_date
-                ? formatShortDate(candidate.next_estimated_date, shouldShowYearForYearly)
+                ? formatShortDate(
+                    candidate.next_estimated_date,
+                    shouldShowYearForYearly
+                  )
                 : t("errors.unknownError")}
             </span>
             <span className="hidden md:inline opacity-40">•</span>
             <span className="hidden md:flex items-center gap-1">
               <Mail size={12} className="shrink-0" />
-              {candidate.source_email_consistent ? t("subscriptions.consistent") : t("subscriptions.variable")}
+              {candidate.source_email_consistent
+                ? t("subscriptions.consistent")
+                : t("subscriptions.variable")}
             </span>
           </div>
         </div>
@@ -82,12 +96,16 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
         <div className="flex shrink-0 flex-col items-end justify-center gap-1 pl-2 text-right">
           <p className="text-sm sm:text-base font-semibold text-[var(--text-primary)]">
             {formatCurrency(candidate.avg_amount, candidate.currency)}
-            <span className="ml-1 text-xs font-normal text-[var(--text-secondary)]">{candidate.currency}</span>
+            <span className="ml-1 text-xs font-normal text-[var(--text-secondary)]">
+              {candidate.currency}
+            </span>
           </p>
 
           <div className="flex items-center gap-2">
             {/* Status badge on mobile */}
-            <span className={`sm:hidden rounded-full px-2 py-0.5 text-[10px] font-medium ${getStatusClass(status)}`}>
+            <span
+              className={`sm:hidden rounded-full px-2 py-0.5 text-[10px] font-medium ${getStatusClass(status)}`}
+            >
               {t(`subscriptions.status.${status}`)}
             </span>
 

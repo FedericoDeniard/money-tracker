@@ -31,14 +31,14 @@ export function FilterBar({
       <div className="flex gap-2">
         <motion.select
           value={selectedCurrency}
-          onChange={(e) => onCurrencyChange(e.target.value)}
+          onChange={e => onCurrencyChange(e.target.value)}
           className="w-full sm:w-auto px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-transparent hover:border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer transition-all appearance-none h-8 md:h-9"
           whileFocus={{ scale: 1.01 }}
           whileHover={{ scale: 1.01 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         >
           <option value="all">{t("metrics.allCurrencies")}</option>
-          {availableCurrencies.map((currency) => (
+          {availableCurrencies.map(currency => (
             <option key={currency} value={currency}>
               {currency}
             </option>
@@ -48,7 +48,7 @@ export function FilterBar({
 
       {/* Period Selector */}
       <div className="flex gap-1 bg-[var(--bg-secondary)] p-1 rounded-lg overflow-x-auto sm:overflow-visible shrink-0 items-center">
-        {periods.map((period) => {
+        {periods.map(period => {
           const isSelected = selectedPeriod === period.value;
           return (
             <Button

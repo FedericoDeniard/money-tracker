@@ -1,11 +1,11 @@
-import { getSupabase } from '../lib/supabase';
-import { getConfig } from '../config';
-import type { Database } from '../types/database.types';
+import { getSupabase } from "../lib/supabase";
+import { getConfig } from "../config";
+import type { Database } from "../types/database.types";
 
 // Helper to get edge functions base URL from supabase config
 async function getEdgeFunctionsUrl(): Promise<string> {
   const config = await getConfig();
-  return `${config.supabase.url.replace(/\/+$/, '')}/functions/v1`;
+  return `${config.supabase.url.replace(/\/+$/, "")}/functions/v1`;
 }
 
 export interface GmailConnection {
@@ -14,7 +14,7 @@ export interface GmailConnection {
   connected_at: string;
   expires_at?: string;
   is_active: boolean;
-  status: 'connected' | 'needs_reconnect' | 'disconnected';
+  status: "connected" | "needs_reconnect" | "disconnected";
 }
 
 export interface GmailStatus {
@@ -41,7 +41,8 @@ const gmailStatusCache = new Map<
   { status: GmailStatus; expiresAt: number }
 >();
 const gmailStatusInFlight = new Map<string, Promise<GmailStatus>>();
-type UserOauthTokenRow = Database['public']['Tables']['user_oauth_tokens']['Row'];
+type UserOauthTokenRow =
+  Database["public"]["Tables"]["user_oauth_tokens"]["Row"];
 
 export const gmailService = {
   clearConnectionStatusCache(userId?: string): void {
@@ -71,13 +72,13 @@ export const gmailService = {
       const supabase = await getSupabase();
 
       const { data, error } = await supabase
-        .from('user_oauth_tokens')
-        .select('id, gmail_email, created_at, expires_at, is_active')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .from("user_oauth_tokens")
+        .select("id, gmail_email, created_at, expires_at, is_active")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error checking Gmail status:', error);
+        console.error("Error checking Gmail status:", error);
         return {
           connections: [],
           total: 0,
@@ -89,31 +90,37 @@ export const gmailService = {
       }
 
       const tokenRows = ((data || []) as UserOauthTokenRow[]).filter(
-        (item) => !!item.gmail_email,
+        item => !!item.gmail_email
       );
 
-      const connections: GmailConnection[] = tokenRows.map((item) => {
+      const connections: GmailConnection[] = tokenRows.map(item => {
         const expiresAt = item.expires_at ?? undefined;
         // Manual disconnect flow sets expires_at to null.
-        const status: GmailConnection['status'] = item.is_active
-          ? 'connected'
+        const status: GmailConnection["status"] = item.is_active
+          ? "connected"
           : expiresAt == null
-            ? 'disconnected'
-            : 'needs_reconnect';
+            ? "disconnected"
+            : "needs_reconnect";
 
         return {
           id: item.id,
           gmail_email: item.gmail_email!,
-          connected_at: item.created_at ?? '',
+          connected_at: item.created_at ?? "",
           expires_at: expiresAt,
           is_active: Boolean(item.is_active),
           status,
         };
       });
 
-      const connectedTotal = connections.filter((c) => c.status === 'connected').length;
-      const needsReconnectTotal = connections.filter((c) => c.status === 'needs_reconnect').length;
-      const disconnectedTotal = connections.filter((c) => c.status === 'disconnected').length;
+      const connectedTotal = connections.filter(
+        c => c.status === "connected"
+      ).length;
+      const needsReconnectTotal = connections.filter(
+        c => c.status === "needs_reconnect"
+      ).length;
+      const disconnectedTotal = connections.filter(
+        c => c.status === "disconnected"
+      ).length;
       const activeTotal = connectedTotal + needsReconnectTotal;
 
       const status = {
@@ -145,13 +152,13 @@ export const gmailService = {
     const supabase = await getSupabase();
 
     const { data, error } = await supabase
-      .from('gmail_watches')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true);
+      .from("gmail_watches")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true);
 
     if (error) {
-      console.error('Error fetching Gmail watches:', error);
+      console.error("Error fetching Gmail watches:", error);
       return [];
     }
 
@@ -163,56 +170,73 @@ export const gmailService = {
     const edgeFunctionsUrl = await getEdgeFunctionsUrl();
 
     // Get the current session token
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
     if (error || !session?.access_token) {
-      throw new Error('No active session. Please refresh the page and try again.');
+      throw new Error(
+        "No active session. Please refresh the page and try again."
+      );
     }
 
     // Verify we can get the user
-    const { data: { user }, error: userError } = await supabase.auth.getUser(session.access_token);
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(session.access_token);
+
     if (userError || !user) {
-      throw new Error('Could not get user. Please refresh the page and try again.');
+      throw new Error(
+        "Could not get user. Please refresh the page and try again."
+      );
     }
 
     // Redirect to Supabase Edge Function auth endpoint
     window.location.href = `${edgeFunctionsUrl}/auth-start?token=${session.access_token}`;
   },
 
-  async disconnectGmail(connectionId: string): Promise<{ success: boolean; error?: string }> {
+  async disconnectGmail(
+    connectionId: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const supabase = await getSupabase();
       const edgeFunctionsUrl = await getEdgeFunctionsUrl();
 
       // Get the current session token
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
-        throw new Error('No active session');
+        throw new Error("No active session");
       }
 
       // Call the gmail-disconnect Edge Function (uses path param for connectionId)
       const config = await getConfig();
-      const response = await fetch(`${edgeFunctionsUrl}/gmail-disconnect/${connectionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': config.supabase.anonKey,
-        },
-      });
+      const response = await fetch(
+        `${edgeFunctionsUrl}/gmail-disconnect/${connectionId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: config.supabase.anonKey,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error || 'Failed to disconnect Gmail');
+        throw new Error(errorData?.error || "Failed to disconnect Gmail");
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Error disconnecting Gmail:', error);
+      console.error("Error disconnecting Gmail:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },

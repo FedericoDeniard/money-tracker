@@ -1,4 +1,2 @@
-echo "Running linting..."
-cd packages/frontend && npx eslint src --ext .ts,.tsx --max-warnings 0
-
-echo "Linting completed successfully!"
+#!/bin/sh
+bunx lint-staged

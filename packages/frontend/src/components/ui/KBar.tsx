@@ -28,10 +28,10 @@ function KBarInner() {
   const baseActions: Action[] = [
     {
       id: "language",
-      name: `${t('settings.language')} (${nextLanguageName})`,
+      name: `${t("settings.language")} (${nextLanguageName})`,
       shortcut: ["l"],
       keywords: "language idioma english español",
-      section: t('kbar.navigation'),
+      section: t("kbar.navigation"),
       perform: () => {
         i18n.changeLanguage(nextLanguage);
       },
@@ -42,18 +42,18 @@ function KBarInner() {
   const guestActions: Action[] = [
     {
       id: "login",
-      name: t('auth.signIn'),
+      name: t("auth.signIn"),
       shortcut: ["i"],
       keywords: "login entrar ingresar sesion",
-      section: t('kbar.quickActions'),
+      section: t("kbar.quickActions"),
       perform: () => navigate("/login"),
     },
     {
       id: "register",
-      name: t('auth.signUp'),
+      name: t("auth.signUp"),
       shortcut: ["r"],
       keywords: "registro registrarse crear cuenta",
-      section: t('kbar.quickActions'),
+      section: t("kbar.quickActions"),
       perform: () => navigate("/register"),
     },
   ];
@@ -125,7 +125,7 @@ function KBarInner() {
         <KBarAnimator className="w-full max-w-lg mx-4 overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700">
           <KBarSearch
             className="w-full h-12 px-4 text-sm bg-transparent border-0 border-b border-gray-200 dark:border-gray-700 outline-none placeholder:text-gray-600 dark:placeholder:text-gray-400 text-gray-900 dark:text-gray-100"
-            placeholder={t('kbar.placeholder')}
+            placeholder={t("kbar.placeholder")}
           />
           <KBarResults
             items={results}
@@ -136,10 +136,11 @@ function KBarInner() {
                 </div>
               ) : (
                 <div
-                  className={`px-4 py-3 text-sm cursor-pointer flex items-center gap-3 transition-colors ${active
+                  className={`px-4 py-3 text-sm cursor-pointer flex items-center gap-3 transition-colors ${
+                    active
                       ? "bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
                       : "text-gray-900 dark:text-gray-100"
-                    }`}
+                  }`}
                 >
                   <span className="text-lg">
                     {item.id === "dashboard"

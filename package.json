@@ -6,6 +6,12 @@
   ],
   "scripts": {
     "dev": "bun --filter '*' dev",
+    "lint": "oxlint packages/frontend/src",
+    "lint:fix": "oxlint --fix packages/frontend/src",
+    "format": "oxfmt packages/frontend/src",
+    "format:check": "oxfmt --check packages/frontend/src",
+    "check": "bun run lint && bun run format:check",
+    "check:fix": "oxfmt packages/frontend/src && oxlint --fix packages/frontend/src",
     "docker:up": "PROJECT_ROOT=$(pwd) docker compose up --build",
     "docker:down": "PROJECT_ROOT=$(pwd) docker compose down",
     "docker:shell": "PROJECT_ROOT=$(pwd) docker compose exec supabase-cli sh",
@@ -15,6 +21,18 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "oxfmt",
+      "oxlint --fix"
+    ],
+    "*.{json,jsonc,css,md}": [
+      "oxfmt"
+    ]
   }
 }

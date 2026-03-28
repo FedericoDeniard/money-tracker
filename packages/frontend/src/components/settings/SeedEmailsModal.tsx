@@ -49,9 +49,8 @@ export function SeedEmailsModal({
     >
       <div className="space-y-4">
         <p className="text-[var(--text-secondary)]">
-          {t("settings.seedEmailsDescription") || 
-            "Acabas de conectar tu cuenta de Gmail. ¿Quieres que analicemos tus correos de los últimos 3 meses para encontrar facturas y transacciones automáticamente?"
-          }
+          {t("settings.seedEmailsDescription") ||
+            "Acabas de conectar tu cuenta de Gmail. ¿Quieres que analicemos tus correos de los últimos 3 meses para encontrar facturas y transacciones automáticamente?"}
         </p>
 
         {/* Features */}
@@ -65,9 +64,8 @@ export function SeedEmailsModal({
                 {t("settings.seedFeature1Title") || "Análisis automático"}
               </p>
               <p className="text-sm text-[var(--text-secondary)]">
-                {t("settings.seedFeature1Description") || 
-                  "Revisaremos todos tus correos en busca de facturas y recibos"
-                }
+                {t("settings.seedFeature1Description") ||
+                  "Revisaremos todos tus correos en busca de facturas y recibos"}
               </p>
             </div>
           </div>
@@ -81,9 +79,8 @@ export function SeedEmailsModal({
                 {t("settings.seedFeature2Title") || "Últimos 3 meses"}
               </p>
               <p className="text-sm text-[var(--text-secondary)]">
-                {t("settings.seedFeature2Description") || 
-                  "Importaremos transacciones desde hace 3 meses hasta hoy"
-                }
+                {t("settings.seedFeature2Description") ||
+                  "Importaremos transacciones desde hace 3 meses hasta hoy"}
               </p>
             </div>
           </div>
@@ -103,9 +100,8 @@ export function SeedEmailsModal({
         <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
           <p className="text-xs text-blue-800">
             <strong>{t("settings.seedNote") || "Nota"}:</strong>{" "}
-            {t("settings.seedNoteDescription") || 
-              "El proceso se ejecutará en segundo plano. Las transacciones aparecerán automáticamente en tu lista cuando se complete el análisis."
-            }
+            {t("settings.seedNoteDescription") ||
+              "El proceso se ejecutará en segundo plano. Las transacciones aparecerán automáticamente en tu lista cuando se complete el análisis."}
           </p>
         </div>
       </div>

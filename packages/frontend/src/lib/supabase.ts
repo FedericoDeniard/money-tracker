@@ -40,6 +40,6 @@ export async function getSupabase(): Promise<SupabaseClient<Database>> {
 export let supabase: SupabaseClient<Database>;
 
 // Initialize on first import
-getSupabase().then((client) => {
+getSupabase().then(client => {
   supabase = client;
 });

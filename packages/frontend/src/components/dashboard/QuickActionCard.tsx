@@ -36,7 +36,9 @@ export function QuickActionCard({
         )}
       </div>
 
-      <h3 className="text-base font-semibold text-[var(--text-primary)]">{title}</h3>
+      <h3 className="text-base font-semibold text-[var(--text-primary)]">
+        {title}
+      </h3>
       <p className="mt-1 text-sm text-[var(--text-secondary)]">{description}</p>
 
       <div className="mt-4">

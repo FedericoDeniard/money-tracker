@@ -2,13 +2,20 @@ import { Suspense, useMemo, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "../components/ui/EmptyState";
-import { SubscriptionCard, SubscriptionListItem, SubscriptionsHeader } from "../components/subscriptions";
+import {
+  SubscriptionCard,
+  SubscriptionListItem,
+  SubscriptionsHeader,
+} from "../components/subscriptions";
 import type {
   SubscriptionSortBy,
   SubscriptionStatusFilter,
   SubscriptionViewMode,
 } from "../components/subscriptions/SubscriptionsHeader";
-import { getSubscriptionStatus, getSubscriptionStatusRank } from "../components/subscriptions/subscriptionStatus";
+import {
+  getSubscriptionStatus,
+  getSubscriptionStatusRank,
+} from "../components/subscriptions/subscriptionStatus";
 import { useSubscriptionCandidates } from "../hooks/useSubscriptionCandidates";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
@@ -33,7 +40,9 @@ function SubscriptionList({
   onClearFilters,
 }: SubscriptionListProps) {
   const { t } = useTranslation();
-  const { data: candidates = [] } = useSubscriptionCandidates({ minConfidence: 65 });
+  const { data: candidates = [] } = useSubscriptionCandidates({
+    minConfidence: 65,
+  });
 
   const visibleCandidates = useMemo(() => {
     const items = candidates.map((candidate, index) => ({
@@ -42,8 +51,8 @@ function SubscriptionList({
       status: getSubscriptionStatus(candidate.next_estimated_date),
     }));
 
-    const filtered = items.filter((item) =>
-      statusFilter === "all" ? true : item.status === statusFilter,
+    const filtered = items.filter(item =>
+      statusFilter === "all" ? true : item.status === statusFilter
     );
 
     const parseDate = (value: string | null): number | null => {
@@ -53,12 +62,17 @@ function SubscriptionList({
     };
 
     filtered.sort((a, b) => {
-      if (sortBy === "amount_desc") return b.candidate.avg_amount - a.candidate.avg_amount;
-      if (sortBy === "amount_asc") return a.candidate.avg_amount - b.candidate.avg_amount;
-      if (sortBy === "confidence_desc") return b.candidate.confidence_score - a.candidate.confidence_score;
+      if (sortBy === "amount_desc")
+        return b.candidate.avg_amount - a.candidate.avg_amount;
+      if (sortBy === "amount_asc")
+        return a.candidate.avg_amount - b.candidate.avg_amount;
+      if (sortBy === "confidence_desc")
+        return b.candidate.confidence_score - a.candidate.confidence_score;
       if (sortBy === "merchant_asc") {
-        const aName = a.candidate.merchant_display || a.candidate.merchant_normalized;
-        const bName = b.candidate.merchant_display || b.candidate.merchant_normalized;
+        const aName =
+          a.candidate.merchant_display || a.candidate.merchant_normalized;
+        const bName =
+          b.candidate.merchant_display || b.candidate.merchant_normalized;
         return aName.localeCompare(bName);
       }
       if (sortBy === "next_date_asc") {
@@ -69,15 +83,18 @@ function SubscriptionList({
         if (bDate === null) return -1;
         return aDate - bDate;
       }
-      const rankDiff = getSubscriptionStatusRank(a.status) - getSubscriptionStatusRank(b.status);
+      const rankDiff =
+        getSubscriptionStatusRank(a.status) -
+        getSubscriptionStatusRank(b.status);
       if (rankDiff !== 0) return rankDiff;
       const aDate = parseDate(a.candidate.next_estimated_date);
       const bDate = parseDate(b.candidate.next_estimated_date);
-      if (aDate !== null && bDate !== null && aDate !== bDate) return aDate - bDate;
+      if (aDate !== null && bDate !== null && aDate !== bDate)
+        return aDate - bDate;
       return a.index - b.index;
     });
 
-    return filtered.map((item) => item.candidate);
+    return filtered.map(item => item.candidate);
   }, [candidates, sortBy, statusFilter]);
 
   if (candidates.length === 0) {
@@ -99,15 +116,24 @@ function SubscriptionList({
           icon={AlertCircle}
           title={t("subscriptions.filteredEmptyTitle")}
           description={t("subscriptions.filteredEmptyDescription")}
-          action={{ label: t("subscriptions.filters.clear"), onClick: onClearFilters }}
+          action={{
+            label: t("subscriptions.filters.clear"),
+            onClick: onClearFilters,
+          }}
         />
       </section>
     );
   }
 
   return (
-    <section className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}>
-      {visibleCandidates.map((candidate) =>
+    <section
+      className={
+        viewMode === "grid"
+          ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+          : "space-y-3"
+      }
+    >
+      {visibleCandidates.map(candidate =>
         viewMode === "grid" ? (
           <SubscriptionCard
             key={`${candidate.merchant_normalized}-${candidate.currency}`}
@@ -118,7 +144,7 @@ function SubscriptionList({
             key={`${candidate.merchant_normalized}-${candidate.currency}`}
             candidate={candidate}
           />
-        ),
+        )
       )}
     </section>
   );
@@ -126,11 +152,15 @@ function SubscriptionList({
 
 // ─── Page shell — renders immediately ────────────────────────────────────────
 export function Subscriptions() {
-  const [statusFilter, setStatusFilter] = useState<SubscriptionStatusFilter>(DEFAULT_STATUS_FILTER);
+  const [statusFilter, setStatusFilter] = useState<SubscriptionStatusFilter>(
+    DEFAULT_STATUS_FILTER
+  );
   const [sortBy, setSortBy] = useState<SubscriptionSortBy>(DEFAULT_SORT_BY);
-  const [viewMode, setViewMode] = useState<SubscriptionViewMode>(DEFAULT_VIEW_MODE);
+  const [viewMode, setViewMode] =
+    useState<SubscriptionViewMode>(DEFAULT_VIEW_MODE);
 
-  const hasActiveFilters = statusFilter !== DEFAULT_STATUS_FILTER || sortBy !== DEFAULT_SORT_BY;
+  const hasActiveFilters =
+    statusFilter !== DEFAULT_STATUS_FILTER || sortBy !== DEFAULT_SORT_BY;
 
   const clearFilters = () => {
     setStatusFilter(DEFAULT_STATUS_FILTER);
@@ -139,11 +169,10 @@ export function Subscriptions() {
 
   return (
     <div className="flex h-[calc(100vh-5rem)] flex-col gap-4 animate-in fade-in duration-500">
-
       {/* Header — renders immediately (title, filters, sort, view mode) */}
       <SubscriptionsHeader
         isRefreshing={false}
-        onRefresh={() => { }}
+        onRefresh={() => {}}
         statusFilter={statusFilter}
         sortBy={sortBy}
         onStatusFilterChange={setStatusFilter}

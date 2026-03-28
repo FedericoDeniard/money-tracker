@@ -1,7 +1,7 @@
-import { useNavigate } from 'react-router-dom';
-import { Home, ArrowLeft } from 'lucide-react';
-import { DecorativeSquare } from '../components/ui/DecorativeSquare';
-import { Button } from '../components/ui/Button';
+import { useNavigate } from "react-router-dom";
+import { Home, ArrowLeft } from "lucide-react";
+import { DecorativeSquare } from "../components/ui/DecorativeSquare";
+import { Button } from "../components/ui/Button";
 import { useTranslation } from "react-i18next";
 
 export function NotFound() {

@@ -1,7 +1,7 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { getSupabase } from '../lib/supabase';
-import { createTransactionsService } from '../services/transactions.service';
-import { queryKeys } from '../lib/query-client';
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { getSupabase } from "../lib/supabase";
+import { createTransactionsService } from "../services/transactions.service";
+import { queryKeys } from "../lib/query-client";
 
 export function useTransactionFilters() {
   const currenciesQuery = useSuspenseQuery({

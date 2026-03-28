@@ -1,5 +1,5 @@
-import { AuthLayout } from './AuthLayout';
-import { AuthForm } from './AuthForm';
+import { AuthLayout } from "./AuthLayout";
+import { AuthForm } from "./AuthForm";
 
 export function Auth() {
   return (

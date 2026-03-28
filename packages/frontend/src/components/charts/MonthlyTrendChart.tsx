@@ -1,4 +1,3 @@
-
 import {
   BarChart,
   Bar,
@@ -82,10 +81,13 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
             borderRadius: "8px",
           }}
           labelStyle={{ color: "var(--text-primary)" }}
-          itemSorter={(item: { dataKey?: unknown }) => (item.dataKey === "income" ? -1 : 1)}
+          itemSorter={(item: { dataKey?: unknown }) =>
+            item.dataKey === "income" ? -1 : 1
+          }
           formatter={(value: unknown, name: unknown) => {
             if (value === undefined || value === null) return ["", ""];
-            const numericValue = typeof value === 'number' ? value : Number(value);
+            const numericValue =
+              typeof value === "number" ? value : Number(value);
             const absValue = Math.abs(numericValue);
             let label = "";
             if (name === "income") label = t("metrics.totalIncome");
@@ -95,22 +97,14 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
         />
         <Legend
           wrapperStyle={{ color: "var(--text-primary)" }}
-          formatter={(value) => {
+          formatter={value => {
             if (value === "income") return t("metrics.totalIncome");
             if (value === "expense") return t("metrics.totalExpense");
             return value;
           }}
         />
-        <Bar
-          dataKey="income"
-          stackId="a"
-          fill="#34d399"
-        />
-        <Bar
-          dataKey="expense"
-          stackId="a"
-          fill="#f43f5e"
-        />
+        <Bar dataKey="income" stackId="a" fill="#34d399" />
+        <Bar dataKey="expense" stackId="a" fill="#f43f5e" />
       </BarChart>
     </ResponsiveContainer>
   );

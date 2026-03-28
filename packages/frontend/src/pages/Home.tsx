@@ -33,7 +33,11 @@ interface DashboardContentProps {
   onForceSync: (connectionId?: string | null) => void;
 }
 
-function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentProps) {
+function DashboardContent({
+  userId,
+  isSyncing,
+  onForceSync,
+}: DashboardContentProps) {
   const { t } = useTranslation();
 
   const { data, refetch } = useDashboardTasks(userId);
@@ -58,9 +62,12 @@ function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentPr
       case "reconnect_gmail":
         return {
           title: t("dashboardActionFirst.tasks.reconnectGmail.title"),
-          description: t("dashboardActionFirst.tasks.reconnectGmail.description", {
-            count: task.count ?? 0,
-          }),
+          description: t(
+            "dashboardActionFirst.tasks.reconnectGmail.description",
+            {
+              count: task.count ?? 0,
+            }
+          ),
           actionLabel: t("dashboardActionFirst.tasks.reconnectGmail.action"),
         };
       case "renew_watch":
@@ -74,17 +81,21 @@ function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentPr
       case "seed_processing":
         return {
           title: t("dashboardActionFirst.tasks.seedProcessing.title"),
-          description: t("dashboardActionFirst.tasks.seedProcessing.description", {
-            totalEmails: task.totalEmails ?? 0,
-            processedByAi: task.processedByAi ?? 0,
-          }),
+          description: t(
+            "dashboardActionFirst.tasks.seedProcessing.description",
+            {
+              totalEmails: task.totalEmails ?? 0,
+              processedByAi: task.processedByAi ?? 0,
+            }
+          ),
           actionLabel: undefined,
         };
       case "seed_failed":
         return {
           title: t("dashboardActionFirst.tasks.seedFailed.title"),
           description:
-            task.errorMessage || t("dashboardActionFirst.tasks.seedFailed.description"),
+            task.errorMessage ||
+            t("dashboardActionFirst.tasks.seedFailed.description"),
           actionLabel: t("dashboardActionFirst.tasks.seedFailed.action"),
         };
       default:
@@ -98,7 +109,8 @@ function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentPr
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
-            {t("dashboardActionFirst.badges.pending")}: {dashboardData.tasks.length}
+            {t("dashboardActionFirst.badges.pending")}:{" "}
+            {dashboardData.tasks.length}
           </span>
           <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
             {t("dashboardActionFirst.badges.activeConnections")}:{" "}
@@ -140,7 +152,7 @@ function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentPr
                   />
                 </div>
               ) : (
-                dashboardData.tasks.map((task) => {
+                dashboardData.tasks.map(task => {
                   const taskContent = getTaskContent(task);
                   return (
                     <TaskListItem
@@ -148,9 +160,15 @@ function DashboardContent({ userId, isSyncing, onForceSync }: DashboardContentPr
                       title={taskContent.title}
                       description={taskContent.description}
                       level={task.level}
-                      levelLabel={t(`dashboardActionFirst.priority.${task.level}`)}
+                      levelLabel={t(
+                        `dashboardActionFirst.priority.${task.level}`
+                      )}
                       actionLabel={taskContent.actionLabel}
-                      actionPath={task.type === "seed_failed" ? undefined : task.actionPath}
+                      actionPath={
+                        task.type === "seed_failed"
+                          ? undefined
+                          : task.actionPath
+                      }
                       onAction={
                         task.type === "seed_failed"
                           ? () => onForceSync(task.connectionId)
@@ -276,33 +294,47 @@ export function Home() {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <QuickActionCard
           title={t("dashboardActionFirst.quickActions.addTransaction.title")}
-          description={t("dashboardActionFirst.quickActions.addTransaction.description")}
+          description={t(
+            "dashboardActionFirst.quickActions.addTransaction.description"
+          )}
           icon={<ReceiptText size={18} />}
           actionLabel={t("transactions.addManually")}
           onClick={() => setIsCreateModalOpen(true)}
         />
         <QuickActionCard
           title={t("dashboardActionFirst.quickActions.connectGmail.title")}
-          description={t("dashboardActionFirst.quickActions.connectGmail.description")}
+          description={t(
+            "dashboardActionFirst.quickActions.connectGmail.description"
+          )}
           icon={<Mail size={18} />}
-          actionLabel={t("dashboardActionFirst.quickActions.connectGmail.action")}
+          actionLabel={t(
+            "dashboardActionFirst.quickActions.connectGmail.action"
+          )}
           onClick={handleConnectGmail}
         />
         <QuickActionCard
           title={t("dashboardActionFirst.quickActions.forceSync.title")}
-          description={t("dashboardActionFirst.quickActions.forceSync.description")}
+          description={t(
+            "dashboardActionFirst.quickActions.forceSync.description"
+          )}
           icon={<RefreshCw size={18} />}
-          actionLabel={isSyncing
-            ? t("dashboardActionFirst.quickActions.forceSync.syncing")
-            : t("dashboardActionFirst.quickActions.forceSync.action")}
+          actionLabel={
+            isSyncing
+              ? t("dashboardActionFirst.quickActions.forceSync.syncing")
+              : t("dashboardActionFirst.quickActions.forceSync.action")
+          }
           onClick={() => handleForceSync(undefined)}
           disabled={isSyncing}
         />
         <QuickActionCard
           title={t("dashboardActionFirst.quickActions.openTransactions.title")}
-          description={t("dashboardActionFirst.quickActions.openTransactions.description")}
+          description={t(
+            "dashboardActionFirst.quickActions.openTransactions.description"
+          )}
           icon={<CalendarClock size={18} />}
-          actionLabel={t("dashboardActionFirst.quickActions.openTransactions.action")}
+          actionLabel={t(
+            "dashboardActionFirst.quickActions.openTransactions.action"
+          )}
           href="/transactions"
         />
       </section>

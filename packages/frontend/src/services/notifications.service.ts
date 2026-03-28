@@ -12,12 +12,15 @@ export type NotificationImportance =
   Database["public"]["Enums"]["notification_importance"];
 export type NotificationTypeRow = Tables<"notification_types">;
 export type NotificationCategoryRow = Tables<"notification_categories">;
-export type UserNotificationPreferenceRow = Tables<"user_notification_preferences">;
+export type UserNotificationPreferenceRow =
+  Tables<"user_notification_preferences">;
 
 type NotificationJoinRow = NotificationRow & {
-  notification_types: (NotificationTypeRow & {
-    notification_categories: NotificationCategoryRow | null;
-  }) | null;
+  notification_types:
+    | (NotificationTypeRow & {
+        notification_categories: NotificationCategoryRow | null;
+      })
+    | null;
 };
 
 type NotificationTypeJoinRow = NotificationTypeRow & {
@@ -57,7 +60,7 @@ export class NotificationsService {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
   async listNotifications(
-    filters: NotificationListFilters = {},
+    filters: NotificationListFilters = {}
   ): Promise<NotificationItem[]> {
     const limit = filters.limit ?? 50;
 
@@ -70,7 +73,7 @@ export class NotificationsService {
             *,
             notification_categories (*)
           )
-        `,
+        `
       )
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -91,7 +94,9 @@ export class NotificationsService {
     const { data, error } = await query;
     if (error) throw error;
 
-    return (data as NotificationJoinRow[] | null)?.map(mapNotificationRow) ?? [];
+    return (
+      (data as NotificationJoinRow[] | null)?.map(mapNotificationRow) ?? []
+    );
   }
 
   async getUnreadCount(): Promise<number> {
@@ -139,17 +144,26 @@ export class NotificationsService {
     await this.bulkPatch(ids, { is_muted: false });
   }
 
-  async setImportance(ids: string[], importance: NotificationImportance): Promise<void> {
+  async setImportance(
+    ids: string[],
+    importance: NotificationImportance
+  ): Promise<void> {
     await this.bulkPatch(ids, { importance });
   }
 
   async delete(ids: string[]): Promise<void> {
     if (!ids.length) return;
-    const { error } = await this.supabase.from("notifications").delete().in("id", ids);
+    const { error } = await this.supabase
+      .from("notifications")
+      .delete()
+      .in("id", ids);
     if (error) throw error;
   }
 
-  private async bulkPatch(ids: string[], patch: TablesUpdate<"notifications">): Promise<void> {
+  private async bulkPatch(
+    ids: string[],
+    patch: TablesUpdate<"notifications">
+  ): Promise<void> {
     if (!ids.length) return;
     const { error } = await this.supabase
       .from("notifications")
@@ -165,7 +179,7 @@ export class NotificationsService {
         `
           *,
           notification_categories (*)
-        `,
+        `
       )
       .eq("is_active", true)
       .order("key", { ascending: true });
@@ -179,10 +193,10 @@ export class NotificationsService {
     if (prefError) throw prefError;
 
     const preferenceByTypeId = new Map(
-      (preferences ?? []).map((pref) => [pref.notification_type_id, pref]),
+      (preferences ?? []).map(pref => [pref.notification_type_id, pref])
     );
 
-    return ((types as NotificationTypeJoinRow[] | null) ?? []).map((typeRow) => ({
+    return ((types as NotificationTypeJoinRow[] | null) ?? []).map(typeRow => ({
       type: typeRow,
       category: typeRow.notification_categories ?? null,
       preference: preferenceByTypeId.get(typeRow.id) ?? null,

@@ -11,7 +11,7 @@ export function LanguageSwitcher() {
   const { i18n } = useTranslation();
 
   const currentLanguage =
-    languages.find((lang) => lang.code === i18n.language) || languages[0];
+    languages.find(lang => lang.code === i18n.language) || languages[0];
 
   const toggleLanguage = () => {
     const nextLanguage = i18n.language === "es" ? "en" : "es";
@@ -29,9 +29,7 @@ export function LanguageSwitcher() {
       title={currentLanguage?.name || "Language"}
     >
       <span>{currentLanguage?.flag || "🌐"}</span>
-      <span>
-        {currentLanguage?.name || "Language"}
-      </span>
+      <span>{currentLanguage?.name || "Language"}</span>
     </Button>
   );
 }

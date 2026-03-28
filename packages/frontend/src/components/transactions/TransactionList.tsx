@@ -41,7 +41,7 @@ export function TransactionList({
 
   return (
     <div className="space-y-3">
-      {transactions.map((transaction) => (
+      {transactions.map(transaction => (
         <TransactionCard
           key={transaction.id}
           transaction={transaction}
@@ -49,7 +49,7 @@ export function TransactionList({
           onClick={() => onSelectTransaction(transaction)}
         />
       ))}
-      
+
       {/* Sentinel element for intersection observer */}
       {hasMore && (
         <div ref={sentinelRef} className="py-4 flex justify-center">
