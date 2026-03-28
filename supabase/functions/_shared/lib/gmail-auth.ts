@@ -23,6 +23,28 @@ export async function deactivateTokenAndNotify(
 ) {
   console.info(`[gmail-auth] deactivateTokenAndNotify called for email=${tokenData.gmail_email} reason=${reason} stage=${stage}`)
 
+<<<<<<< Updated upstream
+=======
+  // Insert audit log FIRST — before any other operation — so we always have
+  // a persistent record of why and where the token was deactivated,
+  // even if subsequent steps fail. Edge function logs expire; this table doesn't.
+  const { error: logError } = await supabase
+    .from('token_deactivation_log')
+    .insert({
+      token_id: tokenData.id,
+      user_id: tokenData.user_id,
+      gmail_email: tokenData.gmail_email,
+      reason,
+      stage,
+    })
+
+  if (logError) {
+    console.info(`[gmail-auth] WARNING: Failed to insert token_deactivation_log for ${tokenData.gmail_email}: ${JSON.stringify(logError)}`)
+  } else {
+    console.info(`[gmail-auth] token_deactivation_log inserted for ${tokenData.gmail_email}`)
+  }
+
+>>>>>>> Stashed changes
   const { error: deactivateError } = await supabase
     .from('user_oauth_tokens')
     .update({
