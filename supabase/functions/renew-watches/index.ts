@@ -12,6 +12,8 @@ import {
 } from '../_shared/lib/gmail-auth.ts'
 
 Deno.serve(async (req) => {
+  console.info('[renew-watches] Function invoked')
+
   const preflightResponse = handleCorsPreflightRequest(req)
   if (preflightResponse) {
     return preflightResponse
@@ -29,19 +31,27 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.info('[renew-watches] Checking internal auth...')
     const internalAuth = requireInternalAuth(req, corsHeaders)
     if (internalAuth instanceof Response) {
+      console.info('[renew-watches] Internal auth FAILED, returning early')
       return internalAuth
     }
+    console.info('[renew-watches] Internal auth OK')
 
     // Initialize Supabase with service role key
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const hasServiceKey = !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    console.info(`[renew-watches] Supabase URL=${supabaseUrl} hasServiceKey=${hasServiceKey}`)
+
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     // Get watches that expire in the next 48 hours
     const fortyEightHoursFromNow = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+    console.info(`[renew-watches] Looking for active watches expiring before ${fortyEightHoursFromNow}`)
 
     const { data: expiringWatches, error: fetchError } = await supabase
       .from('gmail_watches')
@@ -50,6 +60,7 @@ Deno.serve(async (req) => {
       .lt('expiration', fortyEightHoursFromNow)
 
     if (fetchError) {
+      console.info(`[renew-watches] Error fetching expiring watches: ${JSON.stringify(fetchError)}`)
       console.error('Error fetching expiring watches:', fetchError)
       return new Response(
         JSON.stringify({ error: 'Failed to fetch expiring watches' }),
@@ -59,6 +70,8 @@ Deno.serve(async (req) => {
         }
       )
     }
+
+    console.info(`[renew-watches] Found ${expiringWatches?.length ?? 0} expiring watches`)
 
     if (!expiringWatches || expiringWatches.length === 0) {
       return new Response(
@@ -70,29 +83,44 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Log all watches found
+    for (const w of expiringWatches) {
+      console.info(`[renew-watches] Watch: id=${w.id} email=${w.gmail_email} user=${w.user_id} expiration=${w.expiration} topic=${w.topic_name} is_active=${w.is_active}`)
+    }
+
     let renewedCount = 0
     let failedCount = 0
     const results: { email: string; status: string; expiration?: string; error?: string }[] = []
 
     for (const watch of expiringWatches) {
+      console.info(`[renew-watches] --- Processing watch for ${watch.gmail_email} (id=${watch.id}) ---`)
+
       try {
-        await createSystemNotification({
-          typeKey: 'gmail_watch_expiring',
-          userId: watch.user_id,
-          actionPath: '/settings',
-          iconKey: 'mail',
-          i18nParams: { email: watch.gmail_email },
-          metadata: {
-            gmailEmail: watch.gmail_email,
-            expiration: watch.expiration,
-          },
-          dedupeKey: `watch-expiring-${watch.user_id}-${watch.gmail_email}`,
-          dedupeWindowMinutes: 360,
-          importance: 'normal',
-        })
+        console.info(`[renew-watches] Creating expiring notification for ${watch.gmail_email}`)
+        try {
+          await createSystemNotification({
+            typeKey: 'gmail_watch_expiring',
+            userId: watch.user_id,
+            actionPath: '/settings',
+            iconKey: 'mail',
+            i18nParams: { email: watch.gmail_email },
+            metadata: {
+              gmailEmail: watch.gmail_email,
+              expiration: watch.expiration,
+            },
+            dedupeKey: `watch-expiring-${watch.user_id}-${watch.gmail_email}`,
+            dedupeWindowMinutes: 360,
+            importance: 'normal',
+          })
+          console.info(`[renew-watches] Notification created for ${watch.gmail_email}`)
+        } catch (notifError) {
+          const notifMsg = notifError instanceof Error ? notifError.message : String(notifError)
+          console.info(`[renew-watches] WARNING: Failed to create expiring notification for ${watch.gmail_email} (non-fatal): ${notifMsg}`)
+        }
 
         // Get user tokens
-        const { data: tokenData } = await supabase
+        console.info(`[renew-watches] Fetching OAuth tokens for user=${watch.user_id} email=${watch.gmail_email}`)
+        const { data: tokenData, error: tokenError } = await supabase
           .from('user_oauth_tokens')
           .select('*')
           .eq('user_id', watch.user_id)
@@ -101,7 +129,12 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle()
 
+        if (tokenError) {
+          console.info(`[renew-watches] Error fetching token for ${watch.gmail_email}: ${JSON.stringify(tokenError)}`)
+        }
+
         if (!tokenData) {
+          console.info(`[renew-watches] No active OAuth token found for ${watch.gmail_email}`)
           await createSystemNotification({
             typeKey: 'gmail_watch_renew_failed',
             userId: watch.user_id,
@@ -125,8 +158,20 @@ Deno.serve(async (req) => {
           continue
         }
 
+        console.info(`[renew-watches] Token found: tokenId=${tokenData.id} has_access_token=${!!tokenData.access_token} has_refresh_token=${!!tokenData.refresh_token} expires_at=${tokenData.expires_at} is_active=${tokenData.is_active}`)
+
         const oauthToken = tokenData as OAuthTokenRow
+
+        console.info(`[renew-watches] Ensuring fresh access token for ${watch.gmail_email}`)
         await ensureFreshAccessToken(supabase, oauthToken, 'renew_watch_preflight')
+        console.info(`[renew-watches] Access token is fresh for ${watch.gmail_email}`)
+
+        const watchRequestBody = {
+          labelIds: ['INBOX'],
+          topicName: watch.topic_name,
+          labelFilterAction: 'include',
+        }
+        console.info(`[renew-watches] Calling Gmail watch API for ${watch.gmail_email} with body: ${JSON.stringify(watchRequestBody)}`)
 
         const watchResponse = await fetchGmailWithRecovery(
           supabase,
@@ -137,14 +182,12 @@ Deno.serve(async (req) => {
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              labelIds: ['INBOX'],
-              topicName: watch.topic_name,
-              labelFilterAction: 'include',
-            }),
+            body: JSON.stringify(watchRequestBody),
           },
           'renew_watch',
         )
+
+        console.info(`[renew-watches] Gmail watch API response status: ${watchResponse.status}`)
 
         if (!watchResponse.ok) {
           const errorText = await watchResponse.text()
@@ -153,11 +196,14 @@ Deno.serve(async (req) => {
         }
 
         const watchData = await watchResponse.json()
+        console.info(`[renew-watches] Gmail watch API success for ${watch.gmail_email}: ${JSON.stringify(watchData)}`)
 
         // Update watch in database
         const watchExpiration = watchData.expiration
           ? new Date(parseInt(watchData.expiration)).toISOString()
           : null
+
+        console.info(`[renew-watches] Updating watch in DB for ${watch.gmail_email}: expiration=${watchExpiration} historyId=${watchData.historyId}`)
 
         const { error: updateError } = await supabase
           .from('gmail_watches')
@@ -170,9 +216,11 @@ Deno.serve(async (req) => {
           .eq('id', watch.id)
 
         if (updateError) {
+          console.info(`[renew-watches] Error updating watch in DB: ${JSON.stringify(updateError)}`)
           throw updateError
         }
 
+        console.info(`[renew-watches] Watch renewed successfully for ${watch.gmail_email}`)
         renewedCount++
         results.push({
           email: watch.gmail_email,
@@ -190,6 +238,7 @@ Deno.serve(async (req) => {
             .eq('gmail_email', watch.gmail_email)
 
           if (deleteWatchError) {
+            console.info(`[renew-watches] Error deleting watch: ${JSON.stringify(deleteWatchError)}`)
             console.error(`Failed to delete watch for ${watch.gmail_email}:`, deleteWatchError)
           }
 
@@ -203,7 +252,18 @@ Deno.serve(async (req) => {
         }
 
         const errorMsg = error instanceof Error ? error.message : String(error)
-        console.info(`[renew-watches] Failed to renew watch for ${watch.gmail_email}: ${errorMsg}`)
+        const errorStack = error instanceof Error ? error.stack : undefined
+        const errorName = error instanceof Error ? error.name : typeof error
+        console.info(`[renew-watches] CATCH ERROR for ${watch.gmail_email}: name=${errorName} message=${errorMsg}`)
+        if (errorStack) {
+          console.info(`[renew-watches] Stack trace: ${errorStack}`)
+        }
+        // Log the raw error object in case it has non-standard properties
+        try {
+          console.info(`[renew-watches] Raw error serialized: ${JSON.stringify(error)}`)
+        } catch {
+          console.info(`[renew-watches] Raw error (not serializable): ${String(error)}`)
+        }
         console.error(`Failed to renew watch for ${watch.gmail_email}:`, error)
         await createSystemNotification({
           typeKey: 'gmail_watch_renew_failed',
@@ -229,7 +289,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Renewal completed: ${renewedCount} renewed, ${failedCount} failed`)
+    console.info(`[renew-watches] ===== RENEWAL SUMMARY: ${renewedCount} renewed, ${failedCount} failed =====`)
+    for (const r of results) {
+      console.info(`[renew-watches] RESULT: email=${r.email} status=${r.status} error=${r.error ?? 'none'} expiration=${r.expiration ?? 'n/a'}`)
+    }
+    console.info(`[renew-watches] Full results JSON: ${JSON.stringify(results)}`)
 
     return new Response(
       JSON.stringify({
@@ -245,6 +309,12 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.info(`[renew-watches] TOP-LEVEL CATCH ERROR: ${errorMsg}`)
+    if (errorStack) {
+      console.info(`[renew-watches] Stack trace: ${errorStack}`)
+    }
     console.error('Watch renewal error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
