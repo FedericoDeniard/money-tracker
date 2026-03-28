@@ -21,9 +21,9 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { 
-        status: 405, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
@@ -53,9 +53,9 @@ Deno.serve(async (req) => {
       console.error('Error fetching expiring watches:', fetchError)
       return new Response(
         JSON.stringify({ error: 'Failed to fetch expiring watches' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -63,9 +63,9 @@ Deno.serve(async (req) => {
     if (!expiringWatches || expiringWatches.length === 0) {
       return new Response(
         JSON.stringify({ message: 'No watches to renew', renewed: 0 }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -116,8 +116,8 @@ Deno.serve(async (req) => {
             dedupeWindowMinutes: 180,
           })
 
-          results.push({ 
-            email: watch.gmail_email, 
+          results.push({
+            email: watch.gmail_email,
             status: 'no_tokens',
             error: 'No active OAuth tokens found'
           })
@@ -148,7 +148,8 @@ Deno.serve(async (req) => {
 
         if (!watchResponse.ok) {
           const errorText = await watchResponse.text()
-          throw new Error(`Gmail watch API failed: ${errorText}`)
+          console.info(`[renew-watches] Gmail API error for ${watch.gmail_email}: status=${watchResponse.status} body=${errorText}`)
+          throw new Error(`Gmail watch API failed (${watchResponse.status}): ${errorText}`)
         }
 
         const watchData = await watchResponse.json()
@@ -173,14 +174,15 @@ Deno.serve(async (req) => {
         }
 
         renewedCount++
-        results.push({ 
-          email: watch.gmail_email, 
+        results.push({
+          email: watch.gmail_email,
           status: 'renewed',
           expiration: watchExpiration || undefined
         })
 
       } catch (error) {
         if (error instanceof GmailReconnectRequiredError) {
+          console.info(`[renew-watches] GmailReconnectRequired for ${watch.gmail_email}: credentials expired, deleting watch and disconnecting.`)
           const { error: deleteWatchError } = await supabase
             .from('gmail_watches')
             .delete()
@@ -200,6 +202,8 @@ Deno.serve(async (req) => {
           continue
         }
 
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        console.info(`[renew-watches] Failed to renew watch for ${watch.gmail_email}: ${errorMsg}`)
         console.error(`Failed to renew watch for ${watch.gmail_email}:`, error)
         await createSystemNotification({
           typeKey: 'gmail_watch_renew_failed',
@@ -216,8 +220,8 @@ Deno.serve(async (req) => {
           importance: 'high',
         })
 
-        results.push({ 
-          email: watch.gmail_email, 
+        results.push({
+          email: watch.gmail_email,
           status: 'failed',
           error: error instanceof Error ? error.message : 'Unknown error'
         })
@@ -234,9 +238,9 @@ Deno.serve(async (req) => {
         failed: failedCount,
         results
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
@@ -244,9 +248,9 @@ Deno.serve(async (req) => {
     console.error('Watch renewal error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
