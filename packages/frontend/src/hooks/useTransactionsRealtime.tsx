@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSupabase } from "../lib/supabase";
@@ -8,38 +8,42 @@ import type { Transaction } from "../services/transactions.service";
 import { useAuth } from "./useAuth";
 import { getTransactionType } from "../utils/transactionUtils";
 import { queryKeys } from "../lib/query-client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export function useTransactionsRealtime() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
-    let channel: ReturnType<
-      Awaited<ReturnType<typeof getSupabase>>["channel"]
-    > | null = null;
+    // Guard: if already subscribed, skip — prevents double-subscription during
+    // React Strict Mode double-invocation or rapid re-renders.
+    if (channelRef.current?.state === "subscribed") return;
 
     const setupRealtimeSubscription = async () => {
-      // Add small delay to avoid rapid reconnections during HMR
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const supabase = await getSupabase();
 
-      channel = supabase
-        .channel("transactions-changes")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "transactions",
-          },
-          payload => {
-            const newTransaction = payload.new as Transaction;
+      // Ensure any stale channel for this topic is fully removed first.
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
 
-            // Invalidate all transaction-related queries to ensure cache consistency
+      // Private, per-user channel — only this user's transactions are broadcast here.
+      const channel = supabase.channel(`transactions:${user.id}`, {
+        config: { private: true },
+      });
+
+      channel
+        .on(
+          "broadcast",
+          { event: "INSERT" },
+          ({ payload }: { payload: { record: Transaction } }) => {
+            const newTransaction = payload.record;
+
             queryClient.invalidateQueries({
               queryKey: queryKeys.transactions.all,
             });
@@ -82,35 +86,19 @@ export function useTransactionsRealtime() {
                       color: isIncome ? "var(--success)" : "var(--error)",
                     }}
                   >
-                    {isIncome ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                      </svg>
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                      </svg>
-                    )}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -158,14 +146,21 @@ export function useTransactionsRealtime() {
           }
         )
         .subscribe();
+
+      channelRef.current = channel;
     };
 
     setupRealtimeSubscription();
 
     return () => {
-      if (channel) {
-        channel.unsubscribe();
+      if (channelRef.current) {
+        getSupabase().then(supabase => {
+          if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+          }
+        });
       }
     };
-  }, [t, user]);
+  }, [t, user, queryClient]);
 }
