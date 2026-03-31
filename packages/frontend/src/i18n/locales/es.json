@@ -131,6 +131,8 @@
     "allTypes": "Todos los Tipos",
     "sortBy": "Ordenar Por",
     "newest": "Más Recientes",
+    "oldest": "Más Antiguas",
+    "dateAdded": "Fecha de Registro",
     "byDate": "Fecha de Transacción",
     "dateRange": "Rango de Fechas",
     "startDate": "Fecha Inicio",
@@ -138,7 +140,9 @@
     "apply": "Aplicar",
     "customRange": "Rango Personalizado",
     "newIncomeReceived": "💰 Nuevo Ingreso Recibido",
-    "newExpenseReceived": "💸 Nuevo Gasto Registrado"
+    "newExpenseReceived": "💸 Nuevo Gasto Registrado",
+    "filter": "Filtrar",
+    "filterPlaceholder": "Filtrar..."
   },
   "upload": {
     "title": "Subir Documento",
@@ -626,5 +630,14 @@
       "github": "GitHub",
       "personalProject": "Proyecto personal."
     }
+  },
+  "filters": {
+    "is": "es",
+    "isNot": "no es",
+    "include": "incluye",
+    "after": "después de",
+    "before": "antes de",
+    "select": "Seleccionar...",
+    "nSelected": "{{count}} seleccionados"
   }
 }

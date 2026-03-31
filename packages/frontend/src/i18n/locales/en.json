@@ -131,6 +131,8 @@
     "allTypes": "All Types",
     "sortBy": "Sort By",
     "newest": "Newest First",
+    "oldest": "Oldest First",
+    "dateAdded": "Date Added",
     "byDate": "Transaction Date",
     "dateRange": "Date Range",
     "startDate": "Start Date",
@@ -138,7 +140,9 @@
     "apply": "Apply",
     "customRange": "Custom Range",
     "newIncomeReceived": " New Income Received",
-    "newExpenseReceived": " New Expense Registered"
+    "newExpenseReceived": " New Expense Registered",
+    "filter": "Filter",
+    "filterPlaceholder": "Filter..."
   },
   "upload": {
     "title": "Upload Document",
@@ -626,5 +630,14 @@
       "github": "GitHub",
       "personalProject": "Personal project."
     }
+  },
+  "filters": {
+    "is": "is",
+    "isNot": "is not",
+    "include": "includes",
+    "after": "after",
+    "before": "before",
+    "select": "Select...",
+    "nSelected": "{{count}} selected"
   }
 }

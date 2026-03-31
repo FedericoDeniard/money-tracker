@@ -1,20 +1,37 @@
-import { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  X,
-  ChevronDown,
-  Wallet,
-  Mail,
-  Tag,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  ArrowUpDown,
-  LayoutList,
-  Calendar,
-  Search,
-} from "lucide-react";
 import { Button } from "../ui/Button";
-import { motion } from "framer-motion";
+import { ArrowDownUp, ArrowUpDown, Check, ListFilter, X } from "lucide-react";
+import { nanoid } from "nanoid";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "../ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "@/lib/utils";
+
+import Filters, {
+  AnimateChangeInHeight,
+  FilterOperator,
+  FilterType,
+  FilterIcon,
+  getFilterTypeName,
+} from "../ui/filters";
+import type { Filter, FilterOption } from "../ui/filters";
+
 import type { TransactionFilters } from "../../services/transactions.service";
 import { useTransactionFilters } from "../../hooks/useTransactionFilters";
 
@@ -25,115 +42,6 @@ interface TransactionFiltersProps {
   isLoading?: boolean;
 }
 
-// ─── Dynamic dropdowns — suspends while currencies/emails load ───────────────
-interface DynamicDropdownsProps {
-  filters: TransactionFilters;
-  onFiltersChange: (filters: TransactionFilters) => void;
-}
-
-function DynamicFilterDropdowns({
-  filters,
-  onFiltersChange,
-}: DynamicDropdownsProps) {
-  const { t } = useTranslation();
-  const { currencies: availableCurrencies, emails: availableEmails } =
-    useTransactionFilters();
-
-  const updateFilter = (key: keyof TransactionFilters, value: string) => {
-    const normalizedValue =
-      value === "all" || value.trim() === "" ? undefined : value;
-    onFiltersChange({ ...filters, [key]: normalizedValue });
-  };
-
-  const FilterDropdown = ({
-    icon: Icon,
-    label,
-    value,
-    options,
-    onChange,
-    allLabel,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    value: string | undefined;
-    options: { value: string; label: string }[];
-    onChange: (val: string) => void;
-    allLabel: string;
-  }) => (
-    <div className="relative group">
-      <div
-        className={`flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white border rounded-lg transition-all w-full sm:w-auto justify-between sm:justify-start h-8 md:h-9 ${
-          value && value !== "all"
-            ? "border-[var(--primary)] text-[var(--primary)] bg-blue-50/50"
-            : "border-gray-200 text-gray-700 hover:border-gray-300"
-        }`}
-      >
-        <Icon
-          size={14}
-          className={`shrink-0 ${value && value !== "all" ? "text-[var(--primary)]" : "text-gray-500"}`}
-        />
-        <span className="text-xs md:text-sm font-medium whitespace-nowrap truncate">
-          {value && value !== "all"
-            ? options.find(o => o.value === value)?.label || value
-            : label}
-        </span>
-        <ChevronDown
-          size={14}
-          className="opacity-50 transition-transform group-hover:translate-y-0.5 ml-auto"
-        />
-      </div>
-      <select
-        value={value || "all"}
-        onChange={e => onChange(e.target.value)}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-      >
-        <option value="all">{allLabel}</option>
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-
-  return (
-    <>
-      <div className="flex-1 min-w-[120px] sm:flex-none">
-        <FilterDropdown
-          icon={Wallet}
-          label={t("transactions.currency")}
-          value={filters.currency}
-          allLabel={t("transactions.allCurrencies")}
-          onChange={val => updateFilter("currency", val)}
-          options={availableCurrencies.map(c => ({ value: c, label: c }))}
-        />
-      </div>
-      <div className="flex-1 min-w-[120px] sm:flex-none">
-        <FilterDropdown
-          icon={Mail}
-          label={t("transactions.email")}
-          value={filters.email}
-          allLabel={t("transactions.allEmails")}
-          onChange={val => updateFilter("email", val)}
-          options={availableEmails.map(e => ({ value: e, label: e }))}
-        />
-      </div>
-    </>
-  );
-}
-
-// Skeleton for the dynamic dropdowns while they load
-function DynamicDropdownsSkeleton() {
-  return (
-    <>
-      <div className="h-8 md:h-9 w-28 rounded-lg bg-[var(--bg-secondary)] animate-pulse" />
-      <div className="h-8 md:h-9 w-36 rounded-lg bg-[var(--bg-secondary)] animate-pulse" />
-    </>
-  );
-}
-
-// ─── Main filter component ───────────────────────────────────────────────────
 export function TransactionFiltersComponent({
   filters,
   onFiltersChange,
@@ -141,90 +49,217 @@ export function TransactionFiltersComponent({
   isLoading = false,
 }: TransactionFiltersProps) {
   const { t } = useTranslation();
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [serviceSearch, setServiceSearch] = useState(filters.serviceName || "");
+  const [open, setOpen] = React.useState(false);
+  const [selectedView, setSelectedView] = React.useState<FilterType | null>(
+    null
+  );
+  const [commandInput, setCommandInput] = React.useState("");
+  const commandInputRef = React.useRef<HTMLInputElement>(null);
 
-  const updateFilter = (key: keyof TransactionFilters, value: string) => {
-    const normalizedValue =
-      value === "all" || value.trim() === "" ? undefined : value;
-    onFiltersChange({ ...filters, [key]: normalizedValue });
+  // Dynamic filter lists from hooks
+  const { currencies: availableCurrencies, emails: availableEmails } =
+    useTransactionFilters();
+
+  // Mapping domain-specific data to generic Filters Array format
+  const filtersArray = useMemo(() => {
+    const arr: Filter[] = [];
+    if (filters.type && filters.type !== "all") {
+      arr.push({
+        id: "type",
+        type: FilterType.TYPE,
+        operator:
+          filters.typeOperator === "is not"
+            ? FilterOperator.IS_NOT
+            : FilterOperator.IS,
+        value: [filters.type],
+      });
+    }
+    if (filters.category) {
+      arr.push({
+        id: "category",
+        type: FilterType.CATEGORY,
+        operator:
+          filters.categoryOperator === "is not"
+            ? FilterOperator.IS_NOT
+            : FilterOperator.IS,
+        value: [filters.category],
+      });
+    }
+    if (filters.serviceName !== undefined) {
+      arr.push({
+        id: "serviceName",
+        type: FilterType.SERVICE_NAME,
+        operator: FilterOperator.INCLUDE,
+        value: [filters.serviceName],
+      });
+    }
+    if (filters.currency) {
+      arr.push({
+        id: "currency",
+        type: FilterType.CURRENCY,
+        operator:
+          filters.currencyOperator === "is not"
+            ? FilterOperator.IS_NOT
+            : FilterOperator.IS,
+        value: [filters.currency],
+      });
+    }
+    if (filters.email) {
+      arr.push({
+        id: "email",
+        type: FilterType.EMAIL,
+        operator:
+          filters.emailOperator === "is not"
+            ? FilterOperator.IS_NOT
+            : FilterOperator.IS,
+        value: [filters.email],
+      });
+    }
+    if (filters.startDate !== undefined) {
+      arr.push({
+        id: "startDate",
+        type: FilterType.START_DATE,
+        operator: FilterOperator.AFTER,
+        value: [filters.startDate],
+      });
+    }
+    if (filters.endDate !== undefined) {
+      arr.push({
+        id: "endDate",
+        type: FilterType.END_DATE,
+        operator: FilterOperator.BEFORE,
+        value: [filters.endDate],
+      });
+    }
+    return arr;
+  }, [filters]);
+
+  const updateFiltersArray = (updater: React.SetStateAction<Filter[]>) => {
+    const nextArr =
+      typeof updater === "function" ? updater(filtersArray) : updater;
+
+    // Map back to TransactionFilters
+    const newFilters: TransactionFilters = {};
+    for (const item of nextArr) {
+      if (!item.value || item.value.length === 0 || item.value[0] === undefined)
+        continue;
+
+      switch (item.type) {
+        case FilterType.TYPE:
+          newFilters.type = item.value[0] as any;
+          newFilters.typeOperator =
+            item.operator === FilterOperator.IS_NOT ? "is not" : "is";
+          break;
+        case FilterType.CATEGORY:
+          newFilters.category = item.value[0];
+          newFilters.categoryOperator =
+            item.operator === FilterOperator.IS_NOT ? "is not" : "is";
+          break;
+        case FilterType.SERVICE_NAME:
+          newFilters.serviceName = item.value[0];
+          break;
+        case FilterType.CURRENCY:
+          newFilters.currency = item.value[0];
+          newFilters.currencyOperator =
+            item.operator === FilterOperator.IS_NOT ? "is not" : "is";
+          break;
+        case FilterType.EMAIL:
+          newFilters.email = item.value[0];
+          newFilters.emailOperator =
+            item.operator === FilterOperator.IS_NOT ? "is not" : "is";
+          break;
+        case FilterType.START_DATE:
+          newFilters.startDate = item.value[0];
+          break;
+        case FilterType.END_DATE:
+          newFilters.endDate = item.value[0];
+          break;
+      }
+    }
+    onFiltersChange(newFilters);
   };
 
-  const clearFilters = () => {
-    onFiltersChange({});
-    setShowDatePicker(false);
-    setServiceSearch("");
+  const getOptionsForType = (type: FilterType): FilterOption[] => {
+    switch (type) {
+      case FilterType.TYPE:
+        return [
+          {
+            name: "income",
+            label: t("transactions.income"),
+            icon: <FilterIcon type="income" />,
+          },
+          {
+            name: "expense",
+            label: t("transactions.expense"),
+            icon: <FilterIcon type="expense" />,
+          },
+        ];
+      case FilterType.CATEGORY:
+        return categories.map(c => ({
+          name: c,
+          label: t(`categories.${c}`),
+          icon: <FilterIcon type={FilterType.CATEGORY} />,
+        }));
+      case FilterType.CURRENCY:
+        return availableCurrencies.map(c => ({
+          name: c,
+          label: c,
+          icon: <FilterIcon type={FilterType.CURRENCY} />,
+        }));
+      case FilterType.EMAIL:
+        return availableEmails.map(c => ({
+          name: c,
+          label: c,
+          icon: <FilterIcon type={FilterType.EMAIL} />,
+        }));
+      default:
+        return [];
+    }
   };
 
-  useEffect(() => {
-    setServiceSearch(filters.serviceName || "");
-  }, [filters.serviceName]);
-
-  useEffect(() => {
-    const normalized =
-      serviceSearch.trim() === "" ? undefined : serviceSearch.trim();
-    if (normalized === filters.serviceName) return;
-    const timeoutId = setTimeout(() => {
-      onFiltersChange({ ...filters, serviceName: normalized });
-    }, 350);
-    return () => clearTimeout(timeoutId);
-  }, [serviceSearch, filters, onFiltersChange]);
-
-  const hasActiveFilters = Object.values(filters).some(
-    value => value !== undefined && value !== "all"
-  );
-
-  const FilterDropdown = ({
-    icon: Icon,
-    label,
-    value,
-    options,
-    onChange,
-    allLabel,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    value: string | undefined;
-    options: { value: string; label: string }[];
-    onChange: (val: string) => void;
-    allLabel: string;
-  }) => (
-    <div className="relative group">
-      <div
-        className={`flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white border rounded-lg transition-all w-full sm:w-auto justify-between sm:justify-start h-8 md:h-9 ${
-          value && value !== "all"
-            ? "border-[var(--primary)] text-[var(--primary)] bg-blue-50/50"
-            : "border-gray-200 text-gray-700 hover:border-gray-300"
-        }`}
-      >
-        <Icon
-          size={14}
-          className={`shrink-0 ${value && value !== "all" ? "text-[var(--primary)]" : "text-gray-500"}`}
-        />
-        <span className="text-xs md:text-sm font-medium whitespace-nowrap truncate">
-          {value && value !== "all"
-            ? options.find(o => o.value === value)?.label || value
-            : label}
-        </span>
-        <ChevronDown
-          size={14}
-          className="opacity-50 transition-transform group-hover:translate-y-0.5 ml-auto"
-        />
-      </div>
-      <select
-        value={value || "all"}
-        onChange={e => onChange(e.target.value)}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-      >
-        <option value="all">{allLabel}</option>
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  const filterViewOptions: FilterOption[][] = [
+    [
+      {
+        name: FilterType.SERVICE_NAME,
+        label: t("transactions.serviceNamePlaceholder"),
+        icon: <FilterIcon type={FilterType.SERVICE_NAME} />,
+      },
+      {
+        name: FilterType.TYPE,
+        label: t("transactions.allTypes"),
+        icon: <FilterIcon type={FilterType.TYPE} />,
+      },
+      {
+        name: FilterType.CATEGORY,
+        label: t("transactions.category"),
+        icon: <FilterIcon type={FilterType.CATEGORY} />,
+      },
+    ],
+    [
+      {
+        name: FilterType.CURRENCY,
+        label: t("transactions.currency"),
+        icon: <FilterIcon type={FilterType.CURRENCY} />,
+      },
+      {
+        name: FilterType.EMAIL,
+        label: t("transactions.email"),
+        icon: <FilterIcon type={FilterType.EMAIL} />,
+      },
+    ],
+    [
+      {
+        name: FilterType.START_DATE,
+        label: t("transactions.startDate"),
+        icon: <FilterIcon type={FilterType.START_DATE} />,
+      },
+      {
+        name: FilterType.END_DATE,
+        label: t("transactions.endDate"),
+        icon: <FilterIcon type={FilterType.END_DATE} />,
+      },
+    ],
+  ];
 
   return (
     <section
@@ -233,7 +268,6 @@ export function TransactionFiltersComponent({
       }`}
     >
       <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
-        {/* Title & Description — renders immediately */}
         <div className="shrink-0 mb-2 xl:mb-0">
           <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
             {t("navigation.transactions")}
@@ -246,184 +280,259 @@ export function TransactionFiltersComponent({
           </p>
         </div>
 
-        {/* Filters Group */}
-        <div className="flex flex-col xl:flex-row gap-3 xl:items-center xl:justify-end xl:flex-1 shrink-0">
-          <div className="flex flex-row flex-wrap gap-2 items-center justify-start xl:justify-end w-full xl:w-auto">
-            {/* Service Name Search — static */}
-            <div className="relative flex-1 min-w-[140px] sm:flex-none">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-              />
-              <input
-                type="text"
-                value={serviceSearch}
-                onChange={e => setServiceSearch(e.target.value)}
-                placeholder={t("transactions.serviceNamePlaceholder")}
-                className="w-full sm:w-[180px] pl-9 pr-3 py-1.5 md:py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm h-8 md:h-9 text-gray-700 placeholder:text-gray-500 focus:outline-none focus:border-[var(--primary)]"
-              />
-            </div>
+        <div className="flex gap-2 flex-wrap items-center">
+          <Filters
+            getOptionsForType={getOptionsForType}
+            filters={filtersArray}
+            setFilters={updateFiltersArray}
+          />
 
-            {/* Date Range — static */}
-            <Button
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              variant="outline"
-              size="sm"
-              selected={
-                !!(filters.startDate || filters.endDate || showDatePicker)
-              }
-              className="flex-1 sm:flex-none text-xs md:text-sm h-8 md:h-9 px-2 md:px-3"
-              icon={<Calendar size={14} />}
-            >
-              <span className="text-xs md:text-sm font-medium whitespace-nowrap">
-                {filters.startDate || filters.endDate
-                  ? `${filters.startDate || "..."} - ${filters.endDate || "..."}`
-                  : t("transactions.dateRange")}
-              </span>
-              <ChevronDown
-                size={14}
-                className={`opacity-50 transition-transform ${showDatePicker ? "rotate-180" : ""}`}
-              />
-            </Button>
-
-            {/* Type Filter — static */}
-            <div className="bg-[var(--bg-secondary)] p-1 rounded-lg flex items-center gap-1 w-full sm:w-auto overflow-x-auto shrink-0">
-              {[
-                {
-                  id: "all",
-                  label: t("transactions.allTypes"),
-                  icon: LayoutList,
-                },
-                {
-                  id: "income",
-                  label: t("transactions.income"),
-                  icon: ArrowDownCircle,
-                },
-                {
-                  id: "expense",
-                  label: t("transactions.expense"),
-                  icon: ArrowUpCircle,
-                },
-              ].map(type => {
-                const isActive = (filters.type || "all") === type.id;
-                return (
-                  <Button
-                    key={type.id}
-                    onClick={() => updateFilter("type", type.id)}
-                    variant="outline"
-                    size="sm"
-                    selected={isActive}
-                    className="flex-1 sm:flex-none text-xs md:text-sm h-8 px-2 md:px-3 whitespace-nowrap"
-                    icon={<type.icon size={14} />}
-                  >
-                    {type.label}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Category — static */}
-            <div className="flex-1 min-w-[120px] sm:flex-none">
-              <FilterDropdown
-                icon={Tag}
-                label={t("transactions.category")}
-                value={filters.category}
-                allLabel={t("transactions.allCategories")}
-                onChange={val => updateFilter("category", val)}
-                options={categories.map(c => ({
-                  value: c,
-                  label: t(`categories.${c}`),
-                }))}
-              />
-            </div>
-
-            {/* Sort — static */}
-            <div className="relative group flex-1 min-w-[120px] sm:flex-none">
-              <div className="flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white border border-gray-200 rounded-lg transition-all w-full text-gray-700 hover:border-gray-300 h-8 md:h-9">
-                <ArrowUpDown size={14} className="text-gray-500 shrink-0" />
-                <span className="text-xs md:text-sm font-medium whitespace-nowrap truncate">
-                  {(filters.sortBy || "created_at") === "created_at"
-                    ? t("transactions.newest")
-                    : t("transactions.byDate")}
-                </span>
-                <ChevronDown
-                  size={14}
-                  className="opacity-50 transition-transform group-hover:translate-y-0.5 ml-auto"
-                />
-              </div>
-              <select
-                value={filters.sortBy || "created_at"}
-                onChange={e =>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs rounded-lg flex gap-1.5 items-center px-3"
+              >
+                {filters.sortOrder === "asc" ? (
+                  <ArrowUpDown className="size-4 shrink-0" />
+                ) : (
+                  <ArrowDownUp className="size-4 shrink-0" />
+                )}
+                {filters.sortBy === "transaction_date"
+                  ? t("transactions.byDate")
+                  : t("transactions.dateAdded")}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel className="text-xs font-medium text-[var(--text-secondary)]">
+                {t("transactions.dateAdded")}
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() =>
                   onFiltersChange({
                     ...filters,
-                    sortBy: e.target.value as TransactionFilters["sortBy"],
+                    sortBy: "created_at",
+                    sortOrder: "desc",
                   })
                 }
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               >
-                <option value="created_at">{t("transactions.newest")}</option>
-                <option value="transaction_date">
-                  {t("transactions.byDate")}
-                </option>
-              </select>
-            </div>
+                <Check
+                  className={`size-3 mr-1 ${(!filters.sortBy || filters.sortBy === "created_at") && (!filters.sortOrder || filters.sortOrder === "desc") ? "opacity-100" : "opacity-0"}`}
+                />
+                {t("transactions.newest")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  onFiltersChange({
+                    ...filters,
+                    sortBy: "created_at",
+                    sortOrder: "asc",
+                  })
+                }
+              >
+                <Check
+                  className={`size-3 mr-1 ${(!filters.sortBy || filters.sortBy === "created_at") && filters.sortOrder === "asc" ? "opacity-100" : "opacity-0"}`}
+                />
+                {t("transactions.oldest")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-medium text-[var(--text-secondary)]">
+                {t("transactions.byDate")}
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() =>
+                  onFiltersChange({
+                    ...filters,
+                    sortBy: "transaction_date",
+                    sortOrder: "desc",
+                  })
+                }
+              >
+                <Check
+                  className={`size-3 mr-1 ${filters.sortBy === "transaction_date" && (!filters.sortOrder || filters.sortOrder === "desc") ? "opacity-100" : "opacity-0"}`}
+                />
+                {t("transactions.newest")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  onFiltersChange({
+                    ...filters,
+                    sortBy: "transaction_date",
+                    sortOrder: "asc",
+                  })
+                }
+              >
+                <Check
+                  className={`size-3 mr-1 ${filters.sortBy === "transaction_date" && filters.sortOrder === "asc" ? "opacity-100" : "opacity-0"}`}
+                />
+                {t("transactions.oldest")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Currency + Email — dynamic, suspends while data loads */}
-            <Suspense fallback={<DynamicDropdownsSkeleton />}>
-              <DynamicFilterDropdowns
-                filters={filters}
-                onFiltersChange={onFiltersChange}
-              />
-            </Suspense>
-
-            {/* Clear Filters — static */}
-            {hasActiveFilters && (
+          <Popover
+            open={open}
+            onOpenChange={open => {
+              setOpen(open);
+              if (!open) {
+                setTimeout(() => {
+                  setSelectedView(null);
+                  setCommandInput("");
+                }, 200);
+              }
+            }}
+          >
+            <PopoverTrigger asChild>
               <Button
-                onClick={clearFilters}
-                variant="ghost"
+                variant="outline"
+                selected={filtersArray.length > 0}
+                role="combobox"
+                aria-expanded={open}
                 size="sm"
-                icon={<X size={14} />}
-                className="w-full sm:w-auto text-red-600 hover:bg-red-50 h-8 md:h-9 px-2 md:px-3 text-xs md:text-sm shrink-0 flex items-center justify-center gap-1.5 rounded-lg transition-colors"
+                className={cn(
+                  "h-8 text-xs rounded-lg flex gap-1.5 items-center",
+                  filtersArray.length > 0 ? "w-8 px-0 justify-center" : "px-3"
+                )}
               >
-                <span className="hidden sm:inline">
-                  {t("transactions.clearFilters")}
-                </span>
+                <ListFilter className="size-4 shrink-0" />
+                {!filtersArray.length && t("transactions.filter", "Filter")}
               </Button>
-            )}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0">
+              <AnimateChangeInHeight>
+                <Command>
+                  <CommandInput
+                    placeholder={
+                      selectedView
+                        ? getFilterTypeName(selectedView, t)
+                        : t("transactions.filter", "Filter...")
+                    }
+                    className="h-9"
+                    value={commandInput}
+                    onInputCapture={e => {
+                      setCommandInput(e.currentTarget.value);
+                    }}
+                    ref={commandInputRef}
+                  />
+                  <CommandList>
+                    <CommandEmpty>
+                      {t("errors.noData", "Sin resultados")}
+                    </CommandEmpty>
+                    {selectedView ? (
+                      <CommandGroup>
+                        {getOptionsForType(selectedView).map(
+                          (filter: FilterOption) => (
+                            <CommandItem
+                              className="group text-[var(--text-secondary)] flex gap-2 items-center"
+                              key={filter.name}
+                              value={filter.name}
+                              onSelect={currentValue => {
+                                updateFiltersArray(prev => [
+                                  ...prev,
+                                  {
+                                    id: nanoid(),
+                                    type: selectedView,
+                                    operator: FilterOperator.IS,
+                                    value: [currentValue],
+                                  },
+                                ]);
+                                setTimeout(() => {
+                                  setSelectedView(null);
+                                  setCommandInput("");
+                                }, 200);
+                                setOpen(false);
+                              }}
+                            >
+                              {filter.icon || <FilterIcon type={filter.name} />}
+                              <span className="text-[var(--text-primary)]">
+                                {filter.label || filter.name}
+                              </span>
+                            </CommandItem>
+                          )
+                        )}
+                      </CommandGroup>
+                    ) : (
+                      filterViewOptions.map(
+                        (group: FilterOption[], index: number) => (
+                          <React.Fragment key={index}>
+                            <CommandGroup>
+                              {group.map((filter: FilterOption) => (
+                                <CommandItem
+                                  className="group text-[var(--text-secondary)] flex gap-2 items-center"
+                                  key={filter.name}
+                                  value={filter.name}
+                                  onSelect={currentValue => {
+                                    // if it's text input or date, we can just add it and close immediately
+                                    const typeEnumsWithoutOptions = [
+                                      FilterType.SERVICE_NAME,
+                                      FilterType.START_DATE,
+                                      FilterType.END_DATE,
+                                    ];
+                                    if (
+                                      typeEnumsWithoutOptions.includes(
+                                        currentValue as FilterType
+                                      )
+                                    ) {
+                                      updateFiltersArray(prev => [
+                                        ...prev,
+                                        {
+                                          id: nanoid(),
+                                          type: currentValue as FilterType,
+                                          operator:
+                                            currentValue ===
+                                            FilterType.SERVICE_NAME
+                                              ? FilterOperator.INCLUDE
+                                              : FilterOperator.IS,
+                                          value: [""],
+                                        },
+                                      ]);
+                                      setCommandInput("");
+                                      setOpen(false);
+                                    } else {
+                                      setSelectedView(
+                                        currentValue as FilterType
+                                      );
+                                      setCommandInput("");
+                                      commandInputRef.current?.focus();
+                                    }
+                                  }}
+                                >
+                                  {filter.icon}
+                                  <span className="text-[var(--text-primary)]">
+                                    {filter.label || filter.name}
+                                  </span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                            {index < filterViewOptions.length - 1 && (
+                              <CommandSeparator />
+                            )}
+                          </React.Fragment>
+                        )
+                      )
+                    )}
+                  </CommandList>
+                </Command>
+              </AnimateChangeInHeight>
+            </PopoverContent>
+          </Popover>
 
-          {/* Date Picker Panel */}
-          {showDatePicker && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 items-end md:items-center self-start"
+          {filtersArray.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<X size={14} />}
+              className="text-red-600 hover:bg-red-50 h-8 px-2 text-xs rounded-lg"
+              onClick={() =>
+                onFiltersChange({
+                  sortBy: filters.sortBy,
+                  sortOrder: filters.sortOrder,
+                })
+              }
             >
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-500">
-                  {t("transactions.startDate")}
-                </label>
-                <input
-                  type="date"
-                  value={filters.startDate || ""}
-                  onChange={e => updateFilter("startDate", e.target.value)}
-                  className="px-3 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-[var(--primary)]"
-                />
-              </div>
-              <div className="hidden md:block text-gray-400">-</div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-500">
-                  {t("transactions.endDate")}
-                </label>
-                <input
-                  type="date"
-                  value={filters.endDate || ""}
-                  onChange={e => updateFilter("endDate", e.target.value)}
-                  className="px-3 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-[var(--primary)]"
-                />
-              </div>
-            </motion.div>
+              {t("transactions.clearFilters", "Clear")}
+            </Button>
           )}
         </div>
       </div>
