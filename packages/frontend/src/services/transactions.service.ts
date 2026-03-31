@@ -68,13 +68,18 @@ function mapSubscriptionCandidate(
 
 export interface TransactionFilters {
   serviceName?: string;
-  currency?: string;
-  email?: string;
   category?: string;
+  categoryOperator?: "is" | "is not";
   type?: "income" | "expense" | "ingreso" | "egreso" | "all";
+  typeOperator?: "is" | "is not";
+  currency?: string;
+  currencyOperator?: "is" | "is not";
+  email?: string;
+  emailOperator?: "is" | "is not";
   startDate?: string;
   endDate?: string;
   sortBy?: "created_at" | "transaction_date";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginationParams {
@@ -143,7 +148,11 @@ export class TransactionsService {
 
     // Apply filters
     if (filters?.currency && filters.currency !== "all") {
-      query = query.eq("currency", filters.currency);
+      if (filters.currencyOperator === "is not") {
+        query = query.neq("currency", filters.currency);
+      } else {
+        query = query.eq("currency", filters.currency);
+      }
     }
     if (filters?.serviceName?.trim()) {
       const term = filters.serviceName.trim();
@@ -152,16 +161,29 @@ export class TransactionsService {
       );
     }
     if (tokenId) {
-      query = query.eq("user_oauth_token_id", tokenId);
+      if (filters?.emailOperator === "is not") {
+        query = query.neq("user_oauth_token_id", tokenId);
+      } else {
+        query = query.eq("user_oauth_token_id", tokenId);
+      }
     }
     if (filters?.category && filters.category !== "all") {
-      query = query.eq("category", filters.category);
+      if (filters.categoryOperator === "is not") {
+        query = query.neq("category", filters.category);
+      } else {
+        query = query.eq("category", filters.category);
+      }
     }
     if (filters?.type && filters.type !== "all") {
+      const isNot = filters.typeOperator === "is not";
       if (filters.type === "income" || filters.type === "ingreso") {
-        query = query.in("transaction_type", ["income", "ingreso"]);
+        query = isNot
+          ? query.not("transaction_type", "in", '("income","ingreso")')
+          : query.in("transaction_type", ["income", "ingreso"]);
       } else if (filters.type === "expense" || filters.type === "egreso") {
-        query = query.in("transaction_type", ["expense", "egreso"]);
+        query = isNot
+          ? query.not("transaction_type", "in", '("expense","egreso")')
+          : query.in("transaction_type", ["expense", "egreso"]);
       }
     }
     if (filters?.startDate) {
@@ -178,7 +200,7 @@ export class TransactionsService {
 
     const sortColumn = filters?.sortBy || "created_at";
     const { data, error, count } = await query.order(sortColumn, {
-      ascending: false,
+      ascending: filters?.sortOrder === "asc",
     });
 
     if (error) throw error;
@@ -205,7 +227,11 @@ export class TransactionsService {
 
     // Apply filters
     if (filters?.currency && filters.currency !== "all") {
-      query = query.eq("currency", filters.currency);
+      if (filters.currencyOperator === "is not") {
+        query = query.neq("currency", filters.currency);
+      } else {
+        query = query.eq("currency", filters.currency);
+      }
     }
     if (filters?.serviceName?.trim()) {
       const term = filters.serviceName.trim();
@@ -228,7 +254,11 @@ export class TransactionsService {
       }
 
       if (tokenData) {
-        query = query.eq("user_oauth_token_id", tokenData.id);
+        if (filters.emailOperator === "is not") {
+          query = query.neq("user_oauth_token_id", tokenData.id);
+        } else {
+          query = query.eq("user_oauth_token_id", tokenData.id);
+        }
       } else {
         // If no token found for this email, return empty result
         return [];
@@ -236,13 +266,22 @@ export class TransactionsService {
     }
 
     if (filters?.category && filters.category !== "all") {
-      query = query.eq("category", filters.category);
+      if (filters.categoryOperator === "is not") {
+        query = query.neq("category", filters.category);
+      } else {
+        query = query.eq("category", filters.category);
+      }
     }
     if (filters?.type && filters.type !== "all") {
+      const isNot = filters.typeOperator === "is not";
       if (filters.type === "income" || filters.type === "ingreso") {
-        query = query.in("transaction_type", ["income", "ingreso"]);
+        query = isNot
+          ? query.not("transaction_type", "in", '("income","ingreso")')
+          : query.in("transaction_type", ["income", "ingreso"]);
       } else if (filters.type === "expense" || filters.type === "egreso") {
-        query = query.in("transaction_type", ["expense", "egreso"]);
+        query = isNot
+          ? query.not("transaction_type", "in", '("expense","egreso")')
+          : query.in("transaction_type", ["expense", "egreso"]);
       }
     }
 
