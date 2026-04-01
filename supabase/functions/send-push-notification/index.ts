@@ -193,7 +193,7 @@ async function getAppServer(): Promise<ApplicationServer> {
 
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-  const email = Deno.env.get("VAPID_EMAIL") ?? "mailto:admin@example.com";
+  const email = Deno.env.get("VAPID_EMAIL") ?? "mailto:fededeniard@gmail.com";
 
   if (!publicKey || !privateKey) {
     throw new Error("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set");
