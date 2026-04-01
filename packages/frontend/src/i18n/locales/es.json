@@ -390,6 +390,16 @@
       "empty": "No hay tipos de notificación configurados.",
       "uncategorized": "Otros"
     },
+    "push": {
+      "title": "Notificaciones push",
+      "description": "Recibí notificaciones en este dispositivo incluso cuando la app no está abierta.",
+      "blocked_description": "Las notificaciones están bloqueadas. Habilitálas en la configuración de tu navegador y recargá la página.",
+      "checking": "Verificando estado de notificaciones...",
+      "enable": "Habilitar",
+      "disable": "Deshabilitar",
+      "blocked_label": "Bloqueadas",
+      "error": "No se pudieron habilitar las notificaciones push. Intentá de nuevo."
+    },
     "types": {
       "seed_completed_with_transactions": {
         "label": "Importación completada con transacciones nuevas",
@@ -418,6 +428,10 @@
       "gmail_sync_error": {
         "label": "Error de sincronización de Gmail",
         "description": "Notifica cuando falla la sincronización con Gmail."
+      },
+      "new_transaction": {
+        "label": "Nueva transacción",
+        "description": "Notifica cuando se detecta una nueva transacción desde un correo de Gmail (fuera de importaciones masivas)."
       }
     },
     "templates": {
@@ -448,6 +462,10 @@
       "gmail_sync_error": {
         "title": "Error de sincronización de Gmail",
         "body": "Hubo un error sincronizando {{email}}. {{reason}}"
+      },
+      "new_transaction": {
+        "title": "Nueva transacción",
+        "body": "{{merchant}} · {{currency}} {{amount}}"
       }
     }
   },

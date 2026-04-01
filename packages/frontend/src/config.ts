@@ -1,12 +1,16 @@
 // Configuration fetched from server API endpoint
 // Server reads from .env and exposes public config
 
-let configCache: {
+export interface AppConfig {
   supabase: { url: string; anonKey: string };
   backendUrl: string;
-} | null = null;
+  /** VAPID public key for Web Push subscriptions. Null if push is not configured on the server. */
+  vapidPublicKey: string | null;
+}
 
-export async function getConfig() {
+let configCache: AppConfig | null = null;
+
+export async function getConfig(): Promise<AppConfig> {
   if (configCache) {
     return configCache;
   }

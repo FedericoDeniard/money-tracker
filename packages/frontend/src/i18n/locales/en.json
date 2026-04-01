@@ -390,6 +390,16 @@
       "empty": "No notification types configured.",
       "uncategorized": "Other"
     },
+    "push": {
+      "title": "Push notifications",
+      "description": "Receive notifications on this device even when the app is not open.",
+      "blocked_description": "Notifications are blocked. Enable them in your browser settings and reload.",
+      "checking": "Checking notification status...",
+      "enable": "Enable",
+      "disable": "Disable",
+      "blocked_label": "Blocked",
+      "error": "Failed to enable push notifications. Please try again."
+    },
     "types": {
       "seed_completed_with_transactions": {
         "label": "Import completed with new transactions",
@@ -418,6 +428,10 @@
       "gmail_sync_error": {
         "label": "Gmail sync error",
         "description": "Notifies when synchronization with Gmail fails."
+      },
+      "new_transaction": {
+        "label": "New transaction",
+        "description": "Notifies when a new transaction is detected from a Gmail email (outside of bulk imports)."
       }
     },
     "templates": {
@@ -448,6 +462,10 @@
       "gmail_sync_error": {
         "title": "Gmail sync error",
         "body": "There was an error syncing {{email}}. {{reason}}"
+      },
+      "new_transaction": {
+        "title": "New transaction",
+        "body": "{{merchant}} · {{currency}} {{amount}}"
       }
     }
   },

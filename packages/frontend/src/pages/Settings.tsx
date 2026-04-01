@@ -22,6 +22,7 @@ import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { SeedEmailsModal } from "../components/settings/SeedEmailsModal";
 import { NotificationPreferencesChecklist } from "../components/notifications/NotificationPreferencesChecklist";
+import { PushNotificationToggle } from "../components/notifications/PushNotificationToggle";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
 // ─── Gmail section — suspends while status + watches load ────────────────────
@@ -505,10 +506,14 @@ export function Settings() {
           <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
             {t("notifications.settings.title")}
           </h2>
-          <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
-            <p className="mb-4 text-sm text-[var(--text-secondary)]">
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4 space-y-6">
+            <p className="text-sm text-[var(--text-secondary)]">
               {t("notifications.settings.description")}
             </p>
+
+            {/* Push notifications toggle for this device */}
+            <PushNotificationToggle />
+
             <NotificationPreferencesChecklist />
           </div>
         </div>

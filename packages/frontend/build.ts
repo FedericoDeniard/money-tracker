@@ -33,7 +33,8 @@ Example:
   process.exit(0);
 }
 
-const toCamelCase = (str: string): string => str.replace(/-([a-z])/g, g => g[1].toUpperCase());
+const toCamelCase = (str: string): string =>
+  str.replace(/-([a-z])/g, g => g[1].toUpperCase());
 
 const parseValue = (value: string): any => {
   if (value === "true") return true;
@@ -62,7 +63,10 @@ function parseArgs(): Partial<Bun.BuildConfig> {
       continue;
     }
 
-    if (!arg.includes("=") && (i === args.length - 1 || args[i + 1]?.startsWith("--"))) {
+    if (
+      !arg.includes("=") &&
+      (i === args.length - 1 || args[i + 1]?.startsWith("--"))
+    ) {
       const key = toCamelCase(arg.slice(2));
       config[key] = true;
       continue;
@@ -117,10 +121,13 @@ if (existsSync(outdir)) {
 
 const start = performance.now();
 
+// ─── Main app build ───────────────────────────────────────────────────────────
 const entrypoints = [...new Bun.Glob("**.html").scanSync("src")]
   .map(a => path.resolve("src", a))
   .filter(dir => !dir.includes("node_modules"));
-console.log(`📄 Found ${entrypoints.length} HTML ${entrypoints.length === 1 ? "file" : "files"} to process\n`);
+console.log(
+  `📄 Found ${entrypoints.length} HTML ${entrypoints.length === 1 ? "file" : "files"} to process\n`
+);
 
 const result = await Bun.build({
   entrypoints,
@@ -135,9 +142,30 @@ const result = await Bun.build({
   ...cliConfig,
 });
 
+// ─── Service worker build ─────────────────────────────────────────────────────
+// Built separately so it gets a fixed filename (sw.js) without a content hash,
+// and without the Tailwind plugin (the SW has no CSS).
+console.log("\n⚙️  Building service worker...\n");
+
+const swResult = await Bun.build({
+  entrypoints: [path.resolve("src", "sw.ts")],
+  outdir,
+  // sw.js must have a predictable name — browsers register it by exact path
+  naming: "sw.js",
+  minify: true,
+  target: "browser",
+  // Service workers must not use ES module imports at the top level in all browsers;
+  // use iife format for maximum compatibility.
+  format: "iife",
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("production"),
+  },
+});
+
 const end = performance.now();
 
-const outputTable = result.outputs.map(output => ({
+const allOutputs = [...result.outputs, ...swResult.outputs];
+const outputTable = allOutputs.map(output => ({
   File: path.relative(process.cwd(), output.path),
   Type: output.kind,
   Size: formatFileSize(output.size),
@@ -145,5 +173,10 @@ const outputTable = result.outputs.map(output => ({
 
 console.table(outputTable);
 const buildTime = (end - start).toFixed(2);
+
+if (!result.success || !swResult.success) {
+  console.error("\n❌ Build failed\n");
+  process.exit(1);
+}
 
 console.log(`\n✅ Build completed in ${buildTime}ms\n`);
