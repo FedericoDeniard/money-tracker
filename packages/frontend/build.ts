@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import plugin from "bun-plugin-tailwind";
 import { existsSync } from "fs";
-import { rm } from "fs/promises";
+import { rm, cp, readdir } from "fs/promises";
 import path from "path";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -161,6 +161,22 @@ const swResult = await Bun.build({
     "process.env.NODE_ENV": JSON.stringify("production"),
   },
 });
+
+// ─── Copy public/ assets to dist/ ────────────────────────────────────────────
+// Static files (manifest, icons, etc.) that are served directly by the server
+// and not processed by the bundler.
+const publicDir = path.resolve("public");
+if (existsSync(publicDir)) {
+  const publicFiles = await readdir(publicDir);
+  for (const file of publicFiles) {
+    await cp(path.join(publicDir, file), path.join(outdir, file), {
+      recursive: true,
+    });
+  }
+  console.log(
+    `\n📦 Copied ${publicFiles.length} file(s) from public/ to dist/\n`
+  );
+}
 
 const end = performance.now();
 
