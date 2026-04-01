@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Upload,
@@ -10,6 +9,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
+import { Modal } from "../ui/Modal";
 import { uploadDocumentForAnalysis } from "../../services/document-upload.service";
 
 export type TransactionFormData = {
@@ -56,6 +56,9 @@ export function UploadTransactionModal({
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [uploadState, setUploadState] = useState<UploadState>("idle");
 
+  const isProcessing =
+    uploadState === "uploading" || uploadState === "processing";
+
   const validateFile = (file: File): string | null => {
     if (!SUPPORTED_TYPES.includes(file.type)) {
       return t(
@@ -63,7 +66,6 @@ export function UploadTransactionModal({
         "Unsupported file type. Please upload PDF or image files."
       );
     }
-
     const maxSize =
       file.type === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE;
     if (file.size > maxSize) {
@@ -73,7 +75,6 @@ export function UploadTransactionModal({
         `File too large. Maximum size is ${maxSizeMB}MB.`
       );
     }
-
     return null;
   };
 
@@ -85,7 +86,6 @@ export function UploadTransactionModal({
         setUploadState("error");
         return;
       }
-
       setSelectedFile(file);
       setErrorMessage("");
       setUploadState("idle");
@@ -108,7 +108,6 @@ export function UploadTransactionModal({
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
-
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0 && files[0]) {
         handleFileSelect(files[0]);
@@ -119,9 +118,7 @@ export function UploadTransactionModal({
 
   const uploadFile = async () => {
     if (!selectedFile) return;
-
     setUploadState("uploading");
-
     try {
       const fileData = await selectedFile.arrayBuffer();
       setUploadState("processing");
@@ -130,7 +127,6 @@ export function UploadTransactionModal({
         selectedFile.name,
         selectedFile.type
       );
-
       if (result.success && result.transaction) {
         setUploadState("success");
         onSuccess();
@@ -178,185 +174,136 @@ export function UploadTransactionModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={t("upload.title", "Upload Document")}
+      closeDisabled={isProcessing}
+      footer={
         <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <Button
+            type="button"
+            variant="secondary"
             onClick={handleClose}
-            className="fixed inset-0 bg-black/50 z-50"
-          />
-
-          {/* Modal */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6"
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                  {t("upload.title", "Upload Document")}
-                </h2>
-                <Button
-                  onClick={handleClose}
-                  variant="ghost"
-                  size="sm"
-                  icon={<X size={20} />}
-                  disabled={
-                    uploadState === "uploading" || uploadState === "processing"
-                  }
-                />
-              </div>
-
-              {/* Content */}
-              <div className="space-y-4">
-                {/* Upload Area */}
-                {!selectedFile ? (
-                  <div
-                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                      dragActive
-                        ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                        : "border-gray-300 hover:border-[var(--primary)]"
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                  >
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-lg font-medium text-[var(--text-primary)] mb-2">
-                      {t("upload.dragDrop", "Drag and drop your document here")}
-                    </p>
-                    <p className="text-sm text-[var(--text-secondary)] mb-4">
-                      {t(
-                        "upload.supportedFormats",
-                        "Supports PDF and image files (JPG, PNG, etc.)"
-                      )}
-                    </p>
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        const input = document.createElement("input");
-                        input.type = "file";
-                        input.accept = SUPPORTED_TYPES.join(",");
-                        input.onchange = e => {
-                          const target = e.target as {
-                            files?: {
-                              [key: number]: File;
-                              length: number;
-                            } | null;
-                          };
-                          if (
-                            target.files &&
-                            target.files.length > 0 &&
-                            target.files[0]
-                          ) {
-                            handleFileSelect(target.files[0]);
-                          }
-                        };
-                        input.click();
-                      }}
-                    >
-                      {t("upload.selectFile", "Select File")}
-                    </Button>
-                  </div>
-                ) : (
-                  /* File Preview */
-                  <div className="border rounded-xl p-4 bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      {getFileIcon(selectedFile)}
-                      <div className="flex-1">
-                        <p className="font-medium text-[var(--text-primary)] truncate">
-                          {selectedFile.name}
-                        </p>
-                        <p className="text-sm text-[var(--text-secondary)]">
-                          {formatFileSize(selectedFile.size)}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => setSelectedFile(null)}
-                        variant="ghost"
-                        size="sm"
-                        icon={<X size={16} />}
-                        disabled={
-                          uploadState === "uploading" ||
-                          uploadState === "processing"
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Status Messages */}
-                {uploadState === "error" && errorMessage && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                    <p className="text-sm text-red-700">{errorMessage}</p>
-                  </div>
-                )}
-
-                {uploadState === "success" && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <p className="text-sm text-green-700">
-                      {t("upload.success", "Document processed successfully!")}
-                    </p>
-                  </div>
-                )}
-
-                {/* Processing Indicator */}
-                {(uploadState === "uploading" ||
-                  uploadState === "processing") && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <Loader className="w-5 h-5 text-blue-500 flex-shrink-0 animate-spin" />
-                    <p className="text-sm text-blue-700">
-                      {uploadState === "uploading"
-                        ? t("upload.uploading", "Uploading document...")
-                        : t(
-                            "upload.processing",
-                            "Analyzing document with AI..."
-                          )}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleClose}
-                  disabled={
-                    uploadState === "uploading" || uploadState === "processing"
-                  }
-                  fullWidth
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  onClick={uploadFile}
-                  disabled={!selectedFile || uploadState === "success"}
-                  loading={
-                    uploadState === "uploading" || uploadState === "processing"
-                  }
-                  variant="primary"
-                  fullWidth
-                >
-                  {t("upload.analyze", "Analyze Document")}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
+            disabled={isProcessing}
+            fullWidth
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            onClick={uploadFile}
+            disabled={!selectedFile || uploadState === "success"}
+            loading={isProcessing}
+            variant="primary"
+            fullWidth
+          >
+            {t("upload.analyze", "Analyze Document")}
+          </Button>
         </>
-      )}
-    </AnimatePresence>
+      }
+    >
+      <div className="space-y-4">
+        {/* Upload Area */}
+        {!selectedFile ? (
+          <div
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+              dragActive
+                ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                : "border-gray-300 hover:border-[var(--primary)]"
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg font-medium text-[var(--text-primary)] mb-2">
+              {t("upload.dragDrop", "Drag and drop your document here")}
+            </p>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              {t(
+                "upload.supportedFormats",
+                "Supports PDF and image files (JPG, PNG, etc.)"
+              )}
+            </p>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = SUPPORTED_TYPES.join(",");
+                input.onchange = e => {
+                  const target = e.target as {
+                    files?: { [key: number]: File; length: number } | null;
+                  };
+                  if (
+                    target.files &&
+                    target.files.length > 0 &&
+                    target.files[0]
+                  ) {
+                    handleFileSelect(target.files[0]);
+                  }
+                };
+                input.click();
+              }}
+            >
+              {t("upload.selectFile", "Select File")}
+            </Button>
+          </div>
+        ) : (
+          /* File Preview */
+          <div className="border rounded-xl p-4 bg-gray-50">
+            <div className="flex items-center gap-3">
+              {getFileIcon(selectedFile)}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-[var(--text-primary)] truncate">
+                  {selectedFile.name}
+                </p>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  {formatFileSize(selectedFile.size)}
+                </p>
+              </div>
+              <Button
+                onClick={() => setSelectedFile(null)}
+                variant="ghost"
+                size="sm"
+                icon={<X size={16} />}
+                disabled={isProcessing}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {uploadState === "error" && errorMessage && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-700">{errorMessage}</p>
+          </div>
+        )}
+
+        {/* Success */}
+        {uploadState === "success" && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <p className="text-sm text-green-700">
+              {t("upload.success", "Document processed successfully!")}
+            </p>
+          </div>
+        )}
+
+        {/* Processing */}
+        {isProcessing && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <Loader className="w-5 h-5 text-blue-500 flex-shrink-0 animate-spin" />
+            <p className="text-sm text-blue-700">
+              {uploadState === "uploading"
+                ? t("upload.uploading", "Uploading document...")
+                : t("upload.processing", "Analyzing document with AI...")}
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }

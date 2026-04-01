@@ -42,6 +42,8 @@ export interface DashboardTasksData {
   expiringWatchCount: number;
   activeConnectionCount: number;
   primaryConnectionId: string | null;
+  activeConnectionIds: string[];
+  activeConnections: { id: string; gmail_email: string }[];
   activity: DashboardActivitySummary;
 }
 
@@ -203,6 +205,11 @@ export function useDashboardTasks(userId?: string) {
 
       const activeConnectionCount = activeConnectionsResult.data.length;
       const primaryConnectionId = activeConnectionsResult.data[0]?.id ?? null;
+      const activeConnectionIds = activeConnectionsResult.data.map(c => c.id);
+      const activeConnections = activeConnectionsResult.data.map(c => ({
+        id: c.id,
+        gmail_email: c.gmail_email,
+      }));
 
       const seedSummary = getSeedSummary(seedsStateResult.data);
       const transactionsFound = emailTransactionsActivityResult.count ?? 0;
@@ -263,6 +270,8 @@ export function useDashboardTasks(userId?: string) {
         expiringWatchCount,
         activeConnectionCount,
         primaryConnectionId,
+        activeConnectionIds,
+        activeConnections,
         activity,
       };
     },

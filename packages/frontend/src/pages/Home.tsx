@@ -1,6 +1,6 @@
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Activity,
   CalendarClock,
@@ -25,18 +25,23 @@ import type { DashboardTask } from "../hooks/useDashboardTasks";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { startSeedWithFeedback } from "../utils/seedImport";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 // ─── Data section — suspends while useDashboardTasks loads ───────────────────
 interface DashboardContentProps {
   userId: string;
   isSyncing: boolean;
   onForceSync: (connectionId?: string | null) => void;
+  onActiveConnections: (
+    connections: { id: string; gmail_email: string }[]
+  ) => void;
 }
 
 function DashboardContent({
   userId,
   isSyncing,
   onForceSync,
+  onActiveConnections,
 }: DashboardContentProps) {
   const { t } = useTranslation();
 
@@ -50,12 +55,18 @@ function DashboardContent({
     expiringWatchCount: 0,
     activeConnectionCount: 0,
     primaryConnectionId: null,
+    activeConnectionIds: [],
+    activeConnections: [],
     activity: {
       emailsProcessedByAi: 0,
       transactionsFound: 0,
       skippedEmails: 0,
     },
   };
+
+  useEffect(() => {
+    onActiveConnections(dashboardData.activeConnections);
+  }, [dashboardData.activeConnections, onActiveConnections]);
 
   const getTaskContent = (task: DashboardTask) => {
     switch (task.type) {
@@ -106,8 +117,8 @@ function DashboardContent({
   return (
     <>
       {/* Header with live badge counts */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="mt-4 flex flex-wrap gap-2">
+      <div className="flex flex-row flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
           <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
             {t("dashboardActionFirst.badges.pending")}:{" "}
             {dashboardData.tasks.length}
@@ -249,6 +260,12 @@ export function Home() {
   const { createTransaction } = useTransactionMutations();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [activeConnections, setActiveConnections] = useState<
+    { id: string; gmail_email: string }[]
+  >([]);
+  const [connectionsLoaded, setConnectionsLoaded] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleConnectGmail = async () => {
     try {
@@ -267,6 +284,19 @@ export function Home() {
     try {
       setIsSyncing(true);
       await startSeedWithFeedback(connectionId, t);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleForceSyncAll = async () => {
+    if (activeConnections.length === 0) return;
+    try {
+      setIsSyncing(true);
+      setIsSyncModalOpen(false);
+      await Promise.all(
+        activeConnections.map(c => startSeedWithFeedback(c.id, t))
+      );
     } finally {
       setIsSyncing(false);
     }
@@ -323,7 +353,7 @@ export function Home() {
               ? t("dashboardActionFirst.quickActions.forceSync.syncing")
               : t("dashboardActionFirst.quickActions.forceSync.action")
           }
-          onClick={() => handleForceSync(undefined)}
+          onClick={() => setIsSyncModalOpen(true)}
           disabled={isSyncing}
         />
         <QuickActionCard
@@ -346,6 +376,10 @@ export function Home() {
             userId={user.id}
             isSyncing={isSyncing}
             onForceSync={handleForceSync}
+            onActiveConnections={connections => {
+              setActiveConnections(connections);
+              setConnectionsLoaded(true);
+            }}
           />
         </Suspense>
       )}
@@ -356,6 +390,73 @@ export function Home() {
         onSave={handleCreateTransaction}
         mode="create"
       />
+
+      {connectionsLoaded && activeConnections.length === 0 ? (
+        <ConfirmModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          onConfirm={() => {
+            setIsSyncModalOpen(false);
+            navigate("/settings");
+          }}
+          title={t(
+            "dashboardActionFirst.quickActions.forceSync.modalTitle",
+            "Sincronizar cuentas"
+          )}
+          confirmText={t("settings.connectGmail", "Conectar cuenta")}
+        >
+          <div className="flex flex-col items-center gap-3 py-4 mb-6 text-center">
+            <div className="rounded-full bg-[var(--bg-secondary)] p-4">
+              <Mail size={28} className="text-[var(--text-secondary)]" />
+            </div>
+            <p className="text-[var(--text-primary)] font-medium">
+              {t(
+                "dashboardActionFirst.quickActions.forceSync.noAccountsTitle",
+                "No hay cuentas conectadas"
+              )}
+            </p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              {t(
+                "dashboardActionFirst.quickActions.forceSync.noAccountsDescription",
+                "Conectá tu cuenta de Gmail para que podamos importar tus transacciones automáticamente."
+              )}
+            </p>
+          </div>
+        </ConfirmModal>
+      ) : (
+        <ConfirmModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          onConfirm={handleForceSyncAll}
+          title={t(
+            "dashboardActionFirst.quickActions.forceSync.modalTitle",
+            "Sincronizar cuentas"
+          )}
+          confirmText={t("dashboardActionFirst.quickActions.forceSync.action")}
+          isLoading={isSyncing}
+        >
+          <p className="text-[var(--text-secondary)] mb-3">
+            {t(
+              "dashboardActionFirst.quickActions.forceSync.modalDescription",
+              "Se van a importar los últimos 3 meses de emails de las siguientes cuentas:"
+            )}
+          </p>
+          <ul className="space-y-2 mb-6">
+            {activeConnections.map(c => (
+              <li
+                key={c.id}
+                className="flex items-center gap-2 text-sm text-[var(--text-primary)]"
+              >
+                <Mail
+                  size={14}
+                  className="text-[var(--text-secondary)] shrink-0"
+                />
+                {c.gmail_email}
+              </li>
+            ))}
+          </ul>
+        </ConfirmModal>
+      )}
     </div>
   );
 }

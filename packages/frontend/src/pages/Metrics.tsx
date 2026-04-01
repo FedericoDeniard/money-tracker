@@ -176,7 +176,7 @@ export function Metrics() {
               {t("metrics.description")}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 xl:items-center xl:justify-end xl:flex-1 shrink-0 overflow-x-auto pb-1 xl:pb-0">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 xl:items-center xl:justify-end xl:flex-1 shrink-0">
             <FilterBar
               selectedPeriod={selectedPeriod}
               selectedCurrency={selectedCurrency}
