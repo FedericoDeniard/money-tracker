@@ -395,23 +395,36 @@ export function NotificationsPanel({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.2 }}
-                      className="flex w-full gap-2 overflow-x-auto no-scrollbar"
+                      className="flex w-full items-center gap-2"
                     >
-                      {(["all", "unread", "muted", "important"] as const).map(
-                        value => {
-                          const isActive = filter === value;
-                          return (
-                            <Button
-                              key={value}
-                              variant={isActive ? "primary" : "secondary"}
-                              size="sm"
-                              onClick={() => setFilter(value)}
-                              className="whitespace-nowrap"
-                            >
-                              {t(`notifications.filters.${value}`)}
-                            </Button>
-                          );
-                        }
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {(["all", "unread", "muted", "important"] as const).map(
+                          value => {
+                            const isActive = filter === value;
+                            return (
+                              <Button
+                                key={value}
+                                variant={isActive ? "primary" : "secondary"}
+                                size="sm"
+                                onClick={() => setFilter(value)}
+                                className="whitespace-nowrap"
+                              >
+                                {t(`notifications.filters.${value}`)}
+                              </Button>
+                            );
+                          }
+                        )}
+                      </div>
+                      {notifications.length > 0 && (
+                        <div className="shrink-0 ml-auto relative flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={toggleSelectAll}
+                            className="h-5 w-5 cursor-pointer appearance-none rounded border border-[var(--text-secondary)]/30 hover:border-[var(--button-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary)]/30 focus:ring-offset-1 transition-all"
+                            aria-label={t("notifications.actions.selectAll")}
+                          />
+                        </div>
                       )}
                     </motion.div>
                   )}
