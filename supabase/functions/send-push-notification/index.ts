@@ -46,6 +46,10 @@ const TEMPLATES: Record<string, { title: string; body: string }> = {
     title: "Gmail sync error",
     body: "There was an error syncing {{email}}. {{reason}}",
   },
+  new_transaction: {
+    title: "New transaction",
+    body: "{{merchant}} · {{currency}} {{amount}}",
+  },
 };
 
 /**

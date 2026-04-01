@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -312,6 +313,41 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seeds: {
         Row: {
           created_at: string | null
@@ -374,6 +410,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      token_deactivation_log: {
+        Row: {
+          created_at: string
+          gmail_email: string | null
+          id: string
+          reason: string
+          stage: string
+          token_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gmail_email?: string | null
+          id?: string
+          reason: string
+          stage: string
+          token_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gmail_email?: string | null
+          id?: string
+          reason?: string
+          stage?: string
+          token_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       transactions: {
         Row: {
@@ -791,3 +857,5 @@ export const Constants = {
   },
 } as const
 
+A new version of Supabase CLI is available: v2.84.2 (currently installed v2.75.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

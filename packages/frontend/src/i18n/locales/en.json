@@ -428,6 +428,10 @@
       "gmail_sync_error": {
         "label": "Gmail sync error",
         "description": "Notifies when synchronization with Gmail fails."
+      },
+      "new_transaction": {
+        "label": "New transaction",
+        "description": "Notifies when a new transaction is detected from a Gmail email (outside of bulk imports)."
       }
     },
     "templates": {
@@ -458,6 +462,10 @@
       "gmail_sync_error": {
         "title": "Gmail sync error",
         "body": "There was an error syncing {{email}}. {{reason}}"
+      },
+      "new_transaction": {
+        "title": "New transaction",
+        "body": "{{merchant}} · {{currency}} {{amount}}"
       }
     }
   },
