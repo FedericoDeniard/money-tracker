@@ -22,7 +22,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   Calendar,
-  Check,
   Circle,
   Tag,
   X,
@@ -177,7 +176,7 @@ export const FilterIcon = ({
 
 const filterOperators = ({
   filterType,
-  filterValues,
+  filterValues: _filterValues,
 }: {
   filterType: FilterType;
   filterValues: string[];
@@ -380,7 +379,7 @@ const FilterValueCombobox = ({
 };
 
 const FilterValueInput = ({
-  filterType,
+  filterType: _filterType,
   filterValues,
   setFilterValues,
 }: {
@@ -417,11 +416,11 @@ const FilterValueDateInput = ({
         className="bg-transparent outline-none text-[var(--text-primary)] min-w-[125px] sm:min-w-[135px] cursor-pointer appearance-none [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
         value={filterValues[0] || ""}
         onChange={e => setFilterValues([e.target.value])}
-        onClick={e => {
+        onClick={_e => {
           if (typeof inputRef.current?.showPicker === "function") {
             try {
               inputRef.current.showPicker();
-            } catch (err) {
+            } catch {
               // Ignore if already shown or not supported
             }
           }

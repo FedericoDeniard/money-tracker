@@ -5,6 +5,10 @@
  * It is included in `src/index.html`.
  */
 
+if (import.meta.env.DEV) {
+  import("react-grab");
+}
+
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 

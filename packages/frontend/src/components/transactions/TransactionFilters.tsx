@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
 import { ArrowDownUp, ArrowUpDown, Check, ListFilter, X } from "lucide-react";
@@ -146,7 +146,9 @@ export function TransactionFiltersComponent({
 
       switch (item.type) {
         case FilterType.TYPE:
-          newFilters.type = item.value[0] as any;
+          newFilters.type = item.value[0] as NonNullable<
+            TransactionFilters["type"]
+          >;
           newFilters.typeOperator =
             item.operator === FilterOperator.IS_NOT ? "is not" : "is";
           break;

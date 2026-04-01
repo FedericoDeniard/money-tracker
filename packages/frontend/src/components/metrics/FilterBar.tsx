@@ -47,7 +47,7 @@ export function FilterBar({
       </div>
 
       {/* Period Selector */}
-      <div className="flex gap-1 bg-[var(--bg-secondary)] p-1 rounded-lg overflow-x-auto sm:overflow-visible shrink-0 items-center">
+      <div className="flex flex-wrap gap-1 bg-[var(--bg-secondary)] p-1 rounded-lg shrink-0 items-center">
         {periods.map(period => {
           const isSelected = selectedPeriod === period.value;
           return (
