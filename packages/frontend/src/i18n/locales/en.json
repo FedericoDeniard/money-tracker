@@ -390,6 +390,16 @@
       "empty": "No notification types configured.",
       "uncategorized": "Other"
     },
+    "push": {
+      "title": "Push notifications",
+      "description": "Receive notifications on this device even when the app is not open.",
+      "blocked_description": "Notifications are blocked. Enable them in your browser settings and reload.",
+      "checking": "Checking notification status...",
+      "enable": "Enable",
+      "disable": "Disable",
+      "blocked_label": "Blocked",
+      "error": "Failed to enable push notifications. Please try again."
+    },
     "types": {
       "seed_completed_with_transactions": {
         "label": "Import completed with new transactions",

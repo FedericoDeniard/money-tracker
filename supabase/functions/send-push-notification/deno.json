@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "jsr:@negrel/webpush@0.5": "jsr:@negrel/webpush@0.5"
+  }
+}
