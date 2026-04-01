@@ -39,3 +39,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 *.traineddata
 *.png
 *.jpg
+
+# PWA icons are excluded from the above *.png rule
+!packages/frontend/public/*.png
