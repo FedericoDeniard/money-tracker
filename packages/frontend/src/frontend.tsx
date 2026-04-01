@@ -5,7 +5,7 @@
  * It is included in `src/index.html`.
  */
 
-if (import.meta.env.DEV) {
+if (process.env.NODE_ENV !== "production") {
   import("react-grab");
 }
 
