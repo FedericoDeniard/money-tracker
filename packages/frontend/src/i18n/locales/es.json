@@ -657,5 +657,92 @@
     "before": "antes de",
     "select": "Seleccionar...",
     "nSelected": "{{count}} seleccionados"
+  },
+  "tour": {
+    "ui": {
+      "next": "Siguiente",
+      "prev": "Anterior",
+      "done": "Finalizar",
+      "progress": "{{current}} de {{total}}"
+    },
+    "dashboard": {
+      "step1": {
+        "title": "Bienvenido a Money Tracker",
+        "description": "Te vamos a guiar por cada seccion de la app la primera vez que la visites. Podes saltar el tutorial en cualquier momento con la X."
+      },
+      "step2": {
+        "title": "Notificaciones en tiempo real",
+        "description": "Esta campana muestra tus notificaciones. Cuando la IA procesa tus emails y detecta transacciones, te avisa al instante. El badge rojo indica cuantas no leiste todavia."
+      },
+      "step3": {
+        "title": "Acciones rapidas",
+        "description": "Desde aca podes agregar una transaccion manualmente, conectar tu Gmail, forzar una sincronizacion de emails o ir directamente a la lista de transacciones."
+      },
+      "step4": {
+        "title": "Panel de estado e IA",
+        "description": "Este panel muestra el estado de tus conexiones y tareas pendientes (como reconectar Gmail). A la derecha ves la actividad de la IA en los ultimos 7 dias: emails procesados, transacciones encontradas y emails omitidos."
+      },
+      "step5": {
+        "title": "Navegacion principal",
+        "description": "Desde el sidebar accedes a todas las secciones: Dashboard, Transacciones, Suscripciones, Metricas y Configuracion. Cada seccion tiene su propio tutorial que se activa la primera vez que la visites."
+      }
+    },
+    "transactions": {
+      "step1": {
+        "title": "Filtros de transacciones",
+        "description": "Filtra por servicio, tipo (ingreso/gasto), categoria, moneda o cuenta de Gmail. Combina multiples filtros y ordena por fecha de creacion o de transaccion."
+      },
+      "step2": {
+        "title": "Lista y detalle",
+        "description": "La lista carga de a 10 con scroll infinito. Hace clic en una transaccion para ver el detalle completo, editarla o eliminarla."
+      },
+      "step3": {
+        "title": "Agregar transacciones",
+        "description": "Con el boton + podes agregar una transaccion manualmente o subir un documento (PDF o imagen hasta 5 MB) y la IA extrae los datos automaticamente."
+      }
+    },
+    "subscriptions": {
+      "step1": {
+        "title": "Suscripciones detectadas por IA",
+        "description": "La IA analiza tus transacciones y detecta automaticamente servicios recurrentes como Netflix o Spotify. Ves la frecuencia, monto promedio y la proxima fecha estimada de cobro. Necesita al menos 2 cobros del mismo servicio para mostrarse."
+      }
+    },
+    "metrics": {
+      "step1": {
+        "title": "Filtros de metricas",
+        "description": "Elegis el periodo (30, 90 o 365 dias) y la moneda. Si tenes transacciones en mas de una moneda, selecciona 'Todas' para ver una comparacion entre ellas."
+      },
+      "step2": {
+        "title": "Graficos y analisis",
+        "description": "Ves ingresos, gastos, balance neto y promedio por transaccion con variacion respecto al periodo anterior. Los graficos de tendencia mensual y distribucion por categoria son interactivos."
+      }
+    },
+    "settings": {
+      "step1": {
+        "title": "Conectar Gmail",
+        "description": "Aca conectas tu cuenta de Gmail para que la IA analice tus emails financieros. Podes conectar varias cuentas, importar emails manualmente o desconectar una cuenta cuando quieras."
+      },
+      "step2": {
+        "title": "Idioma de la interfaz",
+        "description": "Cambia el idioma de la app entre Espanol e Ingles. El cambio es inmediato y no requiere recargar la pagina."
+      },
+      "step3": {
+        "title": "Notificaciones push",
+        "description": "Activa las notificaciones push para recibir avisos en este dispositivo incluso cuando la app no esta abierta.",
+        "unsupported": "Tu navegador no soporta notificaciones push nativas. Para habilitarlas, instala la app como PWA: en Chrome hace clic en el icono de instalacion en la barra de direcciones, o en Safari usa 'Agregar a pantalla de inicio' desde el menu compartir."
+      },
+      "step4": {
+        "title": "Preferencias de notificaciones",
+        "description": "Controla exactamente que notificaciones recibis: nuevas transacciones, errores de importacion, alertas de Gmail y mas. Podes silenciar cualquier tipo individualmente."
+      }
+    },
+    "panel": {
+      "title": "Tutoriales",
+      "description": "Cada seccion de la app tiene su propio tutorial que se activa la primera vez que la visites.",
+      "completedCount": "{{count}} de {{total}} completados",
+      "allSkipped": "Tutoriales desactivados",
+      "restartButton": "Ver tutoriales de nuevo",
+      "skipButton": "Saltar todos los tutoriales"
+    }
   }
 }

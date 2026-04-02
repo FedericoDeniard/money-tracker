@@ -170,18 +170,20 @@ export function Subscriptions() {
   return (
     <div className="flex h-[calc(100vh-5rem)] flex-col gap-4 animate-in fade-in duration-500">
       {/* Header — renders immediately (title, filters, sort, view mode) */}
-      <SubscriptionsHeader
-        isRefreshing={false}
-        onRefresh={() => {}}
-        statusFilter={statusFilter}
-        sortBy={sortBy}
-        onStatusFilterChange={setStatusFilter}
-        onSortByChange={setSortBy}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        hasActiveFilters={hasActiveFilters}
-        onClearFilters={clearFilters}
-      />
+      <div data-tour="subscriptions-header">
+        <SubscriptionsHeader
+          isRefreshing={false}
+          onRefresh={() => {}}
+          statusFilter={statusFilter}
+          sortBy={sortBy}
+          onStatusFilterChange={setStatusFilter}
+          onSortByChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+        />
+      </div>
 
       {/* List — suspends while subscription candidates load */}
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">

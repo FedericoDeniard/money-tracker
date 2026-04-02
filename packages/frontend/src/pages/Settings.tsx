@@ -14,8 +14,11 @@ import {
   Loader2,
   X,
   Download,
+  BookOpen,
+  RotateCcw,
+  SkipForward,
 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { gmailService } from "../services/gmail.service";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "../components/ui/LanguageSwitcher";
@@ -24,6 +27,7 @@ import { SeedEmailsModal } from "../components/settings/SeedEmailsModal";
 import { NotificationPreferencesChecklist } from "../components/notifications/NotificationPreferencesChecklist";
 import { PushNotificationToggle } from "../components/notifications/PushNotificationToggle";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
+import { useTourStatus } from "../hooks/useTour";
 
 // ─── Gmail section — suspends while status + watches load ────────────────────
 interface GmailSectionProps {
@@ -312,6 +316,9 @@ function GmailSection({
 export function Settings() {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { isSkippedAll, completedCount, totalCount, skipAll, resetAll } =
+    useTourStatus();
 
   useSeedNotifications(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -457,7 +464,10 @@ export function Settings() {
         )}
 
         {/* Gmail section — suspends while status/watches load */}
-        <div className="border-t border-[var(--text-secondary)]/30 pt-6">
+        <div
+          data-tour="settings-gmail"
+          className="border-t border-[var(--text-secondary)]/30 pt-6"
+        >
           <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
             {t("settings.emailNotifications")}
           </h2>
@@ -482,7 +492,10 @@ export function Settings() {
         </div>
 
         {/* Language — renders immediately */}
-        <div className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6">
+        <div
+          data-tour="settings-language"
+          className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6"
+        >
           <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
             {t("settings.language")}
           </h2>
@@ -512,9 +525,72 @@ export function Settings() {
             </p>
 
             {/* Push notifications toggle for this device */}
-            <PushNotificationToggle />
+            <div data-tour="settings-push-notification">
+              <PushNotificationToggle />
+            </div>
 
-            <NotificationPreferencesChecklist />
+            <div data-tour="settings-notifications">
+              <NotificationPreferencesChecklist />
+            </div>
+          </div>
+        </div>
+
+        {/* Tutorial section */}
+        <div className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6">
+          <h2 className="text-lg font-medium text-[var(--text-primary)] mb-1">
+            {t("tour.panel.title")}
+          </h2>
+          <p className="text-sm text-[var(--text-secondary)] mb-4">
+            {t("tour.panel.description")}
+          </p>
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <BookOpen
+                  size={16}
+                  className="text-[var(--text-secondary)] shrink-0"
+                />
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    isSkippedAll
+                      ? "bg-zinc-100 text-zinc-500"
+                      : completedCount === totalCount
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {isSkippedAll
+                    ? t("tour.panel.allSkipped")
+                    : t("tour.panel.completedCount", {
+                        count: completedCount,
+                        total: totalCount,
+                      })}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<RotateCcw size={15} />}
+                  onClick={() => {
+                    resetAll();
+                    navigate("/dashboard");
+                  }}
+                >
+                  {t("tour.panel.restartButton")}
+                </Button>
+                {!isSkippedAll && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<SkipForward size={15} />}
+                    onClick={skipAll}
+                  >
+                    {t("tour.panel.skipButton")}
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
