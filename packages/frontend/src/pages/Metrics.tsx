@@ -166,7 +166,10 @@ export function Metrics() {
       {/* Header — renders immediately (title + period/currency selectors).
           FilterBar receives availableCurrencies which starts empty then fills in
           as useAllTransactions pages load — no Suspense needed, controlled by loading. */}
-      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm">
+      <section
+        data-tour="metrics-header"
+        className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm"
+      >
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
           <div className="shrink-0 mb-2 xl:mb-0">
             <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
@@ -189,114 +192,116 @@ export function Metrics() {
       </section>
 
       {/* Multi-currency selector (shown when > 1 currency detected) */}
-      {selectedCurrency === "all" && availableCurrencies.length > 1 ? (
-        <div>
-          <CurrencyComparison
-            transactions={filteredTransactions}
-            selectedPeriod={selectedPeriod}
-            getCurrencySymbol={getCurrencySymbol}
-            onCurrencySelect={setSelectedCurrency}
-          />
-        </div>
-      ) : loading ? (
-        // Data is still loading via useAllTransactions pagination
-        <div className="flex items-center justify-center h-48">
-          <LoadingSpinner size="lg" />
-        </div>
-      ) : (
-        <>
-          {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {metricCards.map((card, index) => (
-              <MetricCard
-                key={index}
-                title={card.title}
-                value={card.value}
-                change={card.change}
-                icon={card.icon}
-                currency={card.currency}
-              />
-            ))}
+      <div data-tour="metrics-content">
+        {selectedCurrency === "all" && availableCurrencies.length > 1 ? (
+          <div>
+            <CurrencyComparison
+              transactions={filteredTransactions}
+              selectedPeriod={selectedPeriod}
+              getCurrencySymbol={getCurrencySymbol}
+              onCurrencySelect={setSelectedCurrency}
+            />
           </div>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                  {t("metrics.monthlyTrend")}
-                </h2>
-                <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
-                  <button
-                    onClick={() => setTrendChartType("bar")}
-                    className={`p-1.5 rounded-md transition-colors ${trendChartType === "bar" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
-                    title="Bar Chart"
-                    type="button"
-                  >
-                    <BarChart2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => setTrendChartType("area")}
-                    className={`p-1.5 rounded-md transition-colors ${trendChartType === "area" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
-                    title="Area Chart"
-                    type="button"
-                  >
-                    <Activity size={16} />
-                  </button>
-                </div>
-              </div>
-              {trendChartType === "bar" ? (
-                <MonthlyTrendChart data={monthlyData} />
-              ) : (
-                <MonthlyAreaChart data={monthlyData} />
-              )}
-            </div>
-            <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                  {t("metrics.categoryBreakdown")}
-                </h2>
-                <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
-                  <button
-                    onClick={() => setBreakdownChartType("pie")}
-                    className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "pie" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
-                    title="Pie Chart"
-                    type="button"
-                  >
-                    <PieChartIcon size={16} />
-                  </button>
-                  <button
-                    onClick={() => setBreakdownChartType("treemap")}
-                    className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "treemap" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
-                    title="Treemap"
-                    type="button"
-                  >
-                    <LayoutGrid size={16} />
-                  </button>
-                </div>
-              </div>
-              {breakdownChartType === "pie" ? (
-                <CategoryPieChart data={categoryData} />
-              ) : (
-                <CategoryTreeMapChart data={categoryData} />
-              )}
-            </div>
+        ) : loading ? (
+          // Data is still loading via useAllTransactions pagination
+          <div className="flex items-center justify-center h-48">
+            <LoadingSpinner size="lg" />
           </div>
+        ) : (
+          <>
+            {/* Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {metricCards.map((card, index) => (
+                <MetricCard
+                  key={index}
+                  title={card.title}
+                  value={card.value}
+                  change={card.change}
+                  icon={card.icon}
+                  currency={card.currency}
+                />
+              ))}
+            </div>
 
-          {/* Insights */}
-          <InsightsSection
-            data={{
-              topCategory: metrics.topCategory,
-              transactionCount: metrics.transactionCount,
-              totalIncome: metrics.totalIncome,
-              totalExpense: metrics.totalExpense,
-            }}
-            selectedPeriod={selectedPeriod}
-            getCurrencySymbol={getCurrencySymbol}
-            displayCurrency={displayCurrency}
-          />
-        </>
-      )}
+            {/* Charts */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {t("metrics.monthlyTrend")}
+                  </h2>
+                  <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
+                    <button
+                      onClick={() => setTrendChartType("bar")}
+                      className={`p-1.5 rounded-md transition-colors ${trendChartType === "bar" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                      title="Bar Chart"
+                      type="button"
+                    >
+                      <BarChart2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => setTrendChartType("area")}
+                      className={`p-1.5 rounded-md transition-colors ${trendChartType === "area" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                      title="Area Chart"
+                      type="button"
+                    >
+                      <Activity size={16} />
+                    </button>
+                  </div>
+                </div>
+                {trendChartType === "bar" ? (
+                  <MonthlyTrendChart data={monthlyData} />
+                ) : (
+                  <MonthlyAreaChart data={monthlyData} />
+                )}
+              </div>
+              <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {t("metrics.categoryBreakdown")}
+                  </h2>
+                  <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
+                    <button
+                      onClick={() => setBreakdownChartType("pie")}
+                      className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "pie" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                      title="Pie Chart"
+                      type="button"
+                    >
+                      <PieChartIcon size={16} />
+                    </button>
+                    <button
+                      onClick={() => setBreakdownChartType("treemap")}
+                      className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "treemap" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
+                      title="Treemap"
+                      type="button"
+                    >
+                      <LayoutGrid size={16} />
+                    </button>
+                  </div>
+                </div>
+                {breakdownChartType === "pie" ? (
+                  <CategoryPieChart data={categoryData} />
+                ) : (
+                  <CategoryTreeMapChart data={categoryData} />
+                )}
+              </div>
+            </div>
+
+            {/* Insights */}
+            <InsightsSection
+              data={{
+                topCategory: metrics.topCategory,
+                transactionCount: metrics.transactionCount,
+                totalIncome: metrics.totalIncome,
+                totalExpense: metrics.totalExpense,
+              }}
+              selectedPeriod={selectedPeriod}
+              getCurrencySymbol={getCurrencySymbol}
+              displayCurrency={displayCurrency}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }

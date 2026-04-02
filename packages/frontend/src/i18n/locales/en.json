@@ -657,5 +657,92 @@
     "before": "before",
     "select": "Select...",
     "nSelected": "{{count}} selected"
+  },
+  "tour": {
+    "ui": {
+      "next": "Next",
+      "prev": "Previous",
+      "done": "Finish",
+      "progress": "{{current}} of {{total}}"
+    },
+    "dashboard": {
+      "step1": {
+        "title": "Welcome to Money Tracker",
+        "description": "We will guide you through each section of the app the first time you visit it. You can skip the tutorial at any time with the X button."
+      },
+      "step2": {
+        "title": "Real-time notifications",
+        "description": "This bell shows your notifications. When the AI processes your emails and detects transactions, it notifies you instantly. The red badge shows how many you have not read yet."
+      },
+      "step3": {
+        "title": "Quick actions",
+        "description": "From here you can add a transaction manually, connect your Gmail, force an email sync, or go directly to the transactions list."
+      },
+      "step4": {
+        "title": "Status panel and AI activity",
+        "description": "This panel shows the status of your connections and pending tasks (like reconnecting Gmail). On the right you can see AI activity over the last 7 days: emails processed, transactions found, and emails skipped."
+      },
+      "step5": {
+        "title": "Main navigation",
+        "description": "The sidebar gives you access to all sections: Dashboard, Transactions, Subscriptions, Metrics, and Settings. Each section has its own tutorial that activates the first time you visit it."
+      }
+    },
+    "transactions": {
+      "step1": {
+        "title": "Transaction filters",
+        "description": "Filter by service name, type (income/expense), category, currency, or Gmail account. Combine multiple filters and sort by creation date or transaction date."
+      },
+      "step2": {
+        "title": "List and detail",
+        "description": "The list loads 10 at a time with infinite scroll. Click a transaction to see the full detail, edit it, or delete it."
+      },
+      "step3": {
+        "title": "Add transactions",
+        "description": "With the + button you can add a transaction manually or upload a document (PDF or image up to 5 MB) and the AI will extract the data automatically."
+      }
+    },
+    "subscriptions": {
+      "step1": {
+        "title": "AI-detected subscriptions",
+        "description": "The AI analyzes your transactions and automatically detects recurring services like Netflix or Spotify. It shows frequency, average amount, and the next estimated billing date. It needs at least 2 charges from the same service to appear."
+      }
+    },
+    "metrics": {
+      "step1": {
+        "title": "Metrics filters",
+        "description": "Choose the period (30, 90, or 365 days) and currency. If you have transactions in more than one currency, select 'All' to see a comparison between them."
+      },
+      "step2": {
+        "title": "Charts and analysis",
+        "description": "See income, expenses, net balance, and average transaction with variation compared to the previous period. The monthly trend and category breakdown charts are interactive."
+      }
+    },
+    "settings": {
+      "step1": {
+        "title": "Connect Gmail",
+        "description": "Here you connect your Gmail account so the AI can automatically analyze your financial emails. You can connect multiple accounts, import emails manually, or disconnect an account at any time."
+      },
+      "step2": {
+        "title": "Interface language",
+        "description": "Switch the app language between Spanish and English. The change is immediate and does not require a page reload."
+      },
+      "step3": {
+        "title": "Push notifications",
+        "description": "Enable push notifications to receive alerts on this device even when the app is not open.",
+        "unsupported": "Your browser does not support native push notifications. To enable them, install the app as a PWA: in Chrome click the install icon in the address bar, or in Safari use 'Add to Home Screen' from the share menu."
+      },
+      "step4": {
+        "title": "Notification preferences",
+        "description": "Control exactly which notifications you receive: new transactions, import errors, Gmail reconnect alerts, and more. You can mute any type individually."
+      }
+    },
+    "panel": {
+      "title": "Tutorials",
+      "description": "Each section of the app has its own tutorial that activates the first time you visit it.",
+      "completedCount": "{{count}} of {{total}} completed",
+      "allSkipped": "Tutorials disabled",
+      "restartButton": "View tutorials again",
+      "skipButton": "Skip all tutorials"
+    }
   }
 }

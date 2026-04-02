@@ -220,14 +220,19 @@ export function Transactions() {
     <div className="flex flex-col h-[calc(100vh-5rem)] gap-4">
       {/* Filter card: title+description render immediately;
           Currency+Email dropdowns inside have their own Suspense */}
-      <TransactionFiltersComponent
-        filters={filters}
-        onFiltersChange={setFilters}
-        categories={categories}
-      />
+      <div data-tour="transaction-filters">
+        <TransactionFiltersComponent
+          filters={filters}
+          onFiltersChange={setFilters}
+          categories={categories}
+        />
+      </div>
 
       {/* Transaction list + warning banner — suspends while loading */}
-      <div className="flex flex-1 gap-4 min-h-0 relative">
+      <div
+        data-tour="transaction-content"
+        className="flex flex-1 gap-4 min-h-0 relative"
+      >
         <Suspense fallback={<SuspenseFallback rows={6} className="w-1/3" />}>
           <TransactionsList
             userId={user?.id}

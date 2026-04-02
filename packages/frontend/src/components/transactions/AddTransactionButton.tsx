@@ -17,7 +17,7 @@ export function AddTransactionButton({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-6 right-6 z-40">
+    <div data-tour="transaction-fab" className="fixed bottom-6 right-6 z-40">
       <Button
         onClick={() => setIsOpen(!isOpen)}
         variant="primary"

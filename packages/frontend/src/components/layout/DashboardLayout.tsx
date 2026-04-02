@@ -11,6 +11,7 @@ import {
   useUnreadNotificationsCount,
 } from "../../hooks/useNotifications";
 import { useTranslation } from "react-i18next";
+import { useTour } from "../../hooks/useTour";
 
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -18,6 +19,8 @@ export function DashboardLayout() {
   const { t } = useTranslation();
   const unreadCountQuery = useUnreadNotificationsCount();
   useNotificationsRealtime();
+  // Mount the per-route tour watcher — watches location internally
+  useTour();
 
   const unreadCount = unreadCountQuery.data ?? 0;
 
@@ -67,6 +70,7 @@ export function DashboardLayout() {
         <div className="fixed right-0 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
           <button
             type="button"
+            data-tour="notification-bell"
             onClick={() => setIsNotificationsOpen(true)}
             className="group relative flex items-center rounded-l-xl border border-r-0 border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-3 py-3 text-[var(--text-secondary)] shadow-sm transition-colors hover:text-[var(--text-primary)]"
             aria-label={t("settings.notifications")}

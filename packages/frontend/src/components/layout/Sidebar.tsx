@@ -114,7 +114,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 min-h-screen flex-col fixed left-0 top-0 h-full z-10">
+      <aside
+        data-tour="sidebar"
+        className="hidden lg:flex w-64 min-h-screen flex-col fixed left-0 top-0 h-full z-10"
+      >
         {sidebarContent}
       </aside>
 

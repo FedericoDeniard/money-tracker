@@ -1,4 +1,5 @@
 import "./index.css";
+import "driver.js/dist/driver.css";
 import { useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";

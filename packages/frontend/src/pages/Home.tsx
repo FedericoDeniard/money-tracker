@@ -321,7 +321,10 @@ export function Home() {
       </section>
 
       {/* Static quick actions — renders immediately */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section
+        data-tour="quick-actions"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      >
         <QuickActionCard
           title={t("dashboardActionFirst.quickActions.addTransaction.title")}
           description={t(
@@ -371,17 +374,19 @@ export function Home() {
 
       {/* Data-dependent section — shows skeleton while loading */}
       {user?.id && (
-        <Suspense fallback={<SuspenseFallback rows={4} />}>
-          <DashboardContent
-            userId={user.id}
-            isSyncing={isSyncing}
-            onForceSync={handleForceSync}
-            onActiveConnections={connections => {
-              setActiveConnections(connections);
-              setConnectionsLoaded(true);
-            }}
-          />
-        </Suspense>
+        <div data-tour="dashboard-status">
+          <Suspense fallback={<SuspenseFallback rows={4} />}>
+            <DashboardContent
+              userId={user.id}
+              isSyncing={isSyncing}
+              onForceSync={handleForceSync}
+              onActiveConnections={connections => {
+                setActiveConnections(connections);
+                setConnectionsLoaded(true);
+              }}
+            />
+          </Suspense>
+        </div>
       )}
 
       <TransactionFormModal
