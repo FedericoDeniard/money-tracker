@@ -249,7 +249,18 @@ function launchTour(
   // marks this route's tour as done and leaves the others untouched.
   const closedWithX = { value: false };
 
+  // Block ESC key while the tour is active — only the X button should close.
+  // We use capture phase + stopImmediatePropagation so it fires before driver.js.
+  const blockEsc = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  };
+  window.addEventListener("keydown", blockEsc, true);
+
   const driverObj = driver({
+    popoverClass: "mt-tour",
     showProgress: true,
     progressText: t("tour.ui.progress"),
     nextBtnText: t("tour.ui.next"),
@@ -258,19 +269,25 @@ function launchTour(
     animate: true,
     smoothScroll: true,
     allowClose: true,
-    overlayOpacity: 0.6,
+    // Overlay click does nothing — only the X button closes the tour
+    overlayClickBehavior: () => {},
+    overlayOpacity: 0.55,
     stagePadding: 6,
     stageRadius: 8,
     steps,
-    onCloseClick: () => {
-      // X button → user explicitly dismisses all tours
+    onCloseClick: (_el, _step, { driver: d }) => {
+      // X button → mark as skip-all then destroy
       closedWithX.value = true;
+      d.destroy();
     },
     onDestroyed: () => {
+      // Always remove the ESC blocker when tour ends for any reason
+      window.removeEventListener("keydown", blockEsc, true);
+
       if (closedWithX.value) {
         localStorage.setItem(SKIP_ALL_KEY, "true");
       } else {
-        // "Finalizar" button or overlay click → done for this route only
+        // "Finalizar" button → done for this route only
         localStorage.setItem(DONE_KEYS[route], "true");
       }
     },
