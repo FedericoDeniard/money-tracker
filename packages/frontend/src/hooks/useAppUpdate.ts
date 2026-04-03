@@ -7,6 +7,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 export function useAppUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const waitingWorker = useRef<ServiceWorker | null>(null);
+  // Only reload when the user explicitly triggered the update via applyUpdate().
+  // This prevents an automatic reload on first-time SW installation (clients.claim()
+  // also fires controllerchange, but we don't want to reload in that case).
+  const isUpdating = useRef(false);
 
   useEffect(() => {
     if (
@@ -50,6 +54,7 @@ export function useAppUpdate() {
 
     let refreshing = false;
     const onControllerChange = () => {
+      if (!isUpdating.current) return;
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
@@ -68,6 +73,7 @@ export function useAppUpdate() {
   }, []);
 
   const applyUpdate = useCallback(() => {
+    isUpdating.current = true;
     waitingWorker.current?.postMessage({ type: "SKIP_WAITING" });
   }, []);
 
