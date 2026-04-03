@@ -427,6 +427,10 @@
         "label": "Falló la renovación de la suscripción de Gmail",
         "description": "Notifica cuando falla la renovación automática de la suscripción."
       },
+      "gmail_watch_renewed": {
+        "label": "Suscripción de Gmail renovada",
+        "description": "Confirma que la suscripción fue renovada automáticamente."
+      },
       "gmail_sync_error": {
         "label": "Error de sincronización de Gmail",
         "description": "Notifica cuando falla la sincronización con Gmail."
@@ -460,6 +464,10 @@
       "gmail_watch_renew_failed": {
         "title": "No se pudo renovar la suscripción de Gmail",
         "body": "Falló la renovación automática de {{email}}."
+      },
+      "gmail_watch_renewed": {
+        "title": "Suscripción de Gmail renovada",
+        "body": "La suscripción de {{email}} fue renovada automáticamente."
       },
       "gmail_sync_error": {
         "title": "Error de sincronización de Gmail",
