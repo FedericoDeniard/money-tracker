@@ -193,12 +193,17 @@ export function useMetricsData({
     };
   }, [filteredTransactions, selectedPeriod, selectedCurrency, allTransactions]);
 
+  // True until every page has been fetched — prevents rendering partial totals
+  const isLoadingAllPages =
+    isLoading || isFetchingNextPage || Boolean(hasNextPage);
+
   return {
     transactions: allTransactions,
     filteredTransactions,
     availableCurrencies,
     metrics,
     isLoading,
+    isLoadingAllPages,
     error,
     refetch,
     hasNextPage,
