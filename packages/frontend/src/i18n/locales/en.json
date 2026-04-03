@@ -114,6 +114,8 @@
     "deleteSuccess": "Transaction deleted successfully",
     "deleteError": "Error deleting transaction",
     "history": "Transaction History",
+    "createSuccess": "Transaction created successfully",
+    "createError": "Error creating transaction",
     "updateSuccess": "Transaction updated successfully",
     "updateError": "Error updating transaction",
     "noAccountsConnected": "No Gmail accounts connected",
