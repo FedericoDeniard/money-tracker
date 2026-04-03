@@ -56,7 +56,7 @@ export function Metrics() {
   const {
     availableCurrencies,
     metrics,
-    isLoading: loading,
+    isLoadingAllPages: loading,
     error,
     filteredTransactions,
   } = useMetricsData({ selectedPeriod, selectedCurrency });
@@ -193,7 +193,12 @@ export function Metrics() {
 
       {/* Multi-currency selector (shown when > 1 currency detected) */}
       <div data-tour="metrics-content">
-        {selectedCurrency === "all" && availableCurrencies.length > 1 ? (
+        {loading ? (
+          // Data is still loading via useAllTransactions pagination
+          <div className="flex items-center justify-center h-48">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : selectedCurrency === "all" && availableCurrencies.length > 1 ? (
           <div>
             <CurrencyComparison
               transactions={filteredTransactions}
@@ -201,11 +206,6 @@ export function Metrics() {
               getCurrencySymbol={getCurrencySymbol}
               onCurrencySelect={setSelectedCurrency}
             />
-          </div>
-        ) : loading ? (
-          // Data is still loading via useAllTransactions pagination
-          <div className="flex items-center justify-center h-48">
-            <LoadingSpinner size="lg" />
           </div>
         ) : (
           <>
