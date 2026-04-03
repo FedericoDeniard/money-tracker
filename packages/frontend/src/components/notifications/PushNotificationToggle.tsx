@@ -14,14 +14,8 @@ import { usePushNotifications } from "../../hooks/usePushNotifications";
  */
 export function PushNotificationToggle() {
   const { t } = useTranslation();
-  const {
-    isSupported,
-    isSubscribed,
-    isLoading,
-    bannerState,
-    subscribe,
-    unsubscribe,
-  } = usePushNotifications();
+  const { isSupported, isLoading, bannerState, subscribe, unsubscribe } =
+    usePushNotifications();
 
   // Don't render anything if push is not supported
   if (!isSupported) return null;

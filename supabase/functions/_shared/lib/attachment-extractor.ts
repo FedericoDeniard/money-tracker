@@ -14,6 +14,17 @@ export interface ImageAttachment {
   filename: string;
 }
 
+export interface PdfAttachmentForAiFallback {
+  data: Uint8Array;
+  mimeType: "application/pdf";
+  filename: string;
+}
+
+export interface PdfExtractionResult {
+  texts: string[];
+  fallbackPdfAttachments: PdfAttachmentForAiFallback[];
+}
+
 interface DetectedAttachment {
   attachmentId?: string;
   inlineData?: string;
@@ -339,6 +350,21 @@ export async function extractPdfTexts(
   payload: any,
   options?: AttachmentRequestOptions
 ): Promise<string[]> {
+  const result = await extractPdfDataForAiFallback(
+    accessToken,
+    messageId,
+    payload,
+    options
+  );
+  return result.texts;
+}
+
+export async function extractPdfDataForAiFallback(
+  accessToken: string,
+  messageId: string,
+  payload: any,
+  options?: AttachmentRequestOptions
+): Promise<PdfExtractionResult> {
   try {
     const detected = detectAttachments(
       payload,
@@ -363,7 +389,7 @@ export async function extractPdfTexts(
     });
 
     if (detected.length === 0) {
-      return [];
+      return { texts: [], fallbackPdfAttachments: [] };
     }
 
     const toProcess = detected
@@ -371,6 +397,7 @@ export async function extractPdfTexts(
       .slice(0, MAX_PDFS_PER_EMAIL);
 
     const texts: string[] = [];
+    const fallbackPdfAttachments: PdfAttachmentForAiFallback[] = [];
 
     for (const attachment of toProcess) {
       try {
@@ -386,7 +413,19 @@ export async function extractPdfTexts(
           bytes = gmailBase64ToUint8Array(attachment.inlineData);
         }
 
-        if (!bytes) continue;
+        if (!bytes) {
+          console.warn("[attachment-extractor] PDF bytes unavailable", {
+            filename: attachment.filename,
+            mimeType: attachment.mimeType,
+            source: attachment.attachmentId ? "attachmentId" : "inlineData",
+          });
+          continue;
+        }
+
+        console.log("[attachment-extractor] Processing PDF bytes", {
+          filename: attachment.filename,
+          byteLength: bytes.length,
+        });
 
         const pdf = await getDocumentProxy(bytes);
         const { text } = await extractText(pdf, { mergePages: true });
@@ -396,16 +435,26 @@ export async function extractPdfTexts(
           console.log(
             `Extracted PDF text: ${attachment.filename} (${text.length} chars)`
           );
+        } else {
+          console.warn("[attachment-extractor] PDF has no extractable text", {
+            filename: attachment.filename,
+            byteLength: bytes.length,
+          });
+          fallbackPdfAttachments.push({
+            data: bytes,
+            mimeType: "application/pdf",
+            filename: attachment.filename,
+          });
         }
       } catch (error) {
         console.warn(`Error extracting PDF ${attachment.filename}:`, error);
       }
     }
 
-    return texts;
+    return { texts, fallbackPdfAttachments };
   } catch (error) {
     console.warn("Error detecting PDF attachments:", error);
-    return [];
+    return { texts: [], fallbackPdfAttachments: [] };
   }
 }
 
