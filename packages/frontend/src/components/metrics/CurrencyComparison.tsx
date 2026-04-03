@@ -18,6 +18,7 @@ interface Transaction {
 
 export function CurrencyComparison({
   transactions,
+  selectedPeriod,
   getCurrencySymbol,
   onCurrencySelect,
 }: CurrencyComparisonProps) {
@@ -101,7 +102,7 @@ export function CurrencyComparison({
         .slice(0, 3)
         .map(([name, amount]) => ({ name, amount })),
     }));
-  }, [transactions]);
+  }, [transactions, selectedPeriod]);
 
   if (!currencyMetrics.length) {
     return (

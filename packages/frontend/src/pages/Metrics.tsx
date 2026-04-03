@@ -201,6 +201,7 @@ export function Metrics() {
         ) : selectedCurrency === "all" && availableCurrencies.length > 1 ? (
           <div>
             <CurrencyComparison
+              key={selectedPeriod}
               transactions={filteredTransactions}
               selectedPeriod={selectedPeriod}
               getCurrencySymbol={getCurrencySymbol}

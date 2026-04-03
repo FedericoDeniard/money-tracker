@@ -9,7 +9,11 @@ export function useAppUpdate() {
   const waitingWorker = useRef<ServiceWorker | null>(null);
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    if (
+      !("serviceWorker" in navigator) ||
+      process.env.NODE_ENV === "development"
+    )
+      return;
 
     async function init() {
       try {

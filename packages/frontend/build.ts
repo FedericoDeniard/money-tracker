@@ -120,6 +120,11 @@ const appVersion: string = pkgJson.version;
 const buildTimestamp = new Date().toISOString();
 console.log(`📋 Version ${appVersion}  ·  Build ${buildTimestamp}\n`);
 
+await Bun.write(
+  path.resolve("src", "lib", "build-info.json"),
+  JSON.stringify({ version: appVersion, buildTimestamp }) + "\n"
+);
+
 if (existsSync(outdir)) {
   console.log(`🗑️ Cleaning previous build at ${outdir}`);
   await rm(outdir, { recursive: true, force: true });
@@ -200,5 +205,9 @@ if (!result.success || !swResult.success) {
   console.error("\n❌ Build failed\n");
   process.exit(1);
 }
+
+// Restore build-info.json to dev defaults so it doesn't dirty git after local builds
+const buildInfoPath = path.resolve("src", "lib", "build-info.json");
+await Bun.write(buildInfoPath, '{"version":"dev","buildTimestamp":""}\n');
 
 console.log(`\n✅ Build completed in ${buildTime}ms\n`);
