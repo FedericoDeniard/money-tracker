@@ -427,6 +427,10 @@
         "label": "Gmail watch renewal failed",
         "description": "Notifies when automatic watch renewal fails."
       },
+      "gmail_watch_renewed": {
+        "label": "Gmail watch renewed",
+        "description": "Confirms that the watch was automatically renewed."
+      },
       "gmail_sync_error": {
         "label": "Gmail sync error",
         "description": "Notifies when synchronization with Gmail fails."
@@ -460,6 +464,10 @@
       "gmail_watch_renew_failed": {
         "title": "Could not renew Gmail subscription",
         "body": "Automatic renewal for {{email}} failed."
+      },
+      "gmail_watch_renewed": {
+        "title": "Gmail watch renewed",
+        "body": "The subscription for {{email}} was automatically renewed."
       },
       "gmail_sync_error": {
         "title": "Gmail sync error",
