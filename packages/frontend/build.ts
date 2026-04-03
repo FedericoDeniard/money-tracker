@@ -114,6 +114,12 @@ console.log("\n🚀 Starting build process...\n");
 const cliConfig = parseArgs();
 const outdir = cliConfig.outdir || path.join(process.cwd(), "dist");
 
+// ─── Build metadata ──────────────────────────────────────────────────────────
+const pkgJson = JSON.parse(await Bun.file("package.json").text());
+const appVersion: string = pkgJson.version;
+const buildTimestamp = new Date().toISOString();
+console.log(`📋 Version ${appVersion}  ·  Build ${buildTimestamp}\n`);
+
 if (existsSync(outdir)) {
   console.log(`🗑️ Cleaning previous build at ${outdir}`);
   await rm(outdir, { recursive: true, force: true });
@@ -138,6 +144,8 @@ const result = await Bun.build({
   sourcemap: "linked",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __BUILD_TIMESTAMP__: JSON.stringify(buildTimestamp),
   },
   ...cliConfig,
 });
@@ -150,15 +158,13 @@ console.log("\n⚙️  Building service worker...\n");
 const swResult = await Bun.build({
   entrypoints: [path.resolve("src", "sw.ts")],
   outdir,
-  // sw.js must have a predictable name — browsers register it by exact path
   naming: "sw.js",
   minify: true,
   target: "browser",
-  // Service workers must not use ES module imports at the top level in all browsers;
-  // use iife format for maximum compatibility.
   format: "iife",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
+    __BUILD_TIMESTAMP__: JSON.stringify(buildTimestamp),
   },
 });
 

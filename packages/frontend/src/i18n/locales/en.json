@@ -311,6 +311,9 @@
     "gmailPrivacyNote": "When connecting your Gmail, you will be asked for permission to read your emails. We will only use this information to process financial transactions and notify you of relevant new emails.",
     "confirmDisconnectEmail": "Are you sure you want to disconnect the account {{email}}?",
     "accountInfo": "Account Information",
+    "about": "About",
+    "version": "Version",
+    "buildDate": "Build",
     "selectLanguage": "Select language",
     "languageDescription": "Choose the interface language",
     "importEmails": "Import",
@@ -568,6 +571,11 @@
       "connectGmail": "Could not start the connection.",
       "startSync": "Could not start the import."
     }
+  },
+  "update": {
+    "available": "New version available",
+    "description": "An update is ready. Reload to get the latest version.",
+    "action": "Update"
   },
   "kbar": {
     "placeholder": "Type a command or search...",

@@ -28,6 +28,8 @@ import { NotificationPreferencesChecklist } from "../components/notifications/No
 import { PushNotificationToggle } from "../components/notifications/PushNotificationToggle";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 import { useTourStatus } from "../hooks/useTour";
+import { APP_VERSION, BUILD_TIMESTAMP } from "../lib/version";
+import { Info } from "lucide-react";
 
 // ─── Gmail section — suspends while status + watches load ────────────────────
 interface GmailSectionProps {
@@ -604,6 +606,33 @@ export function Settings() {
               <span className="font-medium">{t("auth.email")}:</span>{" "}
               {user?.email}
             </p>
+          </div>
+        </div>
+
+        {/* App version */}
+        <div className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6">
+          <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
+            {t("settings.about")}
+          </h2>
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <Info
+                size={16}
+                className="text-[var(--text-secondary)] shrink-0"
+              />
+              <div className="space-y-1">
+                <p className="text-sm text-[var(--text-primary)]">
+                  <span className="font-medium">{t("settings.version")}:</span>{" "}
+                  {APP_VERSION}
+                </p>
+                {BUILD_TIMESTAMP && (
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    {t("settings.buildDate")}:{" "}
+                    {new Date(BUILD_TIMESTAMP).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
