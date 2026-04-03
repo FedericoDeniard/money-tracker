@@ -21,6 +21,15 @@ function AppContent() {
   const { updateAvailable, applyUpdate } = useAppUpdate();
 
   useEffect(() => {
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const link = document.createElement("link");
+      link.rel = "manifest";
+      link.href = "/manifest.webmanifest";
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!updateAvailable) return;
     toast(t("update.available"), {
       description: t("update.description"),
@@ -31,15 +40,6 @@ function AppContent() {
       },
     });
   }, [updateAvailable, applyUpdate, t]);
-
-  useEffect(() => {
-    if (!document.querySelector('link[rel="manifest"]')) {
-      const link = document.createElement("link");
-      link.rel = "manifest";
-      link.href = "/manifest.webmanifest";
-      document.head.appendChild(link);
-    }
-  }, []);
 
   return (
     <BrowserRouter>

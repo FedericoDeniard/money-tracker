@@ -1,7 +1,7 @@
 import { serve } from "bun";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import index from "./index.html";
+import devIndex from "./index.html";
 
 // Log environment variables on startup
 console.log("Environment variables loaded:");
@@ -13,7 +13,9 @@ console.log(
   `${(process.env.SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1`
 );
 
-// Resolve the dist directory (where the built sw.js lives in production)
+const isProd = process.env.NODE_ENV === "production";
+
+// Resolve the dist directory (where the built app lives in production)
 const distDir = join(import.meta.dir, "..", "dist");
 // Resolve the public directory (static assets: manifest, icons)
 const publicDir = join(import.meta.dir, "..", "public");
@@ -81,11 +83,38 @@ const server = serve({
     "/logo512.png": () =>
       serveStaticFile(join(publicDir, "logo512.png"), "image/png"),
 
-    // Serve index.html for all unmatched routes.
-    "/*": index,
+    // Catch-all: in production serve static files from dist/ with SPA fallback.
+    // In dev use the HTML module import so Bun's HMR works.
+    "/*": isProd
+      ? (req: Request) => {
+          const pathname = new URL(req.url).pathname;
+          if (pathname !== "/" && pathname !== "") {
+            const filePath = join(distDir, pathname.slice(1));
+            if (existsSync(filePath)) {
+              const ext = (filePath.split(".").pop() ?? "").toLowerCase();
+              const mimeTypes: Record<string, string> = {
+                js: "application/javascript",
+                css: "text/css",
+                map: "application/json",
+                svg: "image/svg+xml",
+                png: "image/png",
+                ico: "image/x-icon",
+                html: "text/html",
+                webmanifest: "application/manifest+json",
+              };
+              return serveStaticFile(
+                filePath,
+                mimeTypes[ext] ?? "application/octet-stream"
+              );
+            }
+          }
+          // SPA fallback — let React Router handle the route
+          return serveStaticFile(join(distDir, "index.html"), "text/html");
+        }
+      : devIndex,
   },
 
-  development: process.env.NODE_ENV !== "production" && {
+  development: !isProd && {
     // Enable browser hot reloading in development
     hmr: true,
 
