@@ -6,7 +6,7 @@ import { requireUserAuth } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import {
   extractImageAttachments,
-  extractPdfTexts,
+  extractPdfDataForAiFallback,
 } from "../_shared/lib/attachment-extractor.ts";
 import { createSupabaseClient } from "../_shared/lib/supabase.ts";
 import { createSystemNotification } from "../_shared/notifications.ts";
@@ -674,12 +674,13 @@ async function processMessage(
     message.payload,
     attachmentOptions
   );
-  const pdfTexts = await extractPdfTexts(
+  const pdfResult = await extractPdfDataForAiFallback(
     currentAccessToken,
     message.id || messageId,
     message.payload,
     attachmentOptions
   );
+  const pdfTexts = pdfResult.texts;
 
   const fullContent = bodyText;
 
@@ -689,7 +690,8 @@ async function processMessage(
       fullContent,
       userFullName,
       images,
-      pdfTexts
+      pdfTexts,
+      pdfResult.fallbackPdfAttachments
     );
 
     // Flush Langfuse events before returning (critical for serverless)
