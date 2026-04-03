@@ -69,7 +69,7 @@ export function TransactionDetail({
   );
 
   return (
-    <div className="h-full flex flex-col bg-white lg:rounded-3xl p-6 relative lg:shadow-sm lg:border border-gray-100">
+    <div className="h-full flex flex-col bg-white lg:rounded-3xl relative lg:shadow-sm lg:border border-gray-100">
       {/* Mobile Close Button */}
       {onClose && (
         <Button
@@ -77,101 +77,106 @@ export function TransactionDetail({
           variant="ghost"
           size="sm"
           icon={<X size={20} />}
-          className="lg:hidden absolute top-4 right-4"
+          className="lg:hidden absolute top-4 right-4 z-10"
         />
       )}
 
-      {/* Header with Icon */}
-      <div className="flex justify-center mb-6 mt-2">
-        <div
-          className={`p-4 rounded-2xl ${
-            isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-          }`}
-        >
-          {isIncome ? (
-            <ArrowDown strokeWidth={3} size={32} />
-          ) : (
-            <ArrowUp strokeWidth={3} size={32} />
-          )}
-        </div>
-      </div>
-
-      {/* Amount */}
-      <div className="text-center mb-3">
-        <h1 className={`text-3xl font-bold ${amountColor} tracking-tight`}>
-          {isIncome ? "+" : "-"}
-          {transaction.currency} {transaction.amount.toLocaleString()}
-        </h1>
-      </div>
-
-      {/* Context Pill */}
-      <div className="flex justify-center mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Header with Icon */}
+        <div className="flex justify-center mb-6 mt-2">
           <div
-            className={`w-2 h-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
-          />
-          <span className="font-medium text-[var(--text-primary)]">
-            {transaction.merchant || t("transactions.unknown")}
-          </span>
-          <span className="text-gray-300 text-xs">•</span>
-          <span className="capitalize">
-            {translateCategory(transaction.category)}
-          </span>
+            className={`p-4 rounded-2xl ${
+              isIncome
+                ? "bg-green-100 text-green-600"
+                : "bg-red-100 text-red-600"
+            }`}
+          >
+            {isIncome ? (
+              <ArrowDown strokeWidth={3} size={32} />
+            ) : (
+              <ArrowUp strokeWidth={3} size={32} />
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Details List */}
-      <div className="space-y-6 px-1">
-        <DetailRow label={t("transactions.dateTime")} value={dateTimeStr} />
+        {/* Amount */}
+        <div className="text-center mb-3">
+          <h1 className={`text-3xl font-bold ${amountColor} tracking-tight`}>
+            {isIncome ? "+" : "-"}
+            {transaction.currency} {transaction.amount.toLocaleString()}
+          </h1>
+        </div>
 
-        <DetailRow
-          label={t("transactions.type")}
-          value={
-            isIncome ? t("transactions.income") : t("transactions.expense")
-          }
-        />
-
-        <DetailRow
-          label={
-            isIncome
-              ? t("transactions.receivedFrom")
-              : t("transactions.merchant")
-          }
-          value={transaction.merchant || t("transactions.unknown")}
-        />
-
-        <DetailRow
-          label={t("transactions.amount")}
-          value={`${transaction.currency} ${transaction.amount.toLocaleString()}`}
-        />
-
-        <div className="flex items-center justify-between py-1">
-          <span className="text-[var(--text-secondary)] text-sm">
-            {t("transactions.reference")}
-          </span>
-          <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium text-sm text-right overflow-hidden pl-4">
-            <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
-              {transaction.source_message_id}
-            </span>
-            <Button
-              onClick={handleCopyId}
-              variant="ghost"
-              size="sm"
-              icon={
-                copied ? (
-                  <Check size={14} className="text-green-500" />
-                ) : (
-                  <Copy size={14} />
-                )
-              }
-              title={t("common.copy")}
+        {/* Context Pill */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
+            <div
+              className={`w-2 h-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
             />
+            <span className="font-medium text-[var(--text-primary)]">
+              {transaction.merchant || t("transactions.unknown")}
+            </span>
+            <span className="text-gray-300 text-xs">•</span>
+            <span className="capitalize">
+              {translateCategory(transaction.category)}
+            </span>
+          </div>
+        </div>
+
+        {/* Details List */}
+        <div className="space-y-6 px-1">
+          <DetailRow label={t("transactions.dateTime")} value={dateTimeStr} />
+
+          <DetailRow
+            label={t("transactions.type")}
+            value={
+              isIncome ? t("transactions.income") : t("transactions.expense")
+            }
+          />
+
+          <DetailRow
+            label={
+              isIncome
+                ? t("transactions.receivedFrom")
+                : t("transactions.merchant")
+            }
+            value={transaction.merchant || t("transactions.unknown")}
+          />
+
+          <DetailRow
+            label={t("transactions.amount")}
+            value={`${transaction.currency} ${transaction.amount.toLocaleString()}`}
+          />
+
+          <div className="flex items-center justify-between py-1">
+            <span className="text-[var(--text-secondary)] text-sm">
+              {t("transactions.reference")}
+            </span>
+            <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium text-sm text-right overflow-hidden pl-4">
+              <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
+                {transaction.source_message_id}
+              </span>
+              <Button
+                onClick={handleCopyId}
+                variant="ghost"
+                size="sm"
+                icon={
+                  copied ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <Copy size={14} />
+                  )
+                }
+                title={t("common.copy")}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="mt-auto pt-8">
+      {/* Footer Actions — always visible at the bottom */}
+      <div className="shrink-0 p-6 pt-4 border-t border-gray-100">
         <div className="flex gap-3">
           <Button
             onClick={() => setShowDeleteModal(true)}

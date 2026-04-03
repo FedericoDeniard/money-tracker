@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
+import { toast } from "../../utils/toast";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { getCurrencySymbol } from "../../utils/currency";
 import {
@@ -63,9 +64,19 @@ export function TransactionFormModal({
     setIsLoading(true);
     try {
       await onSave(formData);
+      const successKey =
+        mode === "create"
+          ? "transactions.createSuccess"
+          : "transactions.updateSuccess";
+      toast.success(t(successKey));
       onClose();
     } catch (error) {
       console.error("Error saving transaction:", error);
+      const errorKey =
+        mode === "create"
+          ? "transactions.createError"
+          : "transactions.updateError";
+      toast.error(t(errorKey));
     } finally {
       setIsLoading(false);
     }

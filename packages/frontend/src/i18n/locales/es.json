@@ -114,6 +114,8 @@
     "deleteSuccess": "Transacción eliminada exitosamente",
     "deleteError": "Error al eliminar la transacción",
     "history": "Historial de transacciones",
+    "createSuccess": "Transacción creada exitosamente",
+    "createError": "Error al crear la transacción",
     "updateSuccess": "Transacción actualizada exitosamente",
     "updateError": "Error al actualizar la transacción",
     "noAccountsConnected": "No tienes cuentas de Gmail conectadas",

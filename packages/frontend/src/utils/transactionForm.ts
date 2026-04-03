@@ -16,6 +16,7 @@ interface TransactionCreateInput {
 export function mapTransactionFormDataToInsert(
   formData: TransactionFormData
 ): TransactionCreateInput {
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   return {
     transaction_type: formData.transaction_type,
     merchant: formData.merchant,
@@ -26,6 +27,6 @@ export function mapTransactionFormDataToInsert(
     transaction_description: formData.merchant,
     date: new Date().toISOString(),
     source_email: "",
-    source_message_id: "",
+    source_message_id: `manual-${uniqueSuffix}`,
   };
 }
