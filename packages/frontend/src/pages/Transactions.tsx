@@ -248,7 +248,7 @@ export function Transactions() {
 
         {/* Detail panel — always visible */}
         {!isMobile && (
-          <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-hidden">
+          <div className="flex-1 bg-[var(--bg-secondary)] rounded-lg overflow-y-auto">
             {selectedTransaction ? (
               <TransactionDetail
                 transaction={selectedTransaction}
