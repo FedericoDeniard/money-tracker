@@ -2,9 +2,29 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
+// Replaced at build time — ensures the browser byte-compares a new SW on every deploy.
+const _BUILD_TS = __BUILD_TIMESTAMP__;
+void _BUILD_TS;
+
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
+// Don't call skipWaiting() here — the app sends a SKIP_WAITING message when
+// the user explicitly accepts the update via the toast prompt.
+self.addEventListener("install", () => {
+  console.log("[sw] installed", _BUILD_TS);
+});
+
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// ─── Message handler ─────────────────────────────────────────────────────────
+self.addEventListener("message", (event: MessageEvent) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // ─── Push event ───────────────────────────────────────────────────────────────
-// Receives a JSON payload from the server:
-//   { title: string, body: string, i18nParams: Record<string, unknown>, url: string }
 self.addEventListener("push", (event: PushEvent) => {
   if (!event.data) return;
 
@@ -13,7 +33,6 @@ self.addEventListener("push", (event: PushEvent) => {
   try {
     data = event.data.json();
   } catch {
-    // Fallback if the payload isn't JSON
     data = { title: "Money Tracker", body: event.data.text() };
   }
 
@@ -28,7 +47,6 @@ self.addEventListener("push", (event: PushEvent) => {
 });
 
 // ─── Notification click ───────────────────────────────────────────────────────
-// Focuses an existing open tab at the notification URL, or opens a new window.
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
 
@@ -38,7 +56,6 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(clientList => {
-        // Try to focus an already-open tab on the same origin
         for (const client of clientList) {
           const clientUrl = new URL(client.url);
           const targetUrl = new URL(url, self.location.origin);
@@ -46,7 +63,6 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
             return client.focus();
           }
         }
-        // No open tab found — open a new window
         return self.clients.openWindow(url);
       })
   );

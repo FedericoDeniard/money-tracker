@@ -311,6 +311,9 @@
     "gmailPrivacyNote": "Al conectar tu Gmail, se te pedirá permiso para leer tus correos. Solo usaremos esta información para procesar transacciones financieras y notificarte de nuevos correos relevantes.",
     "confirmDisconnectEmail": "¿Estás seguro de que quieres desconectar la cuenta {{email}}?",
     "accountInfo": "Información de la Cuenta",
+    "about": "Acerca de",
+    "version": "Versión",
+    "buildDate": "Compilación",
     "selectLanguage": "Seleccionar idioma",
     "languageDescription": "Elige el idioma de la interfaz",
     "importEmails": "Importar",
@@ -568,6 +571,11 @@
       "connectGmail": "No se pudo iniciar la conexión.",
       "startSync": "No se pudo iniciar la importación."
     }
+  },
+  "update": {
+    "available": "Nueva versión disponible",
+    "description": "Hay una actualización lista. Recargá para obtener la última versión.",
+    "action": "Actualizar"
   },
   "kbar": {
     "placeholder": "Escribe un comando o busca...",

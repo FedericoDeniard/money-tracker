@@ -10,19 +10,29 @@ import { useAuth } from "./hooks/useAuth";
 import { useTransactionsRealtime } from "./hooks/useTransactionsRealtime";
 import { queryClient } from "./lib/query-client";
 import "./i18n";
-import { Toaster } from "sonner";
-import { registerServiceWorker } from "./hooks/usePushNotifications";
+import { Toaster, toast } from "sonner";
+import { useAppUpdate } from "./hooks/useAppUpdate";
+import { useTranslation } from "react-i18next";
 
 function AppContent() {
   const { loading } = useAuth();
+  const { t } = useTranslation();
   useTransactionsRealtime();
+  const { updateAvailable, applyUpdate } = useAppUpdate();
 
   useEffect(() => {
-    // Register the service worker (idempotent — safe to call repeatedly)
-    registerServiceWorker();
+    if (!updateAvailable) return;
+    toast(t("update.available"), {
+      description: t("update.description"),
+      duration: Infinity,
+      action: {
+        label: t("update.action"),
+        onClick: applyUpdate,
+      },
+    });
+  }, [updateAvailable, applyUpdate, t]);
 
-    // Inject the PWA manifest link tag if not already present
-    // Done here instead of index.html to avoid Bun's bundler trying to resolve it
+  useEffect(() => {
     if (!document.querySelector('link[rel="manifest"]')) {
       const link = document.createElement("link");
       link.rel = "manifest";
