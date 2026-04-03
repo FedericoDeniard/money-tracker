@@ -1,16 +1,12 @@
 // Extract image and PDF attachments from Gmail messages via REST API
-import { extractText, getDocumentProxy } from 'npm:unpdf'
+import { extractText, getDocumentProxy } from "npm:unpdf";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const MAX_IMAGES_PER_EMAIL = 3;
 const MAX_PDFS_PER_EMAIL = 3;
 
-const SUPPORTED_IMAGE_MIMETYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-];
+const SUPPORTED_IMAGE_MIMETYPES = ["image/jpeg", "image/jpg", "image/png"];
 
 export interface ImageAttachment {
   data: Uint8Array;
@@ -19,7 +15,8 @@ export interface ImageAttachment {
 }
 
 interface DetectedAttachment {
-  attachmentId: string;
+  attachmentId?: string;
+  inlineData?: string;
   filename: string;
   size: number;
   mimeType: string;
@@ -39,27 +36,80 @@ interface AttachmentDataPayload {
 export interface AttachmentRequestOptions {
   fetchAttachmentData?: (
     messageId: string,
-    attachmentId: string,
+    attachmentId: string
   ) => Promise<AttachmentDataPayload | null>;
 }
 
+function normalizeMimeType(mimeType: string | undefined): string {
+  return (mimeType || "").toLowerCase().trim();
+}
+
+function hasFileExtension(
+  filename: string | undefined,
+  extensions: string[]
+): boolean {
+  const normalizedFilename = (filename || "").toLowerCase();
+  return extensions.some(extension =>
+    normalizedFilename.endsWith(`.${extension}`)
+  );
+}
+
 /**
- * Detect attachments recursively in a Gmail message payload
+ * Detect attachments recursively in a Gmail message payload.
+ * Includes both regular attachments (attachmentId) and inline binary data (body.data).
  */
-function detectAttachments(payload: any, mimeTypes: string[]): DetectedAttachment[] {
+function detectAttachments(
+  payload: any,
+  isSupportedPart: (part: any) => boolean,
+  options?: { includeInlineData?: boolean; debugType?: "image" | "pdf" }
+): DetectedAttachment[] {
   const attachments: DetectedAttachment[] = [];
+  const includeInlineData = options?.includeInlineData ?? false;
+  const debugType = options?.debugType ?? "pdf";
 
   const processPart = (part: any) => {
-    if (
-      part.mimeType &&
-      mimeTypes.includes(part.mimeType) &&
-      part.body?.attachmentId
-    ) {
+    const filename = part.filename || "unknown";
+    const mimeType = normalizeMimeType(part.mimeType);
+    const hasAttachmentId = !!part.body?.attachmentId;
+    const hasInlineData = !!part.body?.data;
+    const isSupported = isSupportedPart(part);
+    const hasDataSource =
+      hasAttachmentId || (includeInlineData && hasInlineData);
+    const size = part.body?.size || 0;
+    const isCandidate =
+      !!part?.mimeType && (hasAttachmentId || hasInlineData || !!part.filename);
+
+    if (isCandidate && (!isSupported || size <= 0 || !hasDataSource)) {
+      const discardReason = !isSupported
+        ? "unsupported_type"
+        : size <= 0
+          ? "empty_size"
+          : includeInlineData
+            ? "missing_attachment_data"
+            : "inline_data_not_enabled";
+      console.log(`[attachment-extractor] Discarded ${debugType} candidate`, {
+        filename,
+        mimeType,
+        size,
+        hasAttachmentId,
+        hasInlineData,
+        discardReason,
+      });
+    }
+
+    if (part?.mimeType && isSupported && size > 0 && hasDataSource) {
       attachments.push({
         attachmentId: part.body.attachmentId,
-        filename: part.filename || 'unknown',
-        size: part.body.size || 0,
-        mimeType: part.mimeType,
+        inlineData: includeInlineData ? part.body.data : undefined,
+        filename,
+        size,
+        mimeType,
+      });
+      console.log(`[attachment-extractor] Detected ${debugType} attachment`, {
+        filename,
+        mimeType,
+        size,
+        source: hasAttachmentId ? "attachmentId" : "inlineData",
       });
     }
 
@@ -83,14 +133,16 @@ function detectInlineImages(payload: any, mimeTypes: string[]): InlineImage[] {
   const processPart = (part: any) => {
     if (
       part.mimeType &&
-      mimeTypes.includes(part.mimeType) &&
+      mimeTypes.includes(normalizeMimeType(part.mimeType)) &&
       !part.body?.attachmentId &&
       part.body?.data &&
       part.body.size > 0
     ) {
       inlineImages.push({
         data: part.body.data,
-        filename: part.filename || `inline-${inlineImages.length}.${part.mimeType.split('/')[1]}`,
+        filename:
+          part.filename ||
+          `inline-${inlineImages.length}.${part.mimeType.split("/")[1]}`,
         size: part.body.size,
         mimeType: part.mimeType,
       });
@@ -112,7 +164,7 @@ function detectInlineImages(payload: any, mimeTypes: string[]): InlineImage[] {
  */
 function gmailBase64ToUint8Array(data: string): Uint8Array {
   // Gmail uses URL-safe base64 (- and _ instead of + and /)
-  const standardBase64 = data.replace(/-/g, '+').replace(/_/g, '/');
+  const standardBase64 = data.replace(/-/g, "+").replace(/_/g, "/");
   const binaryString = atob(standardBase64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
@@ -123,7 +175,7 @@ function gmailBase64ToUint8Array(data: string): Uint8Array {
 
 /**
  * Extract image attachments from a Gmail message
- * 
+ *
  * @param accessToken - Gmail OAuth access token
  * @param messageId - Gmail message ID
  * @param payload - The message payload (from messages.get with format=full)
@@ -133,48 +185,95 @@ export async function extractImageAttachments(
   accessToken: string,
   messageId: string,
   payload: any,
-  options?: AttachmentRequestOptions,
+  options?: AttachmentRequestOptions
 ): Promise<ImageAttachment[]> {
   try {
     const images: ImageAttachment[] = [];
+    const supportedImageMimeTypes = SUPPORTED_IMAGE_MIMETYPES.map(mimeType =>
+      normalizeMimeType(mimeType)
+    );
 
     // 1. Extract regular image attachments (with attachmentId)
-    const detected = detectAttachments(payload, SUPPORTED_IMAGE_MIMETYPES);
+    const detected = detectAttachments(
+      payload,
+      part => {
+        const mimeType = normalizeMimeType(part.mimeType);
+        if (supportedImageMimeTypes.includes(mimeType)) {
+          return true;
+        }
+
+        // Some senders attach images as application/octet-stream.
+        if (mimeType === "application/octet-stream") {
+          return hasFileExtension(part.filename, ["jpg", "jpeg", "png"]);
+        }
+
+        return false;
+      },
+      { includeInlineData: false, debugType: "image" }
+    );
+    console.log("[attachment-extractor] Image attachment scan summary", {
+      detectedCount: detected.length,
+      maxImagesPerEmail: MAX_IMAGES_PER_EMAIL,
+    });
     const toProcess = detected
       .filter(a => a.size <= MAX_IMAGE_SIZE_BYTES)
       .slice(0, MAX_IMAGES_PER_EMAIL);
 
     for (const attachment of toProcess) {
       try {
-        const data = await getAttachmentData(
-          accessToken,
-          messageId,
-          attachment.attachmentId,
-          options,
-        );
-        if (!data?.data) {
-          console.warn(`Failed to download attachment ${attachment.filename}`);
+        let rawData: string | undefined;
+        if (attachment.attachmentId) {
+          const data = await getAttachmentData(
+            accessToken,
+            messageId,
+            attachment.attachmentId,
+            options
+          );
+          rawData = data?.data;
+        } else if (attachment.inlineData) {
+          rawData = attachment.inlineData;
+        }
+
+        if (!rawData) {
+          console.warn(
+            `Failed to read attachment data for ${attachment.filename}`
+          );
           continue;
         }
 
-        const bytes = gmailBase64ToUint8Array(data.data);
+        const bytes = gmailBase64ToUint8Array(rawData);
+        const normalizedMimeType = normalizeMimeType(attachment.mimeType);
+        const resolvedMimeType =
+          normalizedMimeType === "application/octet-stream" &&
+          hasFileExtension(attachment.filename, ["png"])
+            ? "image/png"
+            : "image/jpeg";
 
         images.push({
           data: bytes,
-          mimeType: attachment.mimeType === 'image/jpg' ? 'image/jpeg' : attachment.mimeType,
+          mimeType:
+            normalizedMimeType === "image/png" ? "image/png" : resolvedMimeType,
           filename: attachment.filename,
         });
 
-        console.log(`Extracted image attachment: ${attachment.filename} (${bytes.length} bytes)`);
+        console.log(
+          `Extracted image attachment: ${attachment.filename} (${bytes.length} bytes)`
+        );
       } catch (error) {
-        console.warn(`Error extracting attachment ${attachment.filename}:`, error);
+        console.warn(
+          `Error extracting attachment ${attachment.filename}:`,
+          error
+        );
       }
     }
 
     // 2. Extract inline images (embedded in email body with base64 data)
     const remaining = MAX_IMAGES_PER_EMAIL - images.length;
     if (remaining > 0) {
-      const inlineImages = detectInlineImages(payload, SUPPORTED_IMAGE_MIMETYPES)
+      const inlineImages = detectInlineImages(
+        payload,
+        SUPPORTED_IMAGE_MIMETYPES
+      )
         .filter(a => a.size <= MAX_IMAGE_SIZE_BYTES)
         .slice(0, remaining);
 
@@ -183,19 +282,25 @@ export async function extractImageAttachments(
           const bytes = gmailBase64ToUint8Array(inline.data);
           images.push({
             data: bytes,
-            mimeType: inline.mimeType === 'image/jpg' ? 'image/jpeg' : inline.mimeType,
+            mimeType:
+              inline.mimeType === "image/jpg" ? "image/jpeg" : inline.mimeType,
             filename: inline.filename,
           });
-          console.log(`Extracted inline image: ${inline.filename} (${bytes.length} bytes)`);
+          console.log(
+            `Extracted inline image: ${inline.filename} (${bytes.length} bytes)`
+          );
         } catch (error) {
-          console.warn(`Error extracting inline image ${inline.filename}:`, error);
+          console.warn(
+            `Error extracting inline image ${inline.filename}:`,
+            error
+          );
         }
       }
     }
 
     return images;
   } catch (error) {
-    console.warn('Error detecting image attachments:', error);
+    console.warn("Error detecting image attachments:", error);
     return [];
   }
 }
@@ -207,9 +312,14 @@ async function downloadAttachment(
   accessToken: string,
   messageId: string,
   attachmentId: string,
-  options?: AttachmentRequestOptions,
+  options?: AttachmentRequestOptions
 ): Promise<Uint8Array | null> {
-  const data = await getAttachmentData(accessToken, messageId, attachmentId, options);
+  const data = await getAttachmentData(
+    accessToken,
+    messageId,
+    attachmentId,
+    options
+  );
   if (!data?.data) return null;
 
   return gmailBase64ToUint8Array(data.data);
@@ -227,10 +337,30 @@ export async function extractPdfTexts(
   accessToken: string,
   messageId: string,
   payload: any,
-  options?: AttachmentRequestOptions,
+  options?: AttachmentRequestOptions
 ): Promise<string[]> {
   try {
-    const detected = detectAttachments(payload, ['application/pdf']);
+    const detected = detectAttachments(
+      payload,
+      part => {
+        const mimeType = normalizeMimeType(part.mimeType);
+        if (mimeType === "application/pdf") {
+          return true;
+        }
+
+        // Some providers mark PDFs as octet-stream but keep .pdf filename.
+        if (mimeType === "application/octet-stream") {
+          return hasFileExtension(part.filename, ["pdf"]);
+        }
+
+        return hasFileExtension(part.filename, ["pdf"]);
+      },
+      { includeInlineData: true, debugType: "pdf" }
+    );
+    console.log("[attachment-extractor] PDF attachment scan summary", {
+      detectedCount: detected.length,
+      maxPdfsPerEmail: MAX_PDFS_PER_EMAIL,
+    });
 
     if (detected.length === 0) {
       return [];
@@ -244,7 +374,18 @@ export async function extractPdfTexts(
 
     for (const attachment of toProcess) {
       try {
-        const bytes = await downloadAttachment(accessToken, messageId, attachment.attachmentId, options);
+        let bytes: Uint8Array | null = null;
+        if (attachment.attachmentId) {
+          bytes = await downloadAttachment(
+            accessToken,
+            messageId,
+            attachment.attachmentId,
+            options
+          );
+        } else if (attachment.inlineData) {
+          bytes = gmailBase64ToUint8Array(attachment.inlineData);
+        }
+
         if (!bytes) continue;
 
         const pdf = await getDocumentProxy(bytes);
@@ -252,7 +393,9 @@ export async function extractPdfTexts(
 
         if (text && text.trim()) {
           texts.push(text);
-          console.log(`Extracted PDF text: ${attachment.filename} (${text.length} chars)`);
+          console.log(
+            `Extracted PDF text: ${attachment.filename} (${text.length} chars)`
+          );
         }
       } catch (error) {
         console.warn(`Error extracting PDF ${attachment.filename}:`, error);
@@ -261,7 +404,7 @@ export async function extractPdfTexts(
 
     return texts;
   } catch (error) {
-    console.warn('Error detecting PDF attachments:', error);
+    console.warn("Error detecting PDF attachments:", error);
     return [];
   }
 }
@@ -270,7 +413,7 @@ async function getAttachmentData(
   accessToken: string,
   messageId: string,
   attachmentId: string,
-  options?: AttachmentRequestOptions,
+  options?: AttachmentRequestOptions
 ): Promise<AttachmentDataPayload | null> {
   if (options?.fetchAttachmentData) {
     return options.fetchAttachmentData(messageId, attachmentId);
@@ -280,7 +423,7 @@ async function getAttachmentData(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
     {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     }
   );
