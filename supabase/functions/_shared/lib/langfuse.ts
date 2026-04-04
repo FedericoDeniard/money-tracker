@@ -45,13 +45,22 @@ export async function traceOperation<T>(
   const langfuse = getClient();
   const operationStartTime = new Date();
 
+  // For trace-level input, omit the messages array to keep it concise (just metadata).
+  const traceInput = input
+    ? (() => {
+        const { messages: _messages, ...meta } = input as any;
+        const hasMeta = Object.keys(meta).length > 0;
+        return hasMeta
+          ? JSON.stringify(meta)
+          : typeof input === "object"
+            ? JSON.stringify(input)
+            : String(input);
+      })()
+    : undefined;
+
   const trace = langfuse.trace({
     name: operationName,
-    input: input
-      ? typeof input === "object"
-        ? JSON.stringify(input)
-        : String(input)
-      : undefined,
+    input: traceInput,
   });
 
   try {
@@ -65,62 +74,48 @@ export async function traceOperation<T>(
       output: serializedOutput,
     });
 
+    // If input has a messages array, pass it directly so Langfuse renders the
+    // chat view with system/user roles. Otherwise fall back to a plain string.
+    const generationInput = (input as any)?.messages
+      ? (input as any).messages
+      : input
+        ? typeof input === "object"
+          ? JSON.stringify(input)
+          : String(input)
+        : undefined;
+
     // Check if result contains AI usage information (from AI SDK)
-    if (result && typeof result === "object" && "usage" in result) {
-      const usage = (result as any).usage;
-      if (usage && typeof usage === "object") {
-        // Create generation with usage details for token/cost tracking
-        trace.generation({
-          name: "ai-completion",
-          model: "grok-4-1-fast-non-reasoning", // TODO: Make this dynamic
-          input: input
-            ? typeof input === "object"
-              ? JSON.stringify(input)
-              : String(input)
-            : undefined,
-          output: serializedOutput,
-          startTime: operationStartTime,
-          endTime: operationEndTime,
-          usage: {
+    const usage =
+      result && typeof result === "object" && "usage" in result
+        ? (result as any).usage
+        : null;
+
+    const usagePayload =
+      usage && typeof usage === "object"
+        ? {
             input: usage.inputTokens || 0,
             output: usage.outputTokens || 0,
             total:
               usage.totalTokens ||
               (usage.inputTokens || 0) + (usage.outputTokens || 0),
-          },
-        });
+          }
+        : undefined;
 
-        console.log("[Langfuse] Generation with usage tracked", {
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
-          totalTokens: usage.totalTokens,
-        });
-      } else {
-        trace.generation({
-          name: "ai-completion",
-          model: "grok-4-1-fast-non-reasoning",
-          input: input
-            ? typeof input === "object"
-              ? JSON.stringify(input)
-              : String(input)
-            : undefined,
-          output: serializedOutput,
-          startTime: operationStartTime,
-          endTime: operationEndTime,
-        });
-      }
-    } else {
-      trace.generation({
-        name: "ai-completion",
-        model: "grok-4-1-fast-non-reasoning",
-        input: input
-          ? typeof input === "object"
-            ? JSON.stringify(input)
-            : String(input)
-          : undefined,
-        output: serializedOutput,
-        startTime: operationStartTime,
-        endTime: operationEndTime,
+    trace.generation({
+      name: "ai-completion",
+      model: "grok-4-1-fast-non-reasoning",
+      input: generationInput,
+      output: serializedOutput,
+      startTime: operationStartTime,
+      endTime: operationEndTime,
+      ...(usagePayload ? { usage: usagePayload } : {}),
+    });
+
+    if (usagePayload) {
+      console.log("[Langfuse] Generation with usage tracked", {
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        totalTokens: usage.totalTokens,
       });
     }
 

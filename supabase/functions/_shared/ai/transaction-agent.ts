@@ -295,6 +295,30 @@ export async function extractTransactionFromEmail(
   pdfFallbackAttachments?: PdfAttachmentForAiFallback[],
   userLocale?: string
 ): Promise<TransactionResponse> {
+  // Build prompt here (outside the callback) so it can be captured in the
+  // Langfuse generation input alongside the system prompt.
+  let dynamicPrompt = "";
+
+  if (userFullName) {
+    dynamicPrompt += `IMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).\n\n`;
+  }
+
+  dynamicPrompt += `Email to analyze:\n${emailContent}`;
+
+  if (pdfTexts && pdfTexts.length > 0) {
+    for (const pdfText of pdfTexts) {
+      dynamicPrompt += `\n\n--- PDF ATTACHMENT ---\n${pdfText}`;
+    }
+  }
+
+  if (images && images.length > 0) {
+    dynamicPrompt += `\n\nNote: ${images.length} image attachment(s) are included below. These may contain receipts, invoices, or transaction details. Analyze them along with the email text.`;
+  }
+
+  if (userLocale) {
+    dynamicPrompt += `\n\nIMPORTANT: Write the "reason" field in this language: ${userLocale}. Keep merchant and description in the original document language.`;
+  }
+
   return await traceOperation(
     "ai-transaction-processing",
     async () => {
@@ -302,28 +326,6 @@ export async function extractTransactionFromEmail(
         const xai = createXai({
           apiKey: Deno.env.get("XAI_API_KEY") || "",
         });
-
-        let dynamicPrompt = "";
-
-        if (userFullName) {
-          dynamicPrompt += `IMPORTANT CONTEXT: The email recipient/account owner is: ${userFullName}\nUse this to determine if money was sent BY this person (expense) or RECEIVED by this person (income).\n\n`;
-        }
-
-        dynamicPrompt += `Email to analyze:\n${emailContent}`;
-
-        if (pdfTexts && pdfTexts.length > 0) {
-          for (const pdfText of pdfTexts) {
-            dynamicPrompt += `\n\n--- PDF ATTACHMENT ---\n${pdfText}`;
-          }
-        }
-
-        if (images && images.length > 0) {
-          dynamicPrompt += `\n\nNote: ${images.length} image attachment(s) are included below. These may contain receipts, invoices, or transaction details. Analyze them along with the email text.`;
-        }
-
-        if (userLocale) {
-          dynamicPrompt += `\n\nIMPORTANT: Write the "reason" field in this language: ${userLocale}. Keep merchant and description in the original document language.`;
-        }
 
         // Build generateText options
         const baseOptions = {
@@ -441,6 +443,10 @@ export async function extractTransactionFromEmail(
       }
     },
     {
+      messages: [
+        { role: "system", content: EMAIL_EXTRACTION_SYSTEM },
+        { role: "user", content: dynamicPrompt },
+      ],
       imageCount: images?.length || 0,
       pdfCount: pdfTexts?.length || 0,
       fallbackPdfCount: pdfFallbackAttachments?.length || 0,
