@@ -10,7 +10,8 @@ export interface DocumentUploadResult {
 export async function uploadDocumentForAnalysis(
   fileData: ArrayBuffer,
   fileName: string,
-  fileType: string
+  fileType: string,
+  locale?: string
 ): Promise<DocumentUploadResult> {
   const supabase = await getSupabase();
   const config = await getConfig();
@@ -32,6 +33,7 @@ export async function uploadDocumentForAnalysis(
       Authorization: `Bearer ${session.access_token}`,
       "Content-Type": fileType,
       "X-File-Name": fileName,
+      ...(locale ? { "X-User-Locale": locale } : {}),
     },
     body: fileData,
   });

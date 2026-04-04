@@ -50,7 +50,7 @@ export function UploadTransactionModal({
   onSuccess,
   onError,
 }: UploadTransactionModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -125,7 +125,8 @@ export function UploadTransactionModal({
       const result = await uploadDocumentForAnalysis(
         fileData,
         selectedFile.name,
-        selectedFile.type
+        selectedFile.type,
+        i18n.language
       );
       if (result.success && result.transaction) {
         setUploadState("success");
