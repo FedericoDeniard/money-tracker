@@ -1,13 +1,9 @@
 // Seed Emails Edge Function - Chunked processing with auto-invocation
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts";
 import { requireUserAuth } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
-import {
-  extractImageAttachments,
-  extractPdfDataForAiFallback,
-} from "../_shared/lib/attachment-extractor.ts";
+import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
 import { createSupabaseClient } from "../_shared/lib/supabase.ts";
 import { createSystemNotification } from "../_shared/notifications.ts";
 import {
@@ -651,48 +647,32 @@ async function processMessage(
   const bodyText = extractBodyText(message.payload);
 
   // Extract attachments for AI analysis
-  const currentAccessToken = tokenData.access_token || "";
-  const attachmentOptions = {
-    fetchAttachmentData: async (
-      targetMessageId: string,
-      attachmentId: string
-    ) => {
-      const attachmentResponse = await fetchGmailWithRecovery(
-        supabase,
-        tokenData,
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
-        { method: "GET" },
-        "seed_fetch_attachment"
-      );
-      if (!attachmentResponse.ok) return null;
-      return await attachmentResponse.json();
-    },
-  };
-  const images = await extractImageAttachments(
-    currentAccessToken,
-    message.id || messageId,
-    message.payload,
-    attachmentOptions
-  );
-  const pdfResult = await extractPdfDataForAiFallback(
-    currentAccessToken,
-    message.id || messageId,
-    message.payload,
-    attachmentOptions
-  );
-  const pdfTexts = pdfResult.texts;
-
-  const fullContent = bodyText;
-
-  // Use AI to extract transaction information (with images and PDF text if available)
+  // Use shared document analysis pipeline (image/PDF extraction + AI)
   try {
-    const aiResult = await extractTransactionFromEmail(
-      fullContent,
+    const aiResult = await analyzeDocumentForTransaction({
+      kind: "gmail",
+      accessToken: tokenData.access_token || "",
+      messageId: message.id || messageId,
+      payload: message.payload,
+      bodyText,
       userFullName,
-      images,
-      pdfTexts,
-      pdfResult.fallbackPdfAttachments
-    );
+      attachmentOptions: {
+        fetchAttachmentData: async (
+          targetMessageId: string,
+          attachmentId: string
+        ) => {
+          const attachmentResponse = await fetchGmailWithRecovery(
+            supabase,
+            tokenData,
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
+            { method: "GET" },
+            "seed_fetch_attachment"
+          );
+          if (!attachmentResponse.ok) return null;
+          return await attachmentResponse.json();
+        },
+      },
+    });
 
     // Flush Langfuse events before returning (critical for serverless)
     const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");

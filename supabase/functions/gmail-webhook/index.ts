@@ -1,11 +1,7 @@
 // Gmail Webhook Edge Function - Processes real-time Gmail notifications
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { extractTransactionFromEmail } from "../_shared/ai/transaction-agent.ts";
-import {
-  extractImageAttachments,
-  extractPdfDataForAiFallback,
-} from "../_shared/lib/attachment-extractor.ts";
+import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { createSystemNotification } from "../_shared/notifications.ts";
 import {
@@ -330,54 +326,34 @@ Deno.serve(async req => {
       }
     }
 
-    // Extract attachments for AI analysis
-    const attachmentOptions = {
-      fetchAttachmentData: async (
-        targetMessageId: string,
-        attachmentId: string
-      ) => {
-        const attachmentResponse = await fetchGmailWithRecovery(
-          supabase,
-          firstToken,
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
-          { method: "GET" },
-          "webhook_fetch_attachment"
-        );
-        if (!attachmentResponse.ok) return null;
-        return await attachmentResponse.json();
-      },
-    };
-    const images = await extractImageAttachments(
-      firstToken.access_token || "",
-      message.id,
-      message.payload,
-      attachmentOptions
-    );
-    const pdfResult = await extractPdfDataForAiFallback(
-      firstToken.access_token || "",
-      message.id,
-      message.payload,
-      attachmentOptions
-    );
-    const pdfTexts = pdfResult.texts;
+    console.log("Analyzing email...", { bodyTextLength: bodyText.length });
 
-    const fullContent = bodyText;
-
-    console.log("Analyzing email...", {
-      bodyTextLength: bodyText.length,
-      imageCount: images.length,
-      pdfCount: pdfTexts.length,
-    });
-
-    // Use AI to extract transaction information (with images and PDF text if available)
+    // Use shared document analysis pipeline (image/PDF extraction + AI)
     try {
-      const aiResult = await extractTransactionFromEmail(
-        fullContent,
+      const aiResult = await analyzeDocumentForTransaction({
+        kind: "gmail",
+        accessToken: firstToken.access_token || "",
+        messageId: message.id,
+        payload: message.payload,
+        bodyText,
         userFullName,
-        images,
-        pdfTexts,
-        pdfResult.fallbackPdfAttachments
-      );
+        attachmentOptions: {
+          fetchAttachmentData: async (
+            targetMessageId: string,
+            attachmentId: string
+          ) => {
+            const attachmentResponse = await fetchGmailWithRecovery(
+              supabase,
+              firstToken,
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
+              { method: "GET" },
+              "webhook_fetch_attachment"
+            );
+            if (!attachmentResponse.ok) return null;
+            return await attachmentResponse.json();
+          },
+        },
+      });
 
       // Flush Langfuse events before returning (critical for serverless)
       const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
