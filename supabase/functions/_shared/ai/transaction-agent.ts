@@ -117,7 +117,8 @@ function getResponsesUsage(payload: unknown): {
 async function extractTransactionFromPdfWithXaiFile(
   emailContent: string,
   userFullName: string | undefined,
-  pdfAttachments: PdfAttachmentForAiFallback[]
+  pdfAttachments: PdfAttachmentForAiFallback[],
+  userLocale?: string
 ): Promise<(TransactionResponse & { usage?: unknown }) | null> {
   const apiKey = Deno.env.get("XAI_API_KEY") || "";
   if (!apiKey) {
@@ -197,7 +198,7 @@ Return ONLY valid JSON matching this exact schema:
   "reason": string
 }
 If no transaction is present, set hasTransaction=false and provide reason.
-Keep merchant/description in original language from the document.`;
+Keep merchant/description in original language from the document.${userLocale ? `\nIMPORTANT: Write the "reason" field in this language: ${userLocale}.` : ""}`;
 
     const response = await fetch("https://api.x.ai/v1/responses", {
       method: "POST",
@@ -291,7 +292,8 @@ export async function extractTransactionFromEmail(
   userFullName?: string,
   images?: ImageAttachment[],
   pdfTexts?: string[],
-  pdfFallbackAttachments?: PdfAttachmentForAiFallback[]
+  pdfFallbackAttachments?: PdfAttachmentForAiFallback[],
+  userLocale?: string
 ): Promise<TransactionResponse> {
   return await traceOperation(
     "ai-transaction-processing",
@@ -317,6 +319,10 @@ export async function extractTransactionFromEmail(
 
         if (images && images.length > 0) {
           dynamicPrompt += `\n\nNote: ${images.length} image attachment(s) are included below. These may contain receipts, invoices, or transaction details. Analyze them along with the email text.`;
+        }
+
+        if (userLocale) {
+          dynamicPrompt += `\n\nIMPORTANT: Write the "reason" field in this language: ${userLocale}. Keep merchant and description in the original document language.`;
         }
 
         // Build generateText options
@@ -407,7 +413,8 @@ export async function extractTransactionFromEmail(
           const fallbackResult = await extractTransactionFromPdfWithXaiFile(
             emailContent,
             userFullName,
-            pdfFallbackAttachments
+            pdfFallbackAttachments,
+            userLocale
           );
           if (fallbackResult?.hasTransaction) {
             console.log(

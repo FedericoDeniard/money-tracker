@@ -36,6 +36,14 @@ Deno.serve(async req => {
 
     const contentType = req.headers.get("content-type") || "";
     const fileName = req.headers.get("x-file-name") || "unknown";
+    const userLocale =
+      req.headers.get("x-user-locale") ||
+      req.headers
+        .get("accept-language")
+        ?.split(",")[0]
+        ?.split(";")[0]
+        ?.trim() ||
+      undefined;
 
     const arrayBuffer = await req.arrayBuffer();
     const fileBytes = new Uint8Array(arrayBuffer);
@@ -86,6 +94,7 @@ Deno.serve(async req => {
       contentType,
       fileName,
       userFullName,
+      userLocale,
     });
 
     const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
