@@ -1,6 +1,6 @@
 const DEFAULT_ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000";
 const DEFAULT_ALLOW_HEADERS =
-  "authorization, x-client-info, apikey, content-type, x-file-name";
+  "authorization, x-client-info, apikey, content-type, x-file-name, x-user-locale";
 const DEFAULT_ALLOW_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 
 type CorsHeaders = Record<string, string>;
