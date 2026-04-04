@@ -1,4 +1,4 @@
-// Gmail Watch Renewal Edge Function - Renews expiring Gmail watches
+// Gmail Watch Renewal Edge Function - Renews expiring Gmail watches + proactive token health check
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireInternalAuth } from "../_shared/auth.ts";
@@ -47,6 +47,63 @@ Deno.serve(async req => {
       supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    // -----------------------------------------------------------------------
+    // PHASE 1: Proactive token health check
+    // Touch every active OAuth token so:
+    //   - Tokens never go 6 months without use (Google revokes idle refresh tokens).
+    //   - Revoked/expired tokens are detected early (not only when an email arrives).
+    //   - Any new refresh_token Google rotates is captured and persisted.
+    // -----------------------------------------------------------------------
+    console.info(
+      "[renew-watches] === PHASE 1: Proactive token health check ==="
+    );
+
+    const { data: allActiveTokens, error: tokenFetchError } = await supabase
+      .from("user_oauth_tokens")
+      .select("*")
+      .eq("is_active", true);
+
+    if (tokenFetchError) {
+      console.info(
+        `[renew-watches] Error fetching active tokens: ${JSON.stringify(tokenFetchError)}`
+      );
+    } else {
+      console.info(
+        `[renew-watches] Found ${allActiveTokens?.length ?? 0} active token(s) to health-check`
+      );
+
+      for (const tokenRow of (allActiveTokens ?? []) as OAuthTokenRow[]) {
+        try {
+          await ensureFreshAccessToken(
+            supabase,
+            tokenRow,
+            "proactive_token_refresh"
+          );
+          console.info(
+            `[renew-watches] Token OK for ${tokenRow.gmail_email} (user=${tokenRow.user_id})`
+          );
+        } catch (error) {
+          if (error instanceof GmailReconnectRequiredError) {
+            // deactivateTokenAndNotify was already called inside ensureFreshAccessToken.
+            console.info(
+              `[renew-watches] Token deactivated for ${tokenRow.gmail_email} during health check`
+            );
+          } else {
+            const msg = error instanceof Error ? error.message : String(error);
+            console.info(
+              `[renew-watches] Unexpected error during health check for ${tokenRow.gmail_email}: ${msg}`
+            );
+          }
+        }
+      }
+    }
+
+    console.info("[renew-watches] === PHASE 1 complete ===");
+
+    // -----------------------------------------------------------------------
+    // PHASE 2: Renew expiring Gmail watches
+    // -----------------------------------------------------------------------
 
     // Get watches that expire in the next 48 hours
     const fortyEightHoursFromNow = new Date(
@@ -389,7 +446,7 @@ Deno.serve(async req => {
     }
 
     console.info(
-      `[renew-watches] ===== RENEWAL SUMMARY: ${renewedCount} renewed, ${failedCount} failed =====`
+      `[renew-watches] ===== SUMMARY: token_health_check=${allActiveTokens?.length ?? 0} checked | watches: ${renewedCount} renewed, ${failedCount} failed =====`
     );
     for (const r of results) {
       console.info(
@@ -403,6 +460,7 @@ Deno.serve(async req => {
     return new Response(
       JSON.stringify({
         message: "Watch renewal completed",
+        token_health_check: allActiveTokens?.length ?? 0,
         renewed: renewedCount,
         failed: failedCount,
         results,
