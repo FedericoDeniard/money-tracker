@@ -429,18 +429,25 @@ export class TransactionsService {
 
     if (deleteError) throw deleteError;
 
-    // 3. Guardar en discarded_emails para evitar que reaparezca en seeds
-    const { error: discardError } = await this.supabase
-      .from("discarded_emails")
-      .insert({
-        user_oauth_token_id: transaction.user_oauth_token_id!,
-        message_id: transaction.source_message_id,
-        reason: "User discarded transaction",
-      });
+    // 3. Guardar en discarded_emails solo para transacciones importadas de Gmail
+    const isGmailTransaction =
+      transaction.user_oauth_token_id &&
+      transaction.source_message_id &&
+      !transaction.source_message_id.startsWith("manual-");
 
-    // Ignorar error de duplicado (ya estaba descartado)
-    if (discardError && discardError.code !== "23505") {
-      throw discardError;
+    if (isGmailTransaction) {
+      const { error: discardError } = await this.supabase
+        .from("discarded_emails")
+        .insert({
+          user_oauth_token_id: transaction.user_oauth_token_id,
+          message_id: transaction.source_message_id,
+          reason: "User discarded transaction",
+        });
+
+      // Ignorar error de duplicado (ya estaba descartado)
+      if (discardError && discardError.code !== "23505") {
+        throw discardError;
+      }
     }
   }
 
