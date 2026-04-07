@@ -20,14 +20,45 @@ const distDir = join(import.meta.dir, "..", "dist");
 // Resolve the public directory (static assets: manifest, icons)
 const publicDir = join(import.meta.dir, "..", "public");
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; "),
+};
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function serveStaticFile(filePath: string, contentType: string): Response {
   if (!existsSync(filePath)) {
-    return new Response("Not found", { status: 404 });
+    return withSecurityHeaders(new Response("Not found", { status: 404 }));
   }
   const content = readFileSync(filePath);
-  return new Response(content, {
-    headers: { "Content-Type": contentType },
-  });
+  return withSecurityHeaders(
+    new Response(content, { headers: { "Content-Type": contentType } })
+  );
 }
 
 const server = serve({
@@ -52,7 +83,7 @@ const server = serve({
         return new Response("Server configuration error", { status: 500 });
       }
 
-      return Response.json(config);
+      return withSecurityHeaders(Response.json(config));
     },
 
     // Service worker — served from the compiled dist/ in production,
@@ -64,9 +95,11 @@ const server = serve({
       }
       // In dev mode the SW is not pre-built — return a minimal stub so the
       // browser can register a SW without error. The real SW is built on `bun run build`.
-      return new Response(
-        '// Dev mode: run "bun run build" to generate the full service worker\n',
-        { headers: { "Content-Type": "application/javascript" } }
+      return withSecurityHeaders(
+        new Response(
+          '// Dev mode: run "bun run build" to generate the full service worker\n',
+          { headers: { "Content-Type": "application/javascript" } }
+        )
       );
     },
 
