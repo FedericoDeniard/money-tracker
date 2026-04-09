@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   X,
   Upload,
@@ -44,6 +44,17 @@ const SUPPORTED_TYPES = [
 
 type UploadState = "idle" | "uploading" | "processing" | "success" | "error";
 
+const FILE_EXTENSION_BY_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/bmp": "bmp",
+  "image/tiff": "tiff",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+};
+
 export function UploadTransactionModal({
   isOpen,
   onClose,
@@ -55,6 +66,7 @@ export function UploadTransactionModal({
   const [dragActive, setDragActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [pasteSuccessMessage, setPasteSuccessMessage] = useState("");
 
   const isProcessing =
     uploadState === "uploading" || uploadState === "processing";
@@ -78,20 +90,158 @@ export function UploadTransactionModal({
     return null;
   };
 
+  const createClipboardFile = useCallback((blob: Blob): File | null => {
+    if (!blob.type || !SUPPORTED_TYPES.includes(blob.type)) {
+      return null;
+    }
+
+    const extension = FILE_EXTENSION_BY_MIME[blob.type] ?? "bin";
+    const generatedName = `pasted-document-${Date.now()}.${extension}`;
+    return new File([blob], generatedName, { type: blob.type });
+  }, []);
+
+  const getFileFromClipboardData = useCallback(
+    (clipboardData: DataTransfer | null): File | null => {
+      if (!clipboardData) {
+        return null;
+      }
+
+      if (clipboardData.files.length > 0 && clipboardData.files[0]) {
+        const firstFile = clipboardData.files[0];
+        if (SUPPORTED_TYPES.includes(firstFile.type)) {
+          return firstFile;
+        }
+      }
+
+      for (const item of Array.from(clipboardData.items)) {
+        if (item.kind !== "file") {
+          continue;
+        }
+        const file = item.getAsFile();
+        if (!file) {
+          continue;
+        }
+        if (SUPPORTED_TYPES.includes(file.type)) {
+          return file;
+        }
+      }
+
+      return null;
+    },
+    []
+  );
+
   const handleFileSelect = useCallback(
-    (file: File) => {
+    (file: File, source: "file" | "clipboard" = "file") => {
       const validationError = validateFile(file);
       if (validationError) {
         setErrorMessage(validationError);
         setUploadState("error");
+        setPasteSuccessMessage("");
         return;
       }
       setSelectedFile(file);
       setErrorMessage("");
       setUploadState("idle");
+      setPasteSuccessMessage(
+        source === "clipboard"
+          ? t("upload.paste.success", "Image pasted successfully.")
+          : ""
+      );
     },
     [t]
   );
+
+  const handlePasteFromClipboard = useCallback(async () => {
+    if (isProcessing || selectedFile) {
+      return;
+    }
+
+    if (!navigator.clipboard?.read) {
+      setErrorMessage(
+        t(
+          "upload.errors.clipboardNotSupported",
+          "Clipboard read is not supported in this browser."
+        )
+      );
+      setUploadState("error");
+      setPasteSuccessMessage("");
+      return;
+    }
+
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+
+      for (const clipboardItem of clipboardItems) {
+        const supportedType = clipboardItem.types.find(type =>
+          SUPPORTED_TYPES.includes(type)
+        );
+        if (!supportedType) {
+          continue;
+        }
+
+        const blob = await clipboardItem.getType(supportedType);
+        const clipboardFile = createClipboardFile(blob);
+        if (!clipboardFile) {
+          continue;
+        }
+
+        handleFileSelect(clipboardFile, "clipboard");
+        return;
+      }
+
+      setErrorMessage(
+        t(
+          "upload.errors.clipboardEmpty",
+          "No supported file found in clipboard."
+        )
+      );
+      setUploadState("error");
+      setPasteSuccessMessage("");
+    } catch (error) {
+      const permissionDenied =
+        error instanceof DOMException && error.name === "NotAllowedError";
+      setErrorMessage(
+        permissionDenied
+          ? t(
+              "upload.errors.clipboardPermissionDenied",
+              "Clipboard access was denied. Please allow paste access and try again."
+            )
+          : t(
+              "upload.errors.clipboardReadFailed",
+              "Could not read clipboard content."
+            )
+      );
+      setUploadState("error");
+      setPasteSuccessMessage("");
+    }
+  }, [createClipboardFile, handleFileSelect, isProcessing, selectedFile, t]);
+
+  useEffect(() => {
+    if (!isOpen || isProcessing || selectedFile) {
+      return;
+    }
+
+    const handleWindowPaste = (event: ClipboardEvent) => {
+      const pastedFile = getFileFromClipboardData(event.clipboardData);
+      if (!pastedFile) {
+        return;
+      }
+      event.preventDefault();
+      handleFileSelect(pastedFile, "clipboard");
+    };
+
+    window.addEventListener("paste", handleWindowPaste);
+    return () => {
+      window.removeEventListener("paste", handleWindowPaste);
+    };
+  }, [
+    getFileFromClipboardData,
+    handleFileSelect,
+    isOpen,
+    isProcessing,
+    selectedFile,
+  ]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -152,6 +302,7 @@ export function UploadTransactionModal({
     setUploadState("idle");
     setErrorMessage("");
     setDragActive(false);
+    setPasteSuccessMessage("");
   };
 
   const handleClose = () => {
@@ -227,29 +378,44 @@ export function UploadTransactionModal({
                 "Supports PDF and image files (JPG, PNG, etc.)"
               )}
             </p>
-            <Button
-              variant="primary"
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = SUPPORTED_TYPES.join(",");
-                input.onchange = e => {
-                  const target = e.target as {
-                    files?: { [key: number]: File; length: number } | null;
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = SUPPORTED_TYPES.join(",");
+                  input.onchange = e => {
+                    const target = e.target as {
+                      files?: { [key: number]: File; length: number } | null;
+                    };
+                    if (
+                      target.files &&
+                      target.files.length > 0 &&
+                      target.files[0]
+                    ) {
+                      handleFileSelect(target.files[0]);
+                    }
                   };
-                  if (
-                    target.files &&
-                    target.files.length > 0 &&
-                    target.files[0]
-                  ) {
-                    handleFileSelect(target.files[0]);
-                  }
-                };
-                input.click();
-              }}
-            >
-              {t("upload.selectFile", "Select File")}
-            </Button>
+                  input.click();
+                }}
+              >
+                {t("upload.selectFile", "Select File")}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handlePasteFromClipboard}
+                disabled={isProcessing}
+              >
+                {t("upload.paste.button", "Paste from clipboard")}
+              </Button>
+            </div>
+            <p className="mt-3 text-xs text-[var(--text-secondary)]">
+              {t(
+                "upload.paste.hint",
+                "You can also paste directly with Cmd/Ctrl + V."
+              )}
+            </p>
           </div>
         ) : (
           /* File Preview */
@@ -265,13 +431,23 @@ export function UploadTransactionModal({
                 </p>
               </div>
               <Button
-                onClick={() => setSelectedFile(null)}
+                onClick={() => {
+                  setSelectedFile(null);
+                  setPasteSuccessMessage("");
+                }}
                 variant="ghost"
                 size="sm"
                 icon={<X size={16} />}
                 disabled={isProcessing}
               />
             </div>
+          </div>
+        )}
+
+        {pasteSuccessMessage && uploadState !== "error" && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+            <p className="text-sm text-blue-700">{pasteSuccessMessage}</p>
           </div>
         )}
 

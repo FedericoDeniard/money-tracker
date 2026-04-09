@@ -151,6 +151,11 @@
     "dragDrop": "Arrastra y suelta tu documento aquí",
     "supportedFormats": "Admite archivos PDF e imágenes (JPG, PNG, etc.)",
     "selectFile": "Seleccionar Archivo",
+    "paste": {
+      "button": "Pegar desde portapapeles",
+      "hint": "También puedes pegar directamente con Cmd/Ctrl + V.",
+      "success": "Imagen pegada correctamente."
+    },
     "uploading": "Subiendo documento...",
     "processing": "Analizando documento con IA...",
     "analyze": "Analizar Documento",
@@ -158,7 +163,11 @@
     "error": "Error al subir: {{error}}",
     "errors": {
       "unsupportedType": "Tipo de archivo no soportado. Por favor sube archivos PDF o imágenes.",
-      "fileTooLarge": "Archivo demasiado grande. El tamaño máximo es {{size}}MB."
+      "fileTooLarge": "Archivo demasiado grande. El tamaño máximo es {{size}}MB.",
+      "clipboardNotSupported": "La lectura del portapapeles no está soportada en este navegador.",
+      "clipboardEmpty": "No se encontró ningún archivo compatible en el portapapeles.",
+      "clipboardPermissionDenied": "Se denegó el acceso al portapapeles. Permite pegar e inténtalo nuevamente.",
+      "clipboardReadFailed": "No se pudo leer el contenido del portapapeles."
     }
   },
   "metrics": {
