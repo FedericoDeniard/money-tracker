@@ -151,6 +151,11 @@
     "dragDrop": "Drag and drop your document here",
     "supportedFormats": "Supports PDF and image files (JPG, PNG, etc.)",
     "selectFile": "Select File",
+    "paste": {
+      "button": "Paste from clipboard",
+      "hint": "You can also paste directly with Cmd/Ctrl + V.",
+      "success": "Image pasted successfully."
+    },
     "uploading": "Uploading document...",
     "processing": "Analyzing document with AI...",
     "analyze": "Analyze Document",
@@ -158,7 +163,11 @@
     "error": "Upload failed: {{error}}",
     "errors": {
       "unsupportedType": "Unsupported file type. Please upload PDF or image files.",
-      "fileTooLarge": "File too large. Maximum size is {{size}}MB."
+      "fileTooLarge": "File too large. Maximum size is {{size}}MB.",
+      "clipboardNotSupported": "Clipboard read is not supported in this browser.",
+      "clipboardEmpty": "No supported file found in clipboard.",
+      "clipboardPermissionDenied": "Clipboard access was denied. Please allow paste access and try again.",
+      "clipboardReadFailed": "Could not read clipboard content."
     }
   },
   "metrics": {
