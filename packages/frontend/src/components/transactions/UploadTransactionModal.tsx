@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   X,
   Upload,
@@ -11,6 +11,10 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { uploadDocumentForAnalysis } from "../../services/document-upload.service";
+import {
+  useClipboardFile,
+  type ClipboardReadError,
+} from "../../hooks/useClipboardFile";
 
 export type TransactionFormData = {
   transaction_type: "income" | "expense";
@@ -43,17 +47,6 @@ const SUPPORTED_TYPES = [
 ];
 
 type UploadState = "idle" | "uploading" | "processing" | "success" | "error";
-
-const FILE_EXTENSION_BY_MIME: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/bmp": "bmp",
-  "image/tiff": "tiff",
-  "image/webp": "webp",
-  "application/pdf": "pdf",
-};
 
 export function UploadTransactionModal({
   isOpen,
@@ -90,47 +83,6 @@ export function UploadTransactionModal({
     return null;
   };
 
-  const createClipboardFile = useCallback((blob: Blob): File | null => {
-    if (!blob.type || !SUPPORTED_TYPES.includes(blob.type)) {
-      return null;
-    }
-
-    const extension = FILE_EXTENSION_BY_MIME[blob.type] ?? "bin";
-    const generatedName = `pasted-document-${Date.now()}.${extension}`;
-    return new File([blob], generatedName, { type: blob.type });
-  }, []);
-
-  const getFileFromClipboardData = useCallback(
-    (clipboardData: DataTransfer | null): File | null => {
-      if (!clipboardData) {
-        return null;
-      }
-
-      if (clipboardData.files.length > 0 && clipboardData.files[0]) {
-        const firstFile = clipboardData.files[0];
-        if (SUPPORTED_TYPES.includes(firstFile.type)) {
-          return firstFile;
-        }
-      }
-
-      for (const item of Array.from(clipboardData.items)) {
-        if (item.kind !== "file") {
-          continue;
-        }
-        const file = item.getAsFile();
-        if (!file) {
-          continue;
-        }
-        if (SUPPORTED_TYPES.includes(file.type)) {
-          return file;
-        }
-      }
-
-      return null;
-    },
-    []
-  );
-
   const handleFileSelect = useCallback(
     (file: File, source: "file" | "clipboard" = "file") => {
       const validationError = validateFile(file);
@@ -152,96 +104,60 @@ export function UploadTransactionModal({
     [t]
   );
 
+  const getClipboardErrorMessage = useCallback(
+    (error: ClipboardReadError): string => {
+      switch (error) {
+        case "not_supported":
+          return t(
+            "upload.errors.clipboardNotSupported",
+            "Clipboard read is not supported in this browser."
+          );
+        case "permission_denied":
+          return t(
+            "upload.errors.clipboardPermissionDenied",
+            "Clipboard access was denied. Please allow paste access and try again."
+          );
+        case "empty":
+          return t(
+            "upload.errors.clipboardEmpty",
+            "No supported file found in clipboard."
+          );
+        case "read_failed":
+        default:
+          return t(
+            "upload.errors.clipboardReadFailed",
+            "Could not read clipboard content."
+          );
+      }
+    },
+    [t]
+  );
+
+  const { readFromClipboard } = useClipboardFile({
+    isEnabled: isOpen && !isProcessing && !selectedFile,
+    acceptedMimeTypes: SUPPORTED_TYPES,
+    onFile: useCallback(
+      (file: File) => {
+        handleFileSelect(file, "clipboard");
+      },
+      [handleFileSelect]
+    ),
+  });
+
   const handlePasteFromClipboard = useCallback(async () => {
     if (isProcessing || selectedFile) {
       return;
     }
 
-    if (!navigator.clipboard?.read) {
-      setErrorMessage(
-        t(
-          "upload.errors.clipboardNotSupported",
-          "Clipboard read is not supported in this browser."
-        )
-      );
-      setUploadState("error");
-      setPasteSuccessMessage("");
+    const clipboardError = await readFromClipboard();
+    if (!clipboardError) {
       return;
     }
 
-    try {
-      const clipboardItems = await navigator.clipboard.read();
-
-      for (const clipboardItem of clipboardItems) {
-        const supportedType = clipboardItem.types.find(type =>
-          SUPPORTED_TYPES.includes(type)
-        );
-        if (!supportedType) {
-          continue;
-        }
-
-        const blob = await clipboardItem.getType(supportedType);
-        const clipboardFile = createClipboardFile(blob);
-        if (!clipboardFile) {
-          continue;
-        }
-
-        handleFileSelect(clipboardFile, "clipboard");
-        return;
-      }
-
-      setErrorMessage(
-        t(
-          "upload.errors.clipboardEmpty",
-          "No supported file found in clipboard."
-        )
-      );
-      setUploadState("error");
-      setPasteSuccessMessage("");
-    } catch (error) {
-      const permissionDenied =
-        error instanceof DOMException && error.name === "NotAllowedError";
-      setErrorMessage(
-        permissionDenied
-          ? t(
-              "upload.errors.clipboardPermissionDenied",
-              "Clipboard access was denied. Please allow paste access and try again."
-            )
-          : t(
-              "upload.errors.clipboardReadFailed",
-              "Could not read clipboard content."
-            )
-      );
-      setUploadState("error");
-      setPasteSuccessMessage("");
-    }
-  }, [createClipboardFile, handleFileSelect, isProcessing, selectedFile, t]);
-
-  useEffect(() => {
-    if (!isOpen || isProcessing || selectedFile) {
-      return;
-    }
-
-    const handleWindowPaste = (event: ClipboardEvent) => {
-      const pastedFile = getFileFromClipboardData(event.clipboardData);
-      if (!pastedFile) {
-        return;
-      }
-      event.preventDefault();
-      handleFileSelect(pastedFile, "clipboard");
-    };
-
-    window.addEventListener("paste", handleWindowPaste);
-    return () => {
-      window.removeEventListener("paste", handleWindowPaste);
-    };
-  }, [
-    getFileFromClipboardData,
-    handleFileSelect,
-    isOpen,
-    isProcessing,
-    selectedFile,
-  ]);
+    setErrorMessage(getClipboardErrorMessage(clipboardError));
+    setUploadState("error");
+    setPasteSuccessMessage("");
+  }, [getClipboardErrorMessage, isProcessing, readFromClipboard, selectedFile]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
