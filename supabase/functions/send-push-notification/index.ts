@@ -42,6 +42,10 @@ const TEMPLATES: Record<string, { title: string; body: string }> = {
     title: "Could not renew Gmail subscription",
     body: "Automatic renewal for {{email}} failed.",
   },
+  gmail_watch_renewed: {
+    title: "Gmail watch renewed",
+    body: "The subscription for {{email}} was automatically renewed.",
+  },
   gmail_sync_error: {
     title: "Gmail sync error",
     body: "There was an error syncing {{email}}. {{reason}}",
