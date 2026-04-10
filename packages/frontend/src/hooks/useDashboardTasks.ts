@@ -159,6 +159,7 @@ export function useDashboardTasks(userId?: string) {
           .from("transactions")
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId)
+          .eq("discarded", false)
           .neq("source_message_id", "")
           .neq("source_email", "")
           .gte("created_at", activityStart.toISOString()),

@@ -145,6 +145,7 @@ export class TransactionsService {
       `,
       { count: "exact" }
     );
+    query = query.eq("discarded", false);
 
     // Apply filters
     if (filters?.currency && filters.currency !== "all") {
@@ -224,6 +225,7 @@ export class TransactionsService {
           gmail_email
         )
       `);
+    query = query.eq("discarded", false);
 
     // Apply filters
     if (filters?.currency && filters.currency !== "all") {
@@ -313,6 +315,7 @@ export class TransactionsService {
         )
       `)
       .eq("id", id)
+      .eq("discarded", false)
       .single();
 
     if (error) throw error;
@@ -329,7 +332,8 @@ export class TransactionsService {
       // Fallback to the old method if RPC not available
       const { data: fallbackData, error: fallbackError } = await this.supabase
         .from("transactions")
-        .select("currency");
+        .select("currency")
+        .eq("discarded", false);
 
       if (fallbackError) throw fallbackError;
 
@@ -411,7 +415,7 @@ export class TransactionsService {
   }
 
   async deleteTransaction(transactionId: string): Promise<void> {
-    // 1. Obtener datos de la transacción antes de borrarla
+    // 1. Obtener datos de la transacción antes de marcarla como descartada
     const { data: transaction, error: fetchError } = await this.supabase
       .from("transactions")
       .select("source_message_id, user_oauth_token_id")
@@ -421,10 +425,14 @@ export class TransactionsService {
     if (fetchError) throw fetchError;
     if (!transaction) throw new Error("Transaction not found");
 
-    // 2. Eliminar de transactions
+    // 2. Soft delete en transactions para preservar trazabilidad
     const { error: deleteError } = await this.supabase
       .from("transactions")
-      .delete()
+      .update({
+        discarded: true,
+        discarded_at: new Date().toISOString(),
+        discarded_reason: "User discarded transaction",
+      })
       .eq("id", transactionId);
 
     if (deleteError) throw deleteError;
@@ -441,6 +449,7 @@ export class TransactionsService {
         .insert({
           user_oauth_token_id: transaction.user_oauth_token_id,
           message_id: transaction.source_message_id,
+          transaction_id: transactionId,
           reason: "User discarded transaction",
         });
 
