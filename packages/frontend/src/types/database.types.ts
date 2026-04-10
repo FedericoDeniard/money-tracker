@@ -1,4 +1,3 @@
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -41,6 +40,7 @@ export type Database = {
           id: string
           message_id: string
           reason: string | null
+          transaction_id: string | null
           user_oauth_token_id: string
         }
         Insert: {
@@ -48,6 +48,7 @@ export type Database = {
           id?: string
           message_id: string
           reason?: string | null
+          transaction_id?: string | null
           user_oauth_token_id: string
         }
         Update: {
@@ -55,9 +56,17 @@ export type Database = {
           id?: string
           message_id?: string
           reason?: string | null
+          transaction_id?: string | null
           user_oauth_token_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "discarded_emails_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "discarded_emails_user_oauth_token_id_fkey"
             columns: ["user_oauth_token_id"]
@@ -448,6 +457,9 @@ export type Database = {
           created_at: string | null
           currency: string
           date: string
+          discarded: boolean
+          discarded_at: string | null
+          discarded_reason: string | null
           id: string
           merchant: string
           source_email: string
@@ -465,6 +477,9 @@ export type Database = {
           created_at?: string | null
           currency?: string
           date: string
+          discarded?: boolean
+          discarded_at?: string | null
+          discarded_reason?: string | null
           id?: string
           merchant: string
           source_email: string
@@ -482,6 +497,9 @@ export type Database = {
           created_at?: string | null
           currency?: string
           date?: string
+          discarded?: boolean
+          discarded_at?: string | null
+          discarded_reason?: string | null
           id?: string
           merchant?: string
           source_email?: string
@@ -560,6 +578,8 @@ export type Database = {
           gmail_email: string | null
           id: string
           is_active: boolean
+          last_refresh_at: string | null
+          last_refresh_error: string | null
           refresh_token: string | null
           refresh_token_encrypted: string | null
           scope: string | null
@@ -575,6 +595,8 @@ export type Database = {
           gmail_email?: string | null
           id?: string
           is_active?: boolean
+          last_refresh_at?: string | null
+          last_refresh_error?: string | null
           refresh_token?: string | null
           refresh_token_encrypted?: string | null
           scope?: string | null
@@ -590,6 +612,8 @@ export type Database = {
           gmail_email?: string | null
           id?: string
           is_active?: boolean
+          last_refresh_at?: string | null
+          last_refresh_error?: string | null
           refresh_token?: string | null
           refresh_token_encrypted?: string | null
           scope?: string | null
@@ -688,6 +712,9 @@ export type Database = {
           created_at: string | null
           currency: string
           date: string
+          discarded: boolean
+          discarded_at: string | null
+          discarded_reason: string | null
           id: string
           merchant: string
           source_email: string
@@ -857,5 +884,3 @@ export const Constants = {
   },
 } as const
 
-A new version of Supabase CLI is available: v2.84.2 (currently installed v2.75.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

@@ -179,7 +179,7 @@ async function extractTransactionFromPdfWithXaiFile(
       ? `The account owner/recipient is: ${userFullName}.`
       : "The account owner/recipient name is unknown.";
     const fallbackPrompt = `${ownerContext}
-Analyze all attached PDF receipts and the email body to determine if there is a financial transaction.
+Analyze all attached PDF receipts and the email body to determine if there is a completed financial transaction.
 Email body:
 ${emailContent}
 
@@ -197,7 +197,11 @@ Return ONLY valid JSON matching this exact schema:
   },
   "reason": string
 }
-If no transaction is present, set hasTransaction=false and provide reason.
+Decision criteria:
+- Set hasTransaction=true only when the message/document confirms the money movement already happened (paid, charged, debited, credited, transferred, received, posted, completed, successful).
+- Set hasTransaction=false for reminders, due-date notices, upcoming/scheduled/autopay notices, payment requests, invoices to pay, authorization holds, or failed/rejected/cancelled operations.
+- If completion is unclear, prefer hasTransaction=false and explain what confirmation is missing.
+If no completed transaction is present, set hasTransaction=false and provide reason.
 Keep merchant/description in original language from the document.${userLocale ? `\nIMPORTANT: Write the "reason" field in this language: ${userLocale}.` : ""}`;
 
     const response = await fetch("https://api.x.ai/v1/responses", {
