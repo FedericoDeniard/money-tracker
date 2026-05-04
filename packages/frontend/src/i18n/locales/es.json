@@ -287,7 +287,7 @@
     "language": "Idioma",
     "theme": "Tema",
     "notifications": "Notificaciones",
-    "privacy": "Privacidad",
+    "privacy": "Política de Privacidad",
     "deleteAccount": "Eliminar Cuenta",
     "signOut": "Cerrar Sesión",
     "saveChanges": "Guardar Cambios",
@@ -673,7 +673,8 @@
       "getStarted": "Comenzar",
       "documentation": "Documentación",
       "github": "GitHub",
-      "personalProject": "Proyecto personal."
+      "personalProject": "Proyecto personal.",
+      "privacy": "Privacidad"
     }
   },
   "filters": {
@@ -770,6 +771,81 @@
       "allSkipped": "Tutoriales desactivados",
       "restartButton": "Ver tutoriales de nuevo",
       "skipButton": "Saltar todos los tutoriales"
+    }
+  },
+  "privacy": {
+    "title": "Política de Privacidad",
+    "lastUpdated": "Última actualización: {{date}}",
+    "controller": {
+      "title": "Responsable del tratamiento",
+      "content": "Federico Deniard, desarrollador independiente. Para cualquier consulta relacionada con esta política de privacidad, podés contactarme en fededeniard@gmail.com."
+    },
+    "dataCollected": {
+      "title": "Datos que recopilamos",
+      "intro": "Money Tracker recopila los siguientes datos personales para su funcionamiento:",
+      "items": [
+        "Datos de autenticación: correo electrónico, nombre (si usás Google OAuth) y contraseña encriptada.",
+        "Datos de transacciones financieras: montos, comercios, categorías, fechas y descripciones extraídos de tus correos electrónicos.",
+        "Documentos subidos: PDFs e imágenes que subís voluntariamente para extracción de transacciones.",
+        "Datos de Gmail: acceso de solo lectura para procesar correos de recibos y transacciones. Los tokens OAuth se almacenan encriptados.",
+        "Preferencias de notificaciones: configuraciones de notificaciones push y preferencias por tipo.",
+        "Estado de tutoriales: preferencia de idioma y progreso de tutoriales guardados en localStorage."
+      ]
+    },
+    "purpose": {
+      "title": "Finalidad del tratamiento",
+      "content": "Tus datos se utilizan exclusivamente para: (a) autenticación y gestión de tu cuenta, (b) extraer y categorizar automáticamente transacciones financieras desde Gmail y documentos subidos, (c) mostrarte métricas y análisis de tus finanzas, (d) enviarte notificaciones relevantes (nuevas transacciones, alertas de conexión), y (e) mejorar el servicio mediante el análisis de rendimiento de la IA."
+    },
+    "aiProcessing": {
+      "title": "Procesamiento con inteligencia artificial",
+      "content": "Los correos electrónicos y documentos que subís son procesados por xAI (Grok) para extraer información financiera. También utilizamos Langfuse para observabilidad y trazado de las extracciones de IA, con el fin de diagnosticar errores y mejorar la precisión del sistema. No utilizamos tus datos para entrenar modelos de IA ni los compartimos con terceros con fines comerciales."
+    },
+    "thirdParties": {
+      "title": "Terceros involucrados",
+      "intro": "Money Tracker utiliza los siguientes servicios de terceros para su funcionamiento:",
+      "items": [
+        "Supabase: proveedor de base de datos PostgreSQL, autenticación y funciones serverless. Los datos se almacenan en servidores de Supabase con encriptación en reposo.",
+        "Google (Gmail API): acceso de solo lectura para leer correos de transacciones. Utilizamos los scopes gmail.readonly y userinfo.email.",
+        "xAI (Grok): procesamiento de IA para extraer datos financieros de correos y documentos.",
+        "Langfuse: plataforma de observabilidad para monitorear y depurar las extracciones de IA.",
+        "Web Push API: notificaciones push nativas del navegador. No utilizamos servicios de terceros para push."
+      ]
+    },
+    "security": {
+      "title": "Seguridad",
+      "content": "Implementamos las siguientes medidas de seguridad: encriptación en reposo de la base de datos (Supabase), tokens OAuth de Gmail almacenados en columnas encriptadas, políticas de seguridad a nivel de fila (RLS) que garantizan que cada usuario solo accede a sus propios datos, comunicación mediante HTTPS con headers CSP, y sesiones de autenticación con renovación automática de tokens."
+    },
+    "localStorage": {
+      "title": "Almacenamiento local y cookies",
+      "content": "Money Tracker no utiliza cookies de seguimiento ni publicitarias. Usamos localStorage del navegador únicamente para guardar tu preferencia de idioma y el estado de los tutoriales interactivos. No hay rastreadores, analytics ni píxeles de terceros."
+    },
+    "pushNotifications": {
+      "title": "Notificaciones push",
+      "content": "Las notificaciones push son opt-in. Si las activás, tu navegador recibe alertas sobre nuevas transacciones procesadas, errores de importación y recordatorios de conexión de Gmail. Podés desactivarlas en cualquier momento desde la sección de Configuración."
+    },
+    "retention": {
+      "title": "Retención y eliminación de datos",
+      "content": "Tus transacciones financieras se conservan mientras tengas una cuenta activa. Podés eliminar transacciones individualmente en cualquier momento (borrado lógico). Al desconectar tu cuenta de Gmail, los tokens OAuth se desactivan y se registra permanentemente la desactivación. Si eliminás tu cuenta, todos tus datos asociados se eliminan. Los registros de desactivación de tokens se conservan por seguridad."
+    },
+    "rights": {
+      "title": "Tus derechos",
+      "intro": "Como usuario, tenés los siguientes derechos sobre tus datos:",
+      "items": [
+        "Acceso: podés ver todos tus datos en cualquier momento desde la aplicación.",
+        "Rectificación: podés editar y corregir tus transacciones.",
+        "Eliminación: podés eliminar transacciones individuales o tu cuenta completa.",
+        "Portabilidad: podés solicitar una copia de tus datos contactándome por email.",
+        "Revocación del consentimiento: podés desconectar Gmail en cualquier momento desde Configuración.",
+        "Oposición: podés optar por no recibir notificaciones push desactivándolas en Configuración."
+      ]
+    },
+    "contact": {
+      "title": "Contacto",
+      "content": "Si tenés preguntas, inquietudes o solicitudes relacionadas con tus datos personales, podés escribirme a fededeniard@gmail.com. Respondo a la brevedad."
+    },
+    "changes": {
+      "title": "Cambios en esta política",
+      "content": "Esta política de privacidad puede actualizarse periódicamente. Los cambios serán publicados en esta misma URL. Te recomiendo revisarla de vez en cuando para mantenerte informado."
     }
   }
 }
