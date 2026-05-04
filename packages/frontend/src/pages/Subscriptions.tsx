@@ -41,7 +41,7 @@ function SubscriptionList({
 }: SubscriptionListProps) {
   const { t } = useTranslation();
   const { data: candidates = [] } = useSubscriptionCandidates({
-    minConfidence: 65,
+    minConfidence: 80,
   });
 
   const visibleCandidates = useMemo(() => {
