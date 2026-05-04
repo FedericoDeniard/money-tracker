@@ -44,6 +44,9 @@ const ResetPassword = lazy(() =>
 const LandingPage = lazy(() =>
   import("../pages/LandingPage").then(m => ({ default: m.LandingPage }))
 );
+const PrivacyPolicy = lazy(() =>
+  import("../pages/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy }))
+);
 
 const chunkFallback = <SuspenseFallbackPage />;
 
@@ -143,6 +146,14 @@ export function AppRoutes() {
                 <LandingPage />
               </Suspense>
             </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <Suspense fallback={chunkFallback}>
+              <PrivacyPolicy />
+            </Suspense>
           }
         />
 

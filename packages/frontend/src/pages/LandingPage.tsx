@@ -85,6 +85,12 @@ export function LandingPage() {
               >
                 {t("landing.nav.github")}
               </a>
+              <Link
+                to="/privacy"
+                className="hover:text-[var(--primary)] transition-colors"
+              >
+                {t("landing.nav.privacy")}
+              </Link>
             </div>
           </div>
           <div className="mt-8 text-center text-sm text-[var(--text-secondary)]/60">
