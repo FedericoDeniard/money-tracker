@@ -1,6 +1,7 @@
 import { assert, assertEquals } from "jsr:@std/assert";
 import { TransactionSchema, type TransactionResponse } from "./schemas.ts";
 import { extractTransactionFromEmail } from "./transaction-agent.ts";
+import { shouldProcessEmail } from "./guardrail.ts";
 import { transactionAgentCases } from "./fixtures/transaction-agent-cases.ts";
 
 function assertPositiveResponse(
@@ -101,6 +102,106 @@ Deno.test({
         } else {
           assertNegativeResponse(result);
         }
+      });
+    }
+  },
+});
+
+Deno.test({
+  name: "transaction-agent rejects non-transactional email via guardrail",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    if (!Deno.env.get("XAI_API_KEY")) {
+      throw new Error(
+        "XAI_API_KEY is required to run this integration test suite."
+      );
+    }
+
+    const result = await extractTransactionFromEmail(
+      `Hi Alex,
+
+You have a new follower on Twitter: @tech_guru.
+
+They started following you after you posted about the latest JavaScript framework.
+
+View profile: https://twitter.com/tech_guru
+
+— Twitter Team`,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    );
+
+    assertEquals(
+      result.hasTransaction,
+      false,
+      `Expected hasTransaction=false for social notification. Actual: ${JSON.stringify(result)}`
+    );
+    assert(
+      result.reason.includes("Guardrail") ||
+        result.reason.includes("guardrail"),
+      `Expected rejection reason to mention guardrail. Got: ${result.reason}`
+    );
+  },
+});
+
+Deno.test({
+  name: "guardrail rejects clearly non-transactional emails",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async t => {
+    const nonTransactionalEmails = [
+      {
+        name: "social media notification",
+        content: `Hi John,
+
+Sarah liked your photo on Instagram.
+
+Check out what other people are saying about your post.
+
+View activity: https://instagram.com/p/abc123
+
+— The Instagram Team`,
+      },
+      {
+        name: "marketing newsletter",
+        content: `Subject: Summer Sale - Up to 50% Off!
+
+Hey there!
+
+Don't miss our biggest sale of the year. Get up to 50% off on selected items.
+
+Shop now: https://shop.example.com/sale
+
+Unsubscribe: https://shop.example.com/unsubscribe`,
+      },
+      {
+        name: "password reset email",
+        content: `Hello,
+
+We received a request to reset your password for your account.
+
+Click the link below to reset your password:
+https://example.com/reset-password?token=abc123xyz
+
+If you didn't request this, please ignore this email.
+
+Thanks,
+The Example Team`,
+      },
+    ];
+
+    for (const testCase of nonTransactionalEmails) {
+      await t.step(testCase.name, async () => {
+        const result = await shouldProcessEmail(testCase.content, false);
+        assertEquals(
+          result.shouldProcess,
+          false,
+          `Guardrail should reject non-transactional email: ${testCase.name}\nReason: ${result.reason}`
+        );
       });
     }
   },

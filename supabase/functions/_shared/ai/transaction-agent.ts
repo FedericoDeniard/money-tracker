@@ -2,6 +2,7 @@ import {
   TransactionResponseSchema,
   type TransactionResponse,
 } from "./schemas.ts";
+import { shouldProcessEmail } from "./guardrail.ts";
 import { EMAIL_EXTRACTION_SYSTEM } from "../prompts/email-extraction.ts";
 import { generateText, Output } from "npm:ai";
 import { createOpenAI } from "npm:ai";
@@ -44,8 +45,8 @@ function validateAndFixDate(dateString?: string): string | undefined {
   }
 }
 
-const MODEL = "grok-4-1-fast-non-reasoning";
-const FILE_FALLBACK_MODEL = "grok-4-1-fast-reasoning";
+const MODEL = "grok-4.20-non-reasoning-latest";
+const FILE_FALLBACK_MODEL = "grok-4.20-reasoning-latest";
 const TEMPERATURE = 0.1;
 
 function extractJsonObject(text: string): string | null {
@@ -299,6 +300,24 @@ export async function extractTransactionFromEmail(
   pdfFallbackAttachments?: PdfAttachmentForAiFallback[],
   userLocale?: string
 ): Promise<TransactionResponse> {
+  // === GUARDRAIL: cheap model pre-filter ===
+  const hasAttachments =
+    (images && images.length > 0) ||
+    (pdfTexts && pdfTexts.length > 0) ||
+    (pdfFallbackAttachments && pdfFallbackAttachments.length > 0);
+
+  const guardrailResult = await shouldProcessEmail(
+    emailContent,
+    hasAttachments
+  );
+  if (!guardrailResult.shouldProcess) {
+    console.log("[guardrail] Rejected email:", guardrailResult.reason);
+    return {
+      hasTransaction: false,
+      reason: `Guardrail: ${guardrailResult.reason}`,
+    };
+  }
+
   // Build prompt here (outside the callback) so it can be captured in the
   // Langfuse generation input alongside the system prompt.
   let dynamicPrompt = "";
