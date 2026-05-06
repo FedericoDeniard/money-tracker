@@ -103,7 +103,7 @@ export async function traceOperation<T>(
 
     trace.generation({
       name: "ai-completion",
-      model: "grok-4-1-fast-non-reasoning",
+      model: "grok-4.20-non-reasoning-latest",
       input: generationInput,
       output: serializedOutput,
       startTime: operationStartTime,

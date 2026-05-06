@@ -44,8 +44,8 @@ function validateAndFixDate(dateString?: string): string | undefined {
   }
 }
 
-const MODEL = "grok-4-1-fast-non-reasoning";
-const FILE_FALLBACK_MODEL = "grok-4-1-fast-reasoning";
+const MODEL = "grok-4.20-non-reasoning-latest";
+const FILE_FALLBACK_MODEL = "grok-4.20-reasoning-latest";
 const TEMPERATURE = 0.1;
 
 function extractJsonObject(text: string): string | null {
