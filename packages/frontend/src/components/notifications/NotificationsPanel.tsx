@@ -34,15 +34,13 @@ interface NotificationsPanelProps {
 
 type PanelFilter = "all" | "unread" | "muted" | "important";
 
-const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
 function relativeTime(date: string): string {
   const target = new Date(date).getTime();
   const now = Date.now();
   const diffSeconds = Math.round((target - now) / 1000);
   const absSeconds = Math.abs(diffSeconds);
 
-  const rtf = getRelativeTimeFormatter(locale);
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
   if (absSeconds < 60) return rtf.format(diffSeconds, "second");
   const diffMinutes = Math.round(diffSeconds / 60);
