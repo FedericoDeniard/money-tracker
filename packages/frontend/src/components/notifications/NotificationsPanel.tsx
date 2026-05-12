@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
   Archive,
@@ -34,13 +34,15 @@ interface NotificationsPanelProps {
 
 type PanelFilter = "all" | "unread" | "muted" | "important";
 
-function relativeTime(date: string, locale: string): string {
+const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+function relativeTime(date: string): string {
   const target = new Date(date).getTime();
   const now = Date.now();
   const diffSeconds = Math.round((target - now) / 1000);
   const absSeconds = Math.abs(diffSeconds);
 
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const rtf = getRelativeTimeFormatter(locale);
 
   if (absSeconds < 60) return rtf.format(diffSeconds, "second");
   const diffMinutes = Math.round(diffSeconds / 60);
@@ -125,7 +127,7 @@ function NotificationRow({
             type="checkbox"
             checked={isSelected}
             onChange={event => onSelect(event.target.checked)}
-            className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-[var(--text-secondary)]/30 checked:border-[var(--button-primary)] checked:bg-[var(--button-primary)] hover:border-[var(--button-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary)]/30 focus:ring-offset-1 transition-all"
+            className="peer size-5 cursor-pointer appearance-none rounded border border-[var(--text-secondary)]/30 checked:border-[var(--button-primary)] checked:bg-[var(--button-primary)] hover:border-[var(--button-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary)]/30 focus:ring-offset-1 transition-all"
             aria-label={t("notifications.selectItem")}
           />
           <CheckCheck
@@ -144,7 +146,7 @@ function NotificationRow({
         <div className="flex items-start gap-3">
           {/* Ícono / Avatar */}
           <div
-            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${importanceConfig.bgClass} ${importanceConfig.colorClass}`}
+            className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full ${importanceConfig.bgClass} ${importanceConfig.colorClass}`}
           >
             {item.avatar_url ? (
               <img
@@ -170,7 +172,7 @@ function NotificationRow({
                 {title}
               </span>
               <span className="shrink-0 text-xs font-medium text-[var(--text-secondary)]">
-                {relativeTime(item.created_at, i18n.language)}
+                {relativeTime(item.created_at)}
               </span>
             </div>
 
@@ -275,131 +277,135 @@ export function NotificationsPanel({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Overlay oscuro */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
-            onClick={onClose}
-            aria-label={t("notifications.closePanel")}
-          />
+        <LazyMotion features={domAnimation}>
+          <>
+            {/* Overlay oscuro */}
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+              onClick={onClose}
+              aria-label={t("notifications.closePanel")}
+            />
 
-          {/* Panel Lateral */}
-          <motion.aside
-            initial={{ x: "100%", boxShadow: "0 0 0 rgba(0,0,0,0)" }}
-            animate={{ x: 0, boxShadow: "-10px 0 40px rgba(0,0,0,0.1)" }}
-            exit={{ x: "100%", boxShadow: "0 0 0 rgba(0,0,0,0)" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 z-50 h-screen w-full max-w-md bg-[var(--bg-primary)] border-l border-[var(--text-secondary)]/20 overflow-hidden"
-          >
-            <div className="flex h-full flex-col bg-[var(--bg-primary)]">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-6 py-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--button-primary)]/10 text-[var(--button-primary)]">
-                    <Bell size={18} />
+            {/* Panel Lateral */}
+            <m.aside
+              initial={{ x: "100%", boxShadow: "0 0 0 rgba(0,0,0,0)" }}
+              animate={{ x: 0, boxShadow: "-10px 0 40px rgba(0,0,0,0.1)" }}
+              exit={{ x: "100%", boxShadow: "0 0 0 rgba(0,0,0,0)" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed right-0 top-0 z-50 h-screen w-full max-w-md bg-[var(--bg-primary)] border-l border-[var(--text-secondary)]/20 overflow-hidden"
+            >
+              <div className="flex h-full flex-col bg-[var(--bg-primary)]">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--button-primary)]/10 text-[var(--button-primary)]">
+                      <Bell size={18} />
+                    </div>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
+                      {t("notifications.title")}
+                    </h2>
                   </div>
-                  <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
-                    {t("notifications.title")}
-                  </h2>
+                  <Button
+                    onClick={onClose}
+                    variant="ghost"
+                    size="sm"
+                    icon={<X size={20} />}
+                    className="!p-2"
+                    aria-label={t("notifications.closePanel")}
+                  />
                 </div>
-                <Button
-                  onClick={onClose}
-                  variant="ghost"
-                  size="sm"
-                  icon={<X size={20} />}
-                  className="!p-2"
-                  aria-label={t("notifications.closePanel")}
-                />
-              </div>
 
-              {/* Dynamic Toolbar (Filters or Actions) */}
-              <div className="min-h-[60px] border-b border-[var(--text-secondary)]/20 bg-[var(--bg-secondary)]/50 px-4 py-3 flex items-center justify-between">
-                <AnimatePresence mode="wait">
-                  {selectedCount > 0 ? (
-                    <motion.div
-                      key="actions"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex w-full items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={toggleSelectAll}
-                          className="group relative flex h-5 w-5 items-center justify-center rounded border-2 border-[var(--button-primary)] bg-[var(--button-primary)] transition-all"
-                        >
-                          <CheckCheck
-                            size={14}
-                            className="text-white"
-                            strokeWidth={3}
+                {/* Dynamic Toolbar (Filters or Actions) */}
+                <div className="min-h-[60px] border-b border-[var(--text-secondary)]/20 bg-[var(--bg-secondary)]/50 px-4 py-3 flex items-center justify-between">
+                  <AnimatePresence mode="wait">
+                    {selectedCount > 0 ? (
+                      <m.div
+                        key="actions"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex w-full items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={toggleSelectAll}
+                            className="group relative flex size-5 items-center justify-center rounded border-2 border-[var(--button-primary)] bg-[var(--button-primary)] transition-all"
+                          >
+                            <CheckCheck
+                              size={14}
+                              className="text-white"
+                              strokeWidth={3}
+                            />
+                          </button>
+                          <span className="text-sm font-semibold text-[var(--text-primary)]">
+                            {selectedCount} seleccionadas
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<MailOpen size={18} />}
+                            className="!p-2"
+                            title={t("notifications.actions.markRead")}
+                            disabled={isBusy}
+                            onClick={() =>
+                              runAction(() =>
+                                actions.markAsRead.mutateAsync({
+                                  ids: selectedIds,
+                                })
+                              )
+                            }
                           />
-                        </button>
-                        <span className="text-sm font-semibold text-[var(--text-primary)]">
-                          {selectedCount} seleccionadas
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={<MailOpen size={18} />}
-                          className="!p-2"
-                          title={t("notifications.actions.markRead")}
-                          disabled={isBusy}
-                          onClick={() =>
-                            runAction(() =>
-                              actions.markAsRead.mutateAsync({
-                                ids: selectedIds,
-                              })
-                            )
-                          }
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={<Archive size={18} />}
-                          className="!p-2"
-                          title={t("notifications.actions.archive")}
-                          disabled={isBusy}
-                          onClick={() =>
-                            runAction(() =>
-                              actions.archive.mutateAsync({ ids: selectedIds })
-                            )
-                          }
-                        />
-                        <div className="h-4 w-px bg-[var(--text-secondary)]/20 mx-1" />
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          icon={<Trash2 size={18} />}
-                          className="!p-2"
-                          title={t("notifications.actions.delete")}
-                          disabled={isBusy}
-                          onClick={() =>
-                            runAction(() =>
-                              actions.remove.mutateAsync({ ids: selectedIds })
-                            )
-                          }
-                        />
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="filters"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex w-full items-center gap-2"
-                    >
-                      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                        {(["all", "unread", "muted", "important"] as const).map(
-                          value => {
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Archive size={18} />}
+                            className="!p-2"
+                            title={t("notifications.actions.archive")}
+                            disabled={isBusy}
+                            onClick={() =>
+                              runAction(() =>
+                                actions.archive.mutateAsync({
+                                  ids: selectedIds,
+                                })
+                              )
+                            }
+                          />
+                          <div className="h-4 w-px bg-[var(--text-secondary)]/20 mx-1" />
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon={<Trash2 size={18} />}
+                            className="!p-2"
+                            title={t("notifications.actions.delete")}
+                            disabled={isBusy}
+                            onClick={() =>
+                              runAction(() =>
+                                actions.remove.mutateAsync({ ids: selectedIds })
+                              )
+                            }
+                          />
+                        </div>
+                      </m.div>
+                    ) : (
+                      <m.div
+                        key="filters"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex w-full items-center gap-2"
+                      >
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                          {(
+                            ["all", "unread", "muted", "important"] as const
+                          ).map(value => {
                             const isActive = filter === value;
                             return (
                               <Button
@@ -412,65 +418,65 @@ export function NotificationsPanel({
                                 {t(`notifications.filters.${value}`)}
                               </Button>
                             );
-                          }
-                        )}
-                      </div>
-                      {notifications.length > 0 && (
-                        <div className="shrink-0 ml-auto relative flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={false}
-                            onChange={toggleSelectAll}
-                            className="h-5 w-5 cursor-pointer appearance-none rounded border border-[var(--text-secondary)]/30 hover:border-[var(--button-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary)]/30 focus:ring-offset-1 transition-all"
-                            aria-label={t("notifications.actions.selectAll")}
-                          />
+                          })}
                         </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                        {notifications.length > 0 && (
+                          <div className="shrink-0 ml-auto relative flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={false}
+                              onChange={toggleSelectAll}
+                              className="size-5 cursor-pointer appearance-none rounded border border-[var(--text-secondary)]/30 hover:border-[var(--button-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary)]/30 focus:ring-offset-1 transition-all"
+                              aria-label={t("notifications.actions.selectAll")}
+                            />
+                          </div>
+                        )}
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              {/* Lista de Notificaciones */}
-              <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)] space-y-2 relative">
-                {notificationsQuery.isLoading ? (
-                  <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-80">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--text-secondary)]/20 border-t-[var(--button-primary)] mb-4" />
-                    <p className="text-sm font-medium">
-                      {t("notifications.loading")}
-                    </p>
-                  </div>
-                ) : notifications.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center -mt-8">
-                    <EmptyState
-                      icon={CheckSquare}
-                      title="Todo al día"
-                      description={t("notifications.empty")}
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-3 pb-8">
-                    {notifications.map(item => (
-                      <NotificationRow
-                        key={item.id}
-                        item={item}
-                        isSelected={selectedSet.has(item.id)}
-                        onSelect={checked => {
-                          setSelectedIds(current => {
-                            if (checked)
-                              return [...new Set([...current, item.id])];
-                            return current.filter(id => id !== item.id);
-                          });
-                        }}
-                        onOpen={() => openNotification(item)}
+                {/* Lista de Notificaciones */}
+                <div className="flex-1 overflow-y-auto p-4 bg-[var(--bg-primary)] space-y-2 relative">
+                  {notificationsQuery.isLoading ? (
+                    <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-80">
+                      <div className="size-8 animate-spin rounded-full border-4 border-[var(--text-secondary)]/20 border-t-[var(--button-primary)] mb-4" />
+                      <p className="text-sm font-medium">
+                        {t("notifications.loading")}
+                      </p>
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center -mt-8">
+                      <EmptyState
+                        icon={CheckSquare}
+                        title="Todo al día"
+                        description={t("notifications.empty")}
                       />
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3 pb-8">
+                      {notifications.map(item => (
+                        <NotificationRow
+                          key={item.id}
+                          item={item}
+                          isSelected={selectedSet.has(item.id)}
+                          onSelect={checked => {
+                            setSelectedIds(current => {
+                              if (checked)
+                                return [...new Set([...current, item.id])];
+                              return current.filter(id => id !== item.id);
+                            });
+                          }}
+                          onOpen={() => openNotification(item)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </motion.aside>
-        </>
+            </m.aside>
+          </>
+        </LazyMotion>
       )}
     </AnimatePresence>
   );

@@ -1,22 +1,34 @@
+import { lazy } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
+
+const AreaChart = lazy(() =>
+  import("recharts").then(m => ({ default: m.AreaChart }))
+);
+const Area = lazy(() => import("recharts").then(m => ({ default: m.Area })));
+const XAxis = lazy(() => import("recharts").then(m => ({ default: m.XAxis })));
+const YAxis = lazy(() => import("recharts").then(m => ({ default: m.YAxis })));
+const CartesianGrid = lazy(() =>
+  import("recharts").then(m => ({ default: m.CartesianGrid }))
+);
+const Tooltip = lazy(() =>
+  import("recharts").then(m => ({ default: m.Tooltip }))
+);
+const Legend = lazy(() =>
+  import("recharts").then(m => ({ default: m.Legend }))
+);
+const ResponsiveContainer = lazy(() =>
+  import("recharts").then(m => ({ default: m.ResponsiveContainer }))
+);
+const ReferenceLine = lazy(() =>
+  import("recharts").then(m => ({ default: m.ReferenceLine }))
+);
 import { AlertCircle } from "lucide-react";
 
 function InsufficientData() {
   const { t } = useTranslation();
   return (
     <div className="h-[320px] flex flex-col items-center justify-center text-[var(--text-secondary)]">
-      <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+      <AlertCircle className="size-8 mb-2 opacity-50" />
       <p className="text-sm">{t("metrics.needMoreData")}</p>
       <p className="text-xs opacity-75 mt-1">{t("metrics.minimumMonths")}</p>
     </div>
@@ -34,7 +46,7 @@ interface MonthlyAreaChartProps {
   data: MonthlyData[];
 }
 
-export function MonthlyAreaChart({ data }: MonthlyAreaChartProps) {
+export default function MonthlyAreaChart({ data }: MonthlyAreaChartProps) {
   const { t } = useTranslation();
 
   if (!data.length) {

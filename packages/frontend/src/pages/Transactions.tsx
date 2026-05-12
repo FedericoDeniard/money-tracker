@@ -1,4 +1,4 @@
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useCallback, useReducer } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import {
@@ -26,7 +26,7 @@ import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
@@ -86,7 +86,7 @@ function TransactionsList({
     <>
       {/* Warning banner */}
       {hasConnections === false && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shrink-0">
+        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg shrink-0">
           <div className="flex items-start gap-3">
             <AlertCircle
               className="text-yellow-600 flex-shrink-0 mt-0.5"
@@ -152,22 +152,68 @@ function TransactionsList({
 }
 
 // ─── Page shell — renders immediately ────────────────────────────────────────
+interface TransactionsState {
+  selectedTransaction: Transaction | null;
+  filters: TransactionFilters;
+  isFormModalOpen: boolean;
+  isUploadModalOpen: boolean;
+  preFilledData: TransactionFormData | undefined;
+}
+
+type TransactionsAction =
+  | { type: "SELECT_TRANSACTION"; transaction: Transaction | null }
+  | { type: "SET_FILTERS"; filters: TransactionFilters }
+  | { type: "SET_FORM_MODAL_OPEN"; isOpen: boolean }
+  | { type: "SET_UPLOAD_MODAL_OPEN"; isOpen: boolean }
+  | { type: "SET_PRE_FILLED_DATA"; data: TransactionFormData | undefined };
+
+function transactionsReducer(
+  state: TransactionsState,
+  action: TransactionsAction
+): TransactionsState {
+  switch (action.type) {
+    case "SELECT_TRANSACTION":
+      return { ...state, selectedTransaction: action.transaction };
+    case "SET_FILTERS":
+      return { ...state, filters: action.filters };
+    case "SET_FORM_MODAL_OPEN":
+      return { ...state, isFormModalOpen: action.isOpen };
+    case "SET_UPLOAD_MODAL_OPEN":
+      return { ...state, isUploadModalOpen: action.isOpen };
+    case "SET_PRE_FILLED_DATA":
+      return { ...state, preFilledData: action.data };
+  }
+}
+
+function initTransactionsState(
+  initialCategory: string | null
+): TransactionsState {
+  return {
+    selectedTransaction: null,
+    filters: { category: initialCategory || undefined },
+    isFormModalOpen: false,
+    isUploadModalOpen: false,
+    preFilledData: undefined,
+  };
+}
+
 export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isMobile = useMediaQuery("(max-width: 1024px)");
-  const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
-  const [filters, setFilters] = useState<TransactionFilters>(() => {
-    const category = searchParams.get("category");
-    return { category: category || undefined };
-  });
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [preFilledData, setPreFilledData] = useState<
-    TransactionFormData | undefined
-  >();
+  const [state, dispatch] = useReducer(
+    transactionsReducer,
+    searchParams.get("category"),
+    initTransactionsState
+  );
+  const {
+    selectedTransaction,
+    filters,
+    isFormModalOpen,
+    isUploadModalOpen,
+    preFilledData,
+  } = state;
 
   const { deleteTransaction, updateTransaction, createTransaction } =
     useTransactionMutations();
@@ -175,7 +221,8 @@ export function Transactions() {
   const handleDeleteTransaction = async (id: string) => {
     try {
       await deleteTransaction(id);
-      if (selectedTransaction?.id === id) setSelectedTransaction(null);
+      if (selectedTransaction?.id === id)
+        dispatch({ type: "SELECT_TRANSACTION", transaction: null });
       toast.success(t("transactions.deleteSuccess"));
     } catch (error) {
       console.error("Error deleting transaction:", error);
@@ -191,7 +238,10 @@ export function Transactions() {
     try {
       await updateTransaction(id, updates);
       if (selectedTransaction?.id === id) {
-        setSelectedTransaction({ ...selectedTransaction, ...updates });
+        dispatch({
+          type: "SELECT_TRANSACTION",
+          transaction: prev?.id === id ? { ...prev, ...updates } : prev,
+        });
       }
       toast.success(t("transactions.updateSuccess"));
     } catch (error) {
@@ -223,7 +273,7 @@ export function Transactions() {
       <div data-tour="transaction-filters">
         <TransactionFiltersComponent
           filters={filters}
-          onFiltersChange={setFilters}
+          onFiltersChange={f => dispatch({ type: "SET_FILTERS", filters: f })}
           categories={categories}
         />
       </div>
@@ -237,9 +287,11 @@ export function Transactions() {
           <TransactionsList
             userId={user?.id}
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={f => dispatch({ type: "SET_FILTERS", filters: f })}
             selectedTransaction={selectedTransaction}
-            onSelectTransaction={setSelectedTransaction}
+            onSelectTransaction={t =>
+              dispatch({ type: "SELECT_TRANSACTION", transaction: t })
+            }
             onDelete={handleDeleteTransaction}
             onUpdate={handleUpdateTransaction}
             isMobile={isMobile}
@@ -269,7 +321,7 @@ export function Transactions() {
         {/* Mobile overlay */}
         <AnimatePresence>
           {isMobile && selectedTransaction && (
-            <motion.div
+            <m.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
@@ -280,22 +332,28 @@ export function Transactions() {
                 transaction={selectedTransaction}
                 onDelete={handleDeleteTransaction}
                 onUpdate={handleUpdateTransaction}
-                onClose={() => setSelectedTransaction(null)}
+                onClose={() =>
+                  dispatch({ type: "SELECT_TRANSACTION", transaction: null })
+                }
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
         <AddTransactionButton
-          onManualAdd={() => setIsFormModalOpen(true)}
-          onUpload={() => setIsUploadModalOpen(true)}
+          onManualAdd={() =>
+            dispatch({ type: "SET_FORM_MODAL_OPEN", isOpen: true })
+          }
+          onUpload={() =>
+            dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: true })
+          }
         />
 
         <TransactionFormModal
           isOpen={isFormModalOpen}
           onClose={() => {
-            setIsFormModalOpen(false);
-            setPreFilledData(undefined);
+            dispatch({ type: "SET_FORM_MODAL_OPEN", isOpen: false });
+            dispatch({ type: "SET_PRE_FILLED_DATA", data: undefined });
           }}
           onSave={handleCreateTransaction}
           mode="create"
@@ -304,7 +362,9 @@ export function Transactions() {
 
         <UploadTransactionModal
           isOpen={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
+          onClose={() =>
+            dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: false })
+          }
           onSuccess={handleUploadSuccess}
           onError={handleUploadError}
         />

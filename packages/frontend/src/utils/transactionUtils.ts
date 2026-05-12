@@ -2,9 +2,9 @@
  * Transaction utility functions
  */
 
-export type TransactionType = "income" | "expense" | "ingreso" | "egreso";
+type TransactionType = "income" | "expense" | "ingreso" | "egreso";
 
-export interface TransactionTypeResult {
+interface TransactionTypeResult {
   isExpense: boolean;
   isIncome: boolean;
   displayType: string;
@@ -12,9 +12,6 @@ export interface TransactionTypeResult {
   colorClass: string;
 }
 
-/**
- * Determines transaction type properties
- */
 export function getTransactionType(
   transactionType: TransactionType
 ): TransactionTypeResult {
@@ -32,36 +29,6 @@ export function getTransactionType(
       ? "text-red-600"
       : isIncome
         ? "text-green-600"
-        : "text-gray-900",
+        : "text-zinc-900",
   };
-}
-
-/**
- * Formats date to Spanish locale
- */
-export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/**
- * Formats date to short format (day month)
- */
-export function formatShortDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "short",
-  });
-}
-
-/**
- * Capitalizes first letter of category
- */
-export function formatCategory(category: string): string {
-  return category.charAt(0).toUpperCase() + category.slice(1);
 }

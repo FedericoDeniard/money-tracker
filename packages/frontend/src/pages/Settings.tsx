@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useEffect, useReducer } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useSeedNotifications } from "../hooks/useSeedNotifications";
 import {
@@ -30,6 +30,15 @@ import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 import { useTourStatus } from "../hooks/useTour";
 import { APP_VERSION, BUILD_TIMESTAMP } from "../lib/version";
 import { Info } from "lucide-react";
+import { toast } from "../utils/toast";
+
+function formatDate(dateString: string, locale: string): string {
+  return new Date(dateString).toLocaleDateString(locale);
+}
+
+const BUILD_DATE = BUILD_TIMESTAMP
+  ? new Date(BUILD_TIMESTAMP).toLocaleString("en-US")
+  : "";
 
 // ─── Gmail section — suspends while status + watches load ────────────────────
 interface GmailSectionProps {
@@ -53,7 +62,7 @@ function GmailSection({
   onStartSeed,
   userLoading,
 }: GmailSectionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: gmailStatus } = useGmailStatus(userId);
   const { data: gmailWatches } = useGmailWatches(userId);
 
@@ -134,86 +143,92 @@ function GmailSection({
                 </div>
               )}
 
-              {activeConnections.map(connection => (
-                <div
-                  key={connection.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-gray-200 gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Mail className="text-gray-500 shrink-0" size={20} />
-                    <div className="min-w-0">
-                      <p className="font-medium text-[var(--text-primary)] truncate">
-                        {connection.gmail_email}
-                      </p>
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        {connection.status === "connected"
-                          ? `${t("settings.connectedAt")} ${new Date(connection.connected_at).toLocaleDateString()}`
-                          : t("settings.needsReconnect")}
-                      </p>
-                      {connection.status === "needs_reconnect" && (
-                        <p className="text-xs text-amber-700 mt-1">
-                          {t("settings.reconnectHint")}
+              {activeConnections.map(connection => {
+                const connectedDate =
+                  connection.status === "connected"
+                    ? formatDate(connection.connected_at, i18n.language)
+                    : "";
+                return (
+                  <div
+                    key={connection.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-zinc-200 gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Mail className="text-zinc-500 shrink-0" size={20} />
+                      <div className="min-w-0">
+                        <p className="font-medium text-[var(--text-primary)] truncate">
+                          {connection.gmail_email}
                         </p>
-                      )}
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {connection.status === "connected"
+                            ? `${t("settings.connectedAt")} ${connectedDate}`
+                            : t("settings.needsReconnect")}
+                        </p>
+                        {connection.status === "needs_reconnect" && (
+                          <p className="text-xs text-amber-700 mt-1">
+                            {t("settings.reconnectHint")}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {connection.status === "connected" ? (
+                    <div className="flex flex-wrap gap-2">
+                      {connection.status === "connected" ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<Download size={16} />}
+                          onClick={() =>
+                            onStartSeed(connection.id, connection.gmail_email)
+                          }
+                        >
+                          {t("settings.importEmails") || "Importar"}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={
+                            isConnecting ? (
+                              <Loader2 className="animate-spin" size={16} />
+                            ) : (
+                              <Mail size={16} />
+                            )
+                          }
+                          onClick={onConnect}
+                          disabled={!isConnectButtonEnabled}
+                        >
+                          {isConnecting
+                            ? t("settings.connecting")
+                            : t("settings.reconnectGmail")}
+                        </Button>
+                      )}
                       <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={<Download size={16} />}
-                        onClick={() =>
-                          onStartSeed(connection.id, connection.gmail_email)
-                        }
-                      >
-                        {t("settings.importEmails") || "Importar"}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
                         icon={
-                          isConnecting ? (
+                          isDisconnecting === connection.id ? (
                             <Loader2 className="animate-spin" size={16} />
                           ) : (
-                            <Mail size={16} />
+                            <X size={16} />
                           )
                         }
-                        onClick={onConnect}
-                        disabled={!isConnectButtonEnabled}
+                        onClick={() =>
+                          onDisconnect(connection.id, connection.gmail_email)
+                        }
+                        disabled={isDisconnecting === connection.id}
                       >
-                        {isConnecting
-                          ? t("settings.connecting")
-                          : t("settings.reconnectGmail")}
+                        {isDisconnecting === connection.id
+                          ? t("settings.disconnecting")
+                          : t("settings.disconnect")}
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={
-                        isDisconnecting === connection.id ? (
-                          <Loader2 className="animate-spin" size={16} />
-                        ) : (
-                          <X size={16} />
-                        )
-                      }
-                      onClick={() =>
-                        onDisconnect(connection.id, connection.gmail_email)
-                      }
-                      disabled={isDisconnecting === connection.id}
-                    >
-                      {isDisconnecting === connection.id
-                        ? t("settings.disconnecting")
-                        : t("settings.disconnect")}
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {disconnectedConnections.length > 0 && (
-                <div className="pt-3 border-t border-gray-200 space-y-2">
+                <div className="pt-3 border-t border-zinc-200 space-y-2">
                   <p className="text-sm font-medium text-[var(--text-primary)]">
                     {t("settings.disconnectedAccountsTitle")}
                   </p>
@@ -223,10 +238,10 @@ function GmailSection({
                   {disconnectedConnections.map(connection => (
                     <div
                       key={connection.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-gray-200 gap-3"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-zinc-200 gap-3"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Mail className="text-gray-500 shrink-0" size={20} />
+                        <Mail className="text-zinc-500 shrink-0" size={20} />
                         <div className="min-w-0">
                           <p className="font-medium text-[var(--text-primary)] truncate">
                             {connection.gmail_email}
@@ -260,7 +275,7 @@ function GmailSection({
                 </div>
               )}
 
-              <div className="pt-3 border-t border-gray-200">
+              <div className="pt-3 border-t border-zinc-200">
                 <Button
                   variant="primary"
                   icon={
@@ -315,120 +330,168 @@ function GmailSection({
 }
 
 // ─── Page shell — renders immediately ────────────────────────────────────────
+interface SettingsState {
+  isConnecting: boolean;
+  isDisconnecting: string | null;
+  disconnectModal: {
+    isOpen: boolean;
+    connectionId: string;
+    email: string;
+  };
+  seedModal: {
+    isOpen: boolean;
+    connectionId: string;
+    gmailEmail: string;
+  };
+}
+
+type SettingsAction =
+  | { type: "SET_CONNECTING"; isConnecting: boolean }
+  | { type: "SET_DISCONNECTING"; connectionId: string | null }
+  | { type: "OPEN_DISCONNECT_MODAL"; connectionId: string; email: string }
+  | { type: "CLOSE_DISCONNECT_MODAL" }
+  | { type: "OPEN_SEED_MODAL"; connectionId: string; gmailEmail: string }
+  | { type: "CLOSE_SEED_MODAL" };
+
+const initialDisconnectModal = {
+  isOpen: false,
+  connectionId: "",
+  email: "",
+};
+
+const initialSeedModal = {
+  isOpen: false,
+  connectionId: "",
+  gmailEmail: "",
+};
+
+function settingsReducer(
+  state: SettingsState,
+  action: SettingsAction
+): SettingsState {
+  switch (action.type) {
+    case "SET_CONNECTING":
+      return { ...state, isConnecting: action.isConnecting };
+    case "SET_DISCONNECTING":
+      return { ...state, isDisconnecting: action.connectionId };
+    case "OPEN_DISCONNECT_MODAL":
+      return {
+        ...state,
+        disconnectModal: {
+          isOpen: true,
+          connectionId: action.connectionId,
+          email: action.email,
+        },
+      };
+    case "CLOSE_DISCONNECT_MODAL":
+      return { ...state, disconnectModal: initialDisconnectModal };
+    case "OPEN_SEED_MODAL":
+      return {
+        ...state,
+        seedModal: {
+          isOpen: true,
+          connectionId: action.connectionId,
+          gmailEmail: action.gmailEmail,
+        },
+      };
+    case "CLOSE_SEED_MODAL":
+      return { ...state, seedModal: initialSeedModal };
+  }
+}
+
+const initialSettingsState: SettingsState = {
+  isConnecting: false,
+  isDisconnecting: null,
+  disconnectModal: initialDisconnectModal,
+  seedModal: initialSeedModal,
+};
+
 export function Settings() {
   const { user, loading } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { isSkippedAll, completedCount, totalCount, skipAll, resetAll } =
     useTourStatus();
 
   useSeedNotifications(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState<string | null>(null);
   const invalidateGmailQueries = useInvalidateGmailQueries();
-  const [notification, setNotification] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-  const [disconnectModal, setDisconnectModal] = useState<{
-    isOpen: boolean;
-    connectionId: string;
-    email: string;
-  }>({ isOpen: false, connectionId: "", email: "" });
-  const [seedModal, setSeedModal] = useState<{
-    isOpen: boolean;
-    connectionId: string;
-    gmailEmail: string;
-  }>({ isOpen: false, connectionId: "", gmailEmail: "" });
+  const [state, dispatch] = useReducer(settingsReducer, initialSettingsState);
+  const { isConnecting, isDisconnecting, disconnectModal, seedModal } = state;
+
+  const successParam = searchParams.get("success");
+  const errorParam = searchParams.get("error");
 
   useEffect(() => {
-    const success = searchParams.get("success");
-    const error = searchParams.get("error");
-    if (success === "true") {
-      setNotification({
-        type: "success",
-        message: t("settings.emailConfiguredSuccess"),
-      });
+    if (successParam === "true") {
+      toast.success(t("settings.emailConfiguredSuccess"));
       setSearchParams({});
       gmailService.clearConnectionStatusCache(user?.id);
       invalidateGmailQueries();
-    } else if (error === "auth_failed") {
-      setNotification({
-        type: "error",
-        message: t("settings.emailConfigError"),
-      });
+    } else if (errorParam === "auth_failed") {
+      toast.error(t("settings.emailConfigError"));
       setSearchParams({});
     }
-  }, [searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
+  }, [
+    successParam,
+    errorParam,
+    t,
+    user?.id,
+    invalidateGmailQueries,
+    setSearchParams,
+  ]);
 
   const isConnectButtonEnabled = !loading && !!user?.id && !isConnecting;
 
   const handleConnectEmail = async () => {
     if (!user?.id) {
-      setNotification({ type: "error", message: t("settings.userIdError") });
+      toast.error(t("settings.userIdError"));
       return;
     }
-    setIsConnecting(true);
+    dispatch({ type: "SET_CONNECTING", isConnecting: true });
     try {
       await gmailService.connectGmail();
     } catch (error) {
       console.error("Error connecting Gmail:", error);
-      setNotification({
-        type: "error",
-        message: t("settings.gmailConnectError"),
-      });
-      setIsConnecting(false);
+      toast.error(t("settings.gmailConnectError"));
+      dispatch({ type: "SET_CONNECTING", isConnecting: false });
     }
   };
 
   const handleDisconnectEmail = (connectionId: string, email: string) => {
-    setDisconnectModal({ isOpen: true, connectionId, email });
+    dispatch({ type: "OPEN_DISCONNECT_MODAL", connectionId, email });
   };
 
   const confirmDisconnect = async () => {
     const { connectionId } = disconnectModal;
     try {
-      setIsDisconnecting(connectionId);
-      setDisconnectModal({ isOpen: false, connectionId: "", email: "" });
+      dispatch({ type: "SET_DISCONNECTING", connectionId });
+      dispatch({ type: "CLOSE_DISCONNECT_MODAL" });
       const result = await gmailService.disconnectGmail(connectionId);
       if (result.success) {
         gmailService.clearConnectionStatusCache(user?.id);
-        setNotification({
-          type: "success",
-          message: t("settings.gmailDisconnectedSuccess"),
-        });
+        toast.success(t("settings.gmailDisconnectedSuccess"));
         invalidateGmailQueries();
       } else {
         throw new Error(result.error || "Failed to disconnect");
       }
     } catch (error) {
       console.error("Error disconnecting Gmail:", error);
-      setNotification({
-        type: "error",
-        message: t("settings.gmailDisconnectError"),
-      });
+      toast.error(t("settings.gmailDisconnectError"));
     } finally {
-      setIsDisconnecting(null);
+      dispatch({ type: "SET_DISCONNECTING", connectionId: null });
     }
   };
 
   const handleStartSeed = (connectionId: string, gmailEmail: string) => {
-    setSeedModal({ isOpen: true, connectionId, gmailEmail });
+    dispatch({ type: "OPEN_SEED_MODAL", connectionId, gmailEmail });
   };
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8 flex flex-col gap-4">
       {/* Title — renders immediately */}
       <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm shrink-0">
-        <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+        <h1 className="text-xl md:text-2xl font-semibold text-[var(--text-primary)]">
           {t("settings.title")}
         </h1>
         <p className="mt-1 text-xs md:text-sm text-[var(--text-secondary)]">
@@ -441,30 +504,6 @@ export function Settings() {
 
       {/* Main settings card */}
       <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 sm:p-6 shadow-sm flex-1 mb-8">
-        {/* Notification toast */}
-        {notification && (
-          <div
-            className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${notification.type === "success" ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
-          >
-            {notification.type === "success" ? (
-              <CheckCircle
-                className="text-green-600 flex-shrink-0 mt-0.5"
-                size={20}
-              />
-            ) : (
-              <AlertCircle
-                className="text-red-600 flex-shrink-0 mt-0.5"
-                size={20}
-              />
-            )}
-            <p
-              className={`text-sm ${notification.type === "success" ? "text-green-800" : "text-red-800"}`}
-            >
-              {notification.message}
-            </p>
-          </div>
-        )}
-
         {/* Gmail section — suspends while status/watches load */}
         <div
           data-tour="settings-gmail"
@@ -627,8 +666,7 @@ export function Settings() {
                 </p>
                 {BUILD_TIMESTAMP && (
                   <p className="text-xs text-[var(--text-secondary)]">
-                    {t("settings.buildDate")}:{" "}
-                    {new Date(BUILD_TIMESTAMP).toLocaleString()}
+                    {t("settings.buildDate")}: {BUILD_DATE}
                   </p>
                 )}
               </div>
@@ -639,9 +677,7 @@ export function Settings() {
 
       <ConfirmModal
         isOpen={disconnectModal.isOpen}
-        onClose={() =>
-          setDisconnectModal({ isOpen: false, connectionId: "", email: "" })
-        }
+        onClose={() => dispatch({ type: "CLOSE_DISCONNECT_MODAL" })}
         onConfirm={confirmDisconnect}
         title={t("settings.disconnectGmail")}
         message={t("settings.confirmDisconnectEmail", {
@@ -652,9 +688,7 @@ export function Settings() {
       />
       <SeedEmailsModal
         isOpen={seedModal.isOpen}
-        onClose={() =>
-          setSeedModal({ isOpen: false, connectionId: "", gmailEmail: "" })
-        }
+        onClose={() => dispatch({ type: "CLOSE_SEED_MODAL" })}
         connectionId={seedModal.connectionId}
         gmailEmail={seedModal.gmailEmail}
       />

@@ -35,11 +35,3 @@ export async function getSupabase(): Promise<SupabaseClient<Database>> {
 
   return initPromise;
 }
-
-// For backward compatibility - will be initialized on first use
-export let supabase: SupabaseClient<Database>;
-
-// Initialize on first import
-getSupabase().then(client => {
-  supabase = client;
-});

@@ -8,9 +8,9 @@ export function LoadingSpinner({
   className = "",
 }: LoadingSpinnerProps) {
   const sizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-12 w-12",
-    lg: "h-16 w-16",
+    sm: "size-4",
+    md: "size-12",
+    lg: "size-16",
   };
 
   return (

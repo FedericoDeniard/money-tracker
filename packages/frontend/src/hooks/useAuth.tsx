@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { getSupabase } from "../lib/supabase";
 
@@ -7,6 +7,19 @@ type AuthSnapshot = {
   session: Session | null;
   loading: boolean;
 };
+
+type AuthAction =
+  | { type: "SET_AUTH"; user: User | null; session: Session | null }
+  | { type: "SET_LOADING"; loading: boolean };
+
+function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
+  switch (action.type) {
+    case "SET_AUTH":
+      return { ...state, user: action.user, session: action.session };
+    case "SET_LOADING":
+      return { ...state, loading: action.loading };
+  }
+}
 
 const authStore: {
   snapshot: AuthSnapshot;
@@ -36,17 +49,20 @@ function updateAuthSnapshot(patch: Partial<AuthSnapshot>) {
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(authStore.snapshot.user);
-  const [session, setSession] = useState<Session | null>(
-    authStore.snapshot.session
-  );
-  const [loading, setLoading] = useState(authStore.snapshot.loading);
+  const [{ user, session, loading }, dispatch] = useReducer(authReducer, {
+    user: authStore.snapshot.user,
+    session: authStore.snapshot.session,
+    loading: authStore.snapshot.loading,
+  });
 
   useEffect(() => {
     const listener = (snapshot: AuthSnapshot) => {
-      setUser(snapshot.user);
-      setSession(snapshot.session);
-      setLoading(snapshot.loading);
+      dispatch({
+        type: "SET_AUTH",
+        user: snapshot.user,
+        session: snapshot.session,
+      });
+      dispatch({ type: "SET_LOADING", loading: snapshot.loading });
     };
     authStore.listeners.add(listener);
     listener(authStore.snapshot);

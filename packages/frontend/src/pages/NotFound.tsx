@@ -12,7 +12,7 @@ export function NotFound() {
     <div className="flex items-center justify-center min-h-screen">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
-          <div className="relative w-32 h-32 mx-auto mb-6">
+          <div className="relative size-32 mx-auto mb-6">
             <DecorativeSquare size={128} className="absolute inset-0" />
             <div className="relative z-10 flex items-center justify-center w-full h-full">
               <span className="text-5xl font-bold text-[var(--primary)]">
@@ -20,7 +20,7 @@ export function NotFound() {
               </span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-4">
+          <h1 className="text-3xl font-semibold text-[var(--text-primary)] mb-4">
             {t("errors.pageNotFound")}
           </h1>
           <p className="text-[var(--text-secondary)] mb-8">

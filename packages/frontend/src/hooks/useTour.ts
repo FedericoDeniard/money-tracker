@@ -51,7 +51,7 @@ function isTourRoute(path: string): path is TourRoute {
 // Exported so useTourStatus (and Settings page) can call it.
 // Also clears the session tracker so tours re-trigger on the next navigation.
 
-export function resetAllTours() {
+function resetAllTours() {
   localStorage.removeItem(SKIP_ALL_KEY);
   TOUR_ROUTES.forEach(r => localStorage.removeItem(DONE_KEYS[r]));
   triggeredThisSession.clear();
@@ -266,7 +266,7 @@ function launchTour(
     nextBtnText: t("tour.ui.next"),
     prevBtnText: t("tour.ui.prev"),
     doneBtnText: t("tour.ui.done"),
-    animate: true,
+    animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     smoothScroll: true,
     allowClose: true,
     // Overlay click does nothing — only the X button closes the tour

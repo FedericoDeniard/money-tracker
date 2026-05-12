@@ -2,6 +2,7 @@ import "./index.css";
 import "driver.js/dist/driver.css";
 import { useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AppRoutes } from "./routes";
@@ -53,10 +54,10 @@ function AppContent() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <MotionConfig reducedMotion="user">
+        <AppContent />
+      </MotionConfig>
       {process.env.NODE_ENV === "development" && <ReactQueryDevtools />}
     </QueryClientProvider>
   );
 }
-
-export default App;

@@ -12,8 +12,7 @@ export const seedService = {
    * Start a seed to import historical emails
    */
   async startSeed(connectionId: string): Promise<StartSeedResponse> {
-    const supabase = await getSupabase();
-    const config = await getConfig();
+    const [supabase, config] = await Promise.all([getSupabase(), getConfig()]);
     const edgeFunctionsUrl = `${config.supabase.url.replace(/\/+$/, "")}/functions/v1`;
 
     const {

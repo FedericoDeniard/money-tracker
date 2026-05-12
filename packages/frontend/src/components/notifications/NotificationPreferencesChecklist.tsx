@@ -29,7 +29,7 @@ function Toggle({
       }`}
     >
       <span
-        className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+        className={`pointer-events-none relative inline-block size-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
           checked ? "translate-x-5" : "translate-x-0"
         }`}
       >

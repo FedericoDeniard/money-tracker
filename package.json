@@ -19,13 +19,17 @@
     "docker:db:reset": "PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc \"supabase start && supabase db reset --local\"",
     "docker:db:migration:up": "PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc \"supabase start && supabase migration up --include-all --local\"",
     "docker:db:types": "PROJECT_ROOT=$(pwd) docker compose run --rm supabase-cli sh -lc \"supabase start && supabase gen types typescript --local > packages/frontend/src/types/database.types.ts\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "knip": "knip"
   },
   "devDependencies": {
+    "@types/node": "^25.7.0",
     "husky": "^9.1.7",
+    "knip": "^6.12.2",
     "lint-staged": "^16.4.0",
     "oxfmt": "^0.42.0",
-    "oxlint": "^1.57.0"
+    "oxlint": "^1.57.0",
+    "typescript": "^6.0.3"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

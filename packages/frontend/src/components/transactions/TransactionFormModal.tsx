@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { toast } from "../../utils/toast";
@@ -41,7 +41,7 @@ export function TransactionFormModal({
 }: TransactionFormModalProps) {
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const [formData, setFormData] = useState<TransactionFormData>(() => {
     if (initialData) return initialData;
@@ -59,27 +59,26 @@ export function TransactionFormModal({
     };
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      await onSave(formData);
-      const successKey =
-        mode === "create"
-          ? "transactions.createSuccess"
-          : "transactions.updateSuccess";
-      toast.success(t(successKey));
-      onClose();
-    } catch (error) {
-      console.error("Error saving transaction:", error);
-      const errorKey =
-        mode === "create"
-          ? "transactions.createError"
-          : "transactions.updateError";
-      toast.error(t(errorKey));
-    } finally {
-      setIsLoading(false);
-    }
+    startTransition(async () => {
+      try {
+        await onSave(formData);
+        const successKey =
+          mode === "create"
+            ? "transactions.createSuccess"
+            : "transactions.updateSuccess";
+        toast.success(t(successKey));
+        onClose();
+      } catch (error) {
+        console.error("Error saving transaction:", error);
+        const errorKey =
+          mode === "create"
+            ? "transactions.createError"
+            : "transactions.updateError";
+        toast.error(t(errorKey));
+      }
+    });
   };
 
   const title =
@@ -95,14 +94,14 @@ export function TransactionFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      closeDisabled={isLoading}
+      closeDisabled={isPending}
       footer={
         <>
           <Button
             type="button"
             variant="secondary"
             onClick={onClose}
-            disabled={isLoading}
+            disabled={isPending}
             fullWidth
           >
             {t("common.cancel")}
@@ -111,7 +110,7 @@ export function TransactionFormModal({
             type="submit"
             form={FORM_ID}
             variant="primary"
-            loading={isLoading}
+            loading={isPending}
             fullWidth
           >
             {saveButtonText}
@@ -128,13 +127,13 @@ export function TransactionFormModal({
           <select
             value={formData.transaction_type}
             onChange={e =>
-              setFormData({
-                ...formData,
+              setFormData(prev => ({
+                ...prev,
                 transaction_type: e.target.value as "income" | "expense",
-              })
+              }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           >
             <option value="income">{t("transactions.income")}</option>
             <option value="expense">{t("transactions.expense")}</option>
@@ -150,10 +149,10 @@ export function TransactionFormModal({
             type="text"
             value={formData.merchant}
             onChange={e =>
-              setFormData({ ...formData, merchant: e.target.value })
+              setFormData(prev => ({ ...prev, merchant: e.target.value }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
             required
           />
         </div>
@@ -167,10 +166,13 @@ export function TransactionFormModal({
             type="date"
             value={formData.transaction_date}
             onChange={e =>
-              setFormData({ ...formData, transaction_date: e.target.value })
+              setFormData(prev => ({
+                ...prev,
+                transaction_date: e.target.value,
+              }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
             required
           />
         </div>
@@ -185,9 +187,11 @@ export function TransactionFormModal({
             step="0.01"
             min="0.01"
             value={formData.amount}
-            onChange={e => setFormData({ ...formData, amount: e.target.value })}
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, amount: e.target.value }))
+            }
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
             required
           />
         </div>
@@ -200,10 +204,10 @@ export function TransactionFormModal({
           <select
             value={formData.currency}
             onChange={e =>
-              setFormData({ ...formData, currency: e.target.value })
+              setFormData(prev => ({ ...prev, currency: e.target.value }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           >
             {TRANSACTION_CURRENCIES.map(curr => (
               <option key={curr} value={curr}>
@@ -221,10 +225,10 @@ export function TransactionFormModal({
           <select
             value={formData.category}
             onChange={e =>
-              setFormData({ ...formData, category: e.target.value })
+              setFormData(prev => ({ ...prev, category: e.target.value }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           >
             {TRANSACTION_CATEGORIES.map(cat => (
               <option key={cat} value={cat}>

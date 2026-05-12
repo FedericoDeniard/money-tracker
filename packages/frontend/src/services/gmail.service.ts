@@ -166,8 +166,10 @@ export const gmailService = {
   },
 
   async connectGmail(): Promise<void> {
-    const supabase = await getSupabase();
-    const edgeFunctionsUrl = await getEdgeFunctionsUrl();
+    const [supabase, edgeFunctionsUrl] = await Promise.all([
+      getSupabase(),
+      getEdgeFunctionsUrl(),
+    ]);
 
     // Get the current session token
     const {
