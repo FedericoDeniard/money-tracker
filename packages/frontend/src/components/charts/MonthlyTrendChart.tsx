@@ -1,28 +1,6 @@
-import { lazy } from "react";
 import { useTranslation } from "react-i18next";
-
-const BarChart = lazy(() =>
-  import("recharts").then(m => ({ default: m.BarChart }))
-);
-const Bar = lazy(() => import("recharts").then(m => ({ default: m.Bar })));
-const XAxis = lazy(() => import("recharts").then(m => ({ default: m.XAxis })));
-const YAxis = lazy(() => import("recharts").then(m => ({ default: m.YAxis })));
-const CartesianGrid = lazy(() =>
-  import("recharts").then(m => ({ default: m.CartesianGrid }))
-);
-const Tooltip = lazy(() =>
-  import("recharts").then(m => ({ default: m.Tooltip }))
-);
-const Legend = lazy(() =>
-  import("recharts").then(m => ({ default: m.Legend }))
-);
-const ResponsiveContainer = lazy(() =>
-  import("recharts").then(m => ({ default: m.ResponsiveContainer }))
-);
-const ReferenceLine = lazy(() =>
-  import("recharts").then(m => ({ default: m.ReferenceLine }))
-);
 import { InsufficientData } from "../ui/InsufficientData";
+import { useRecharts } from "../../hooks/useRecharts";
 
 interface MonthlyData {
   month: string;
@@ -37,6 +15,17 @@ interface MonthlyTrendChartProps {
 
 export default function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   const { t } = useTranslation();
+  const {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    ReferenceLine,
+  } = useRecharts();
 
   if (!data.length) {
     return (

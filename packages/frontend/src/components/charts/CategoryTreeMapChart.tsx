@@ -1,16 +1,6 @@
-import { lazy } from "react";
 import { useTranslation } from "react-i18next";
-
-const Treemap = lazy(() =>
-  import("recharts").then(m => ({ default: m.Treemap }))
-);
-const ResponsiveContainer = lazy(() =>
-  import("recharts").then(m => ({ default: m.ResponsiveContainer }))
-);
-const Tooltip = lazy(() =>
-  import("recharts").then(m => ({ default: m.Tooltip }))
-);
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useRecharts } from "../../hooks/useRecharts";
 
 interface CategoryData {
   category: string;
@@ -138,6 +128,7 @@ export default function CategoryTreeMapChart({
 }: CategoryTreeMapChartProps) {
   const { t } = useTranslation();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { Treemap, ResponsiveContainer, Tooltip } = useRecharts();
 
   if (!data.length) {
     return (

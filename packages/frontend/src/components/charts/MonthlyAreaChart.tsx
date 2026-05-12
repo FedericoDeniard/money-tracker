@@ -1,28 +1,6 @@
-import { lazy } from "react";
 import { useTranslation } from "react-i18next";
-
-const AreaChart = lazy(() =>
-  import("recharts").then(m => ({ default: m.AreaChart }))
-);
-const Area = lazy(() => import("recharts").then(m => ({ default: m.Area })));
-const XAxis = lazy(() => import("recharts").then(m => ({ default: m.XAxis })));
-const YAxis = lazy(() => import("recharts").then(m => ({ default: m.YAxis })));
-const CartesianGrid = lazy(() =>
-  import("recharts").then(m => ({ default: m.CartesianGrid }))
-);
-const Tooltip = lazy(() =>
-  import("recharts").then(m => ({ default: m.Tooltip }))
-);
-const Legend = lazy(() =>
-  import("recharts").then(m => ({ default: m.Legend }))
-);
-const ResponsiveContainer = lazy(() =>
-  import("recharts").then(m => ({ default: m.ResponsiveContainer }))
-);
-const ReferenceLine = lazy(() =>
-  import("recharts").then(m => ({ default: m.ReferenceLine }))
-);
 import { AlertCircle } from "lucide-react";
+import { useRecharts } from "../../hooks/useRecharts";
 
 function InsufficientData() {
   const { t } = useTranslation();
@@ -48,6 +26,17 @@ interface MonthlyAreaChartProps {
 
 export default function MonthlyAreaChart({ data }: MonthlyAreaChartProps) {
   const { t } = useTranslation();
+  const {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    ReferenceLine,
+  } = useRecharts();
 
   if (!data.length) {
     return (

@@ -1,18 +1,7 @@
-import { lazy, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-const PieChart = lazy(() =>
-  import("recharts").then(m => ({ default: m.PieChart }))
-);
-const Pie = lazy(() => import("recharts").then(m => ({ default: m.Pie })));
-const Cell = lazy(() => import("recharts").then(m => ({ default: m.Cell })));
-const ResponsiveContainer = lazy(() =>
-  import("recharts").then(m => ({ default: m.ResponsiveContainer }))
-);
-const Sector = lazy(() =>
-  import("recharts").then(m => ({ default: m.Sector }))
-);
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useRecharts } from "../../hooks/useRecharts";
 
 interface CategoryData {
   category: string;
@@ -60,6 +49,7 @@ const COLORS = [
 export default function CategoryPieChart({ data }: CategoryPieChartProps) {
   const { t } = useTranslation();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { PieChart, Pie, Cell, ResponsiveContainer, Sector } = useRecharts();
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!data.length) {
