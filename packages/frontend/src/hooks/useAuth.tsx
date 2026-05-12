@@ -15,8 +15,14 @@ type AuthAction =
 function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
   switch (action.type) {
     case "SET_AUTH":
+      if (state.user === action.user && state.session === action.session) {
+        return state;
+      }
       return { ...state, user: action.user, session: action.session };
     case "SET_LOADING":
+      if (state.loading === action.loading) {
+        return state;
+      }
       return { ...state, loading: action.loading };
   }
 }

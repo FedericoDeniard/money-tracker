@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useReducer } from "react";
+import { Suspense, useCallback, useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -309,6 +309,14 @@ export function Home() {
   } = state;
   const navigate = useNavigate();
 
+  const handleActiveConnections = useCallback(
+    (connections: { id: string; gmail_email: string }[]) => {
+      dispatch({ type: "SET_ACTIVE_CONNECTIONS", connections });
+      dispatch({ type: "SET_CONNECTIONS_LOADED", loaded: true });
+    },
+    []
+  );
+
   const handleConnectGmail = async () => {
     try {
       await gmailService.connectGmail();
@@ -426,10 +434,7 @@ export function Home() {
               userId={user.id}
               isSyncing={isSyncing}
               onForceSync={handleForceSync}
-              onActiveConnections={connections => {
-                dispatch({ type: "SET_ACTIVE_CONNECTIONS", connections });
-                dispatch({ type: "SET_CONNECTIONS_LOADED", loaded: true });
-              }}
+              onActiveConnections={handleActiveConnections}
             />
           </Suspense>
         </div>
