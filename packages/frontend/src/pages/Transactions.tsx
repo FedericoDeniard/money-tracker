@@ -240,7 +240,10 @@ export function Transactions() {
       if (selectedTransaction?.id === id) {
         dispatch({
           type: "SELECT_TRANSACTION",
-          transaction: prev?.id === id ? { ...prev, ...updates } : prev,
+          transaction:
+            selectedTransaction?.id === id
+              ? { ...selectedTransaction, ...updates }
+              : selectedTransaction,
         });
       }
       toast.success(t("transactions.updateSuccess"));
