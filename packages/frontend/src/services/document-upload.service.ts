@@ -13,8 +13,7 @@ export async function uploadDocumentForAnalysis(
   fileType: string,
   locale?: string
 ): Promise<DocumentUploadResult> {
-  const supabase = await getSupabase();
-  const config = await getConfig();
+  const [supabase, config] = await Promise.all([getSupabase(), getConfig()]);
 
   const {
     data: { session },

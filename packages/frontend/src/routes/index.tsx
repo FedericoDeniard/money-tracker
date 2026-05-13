@@ -56,7 +56,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        Loading…
       </div>
     );
   }
@@ -74,7 +74,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        Loading…
       </div>
     );
   }

@@ -33,5 +33,3 @@ export function LanguageSwitcher() {
     </Button>
   );
 }
-
-export default LanguageSwitcher;

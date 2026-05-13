@@ -42,12 +42,114 @@ interface TransactionFiltersProps {
   isLoading?: boolean;
 }
 
-export function TransactionFiltersComponent({
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+function SortDropdown({
   filters,
   onFiltersChange,
-  categories,
-  isLoading = false,
-}: TransactionFiltersProps) {
+}: {
+  filters: TransactionFilters;
+  onFiltersChange: (filters: TransactionFilters) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs rounded-lg flex gap-1.5 items-center px-3"
+        >
+          {filters.sortOrder === "asc" ? (
+            <ArrowUpDown className="size-4 shrink-0" />
+          ) : (
+            <ArrowDownUp className="size-4 shrink-0" />
+          )}
+          {filters.sortBy === "transaction_date"
+            ? t("transactions.byDate")
+            : t("transactions.dateAdded")}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel className="text-xs font-medium text-[var(--text-secondary)]">
+          {t("transactions.dateAdded")}
+        </DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() =>
+            onFiltersChange({
+              ...filters,
+              sortBy: "created_at",
+              sortOrder: "desc",
+            })
+          }
+        >
+          <Check
+            className={`size-3 mr-1 ${(!filters.sortBy || filters.sortBy === "created_at") && (!filters.sortOrder || filters.sortOrder === "desc") ? "opacity-100" : "opacity-0"}`}
+          />
+          {t("transactions.newest")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() =>
+            onFiltersChange({
+              ...filters,
+              sortBy: "created_at",
+              sortOrder: "asc",
+            })
+          }
+        >
+          <Check
+            className={`size-3 mr-1 ${(!filters.sortBy || filters.sortBy === "created_at") && filters.sortOrder === "asc" ? "opacity-100" : "opacity-0"}`}
+          />
+          {t("transactions.oldest")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-medium text-[var(--text-secondary)]">
+          {t("transactions.byDate")}
+        </DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() =>
+            onFiltersChange({
+              ...filters,
+              sortBy: "transaction_date",
+              sortOrder: "desc",
+            })
+          }
+        >
+          <Check
+            className={`size-3 mr-1 ${filters.sortBy === "transaction_date" && (!filters.sortOrder || filters.sortOrder === "desc") ? "opacity-100" : "opacity-0"}`}
+          />
+          {t("transactions.newest")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() =>
+            onFiltersChange({
+              ...filters,
+              sortBy: "transaction_date",
+              sortOrder: "asc",
+            })
+          }
+        >
+          <Check
+            className={`size-3 mr-1 ${filters.sortBy === "transaction_date" && filters.sortOrder === "asc" ? "opacity-100" : "opacity-0"}`}
+          />
+          {t("transactions.oldest")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function FilterPopover({
+  filtersArray,
+  updateFiltersArray,
+  getOptionsForType,
+  filterViewOptions,
+}: {
+  filtersArray: Filter[];
+  updateFiltersArray: (updater: React.SetStateAction<Filter[]>) => void;
+  getOptionsForType: (type: FilterType) => FilterOption[];
+  filterViewOptions: FilterOption[][];
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [selectedView, setSelectedView] = React.useState<FilterType | null>(
@@ -55,6 +157,161 @@ export function TransactionFiltersComponent({
   );
   const [commandInput, setCommandInput] = React.useState("");
   const commandInputRef = React.useRef<HTMLInputElement>(null);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={open => {
+        setOpen(open);
+        if (!open) {
+          setTimeout(() => {
+            setSelectedView(null);
+            setCommandInput("");
+          }, 200);
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          selected={filtersArray.length > 0}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls="filter-popover-content"
+          size="sm"
+          className={cn(
+            "h-8 text-xs rounded-lg flex gap-1.5 items-center",
+            filtersArray.length > 0 ? "w-8 px-0 justify-center" : "px-3"
+          )}
+        >
+          <ListFilter className="size-4 shrink-0" />
+          {!filtersArray.length && t("transactions.filter", "Filter")}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent id="filter-popover-content" className="w-[200px] p-0">
+        <AnimateChangeInHeight>
+          <Command>
+            <CommandInput
+              placeholder={
+                selectedView
+                  ? getFilterTypeName(selectedView, t)
+                  : t("transactions.filter", "Filter...")
+              }
+              className="h-9"
+              value={commandInput}
+              onInputCapture={e => {
+                setCommandInput(e.currentTarget.value);
+              }}
+              ref={commandInputRef}
+            />
+            <CommandList>
+              <CommandEmpty>
+                {t("errors.noData", "Sin resultados")}
+              </CommandEmpty>
+              {selectedView ? (
+                <CommandGroup>
+                  {getOptionsForType(selectedView).map(
+                    (filter: FilterOption) => (
+                      <CommandItem
+                        className="group text-[var(--text-secondary)] flex gap-2 items-center"
+                        key={filter.name}
+                        value={filter.name}
+                        onSelect={currentValue => {
+                          updateFiltersArray(prev => [
+                            ...prev,
+                            {
+                              id: nanoid(),
+                              type: selectedView,
+                              operator: FilterOperator.IS,
+                              value: [currentValue],
+                            },
+                          ]);
+                          setTimeout(() => {
+                            setSelectedView(null);
+                            setCommandInput("");
+                          }, 200);
+                          setOpen(false);
+                        }}
+                      >
+                        {filter.icon || <FilterIcon type={filter.name} />}
+                        <span className="text-[var(--text-primary)]">
+                          {filter.label || filter.name}
+                        </span>
+                      </CommandItem>
+                    )
+                  )}
+                </CommandGroup>
+              ) : (
+                filterViewOptions.map((group: FilterOption[], index) => (
+                  <React.Fragment key={group[0].name}>
+                    <CommandGroup>
+                      {group.map((filter: FilterOption) => (
+                        <CommandItem
+                          className="group text-[var(--text-secondary)] flex gap-2 items-center"
+                          key={filter.name}
+                          value={filter.name}
+                          onSelect={currentValue => {
+                            const typeEnumsWithoutOptions = [
+                              FilterType.SERVICE_NAME,
+                              FilterType.START_DATE,
+                              FilterType.END_DATE,
+                            ];
+                            if (
+                              typeEnumsWithoutOptions.includes(
+                                currentValue as FilterType
+                              )
+                            ) {
+                              updateFiltersArray(prev => [
+                                ...prev,
+                                {
+                                  id: nanoid(),
+                                  type: currentValue as FilterType,
+                                  operator:
+                                    currentValue === FilterType.SERVICE_NAME
+                                      ? FilterOperator.INCLUDE
+                                      : FilterOperator.IS,
+                                  value: [""],
+                                },
+                              ]);
+                              setCommandInput("");
+                              setOpen(false);
+                            } else {
+                              setSelectedView(currentValue as FilterType);
+                              setCommandInput("");
+                              commandInputRef.current?.focus();
+                            }
+                          }}
+                        >
+                          {filter.icon}
+                          <span className="text-[var(--text-primary)]">
+                            {filter.label || filter.name}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    {index < filterViewOptions.length - 1 && (
+                      <CommandSeparator />
+                    )}
+                  </React.Fragment>
+                ))
+              )}
+            </CommandList>
+          </Command>
+        </AnimateChangeInHeight>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── Main component ─────────────────────────────────────────────────────────
+
+export function TransactionFiltersComponent({
+  filters,
+  onFiltersChange,
+  categories,
+  isLoading = false,
+}: TransactionFiltersProps) {
+  const { t } = useTranslation();
 
   // Dynamic filter lists from hooks
   const { currencies: availableCurrencies, emails: availableEmails } =
@@ -271,7 +528,7 @@ export function TransactionFiltersComponent({
     >
       <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
         <div className="shrink-0 mb-2 xl:mb-0">
-          <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+          <h1 className="text-xl md:text-2xl font-semibold text-[var(--text-primary)]">
             {t("navigation.transactions")}
           </h1>
           <p className="mt-1 text-xs md:text-sm text-[var(--text-secondary)] line-clamp-2 md:line-clamp-none">
@@ -289,236 +546,14 @@ export function TransactionFiltersComponent({
             setFilters={updateFiltersArray}
           />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs rounded-lg flex gap-1.5 items-center px-3"
-              >
-                {filters.sortOrder === "asc" ? (
-                  <ArrowUpDown className="size-4 shrink-0" />
-                ) : (
-                  <ArrowDownUp className="size-4 shrink-0" />
-                )}
-                {filters.sortBy === "transaction_date"
-                  ? t("transactions.byDate")
-                  : t("transactions.dateAdded")}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel className="text-xs font-medium text-[var(--text-secondary)]">
-                {t("transactions.dateAdded")}
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() =>
-                  onFiltersChange({
-                    ...filters,
-                    sortBy: "created_at",
-                    sortOrder: "desc",
-                  })
-                }
-              >
-                <Check
-                  className={`size-3 mr-1 ${(!filters.sortBy || filters.sortBy === "created_at") && (!filters.sortOrder || filters.sortOrder === "desc") ? "opacity-100" : "opacity-0"}`}
-                />
-                {t("transactions.newest")}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  onFiltersChange({
-                    ...filters,
-                    sortBy: "created_at",
-                    sortOrder: "asc",
-                  })
-                }
-              >
-                <Check
-                  className={`size-3 mr-1 ${(!filters.sortBy || filters.sortBy === "created_at") && filters.sortOrder === "asc" ? "opacity-100" : "opacity-0"}`}
-                />
-                {t("transactions.oldest")}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-medium text-[var(--text-secondary)]">
-                {t("transactions.byDate")}
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() =>
-                  onFiltersChange({
-                    ...filters,
-                    sortBy: "transaction_date",
-                    sortOrder: "desc",
-                  })
-                }
-              >
-                <Check
-                  className={`size-3 mr-1 ${filters.sortBy === "transaction_date" && (!filters.sortOrder || filters.sortOrder === "desc") ? "opacity-100" : "opacity-0"}`}
-                />
-                {t("transactions.newest")}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  onFiltersChange({
-                    ...filters,
-                    sortBy: "transaction_date",
-                    sortOrder: "asc",
-                  })
-                }
-              >
-                <Check
-                  className={`size-3 mr-1 ${filters.sortBy === "transaction_date" && filters.sortOrder === "asc" ? "opacity-100" : "opacity-0"}`}
-                />
-                {t("transactions.oldest")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SortDropdown filters={filters} onFiltersChange={onFiltersChange} />
 
-          <Popover
-            open={open}
-            onOpenChange={open => {
-              setOpen(open);
-              if (!open) {
-                setTimeout(() => {
-                  setSelectedView(null);
-                  setCommandInput("");
-                }, 200);
-              }
-            }}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                selected={filtersArray.length > 0}
-                role="combobox"
-                aria-expanded={open}
-                size="sm"
-                className={cn(
-                  "h-8 text-xs rounded-lg flex gap-1.5 items-center",
-                  filtersArray.length > 0 ? "w-8 px-0 justify-center" : "px-3"
-                )}
-              >
-                <ListFilter className="size-4 shrink-0" />
-                {!filtersArray.length && t("transactions.filter", "Filter")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0">
-              <AnimateChangeInHeight>
-                <Command>
-                  <CommandInput
-                    placeholder={
-                      selectedView
-                        ? getFilterTypeName(selectedView, t)
-                        : t("transactions.filter", "Filter...")
-                    }
-                    className="h-9"
-                    value={commandInput}
-                    onInputCapture={e => {
-                      setCommandInput(e.currentTarget.value);
-                    }}
-                    ref={commandInputRef}
-                  />
-                  <CommandList>
-                    <CommandEmpty>
-                      {t("errors.noData", "Sin resultados")}
-                    </CommandEmpty>
-                    {selectedView ? (
-                      <CommandGroup>
-                        {getOptionsForType(selectedView).map(
-                          (filter: FilterOption) => (
-                            <CommandItem
-                              className="group text-[var(--text-secondary)] flex gap-2 items-center"
-                              key={filter.name}
-                              value={filter.name}
-                              onSelect={currentValue => {
-                                updateFiltersArray(prev => [
-                                  ...prev,
-                                  {
-                                    id: nanoid(),
-                                    type: selectedView,
-                                    operator: FilterOperator.IS,
-                                    value: [currentValue],
-                                  },
-                                ]);
-                                setTimeout(() => {
-                                  setSelectedView(null);
-                                  setCommandInput("");
-                                }, 200);
-                                setOpen(false);
-                              }}
-                            >
-                              {filter.icon || <FilterIcon type={filter.name} />}
-                              <span className="text-[var(--text-primary)]">
-                                {filter.label || filter.name}
-                              </span>
-                            </CommandItem>
-                          )
-                        )}
-                      </CommandGroup>
-                    ) : (
-                      filterViewOptions.map(
-                        (group: FilterOption[], index: number) => (
-                          <React.Fragment key={index}>
-                            <CommandGroup>
-                              {group.map((filter: FilterOption) => (
-                                <CommandItem
-                                  className="group text-[var(--text-secondary)] flex gap-2 items-center"
-                                  key={filter.name}
-                                  value={filter.name}
-                                  onSelect={currentValue => {
-                                    // if it's text input or date, we can just add it and close immediately
-                                    const typeEnumsWithoutOptions = [
-                                      FilterType.SERVICE_NAME,
-                                      FilterType.START_DATE,
-                                      FilterType.END_DATE,
-                                    ];
-                                    if (
-                                      typeEnumsWithoutOptions.includes(
-                                        currentValue as FilterType
-                                      )
-                                    ) {
-                                      updateFiltersArray(prev => [
-                                        ...prev,
-                                        {
-                                          id: nanoid(),
-                                          type: currentValue as FilterType,
-                                          operator:
-                                            currentValue ===
-                                            FilterType.SERVICE_NAME
-                                              ? FilterOperator.INCLUDE
-                                              : FilterOperator.IS,
-                                          value: [""],
-                                        },
-                                      ]);
-                                      setCommandInput("");
-                                      setOpen(false);
-                                    } else {
-                                      setSelectedView(
-                                        currentValue as FilterType
-                                      );
-                                      setCommandInput("");
-                                      commandInputRef.current?.focus();
-                                    }
-                                  }}
-                                >
-                                  {filter.icon}
-                                  <span className="text-[var(--text-primary)]">
-                                    {filter.label || filter.name}
-                                  </span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                            {index < filterViewOptions.length - 1 && (
-                              <CommandSeparator />
-                            )}
-                          </React.Fragment>
-                        )
-                      )
-                    )}
-                  </CommandList>
-                </Command>
-              </AnimateChangeInHeight>
-            </PopoverContent>
-          </Popover>
+          <FilterPopover
+            filtersArray={filtersArray}
+            updateFiltersArray={updateFiltersArray}
+            getOptionsForType={getOptionsForType}
+            filterViewOptions={filterViewOptions}
+          />
 
           {filtersArray.length > 0 && (
             <Button

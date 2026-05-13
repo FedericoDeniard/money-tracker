@@ -36,7 +36,7 @@ import {
 import { useRef, useState, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "motion/react";
+import { LazyMotion, m, domAnimation, AnimatePresence } from "motion/react";
 
 interface AnimateChangeInHeightProps {
   children: React.ReactNode;
@@ -66,14 +66,16 @@ export const AnimateChangeInHeight: React.FC<AnimateChangeInHeightProps> = ({
   }, []);
 
   return (
-    <motion.div
-      className={cn(className, "overflow-hidden")}
-      style={{ height }}
-      animate={{ height }}
-      transition={{ duration: 0.1, damping: 20, ease: "easeIn" }}
-    >
-      <div ref={containerRef}>{children}</div>
-    </motion.div>
+    <LazyMotion features={domAnimation}>
+      <m.div
+        className={cn(className, "overflow-hidden")}
+        style={{ height }}
+        animate={{ height }}
+        transition={{ duration: 0.1, damping: 20, ease: "easeIn" }}
+      >
+        <div ref={containerRef}>{children}</div>
+      </m.div>
+    </LazyMotion>
   );
 };
 
@@ -279,10 +281,10 @@ const FilterValueCombobox = ({
     >
       <PopoverTrigger className="border-l border-[var(--text-secondary)]/20 px-2 h-full bg-[var(--bg-secondary)] hover:bg-[var(--text-secondary)]/10 transition text-[var(--text-primary)] shrink-0 min-w-[50px] text-left flex items-center">
         <div className="flex gap-1.5 items-center">
-          <div className="flex items-center flex-row -space-x-1.5">
+          <div className="flex items-center flex-row gap-x-[-0.375rem]">
             <AnimatePresence mode="popLayout">
               {filterValues?.slice(0, 3).map(value => (
-                <motion.div
+                <m.div
                   key={value}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -293,7 +295,7 @@ const FilterValueCombobox = ({
                     type={value as string}
                     className="bg-[var(--bg-secondary)] rounded-full"
                   />
-                </motion.div>
+                </m.div>
               ))}
             </AnimatePresence>
           </div>

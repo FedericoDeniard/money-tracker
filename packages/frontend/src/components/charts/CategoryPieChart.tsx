@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useRecharts } from "../../hooks/useRecharts";
 
 interface CategoryData {
   category: string;
@@ -46,9 +46,10 @@ const COLORS = [
   "#f43f5e", // Rose
 ];
 
-export function CategoryPieChart({ data }: CategoryPieChartProps) {
+export default function CategoryPieChart({ data }: CategoryPieChartProps) {
   const { t } = useTranslation();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { PieChart, Pie, Cell, ResponsiveContainer, Sector } = useRecharts();
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!data.length) {
@@ -196,7 +197,6 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
                 <Cell
                   key={`cell-${entry.name}-${entry.value}`}
                   fill={COLORS[index % COLORS.length]}
-                  style={{ outline: "none" }}
                 />
               ))}
             </Pie>

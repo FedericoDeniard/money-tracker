@@ -64,27 +64,32 @@ export const PushSubscriptionService = {
       throw new Error("Notification permission denied");
     }
 
-    // Get the VAPID public key from config
-    const config = await getConfig();
+    // Get VAPID key + Supabase client + ServiceWorker concurrently
+    const [config, supabase, registration] = await Promise.all([
+      getConfig(),
+      getSupabase(),
+      navigator.serviceWorker.ready,
+    ]);
     if (!config.vapidPublicKey) {
       throw new Error(
         "Push notifications are not configured (missing VAPID_PUBLIC_KEY)"
       );
     }
 
-    // Subscribe via the browser's PushManager
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey),
-    });
-
-    // Persist the subscription to the database
-    const supabase = await getSupabase();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    // Subscribe via the browser's PushManager and get user in parallel
+    const [
+      subscription,
+      {
+        data: { user },
+        error: userError,
+      },
+    ] = await Promise.all([
+      registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey),
+      }),
+      supabase.auth.getUser(),
+    ]);
 
     if (userError || !user) {
       throw new Error("User not authenticated");

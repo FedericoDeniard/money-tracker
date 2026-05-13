@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import type { Transaction } from "../../services/transactions.service";
@@ -95,7 +95,7 @@ export function EditTransactionModal({
 }: EditTransactionModalProps) {
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const [formData, setFormData] = useState({
     transaction_type: transaction.transaction_type,
@@ -118,24 +118,23 @@ export function EditTransactionModal({
     });
   }, [transaction, isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      await onSave({
-        transaction_type: formData.transaction_type,
-        merchant: formData.merchant,
-        amount: parseFloat(formData.amount),
-        currency: formData.currency,
-        category: formData.category,
-        transaction_date: formData.transaction_date,
-      });
-      onClose();
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    startTransition(async () => {
+      try {
+        await onSave({
+          transaction_type: formData.transaction_type,
+          merchant: formData.merchant,
+          amount: parseFloat(formData.amount),
+          currency: formData.currency,
+          category: formData.category,
+          transaction_date: formData.transaction_date,
+        });
+        onClose();
+      } catch (error) {
+        console.error("Error updating transaction:", error);
+      }
+    });
   };
 
   return (
@@ -143,7 +142,7 @@ export function EditTransactionModal({
       isOpen={isOpen}
       onClose={onClose}
       title={t("transactions.editTransaction")}
-      closeDisabled={isLoading}
+      closeDisabled={isPending}
       footer={
         <>
           <Button
@@ -151,19 +150,19 @@ export function EditTransactionModal({
             onClick={onClose}
             variant="secondary"
             size="md"
-            disabled={isLoading}
+            disabled={isPending}
           >
             {t("common.cancel")}
           </Button>
           <Button
             type="submit"
             form={FORM_ID}
-            disabled={isLoading}
-            loading={isLoading}
+            disabled={isPending}
+            loading={isPending}
             variant="primary"
             size="md"
           >
-            {isLoading ? t("common.saving") : t("common.save")}
+            {isPending ? t("common.saving") : t("common.save")}
           </Button>
         </>
       }
@@ -177,13 +176,13 @@ export function EditTransactionModal({
           <select
             value={formData.transaction_type}
             onChange={e =>
-              setFormData({
-                ...formData,
+              setFormData(prev => ({
+                ...prev,
                 transaction_type: e.target.value as "income" | "expense",
-              })
+              }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           >
             <option value="income">{t("transactions.income")}</option>
             <option value="expense">{t("transactions.expense")}</option>
@@ -199,10 +198,10 @@ export function EditTransactionModal({
             type="text"
             value={formData.merchant}
             onChange={e =>
-              setFormData({ ...formData, merchant: e.target.value })
+              setFormData(prev => ({ ...prev, merchant: e.target.value }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           />
         </div>
 
@@ -215,10 +214,13 @@ export function EditTransactionModal({
             type="date"
             value={formData.transaction_date}
             onChange={e =>
-              setFormData({ ...formData, transaction_date: e.target.value })
+              setFormData(prev => ({
+                ...prev,
+                transaction_date: e.target.value,
+              }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
             required
           />
         </div>
@@ -233,9 +235,11 @@ export function EditTransactionModal({
             step="0.01"
             min="0.01"
             value={formData.amount}
-            onChange={e => setFormData({ ...formData, amount: e.target.value })}
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, amount: e.target.value }))
+            }
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
             required
           />
         </div>
@@ -248,10 +252,10 @@ export function EditTransactionModal({
           <select
             value={formData.currency}
             onChange={e =>
-              setFormData({ ...formData, currency: e.target.value })
+              setFormData(prev => ({ ...prev, currency: e.target.value }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           >
             {CURRENCIES.map(curr => (
               <option key={curr} value={curr}>
@@ -269,13 +273,13 @@ export function EditTransactionModal({
           <select
             value={formData.category}
             onChange={e =>
-              setFormData({
-                ...formData,
+              setFormData(prev => ({
+                ...prev,
                 category: e.target.value as (typeof CATEGORIES)[number],
-              })
+              }))
             }
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
-            disabled={isLoading}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
           >
             {CATEGORIES.map(cat => (
               <option key={cat} value={cat}>

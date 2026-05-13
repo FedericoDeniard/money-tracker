@@ -48,43 +48,30 @@ export function Button({
 
   const classes = `${baseClasses} ${selected && variant === "outline" ? variantClasses.primary : variantClasses[variant]} ${sizeClasses[size]} ${widthClasses} ${className}`;
 
-  const renderIcon = () => {
-    if (loading) {
-      return (
-        <Loader2
-          className="animate-spin"
-          size={size === "sm" ? 16 : size === "lg" ? 20 : 18}
-        />
-      );
-    }
-    return icon;
-  };
-
-  const renderContent = () => {
-    if (icon && iconPosition === "left") {
-      return (
-        <>
-          {renderIcon()}
-          {children && <span className={icon ? "ml-2" : ""}>{children}</span>}
-        </>
-      );
-    }
-
-    if (icon && iconPosition === "right") {
-      return (
-        <>
-          {children && <span className={icon ? "mr-2" : ""}>{children}</span>}
-          {renderIcon()}
-        </>
-      );
-    }
-
-    return children;
-  };
+  const loadingIcon = loading ? (
+    <Loader2
+      className="animate-spin"
+      size={size === "sm" ? 16 : size === "lg" ? 20 : 18}
+    />
+  ) : (
+    icon
+  );
 
   return (
     <button className={classes} disabled={disabled || loading} {...props}>
-      {renderContent()}
+      {loadingIcon && iconPosition === "left" ? (
+        <>
+          {loadingIcon}
+          {children && <span className="ml-2">{children}</span>}
+        </>
+      ) : loadingIcon && iconPosition === "right" ? (
+        <>
+          {children && <span className="mr-2">{children}</span>}
+          {loadingIcon}
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

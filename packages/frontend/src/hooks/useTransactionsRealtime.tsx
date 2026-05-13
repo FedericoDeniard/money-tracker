@@ -8,31 +8,33 @@ import type { Transaction } from "../services/transactions.service";
 import { useAuth } from "./useAuth";
 import { getTransactionType } from "../utils/transactionUtils";
 import { queryKeys } from "../lib/query-client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../types/database.types";
 
 export function useTransactionsRealtime() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const supabaseRef = useRef<SupabaseClient<Database> | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    getSupabase().then(supabase => {
+      supabaseRef.current = supabase;
+    });
+  }, []);
 
-    // Guard: if already subscribed, skip — prevents double-subscription during
-    // React Strict Mode double-invocation or rapid re-renders.
-    if (channelRef.current?.state === "subscribed") return;
+  useEffect(() => {
+    let subscription: RealtimeChannel | null = null;
 
-    const setupRealtimeSubscription = async () => {
-      const supabase = await getSupabase();
+    if (channelRef.current && supabaseRef.current) {
+      supabaseRef.current.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
-      // Ensure any stale channel for this topic is fully removed first.
-      if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+    if (user && supabaseRef.current) {
+      const supabase = supabaseRef.current;
 
-      // Private, per-user channel — only this user's transactions are broadcast here.
       const channel = supabase.channel(`transactions:${user.id}`, {
         config: { private: true },
       });
@@ -62,12 +64,20 @@ export function useTransactionsRealtime() {
             toast.custom(
               id => (
                 <div
+                  role="button"
+                  tabIndex={0}
                   className="w-full rounded-xl shadow-lg border p-4 flex items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative overflow-hidden group"
                   style={{
                     backgroundColor: "var(--bg-primary)",
                     borderColor: "var(--bg-secondary)",
                   }}
                   onClick={() => toast.dismiss(id)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toast.dismiss(id);
+                    }
+                  }}
                 >
                   <div
                     className="absolute left-0 top-0 bottom-0 w-1"
@@ -147,20 +157,13 @@ export function useTransactionsRealtime() {
         )
         .subscribe();
 
-      channelRef.current = channel;
-    };
-
-    setupRealtimeSubscription();
+      subscription = channel;
+      channelRef.current = subscription;
+    }
 
     return () => {
-      if (channelRef.current) {
-        getSupabase().then(supabase => {
-          if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
-          }
-        });
-      }
+      subscription?.unsubscribe();
+      channelRef.current = null;
     };
   }, [t, user, queryClient]);
 }

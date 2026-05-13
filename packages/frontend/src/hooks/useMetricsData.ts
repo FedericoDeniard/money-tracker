@@ -110,9 +110,10 @@ export function useMetricsData({
       {} as Record<string, number>
     );
 
-    const topCategory = Object.entries(categoryTotals).sort(
-      ([, a], [, b]) => b - a
-    )[0];
+    const topCategory = Object.entries(categoryTotals).reduce(
+      (max, entry) => (entry[1] > (max?.[1] ?? -Infinity) ? entry : max),
+      null as [string, number] | null
+    );
 
     const averageTransaction =
       filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /

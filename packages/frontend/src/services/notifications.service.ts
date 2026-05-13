@@ -7,13 +7,12 @@ import type {
   TablesUpdate,
 } from "../types/database.types";
 
-export type NotificationRow = Tables<"notifications">;
+type NotificationRow = Tables<"notifications">;
 export type NotificationImportance =
   Database["public"]["Enums"]["notification_importance"];
-export type NotificationTypeRow = Tables<"notification_types">;
-export type NotificationCategoryRow = Tables<"notification_categories">;
-export type UserNotificationPreferenceRow =
-  Tables<"user_notification_preferences">;
+type NotificationTypeRow = Tables<"notification_types">;
+type NotificationCategoryRow = Tables<"notification_categories">;
+type UserNotificationPreferenceRow = Tables<"user_notification_preferences">;
 
 type NotificationJoinRow = NotificationRow & {
   notification_types:
@@ -41,7 +40,7 @@ export interface NotificationListFilters {
   limit?: number;
 }
 
-export interface NotificationTypePreference {
+interface NotificationTypePreference {
   type: NotificationTypeRow;
   category: NotificationCategoryRow | null;
   preference: UserNotificationPreferenceRow | null;
@@ -56,7 +55,7 @@ function mapNotificationRow(row: NotificationJoinRow): NotificationItem {
   };
 }
 
-export class NotificationsService {
+class NotificationsService {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
   async listNotifications(

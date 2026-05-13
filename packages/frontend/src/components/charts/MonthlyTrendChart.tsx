@@ -1,16 +1,6 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
 import { useTranslation } from "react-i18next";
 import { InsufficientData } from "../ui/InsufficientData";
+import { useRecharts } from "../../hooks/useRecharts";
 
 interface MonthlyData {
   month: string;
@@ -23,8 +13,19 @@ interface MonthlyTrendChartProps {
   data: MonthlyData[];
 }
 
-export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
+export default function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   const { t } = useTranslation();
+  const {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    ReferenceLine,
+  } = useRecharts();
 
   if (!data.length) {
     return (
