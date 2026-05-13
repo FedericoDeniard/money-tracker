@@ -26,7 +26,6 @@ import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 
@@ -322,26 +321,18 @@ export function Transactions() {
         )}
 
         {/* Mobile overlay */}
-        <AnimatePresence>
-          {isMobile && selectedTransaction && (
-            <m.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-0 z-50 bg-[var(--bg-secondary)] lg:hidden"
-            >
-              <TransactionDetail
-                transaction={selectedTransaction}
-                onDelete={handleDeleteTransaction}
-                onUpdate={handleUpdateTransaction}
-                onClose={() =>
-                  dispatch({ type: "SELECT_TRANSACTION", transaction: null })
-                }
-              />
-            </m.div>
-          )}
-        </AnimatePresence>
+        {isMobile && selectedTransaction && (
+          <div className="fixed inset-0 z-50 bg-[var(--bg-secondary)] lg:hidden">
+            <TransactionDetail
+              transaction={selectedTransaction}
+              onDelete={handleDeleteTransaction}
+              onUpdate={handleUpdateTransaction}
+              onClose={() =>
+                dispatch({ type: "SELECT_TRANSACTION", transaction: null })
+              }
+            />
+          </div>
+        )}
 
         <AddTransactionButton
           onManualAdd={() =>
