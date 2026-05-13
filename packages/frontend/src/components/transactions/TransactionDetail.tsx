@@ -26,6 +26,7 @@ export function TransactionDetail({
   const { isIncome } = getTransactionType(
     transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
   );
+
   const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -64,9 +65,21 @@ export function TransactionDetail({
   const amountColor = "text-[var(--text-primary)]";
 
   // Format date and time
-  const dateTimeStr = formatDateTime(
-    transaction.transaction_date || transaction.date
-  );
+  let dateTimeStr: string;
+  try {
+    dateTimeStr = formatDateTime(
+      transaction.transaction_date || transaction.date
+    );
+  } catch {
+    dateTimeStr = "Invalid date";
+  }
+
+  let amountDisplay: string;
+  try {
+    amountDisplay = transaction.amount.toLocaleString();
+  } catch {
+    amountDisplay = "error";
+  }
 
   return (
     <div className="h-full flex flex-col bg-white lg:rounded-3xl relative lg:shadow-sm lg:border border-zinc-100">
@@ -106,7 +119,7 @@ export function TransactionDetail({
             className={`text-3xl font-semibold ${amountColor} tracking-tight`}
           >
             {isIncome ? "+" : "-"}
-            {transaction.currency} {transaction.amount.toLocaleString()}
+            {transaction.currency} {amountDisplay}
           </h1>
         </div>
 
@@ -148,7 +161,7 @@ export function TransactionDetail({
 
           <DetailRow
             label={t("transactions.amount")}
-            value={`${transaction.currency} ${transaction.amount.toLocaleString()}`}
+            value={`${transaction.currency} ${amountDisplay}`}
           />
 
           <div className="flex items-center justify-between py-1">

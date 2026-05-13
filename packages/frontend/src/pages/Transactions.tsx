@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useReducer } from "react";
+import { Suspense, useCallback, useReducer, Component } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import {
@@ -323,14 +323,16 @@ export function Transactions() {
         {/* Mobile overlay */}
         {isMobile && selectedTransaction && (
           <div className="fixed inset-0 z-50 bg-[var(--bg-secondary)] lg:hidden">
-            <TransactionDetail
-              transaction={selectedTransaction}
-              onDelete={handleDeleteTransaction}
-              onUpdate={handleUpdateTransaction}
-              onClose={() =>
-                dispatch({ type: "SELECT_TRANSACTION", transaction: null })
-              }
-            />
+            <TransactionDetailErrorBoundary>
+              <TransactionDetail
+                transaction={selectedTransaction}
+                onDelete={handleDeleteTransaction}
+                onUpdate={handleUpdateTransaction}
+                onClose={() =>
+                  dispatch({ type: "SELECT_TRANSACTION", transaction: null })
+                }
+              />
+            </TransactionDetailErrorBoundary>
           </div>
         )}
 
@@ -365,4 +367,30 @@ export function Transactions() {
       </div>
     </div>
   );
+}
+
+class TransactionDetailErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error, _info: React.ErrorInfo) {
+    console.error("TransactionDetail crashed:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
+          <p className="text-red-500">Error loading transaction detail</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
