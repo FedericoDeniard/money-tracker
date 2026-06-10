@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -252,20 +252,70 @@ function DashboardContent({
 }
 
 // ─── Page shell — renders immediately (no data dependency) ───────────────────
+interface HomeState {
+  isCreateModalOpen: boolean;
+  isSyncing: boolean;
+  activeConnections: { id: string; gmail_email: string }[];
+  connectionsLoaded: boolean;
+  isSyncModalOpen: boolean;
+}
+
+type HomeAction =
+  | { type: "SET_CREATE_MODAL_OPEN"; isOpen: boolean }
+  | { type: "SET_SYNCING"; isSyncing: boolean }
+  | {
+      type: "SET_ACTIVE_CONNECTIONS";
+      connections: { id: string; gmail_email: string }[];
+    }
+  | { type: "SET_CONNECTIONS_LOADED"; loaded: boolean }
+  | { type: "SET_SYNC_MODAL_OPEN"; isOpen: boolean };
+
+function homeReducer(state: HomeState, action: HomeAction): HomeState {
+  switch (action.type) {
+    case "SET_CREATE_MODAL_OPEN":
+      return { ...state, isCreateModalOpen: action.isOpen };
+    case "SET_SYNCING":
+      return { ...state, isSyncing: action.isSyncing };
+    case "SET_ACTIVE_CONNECTIONS":
+      return { ...state, activeConnections: action.connections };
+    case "SET_CONNECTIONS_LOADED":
+      return { ...state, connectionsLoaded: action.loaded };
+    case "SET_SYNC_MODAL_OPEN":
+      return { ...state, isSyncModalOpen: action.isOpen };
+  }
+}
+
+const initialHomeState: HomeState = {
+  isCreateModalOpen: false,
+  isSyncing: false,
+  activeConnections: [],
+  connectionsLoaded: false,
+  isSyncModalOpen: false,
+};
+
 export function Home() {
   const { t } = useTranslation();
   const { user } = useAuth();
   useSeedNotifications(user?.id);
 
   const { createTransaction } = useTransactionMutations();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [activeConnections, setActiveConnections] = useState<
-    { id: string; gmail_email: string }[]
-  >([]);
-  const [connectionsLoaded, setConnectionsLoaded] = useState(false);
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [state, dispatch] = useReducer(homeReducer, initialHomeState);
+  const {
+    isCreateModalOpen,
+    isSyncing,
+    activeConnections,
+    connectionsLoaded,
+    isSyncModalOpen,
+  } = state;
   const navigate = useNavigate();
+
+  const handleActiveConnections = useCallback(
+    (connections: { id: string; gmail_email: string }[]) => {
+      dispatch({ type: "SET_ACTIVE_CONNECTIONS", connections });
+      dispatch({ type: "SET_CONNECTIONS_LOADED", loaded: true });
+    },
+    []
+  );
 
   const handleConnectGmail = async () => {
     try {
@@ -282,23 +332,23 @@ export function Home() {
   const handleForceSync = async (connectionId?: string | null) => {
     if (!connectionId) return;
     try {
-      setIsSyncing(true);
+      dispatch({ type: "SET_SYNCING", isSyncing: true });
       await startSeedWithFeedback(connectionId, t);
     } finally {
-      setIsSyncing(false);
+      dispatch({ type: "SET_SYNCING", isSyncing: false });
     }
   };
 
   const handleForceSyncAll = async () => {
     if (activeConnections.length === 0) return;
     try {
-      setIsSyncing(true);
-      setIsSyncModalOpen(false);
+      dispatch({ type: "SET_SYNCING", isSyncing: true });
+      dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false });
       await Promise.all(
         activeConnections.map(c => startSeedWithFeedback(c.id, t))
       );
     } finally {
-      setIsSyncing(false);
+      dispatch({ type: "SET_SYNCING", isSyncing: false });
     }
   };
 
@@ -311,7 +361,7 @@ export function Home() {
       {/* Static header — renders immediately */}
       <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-6 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
             {t("navigation.dashboard")}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -332,7 +382,9 @@ export function Home() {
           )}
           icon={<ReceiptText size={18} />}
           actionLabel={t("transactions.addManually")}
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() =>
+            dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: true })
+          }
         />
         <QuickActionCard
           title={t("dashboardActionFirst.quickActions.connectGmail.title")}
@@ -356,7 +408,9 @@ export function Home() {
               ? t("dashboardActionFirst.quickActions.forceSync.syncing")
               : t("dashboardActionFirst.quickActions.forceSync.action")
           }
-          onClick={() => setIsSyncModalOpen(true)}
+          onClick={() =>
+            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: true })
+          }
           disabled={isSyncing}
         />
         <QuickActionCard
@@ -380,10 +434,7 @@ export function Home() {
               userId={user.id}
               isSyncing={isSyncing}
               onForceSync={handleForceSync}
-              onActiveConnections={connections => {
-                setActiveConnections(connections);
-                setConnectionsLoaded(true);
-              }}
+              onActiveConnections={handleActiveConnections}
             />
           </Suspense>
         </div>
@@ -391,7 +442,9 @@ export function Home() {
 
       <TransactionFormModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() =>
+          dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: false })
+        }
         onSave={handleCreateTransaction}
         mode="create"
       />
@@ -399,9 +452,11 @@ export function Home() {
       {connectionsLoaded && activeConnections.length === 0 ? (
         <ConfirmModal
           isOpen={isSyncModalOpen}
-          onClose={() => setIsSyncModalOpen(false)}
+          onClose={() =>
+            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false })
+          }
           onConfirm={() => {
-            setIsSyncModalOpen(false);
+            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false });
             navigate("/settings");
           }}
           title={t(
@@ -431,7 +486,9 @@ export function Home() {
       ) : (
         <ConfirmModal
           isOpen={isSyncModalOpen}
-          onClose={() => setIsSyncModalOpen(false)}
+          onClose={() =>
+            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false })
+          }
           onConfirm={handleForceSyncAll}
           title={t(
             "dashboardActionFirst.quickActions.forceSync.modalTitle",

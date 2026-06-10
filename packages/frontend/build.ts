@@ -36,7 +36,7 @@ Example:
 const toCamelCase = (str: string): string =>
   str.replace(/-([a-z])/g, g => g[1].toUpperCase());
 
-const parseValue = (value: string): any => {
+const parseValue = (value: string): unknown => {
   if (value === "true") return true;
   if (value === "false") return false;
 
@@ -63,8 +63,10 @@ function parseArgs(): Partial<Bun.BuildConfig> {
       continue;
     }
 
+    const argHasEquals = /=/.test(arg);
+
     if (
-      !arg.includes("=") &&
+      !argHasEquals &&
       (i === args.length - 1 || args[i + 1]?.startsWith("--"))
     ) {
       const key = toCamelCase(arg.slice(2));
@@ -75,7 +77,7 @@ function parseArgs(): Partial<Bun.BuildConfig> {
     let key: string;
     let value: string;
 
-    if (arg.includes("=")) {
+    if (argHasEquals) {
       [key, value] = arg.slice(2).split("=", 2) as [string, string];
     } else {
       key = arg.slice(2);
@@ -83,8 +85,9 @@ function parseArgs(): Partial<Bun.BuildConfig> {
     }
 
     key = toCamelCase(key);
+    const keyHasDot = /\./.test(key);
 
-    if (key.includes(".")) {
+    if (keyHasDot) {
       const [parentKey, childKey] = key.split(".");
       config[parentKey] = config[parentKey] || {};
       config[parentKey][childKey] = parseValue(value);
@@ -128,9 +131,13 @@ if (existsSync(outdir)) {
 const start = performance.now();
 
 // ─── Main app build ───────────────────────────────────────────────────────────
-const entrypoints = [...new Bun.Glob("**.html").scanSync("src")]
-  .map(a => path.resolve("src", a))
-  .filter(dir => !dir.includes("node_modules"));
+const entrypoints: string[] = [];
+for (const match of new Bun.Glob("**.html").scanSync("src")) {
+  const resolved = path.resolve("src", match);
+  if (!/node_modules/.test(resolved)) {
+    entrypoints.push(resolved);
+  }
+}
 console.log(
   `📄 Found ${entrypoints.length} HTML ${entrypoints.length === 1 ? "file" : "files"} to process\n`
 );
@@ -175,11 +182,13 @@ const swResult = await Bun.build({
 const publicDir = path.resolve("public");
 if (existsSync(publicDir)) {
   const publicFiles = await readdir(publicDir);
-  for (const file of publicFiles) {
-    await cp(path.join(publicDir, file), path.join(outdir, file), {
-      recursive: true,
-    });
-  }
+  await Promise.all(
+    publicFiles.map(file =>
+      cp(path.join(publicDir, file), path.join(outdir, file), {
+        recursive: true,
+      })
+    )
+  );
   console.log(
     `\n📦 Copied ${publicFiles.length} file(s) from public/ to dist/\n`
   );

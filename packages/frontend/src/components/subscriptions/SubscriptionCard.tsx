@@ -12,13 +12,13 @@ import {
 function getConfidenceClass(score: number): string {
   if (score >= 75) return "bg-emerald-100 text-emerald-700";
   if (score >= 50) return "bg-yellow-100 text-yellow-700";
-  return "bg-gray-100 text-gray-700";
+  return "bg-zinc-100 text-zinc-700";
 }
 
 function getStatusClass(status: SubscriptionStatus): string {
   if (status === "active") return "bg-emerald-100 text-emerald-700";
   if (status === "inactive") return "bg-rose-100 text-rose-700";
-  return "bg-gray-100 text-gray-700";
+  return "bg-zinc-100 text-zinc-700";
 }
 
 interface SubscriptionCardProps {
@@ -64,7 +64,7 @@ export function SubscriptionCard({ candidate }: SubscriptionCardProps) {
               <div className="relative group/grace">
                 <button
                   type="button"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  className="inline-flex size-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-300"
                   aria-label={t("subscriptions.gracePeriod.title")}
                 >
                   <AlertTriangle size={12} />

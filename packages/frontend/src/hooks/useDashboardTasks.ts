@@ -28,7 +28,7 @@ interface SeedSummary {
   } | null;
 }
 
-export interface DashboardActivitySummary {
+interface DashboardActivitySummary {
   emailsProcessedByAi: number;
   transactionsFound: number;
   skippedEmails: number;

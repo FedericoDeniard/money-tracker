@@ -44,7 +44,7 @@ export function SubscriptionsHeader({
       <div className="flex flex-row items-start justify-between gap-2 md:gap-4 md:items-center">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="text-xl md:text-2xl font-semibold text-[var(--text-primary)]">
               {t("subscriptions.title")}
             </h1>
             <span className="rounded-md bg-yellow-100 px-2 py-0.5 text-[10px] md:text-xs font-semibold uppercase tracking-wide text-yellow-800 border border-yellow-300">
@@ -118,8 +118,8 @@ export function SubscriptionsHeader({
           </div>
 
           <div className="relative group flex-1 min-w-[140px] sm:min-w-[200px]">
-            <div className="flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:border-gray-300 w-full h-8 md:h-9">
-              <ArrowUpDown size={14} className="text-gray-500 shrink-0" />
+            <div className="flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white border border-zinc-200 rounded-lg text-zinc-700 hover:border-zinc-300 w-full h-8 md:h-9">
+              <ArrowUpDown size={14} className="text-zinc-500 shrink-0" />
               <span className="text-xs md:text-sm font-medium truncate">
                 {t(`subscriptions.filters.sort.${sortBy}`)}
               </span>

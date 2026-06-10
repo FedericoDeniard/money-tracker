@@ -361,9 +361,10 @@ export class TransactionsService {
 
       const emails = [
         ...new Set(
-          (fallbackData || [])
-            .map(item => item.gmail_email)
-            .filter((e): e is string => e !== null)
+          (fallbackData || []).reduce((acc: string[], item) => {
+            if (item.gmail_email !== null) acc.push(item.gmail_email);
+            return acc;
+          }, [])
         ),
       ];
       return emails.sort();
