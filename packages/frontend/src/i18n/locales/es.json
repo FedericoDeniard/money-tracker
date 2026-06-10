@@ -25,6 +25,7 @@
     "subscriptions": "Suscripciones",
     "metrics": "Métricas",
     "settings": "Configuración",
+    "assistant": "Asistente",
     "logout": "Cerrar Sesión",
     "home": "Inicio",
     "emails": "Emails"
@@ -846,6 +847,25 @@
     "changes": {
       "title": "Cambios en esta política",
       "content": "Esta política de privacidad puede actualizarse periódicamente. Los cambios serán publicados en esta misma URL. Te recomiendo revisarla de vez en cuando para mantenerte informado."
+    }
+  },
+  "assistant": {
+    "brand": "Money Tracker",
+    "logoAlt": "Logo de Money Tracker",
+    "greeting": {
+      "morning": "Buen día",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "defaultName": "vos",
+    "placeholder": "Preguntá sobre tus transacciones, suscripciones o gastos...",
+    "historyTooltip": "Historial",
+    "disclaimer": "La IA puede cometer errores. Verificá la información importante.",
+    "quickQuestions": {
+      "topExpenses": "¿Cuáles son mis mayores gastos?",
+      "topIncome": "¿Cuál es mi mayor fuente de ingresos?",
+      "subscriptionsTotal": "¿Cuánto gasto en suscripciones?",
+      "savings": "¿Estoy ahorrando este mes?"
     }
   }
 }

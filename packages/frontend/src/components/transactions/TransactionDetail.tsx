@@ -228,6 +228,7 @@ export function TransactionDetail({
 
       {/* Edit Modal */}
       <EditTransactionModal
+        key={transaction.id}
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onSave={handleUpdate}

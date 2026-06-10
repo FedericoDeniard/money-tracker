@@ -8,6 +8,10 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
+if (process.env.NODE_ENV !== "production") {
+  import("react-grab");
+}
+
 function start() {
   const root = createRoot(document.getElementById("root")!);
   root.render(<App />);

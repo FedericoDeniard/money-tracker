@@ -37,17 +37,10 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
   return (
     <LazyMotion features={domAnimation}>
       <article className="flex flex-col rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm hover:border-[var(--text-secondary)]/40 hover:bg-[var(--bg-secondary)]/20 transition-all">
-        <div
-          className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 cursor-pointer"
+        <button
+          type="button"
+          className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 cursor-pointer w-full text-left appearance-none bg-transparent"
           onClick={() => setIsExpanded(!isExpanded)}
-          onKeyDown={e => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setIsExpanded(!isExpanded);
-            }
-          }}
-          role="button"
-          tabIndex={0}
         >
           {/* Avatar / Icon */}
           <div className="flex size-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] font-bold text-sm sm:text-lg">
@@ -129,7 +122,7 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
               />
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Expanded Accordion Area */}
         <AnimatePresence>

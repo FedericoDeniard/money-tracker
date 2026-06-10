@@ -25,6 +25,7 @@
     "subscriptions": "Subscriptions",
     "metrics": "Metrics",
     "settings": "Settings",
+    "assistant": "Assistant",
     "logout": "Logout",
     "home": "Home",
     "emails": "Emails"
@@ -846,6 +847,25 @@
     "changes": {
       "title": "Changes to This Policy",
       "content": "This privacy policy may be updated periodically. Changes will be published at this same URL. I recommend reviewing it from time to time to stay informed."
+    }
+  },
+  "assistant": {
+    "brand": "Money Tracker",
+    "logoAlt": "Money Tracker Logo",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "defaultName": "there",
+    "placeholder": "Ask about your transactions, subscriptions, or spending...",
+    "historyTooltip": "History",
+    "disclaimer": "AI can make mistakes. Please check important information.",
+    "quickQuestions": {
+      "topExpenses": "What are my biggest expenses?",
+      "topIncome": "What's my biggest source of income?",
+      "subscriptionsTotal": "How much do I spend on subscriptions?",
+      "savings": "Am I saving money this month?"
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import type { Transaction } from "../../services/transactions.service";
@@ -105,18 +105,6 @@ export function EditTransactionModal({
     category: transaction.category,
     transaction_date: transaction.transaction_date || transaction.date,
   });
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setFormData({
-      transaction_type: transaction.transaction_type,
-      merchant: transaction.merchant || "",
-      amount: transaction.amount.toString(),
-      currency: transaction.currency,
-      category: transaction.category,
-      transaction_date: transaction.transaction_date || transaction.date,
-    });
-  }, [transaction, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
