@@ -20,11 +20,7 @@ export function SuspenseFallback({
   );
 }
 
-export function SuspenseFallbackCard({
-  className = "",
-}: {
-  className?: string;
-}) {
+function SuspenseFallbackCard({ className = "" }: { className?: string }) {
   return (
     <div
       className={`rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm animate-pulse ${className}`}
@@ -47,7 +43,7 @@ export function SuspenseFallbackPage({
     <div className={`flex items-center justify-center h-64 ${className}`}>
       <div className="space-y-3 w-full max-w-sm animate-pulse">
         <div className="h-6 w-1/2 rounded-md bg-[var(--bg-secondary)] mx-auto" />
-        <div className="h-3 w-3/4 rounded-md bg-[var(--bg-secondary)] mx-auto" />
+        <div className="size-3/4 rounded-md bg-[var(--bg-secondary)] mx-auto" />
       </div>
     </div>
   );

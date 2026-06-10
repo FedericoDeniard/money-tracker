@@ -4,6 +4,8 @@ import { HowItWorks } from "../components/landing/HowItWorks";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import logo from "../logo.svg";
+
+const CURRENT_YEAR = new Date().getFullYear();
 import { DecorativeSquare } from "../components/ui/DecorativeSquare";
 
 export function LandingPage() {
@@ -15,7 +17,7 @@ export function LandingPage() {
       <header className="fixed top-0 w-full bg-[var(--bg-primary)]/80 backdrop-blur-md border-b border-[var(--text-secondary)]/10 z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+            <div className="relative size-8 flex items-center justify-center shrink-0">
               <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
               <img
                 src={logo}
@@ -55,7 +57,7 @@ export function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className="relative w-6 h-6 flex items-center justify-center shrink-0 grayscale opacity-50">
+              <div className="relative size-6 flex items-center justify-center shrink-0 grayscale opacity-50">
                 <DecorativeSquare
                   size={24}
                   className="absolute inset-0 m-auto"
@@ -94,7 +96,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="mt-8 text-center text-sm text-[var(--text-secondary)]/60">
-            &copy; {new Date().getFullYear()} Money Tracker.{" "}
+            &copy; {CURRENT_YEAR} Money Tracker.{" "}
             {t("landing.nav.personalProject")}
           </div>
         </div>

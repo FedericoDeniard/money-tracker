@@ -29,7 +29,7 @@ export function DashboardLayout() {
       {/* Mobile Header */}
       <header className="lg:hidden bg-[var(--bg-primary)] border-b border-[var(--text-secondary)]/20 p-4 sticky top-0 z-30 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+          <div className="relative size-8 flex items-center justify-center shrink-0">
             <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
             <img
               src={logo}
@@ -37,7 +37,7 @@ export function DashboardLayout() {
               className="relative z-10 w-full h-full p-1 object-contain"
             />
           </div>
-          <h1 className="text-lg font-bold text-[var(--text-primary)]">
+          <h1 className="text-lg font-semibold text-[var(--text-primary)]">
             Money Tracker
           </h1>
         </div>
@@ -72,7 +72,7 @@ export function DashboardLayout() {
             type="button"
             data-tour="notification-bell"
             onClick={() => setIsNotificationsOpen(true)}
-            className="group relative flex items-center rounded-l-xl border border-r-0 border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-3 py-3 text-[var(--text-secondary)] shadow-sm transition-colors hover:text-[var(--text-primary)]"
+            className="group relative flex items-center rounded-l-xl border border-r-0 border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-3 text-[var(--text-secondary)] shadow-sm transition-colors hover:text-[var(--text-primary)]"
             aria-label={t("settings.notifications")}
           >
             <Bell size={18} />

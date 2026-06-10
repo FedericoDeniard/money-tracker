@@ -47,6 +47,7 @@ export function getFileFromClipboardData(
     }
   }
 
+  const acceptedSet = new Set(acceptedMimeTypes);
   for (const item of Array.from(clipboardData.items)) {
     if (item.kind !== "file") {
       continue;
@@ -57,7 +58,7 @@ export function getFileFromClipboardData(
       continue;
     }
 
-    if (acceptedMimeTypes.includes(file.type)) {
+    if (acceptedSet.has(file.type)) {
       return file;
     }
   }
@@ -75,24 +76,24 @@ export async function readFileFromNavigatorClipboard(
   try {
     const clipboardItems = await navigator.clipboard.read();
 
-    for (const clipboardItem of clipboardItems) {
-      const supportedType = clipboardItem.types.find(type =>
-        acceptedMimeTypes.includes(type)
-      );
-      if (!supportedType) {
-        continue;
-      }
-
-      const blob = await clipboardItem.getType(supportedType);
-      const file = createClipboardFile(blob, acceptedMimeTypes);
-      if (!file) {
-        continue;
-      }
-
-      return { file };
+    const acceptedSet = new Set(acceptedMimeTypes);
+    const supportedItem = clipboardItems.find(clipboardItem =>
+      clipboardItem.types.some(type => acceptedSet.has(type))
+    );
+    if (!supportedItem) {
+      return { error: "empty" };
     }
 
-    return { error: "empty" };
+    const supportedType = supportedItem.types.find(type =>
+      acceptedSet.has(type)
+    );
+    const blob = await supportedItem.getType(supportedType!);
+    const file = createClipboardFile(blob, acceptedMimeTypes);
+    if (!file) {
+      return { error: "empty" };
+    }
+
+    return { file };
   } catch (error) {
     const permissionDenied =
       error instanceof DOMException && error.name === "NotAllowedError";

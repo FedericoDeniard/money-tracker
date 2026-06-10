@@ -1,22 +1,12 @@
 import { useTranslation } from "react-i18next";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
 import { AlertCircle } from "lucide-react";
+import { useRecharts } from "../../hooks/useRecharts";
 
 function InsufficientData() {
   const { t } = useTranslation();
   return (
     <div className="h-[320px] flex flex-col items-center justify-center text-[var(--text-secondary)]">
-      <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+      <AlertCircle className="size-8 mb-2 opacity-50" />
       <p className="text-sm">{t("metrics.needMoreData")}</p>
       <p className="text-xs opacity-75 mt-1">{t("metrics.minimumMonths")}</p>
     </div>
@@ -34,8 +24,19 @@ interface MonthlyAreaChartProps {
   data: MonthlyData[];
 }
 
-export function MonthlyAreaChart({ data }: MonthlyAreaChartProps) {
+export default function MonthlyAreaChart({ data }: MonthlyAreaChartProps) {
   const { t } = useTranslation();
+  const {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    ReferenceLine,
+  } = useRecharts();
 
   if (!data.length) {
     return (

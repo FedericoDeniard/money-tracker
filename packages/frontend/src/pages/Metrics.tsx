@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
@@ -13,10 +13,18 @@ import {
   Activity,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
-import { MonthlyTrendChart } from "../components/charts/MonthlyTrendChart";
-import { MonthlyAreaChart } from "../components/charts/MonthlyAreaChart";
-import { CategoryPieChart } from "../components/charts/CategoryPieChart";
-import { CategoryTreeMapChart } from "../components/charts/CategoryTreeMapChart";
+const MonthlyTrendChart = lazy(
+  () => import("../components/charts/MonthlyTrendChart")
+);
+const MonthlyAreaChart = lazy(
+  () => import("../components/charts/MonthlyAreaChart")
+);
+const CategoryPieChart = lazy(
+  () => import("../components/charts/CategoryPieChart")
+);
+const CategoryTreeMapChart = lazy(
+  () => import("../components/charts/CategoryTreeMapChart")
+);
 import {
   MetricCard,
   FilterBar,
@@ -92,16 +100,15 @@ export function Metrics() {
     if (!filteredTransactions.length) return [];
     const total = metrics.totalExpense;
     const categoryMap = new Map<string, { amount: number; count: number }>();
-    filteredTransactions
-      .filter(tx => tx.transaction_type === "expense")
-      .forEach(tx => {
-        const category = tx.category || "other";
-        if (!categoryMap.has(category))
-          categoryMap.set(category, { amount: 0, count: 0 });
-        const data = categoryMap.get(category)!;
-        data.amount += tx.amount;
-        data.count += 1;
-      });
+    for (const tx of filteredTransactions) {
+      if (tx.transaction_type !== "expense") continue;
+      const category = tx.category || "other";
+      if (!categoryMap.has(category))
+        categoryMap.set(category, { amount: 0, count: 0 });
+      const data = categoryMap.get(category)!;
+      data.amount += tx.amount;
+      data.count += 1;
+    }
     return Array.from(categoryMap.entries())
       .map(([category, data]) => ({
         category,
@@ -122,28 +129,28 @@ export function Metrics() {
       title: t("metrics.totalIncome"),
       value: `${getCurrencySymbol(displayCurrency)}${metrics.totalIncome.toFixed(2)}`,
       change: metrics.changes.income,
-      icon: <TrendingUp className="w-5 h-5" />,
+      icon: <TrendingUp className="size-5" />,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
       title: t("metrics.totalExpense"),
       value: `${getCurrencySymbol(displayCurrency)}${metrics.totalExpense.toFixed(2)}`,
       change: metrics.changes.expense,
-      icon: <TrendingDown className="w-5 h-5" />,
+      icon: <TrendingDown className="size-5" />,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
       title: t("metrics.netBalance"),
       value: `${getCurrencySymbol(displayCurrency)}${metrics.netBalance.toFixed(2)}`,
       change: metrics.changes.netBalance,
-      icon: <DollarSign className="w-5 h-5" />,
+      icon: <DollarSign className="size-5" />,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
     {
       title: t("metrics.averageTransaction"),
       value: `${getCurrencySymbol(displayCurrency)}${metrics.averageTransaction.toFixed(2)}`,
       change: metrics.changes.averageTransaction,
-      icon: <CreditCard className="w-5 h-5" />,
+      icon: <CreditCard className="size-5" />,
       currency: selectedCurrency === "all" ? displayCurrency : selectedCurrency,
     },
   ];
@@ -172,7 +179,7 @@ export function Metrics() {
       >
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
           <div className="shrink-0 mb-2 xl:mb-0">
-            <h1 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
+            <h1 className="text-xl md:text-2xl font-semibold text-[var(--text-primary)]">
               {t("metrics.title")}
             </h1>
             <p className="mt-1 text-xs md:text-sm text-[var(--text-secondary)] line-clamp-2 md:line-clamp-none">
@@ -214,7 +221,7 @@ export function Metrics() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metricCards.map((card, index) => (
                 <MetricCard
-                  key={index}
+                  key={card.title}
                   title={card.title}
                   value={card.value}
                   change={card.change}
@@ -251,9 +258,13 @@ export function Metrics() {
                   </div>
                 </div>
                 {trendChartType === "bar" ? (
-                  <MonthlyTrendChart data={monthlyData} />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <MonthlyTrendChart data={monthlyData} />
+                  </Suspense>
                 ) : (
-                  <MonthlyAreaChart data={monthlyData} />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <MonthlyAreaChart data={monthlyData} />
+                  </Suspense>
                 )}
               </div>
               <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
@@ -281,9 +292,13 @@ export function Metrics() {
                   </div>
                 </div>
                 {breakdownChartType === "pie" ? (
-                  <CategoryPieChart data={categoryData} />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <CategoryPieChart data={categoryData} />
+                  </Suspense>
                 ) : (
-                  <CategoryTreeMapChart data={categoryData} />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <CategoryTreeMapChart data={categoryData} />
+                  </Suspense>
                 )}
               </div>
             </div>

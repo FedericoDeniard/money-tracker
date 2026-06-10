@@ -1,6 +1,6 @@
 import { Mail, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useTransition } from "react";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { startSeedWithFeedback } from "../../utils/seedImport";
 
@@ -18,19 +18,15 @@ export function SeedEmailsModal({
   gmailEmail,
 }: SeedEmailsModalProps) {
   const { t } = useTranslation();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleStartSeed = async () => {
-    setIsLoading(true);
-
-    try {
+  const handleStartSeed = () => {
+    startTransition(async () => {
       const started = await startSeedWithFeedback(connectionId, t);
       if (started) {
         onClose();
       }
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const handleSkip = () => {
@@ -45,7 +41,7 @@ export function SeedEmailsModal({
       title={t("settings.seedEmailsTitle") || "¡Importa tus facturas!"}
       confirmText={t("settings.seedStart") || "Sí, importar"}
       cancelText={t("settings.seedSkip") || "Ahora no"}
-      isLoading={isLoading}
+      isPending={isPending}
     >
       <div className="space-y-4">
         <p className="text-[var(--text-secondary)]">
@@ -87,7 +83,7 @@ export function SeedEmailsModal({
         </div>
 
         {/* Gmail account info */}
-        <div className="p-3 bg-gray-50 rounded-xl">
+        <div className="p-3 bg-zinc-50 rounded-xl">
           <p className="text-sm text-[var(--text-secondary)]">
             <span className="font-medium text-[var(--text-primary)]">
               {t("settings.account") || "Cuenta"}:

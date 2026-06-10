@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { LazyMotion, m, domAnimation } from "framer-motion";
 import {
   Mail,
   Globe2,
@@ -47,62 +47,64 @@ export function FeatureGrid() {
   ];
 
   return (
-    <section className="py-24 bg-white relative z-10">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1280px]">
-        <div className="text-center mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="text-4xl md:text-[2.75rem] font-normal text-gray-900 mb-6 tracking-tight leading-tight"
-          >
-            {t("landing.features.title")} <br className="hidden md:block" />{" "}
-            {t("landing.features.subtitle")}
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-gray-500 max-w-2xl mx-auto text-lg"
-          >
-            {t("landing.features.description")}
-          </motion.p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, idx) => (
-            <motion.div
-              key={idx}
+    <LazyMotion features={domAnimation}>
+      <section className="py-24 bg-white relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1280px]">
+          <div className="text-center mb-16">
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: idx * 0.1 }}
-              className="group relative bg-[#FAFAFA] hover:bg-white border border-gray-200 hover:border-[var(--button-primary)]/30 transition-colors duration-300 p-8 flex flex-col h-full min-h-[320px]"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="text-4xl md:text-[2.75rem] font-normal text-zinc-900 mb-6 tracking-tight leading-tight"
             >
-              <div className="flex justify-between items-start w-full mb-auto">
-                <div className="w-12 h-12 flex items-center justify-center text-[var(--button-primary)] opacity-90 group-hover:opacity-100 transition-opacity">
-                  <feature.icon strokeWidth={1} width={48} height={48} />
-                </div>
-                <Plus
-                  strokeWidth={1.5}
-                  className="w-4 h-4 text-gray-400 group-hover:text-[var(--button-primary)] transition-colors duration-300"
-                />
-              </div>
+              {t("landing.features.title")} <br className="hidden md:block" />{" "}
+              {t("landing.features.subtitle")}
+            </m.h2>
+            <m.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-zinc-500 max-w-2xl mx-auto text-lg"
+            >
+              {t("landing.features.description")}
+            </m.p>
+          </div>
 
-              <div className="mt-16">
-                <h3 className="text-xl font-medium text-gray-900 mb-3 tracking-tight">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-500 text-[15px] leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            </motion.div>
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, idx) => (
+              <m.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: idx * 0.1 }}
+                className="group relative bg-[#FAFAFA] hover:bg-white border border-zinc-200 hover:border-[var(--button-primary)]/30 transition-colors duration-300 p-8 flex flex-col h-full min-h-[320px]"
+              >
+                <div className="flex justify-between items-start w-full mb-auto">
+                  <div className="size-12 flex items-center justify-center text-[var(--button-primary)] opacity-90 group-hover:opacity-100 transition-opacity">
+                    <feature.icon strokeWidth={1} width={48} height={48} />
+                  </div>
+                  <Plus
+                    strokeWidth={1.5}
+                    className="size-4 text-zinc-400 group-hover:text-[var(--button-primary)] transition-colors duration-300"
+                  />
+                </div>
+
+                <div className="mt-16">
+                  <h3 className="text-xl font-medium text-zinc-900 mb-3 tracking-tight">
+                    {feature.title}
+                  </h3>
+                  <p className="text-zinc-500 text-[15px] leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </m.div>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </LazyMotion>
   );
 }

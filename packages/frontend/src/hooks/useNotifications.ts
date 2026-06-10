@@ -44,9 +44,6 @@ export function useNotificationActions() {
   const queryClient = useQueryClient();
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.notificationPreferences.all,
-    });
   };
 
   const markAsRead = useMutation({
@@ -54,7 +51,12 @@ export function useNotificationActions() {
       const service = await getService();
       await service.markAsRead(ids);
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
   });
 
   const markAsUnread = useMutation({
@@ -62,7 +64,12 @@ export function useNotificationActions() {
       const service = await getService();
       await service.markAsUnread(ids);
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
   });
 
   const archive = useMutation({
@@ -70,7 +77,12 @@ export function useNotificationActions() {
       const service = await getService();
       await service.archive(ids);
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
   });
 
   const mute = useMutation({
@@ -78,7 +90,12 @@ export function useNotificationActions() {
       const service = await getService();
       await service.mute(ids);
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
   });
 
   const setImportance = useMutation({
@@ -89,7 +106,12 @@ export function useNotificationActions() {
       const service = await getService();
       await service.setImportance(ids, importance);
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
   });
 
   const remove = useMutation({
@@ -97,7 +119,12 @@ export function useNotificationActions() {
       const service = await getService();
       await service.delete(ids);
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notificationPreferences.all,
+      });
+    },
   });
 
   return {

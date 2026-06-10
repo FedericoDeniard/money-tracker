@@ -59,7 +59,7 @@ export function ForgotPassword() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+          <h1 className="text-3xl font-semibold text-[var(--text-primary)] mb-2">
             {t("auth.forgotPassword")}
           </h1>
           <p className="text-[var(--text-secondary)]">
@@ -101,7 +101,7 @@ export function ForgotPassword() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder={t("auth.emailPlaceholder")}
                 required
-                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
                 disabled={loading}
               />
             </div>

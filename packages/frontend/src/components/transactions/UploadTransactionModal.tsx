@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useReducer } from "react";
 import {
   X,
   Upload,
@@ -16,7 +16,7 @@ import {
   type ClipboardReadError,
 } from "../../hooks/useClipboardFile";
 
-export type TransactionFormData = {
+type TransactionFormData = {
   transaction_type: "income" | "expense";
   merchant: string;
   amount: string;
@@ -48,6 +48,243 @@ const SUPPORTED_TYPES = [
 
 type UploadState = "idle" | "uploading" | "processing" | "success" | "error";
 
+interface UploadFormState {
+  selectedFile: File | null;
+  dragActive: boolean;
+  errorMessage: string;
+  uploadState: UploadState;
+  pasteSuccessMessage: string;
+}
+
+type UploadFormAction =
+  | { type: "FILE_SELECTED"; file: File; pasteMessage: string }
+  | { type: "DRAG_ACTIVE"; active: boolean }
+  | { type: "SET_UPLOAD_STATE"; state: UploadState }
+  | { type: "SET_ERROR"; message: string }
+  | { type: "CLEAR_SELECTED_FILE" }
+  | { type: "RESET" };
+
+function uploadFormReducer(
+  state: UploadFormState,
+  action: UploadFormAction
+): UploadFormState {
+  switch (action.type) {
+    case "FILE_SELECTED":
+      return {
+        ...state,
+        selectedFile: action.file,
+        errorMessage: "",
+        uploadState: "idle",
+        pasteSuccessMessage: action.pasteMessage,
+      };
+    case "DRAG_ACTIVE":
+      return { ...state, dragActive: action.active };
+    case "SET_UPLOAD_STATE":
+      return { ...state, uploadState: action.state };
+    case "SET_ERROR":
+      return {
+        ...state,
+        errorMessage: action.message,
+        uploadState: "error",
+        pasteSuccessMessage: "",
+      };
+    case "CLEAR_SELECTED_FILE":
+      return { ...state, selectedFile: null, pasteSuccessMessage: "" };
+    case "RESET":
+      return initialState;
+  }
+}
+
+const initialState: UploadFormState = {
+  selectedFile: null,
+  dragActive: false,
+  errorMessage: "",
+  uploadState: "idle",
+  pasteSuccessMessage: "",
+};
+
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+function DropZone({
+  dragActive,
+  isProcessing,
+  onDrag,
+  onDrop,
+  onFileSelect,
+  onPaste,
+}: {
+  dragActive: boolean;
+  isProcessing: boolean;
+  onDrag: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onFileSelect: (file: File) => void;
+  onPaste: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+        dragActive
+          ? "border-[var(--primary)] bg-[var(--primary)]/5"
+          : "border-zinc-300 hover:border-[var(--primary)]"
+      }`}
+      onDragEnter={onDrag}
+      onDragLeave={onDrag}
+      onDragOver={onDrag}
+      onDrop={onDrop}
+    >
+      <Upload className="size-12 text-zinc-400 mx-auto mb-4" />
+      <p className="text-lg font-medium text-[var(--text-primary)] mb-2">
+        {t("upload.dragDrop", "Drag and drop your document here")}
+      </p>
+      <p className="text-sm text-[var(--text-secondary)] mb-4">
+        {t(
+          "upload.supportedFormats",
+          "Supports PDF and image files (JPG, PNG, etc.)"
+        )}
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button
+          variant="primary"
+          onClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = SUPPORTED_TYPES.join(",");
+            input.onchange = e => {
+              const target = e.target as {
+                files?: { [key: number]: File; length: number } | null;
+              };
+              if (target.files && target.files.length > 0 && target.files[0]) {
+                onFileSelect(target.files[0]);
+              }
+            };
+            input.click();
+          }}
+        >
+          {t("upload.selectFile", "Select File")}
+        </Button>
+        <Button variant="secondary" onClick={onPaste} disabled={isProcessing}>
+          {t("upload.paste.button", "Paste from clipboard")}
+        </Button>
+      </div>
+      <p className="mt-3 text-xs text-[var(--text-secondary)]">
+        {t(
+          "upload.paste.hint",
+          "You can also paste directly with Cmd/Ctrl + V."
+        )}
+      </p>
+    </div>
+  );
+}
+
+function FilePreview({
+  file,
+  isProcessing,
+  onClear,
+}: {
+  file: File;
+  isProcessing: boolean;
+  onClear: () => void;
+}) {
+  const getFileIcon = (file: File) => {
+    if (file.type === "application/pdf") {
+      return <File className="size-8 text-red-500" />;
+    }
+    return <File className="size-8 text-blue-500" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  return (
+    <div className="border rounded-xl p-4 bg-zinc-50">
+      <div className="flex items-center gap-3">
+        {getFileIcon(file)}
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-[var(--text-primary)] truncate">
+            {file.name}
+          </p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            {formatFileSize(file.size)}
+          </p>
+        </div>
+        <Button
+          onClick={onClear}
+          variant="ghost"
+          size="sm"
+          icon={<X size={16} />}
+          disabled={isProcessing}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusBanner({
+  uploadState,
+  errorMessage,
+  pasteSuccessMessage,
+  isProcessing,
+}: {
+  uploadState: UploadState;
+  errorMessage: string;
+  pasteSuccessMessage: string;
+  isProcessing: boolean;
+}) {
+  const { t } = useTranslation();
+
+  if (pasteSuccessMessage && uploadState !== "error") {
+    return (
+      <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <CheckCircle className="size-5 text-blue-500 flex-shrink-0" />
+        <p className="text-sm text-blue-700">{pasteSuccessMessage}</p>
+      </div>
+    );
+  }
+
+  if (uploadState === "error" && errorMessage) {
+    return (
+      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <AlertCircle className="size-5 text-red-500 flex-shrink-0" />
+        <p className="text-sm text-red-700">{errorMessage}</p>
+      </div>
+    );
+  }
+
+  if (uploadState === "success") {
+    return (
+      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <CheckCircle className="size-5 text-green-500 flex-shrink-0" />
+        <p className="text-sm text-green-700">
+          {t("upload.success", "Document processed successfully!")}
+        </p>
+      </div>
+    );
+  }
+
+  if (isProcessing) {
+    return (
+      <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <Loader className="size-5 text-blue-500 flex-shrink-0 animate-spin" />
+        <p className="text-sm text-blue-700">
+          {uploadState === "uploading"
+            ? t("upload.uploading", "Uploading document...")
+            : t("upload.processing", "Analyzing document with AI...")}
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ─── Main component ─────────────────────────────────────────────────────────
+
 export function UploadTransactionModal({
   isOpen,
   onClose,
@@ -55,11 +292,14 @@ export function UploadTransactionModal({
   onError,
 }: UploadTransactionModalProps) {
   const { t, i18n } = useTranslation();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [uploadState, setUploadState] = useState<UploadState>("idle");
-  const [pasteSuccessMessage, setPasteSuccessMessage] = useState("");
+  const [state, dispatch] = useReducer(uploadFormReducer, initialState);
+  const {
+    selectedFile,
+    dragActive,
+    errorMessage,
+    uploadState,
+    pasteSuccessMessage,
+  } = state;
 
   const isProcessing =
     uploadState === "uploading" || uploadState === "processing";
@@ -87,19 +327,17 @@ export function UploadTransactionModal({
     (file: File, source: "file" | "clipboard" = "file") => {
       const validationError = validateFile(file);
       if (validationError) {
-        setErrorMessage(validationError);
-        setUploadState("error");
-        setPasteSuccessMessage("");
+        dispatch({ type: "SET_ERROR", message: validationError });
         return;
       }
-      setSelectedFile(file);
-      setErrorMessage("");
-      setUploadState("idle");
-      setPasteSuccessMessage(
-        source === "clipboard"
-          ? t("upload.paste.success", "Image pasted successfully.")
-          : ""
-      );
+      dispatch({
+        type: "FILE_SELECTED",
+        file,
+        pasteMessage:
+          source === "clipboard"
+            ? t("upload.paste.success", "Image pasted successfully.")
+            : "",
+      });
     },
     [t]
   );
@@ -154,18 +392,19 @@ export function UploadTransactionModal({
       return;
     }
 
-    setErrorMessage(getClipboardErrorMessage(clipboardError));
-    setUploadState("error");
-    setPasteSuccessMessage("");
+    dispatch({
+      type: "SET_ERROR",
+      message: getClipboardErrorMessage(clipboardError),
+    });
   }, [getClipboardErrorMessage, isProcessing, readFromClipboard, selectedFile]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
+      dispatch({ type: "DRAG_ACTIVE", active: true });
     } else if (e.type === "dragleave") {
-      setDragActive(false);
+      dispatch({ type: "DRAG_ACTIVE", active: false });
     }
   }, []);
 
@@ -173,7 +412,7 @@ export function UploadTransactionModal({
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setDragActive(false);
+      dispatch({ type: "DRAG_ACTIVE", active: false });
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0 && files[0]) {
         handleFileSelect(files[0]);
@@ -184,10 +423,10 @@ export function UploadTransactionModal({
 
   const uploadFile = async () => {
     if (!selectedFile) return;
-    setUploadState("uploading");
+    dispatch({ type: "SET_UPLOAD_STATE", state: "uploading" });
     try {
       const fileData = await selectedFile.arrayBuffer();
-      setUploadState("processing");
+      dispatch({ type: "SET_UPLOAD_STATE", state: "processing" });
       const result = await uploadDocumentForAnalysis(
         fileData,
         selectedFile.name,
@@ -195,11 +434,11 @@ export function UploadTransactionModal({
         i18n.language
       );
       if (result.success && result.transaction) {
-        setUploadState("success");
+        dispatch({ type: "SET_UPLOAD_STATE", state: "success" });
         onSuccess();
         setTimeout(() => {
           onClose();
-          resetModal();
+          dispatch({ type: "RESET" });
         }, 2000);
       } else {
         throw new Error(result.error || "Processing failed");
@@ -207,18 +446,13 @@ export function UploadTransactionModal({
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "Unknown error occurred";
-      setErrorMessage(errorMsg);
-      setUploadState("error");
+      dispatch({ type: "SET_ERROR", message: errorMsg });
       onError(errorMsg);
     }
   };
 
   const resetModal = () => {
-    setSelectedFile(null);
-    setUploadState("idle");
-    setErrorMessage("");
-    setDragActive(false);
-    setPasteSuccessMessage("");
+    dispatch({ type: "RESET" });
   };
 
   const handleClose = () => {
@@ -228,9 +462,9 @@ export function UploadTransactionModal({
 
   const getFileIcon = (file: File) => {
     if (file.type === "application/pdf") {
-      return <File className="w-8 h-8 text-red-500" />;
+      return <File className="size-8 text-red-500" />;
     }
-    return <File className="w-8 h-8 text-blue-500" />;
+    return <File className="size-8 text-blue-500" />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -271,131 +505,29 @@ export function UploadTransactionModal({
       }
     >
       <div className="space-y-4">
-        {/* Upload Area */}
         {!selectedFile ? (
-          <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              dragActive
-                ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                : "border-gray-300 hover:border-[var(--primary)]"
-            }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
+          <DropZone
+            dragActive={dragActive}
+            isProcessing={isProcessing}
+            onDrag={handleDrag}
             onDrop={handleDrop}
-          >
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-lg font-medium text-[var(--text-primary)] mb-2">
-              {t("upload.dragDrop", "Drag and drop your document here")}
-            </p>
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
-              {t(
-                "upload.supportedFormats",
-                "Supports PDF and image files (JPG, PNG, etc.)"
-              )}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = SUPPORTED_TYPES.join(",");
-                  input.onchange = e => {
-                    const target = e.target as {
-                      files?: { [key: number]: File; length: number } | null;
-                    };
-                    if (
-                      target.files &&
-                      target.files.length > 0 &&
-                      target.files[0]
-                    ) {
-                      handleFileSelect(target.files[0]);
-                    }
-                  };
-                  input.click();
-                }}
-              >
-                {t("upload.selectFile", "Select File")}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handlePasteFromClipboard}
-                disabled={isProcessing}
-              >
-                {t("upload.paste.button", "Paste from clipboard")}
-              </Button>
-            </div>
-            <p className="mt-3 text-xs text-[var(--text-secondary)]">
-              {t(
-                "upload.paste.hint",
-                "You can also paste directly with Cmd/Ctrl + V."
-              )}
-            </p>
-          </div>
+            onFileSelect={handleFileSelect}
+            onPaste={handlePasteFromClipboard}
+          />
         ) : (
-          /* File Preview */
-          <div className="border rounded-xl p-4 bg-gray-50">
-            <div className="flex items-center gap-3">
-              {getFileIcon(selectedFile)}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-[var(--text-primary)] truncate">
-                  {selectedFile.name}
-                </p>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {formatFileSize(selectedFile.size)}
-                </p>
-              </div>
-              <Button
-                onClick={() => {
-                  setSelectedFile(null);
-                  setPasteSuccessMessage("");
-                }}
-                variant="ghost"
-                size="sm"
-                icon={<X size={16} />}
-                disabled={isProcessing}
-              />
-            </div>
-          </div>
+          <FilePreview
+            file={selectedFile}
+            isProcessing={isProcessing}
+            onClear={() => dispatch({ type: "CLEAR_SELECTED_FILE" })}
+          />
         )}
 
-        {pasteSuccessMessage && uploadState !== "error" && (
-          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
-            <p className="text-sm text-blue-700">{pasteSuccessMessage}</p>
-          </div>
-        )}
-
-        {/* Error */}
-        {uploadState === "error" && errorMessage && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-            <p className="text-sm text-red-700">{errorMessage}</p>
-          </div>
-        )}
-
-        {/* Success */}
-        {uploadState === "success" && (
-          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-            <p className="text-sm text-green-700">
-              {t("upload.success", "Document processed successfully!")}
-            </p>
-          </div>
-        )}
-
-        {/* Processing */}
-        {isProcessing && (
-          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <Loader className="w-5 h-5 text-blue-500 flex-shrink-0 animate-spin" />
-            <p className="text-sm text-blue-700">
-              {uploadState === "uploading"
-                ? t("upload.uploading", "Uploading document...")
-                : t("upload.processing", "Analyzing document with AI...")}
-            </p>
-          </div>
-        )}
+        <StatusBanner
+          uploadState={uploadState}
+          errorMessage={errorMessage}
+          pasteSuccessMessage={pasteSuccessMessage}
+          isProcessing={isProcessing}
+        />
       </div>
     </Modal>
   );

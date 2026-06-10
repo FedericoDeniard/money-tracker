@@ -26,6 +26,7 @@ export function TransactionDetail({
   const { isIncome } = getTransactionType(
     transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
   );
+
   const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -64,12 +65,24 @@ export function TransactionDetail({
   const amountColor = "text-[var(--text-primary)]";
 
   // Format date and time
-  const dateTimeStr = formatDateTime(
-    transaction.transaction_date || transaction.date
-  );
+  let dateTimeStr: string;
+  try {
+    dateTimeStr = formatDateTime(
+      transaction.transaction_date || transaction.date
+    );
+  } catch {
+    dateTimeStr = "Invalid date";
+  }
+
+  let amountDisplay: string;
+  try {
+    amountDisplay = transaction.amount.toLocaleString();
+  } catch {
+    amountDisplay = "error";
+  }
 
   return (
-    <div className="h-full flex flex-col bg-white lg:rounded-3xl relative lg:shadow-sm lg:border border-gray-100">
+    <div className="h-full flex flex-col bg-white lg:rounded-3xl relative lg:shadow-sm lg:border border-zinc-100">
       {/* Mobile Close Button */}
       {onClose && (
         <Button
@@ -102,22 +115,24 @@ export function TransactionDetail({
 
         {/* Amount */}
         <div className="text-center mb-3">
-          <h1 className={`text-3xl font-bold ${amountColor} tracking-tight`}>
+          <h1
+            className={`text-3xl font-semibold ${amountColor} tracking-tight`}
+          >
             {isIncome ? "+" : "-"}
-            {transaction.currency} {transaction.amount.toLocaleString()}
+            {transaction.currency} {amountDisplay}
           </h1>
         </div>
 
         {/* Context Pill */}
         <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
             <div
-              className={`w-2 h-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
+              className={`size-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
             />
             <span className="font-medium text-[var(--text-primary)]">
               {transaction.merchant || t("transactions.unknown")}
             </span>
-            <span className="text-gray-300 text-xs">•</span>
+            <span className="text-zinc-300 text-xs">•</span>
             <span className="capitalize">
               {translateCategory(transaction.category)}
             </span>
@@ -146,7 +161,7 @@ export function TransactionDetail({
 
           <DetailRow
             label={t("transactions.amount")}
-            value={`${transaction.currency} ${transaction.amount.toLocaleString()}`}
+            value={`${transaction.currency} ${amountDisplay}`}
           />
 
           <div className="flex items-center justify-between py-1">
@@ -176,7 +191,7 @@ export function TransactionDetail({
       </div>
 
       {/* Footer Actions — always visible at the bottom */}
-      <div className="shrink-0 p-6 pt-4 border-t border-gray-100">
+      <div className="shrink-0 p-6 pt-4 border-t border-zinc-100">
         <div className="flex gap-3">
           <Button
             onClick={() => setShowDeleteModal(true)}

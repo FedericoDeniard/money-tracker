@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { DecorativeSquare } from "../components/ui/DecorativeSquare";
 import logo from "../logo.svg";
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 function Section({
   title,
   children,
@@ -23,8 +25,8 @@ function Section({
 function List({ items }: { items: string[] }) {
   return (
     <ul className="list-disc pl-6 space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
-      {items.map((item, i) => (
-        <li key={i}>{item}</li>
+      {items.map(item => (
+        <li key={item}>{item}</li>
       ))}
     </ul>
   );
@@ -39,7 +41,7 @@ export function PrivacyPolicy() {
       <header className="border-b border-[var(--text-secondary)]/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
           <Link to="/" className="flex items-center gap-3">
-            <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+            <div className="relative size-8 flex items-center justify-center shrink-0">
               <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
               <img
                 src={logo}
@@ -56,7 +58,7 @@ export function PrivacyPolicy() {
 
       {/* Content */}
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-3xl">
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+        <h1 className="text-3xl font-semibold text-[var(--text-primary)] mb-2">
           {t("privacy.title")}
         </h1>
         <p className="text-sm text-[var(--text-secondary)]/60 mb-10">
@@ -146,7 +148,7 @@ export function PrivacyPolicy() {
       {/* Footer */}
       <footer className="border-t border-[var(--text-secondary)]/10 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-[var(--text-secondary)]/60">
-          &copy; {new Date().getFullYear()} Money Tracker.
+          &copy; {CURRENT_YEAR} Money Tracker.
         </div>
       </footer>
     </div>
