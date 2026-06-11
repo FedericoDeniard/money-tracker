@@ -30,7 +30,8 @@ export function useThreadMessages(threadId: string | null) {
       return service.listMessages(threadId);
     },
     enabled: !!threadId,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
 

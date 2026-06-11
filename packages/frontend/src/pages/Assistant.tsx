@@ -1,19 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
 import { DecorativeSquare } from "../components/ui/DecorativeSquare";
 import logo from "../logo.svg";
-import {
-  ArrowLeft,
-  History,
-  Repeat,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import { ArrowLeft, History } from "lucide-react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -31,13 +24,21 @@ import {
 import {
   Conversation,
   ConversationContent,
+  ConversationEmptyState,
 } from "../components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "../components/ai-elements/message";
+import { Suggestion, Suggestions } from "../components/ai-elements/suggestion";
 import { TooltipProvider } from "../components/ui/shadcn/tooltip";
 import { HistoryList } from "../components/assistant/HistoryList";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { nanoid } from "nanoid";
+import { chatMessagesToUIMessages } from "../lib/mastra-messages";
 
 /**
  * Generates a unique thread id. Uses crypto.randomUUID when available
@@ -57,11 +58,42 @@ function generateThreadId(): string {
   return nanoid();
 }
 
+/**
+ * In-memory auto-send queue. Cleared on page reload so F5 never re-fires
+ * the greeting prompt (sessionStorage persisted across reloads — root cause).
+ */
+const autoSendByThread = new Map<string, string>();
+/** Prevents duplicate auto-send on React Strict Mode double-mount (same page session). */
+const autoSendConsumedThreads = new Set<string>();
+
+function queueAutoSend(threadId: string, text: string): void {
+  autoSendByThread.set(threadId, text);
+}
+
+function consumeAutoSend(threadId: string): string | undefined {
+  if (autoSendConsumedThreads.has(threadId)) return undefined;
+  const text = autoSendByThread.get(threadId);
+  if (text === undefined) return undefined;
+  autoSendByThread.delete(threadId);
+  autoSendConsumedThreads.add(threadId);
+  return text;
+}
+
+function clearLegacyPendingStorage(threadId: string): void {
+  try {
+    sessionStorage.removeItem(`assistant:pending:${threadId}`);
+    sessionStorage.removeItem(`assistant:pending-sent:${threadId}`);
+    sessionStorage.removeItem(`assistant:auto-send:${threadId}`);
+  } catch {
+    // ignore
+  }
+}
+
 const QUICK_QUESTIONS = [
-  { id: "top-expenses", i18nKey: "topExpenses", icon: TrendingDown },
-  { id: "top-income", i18nKey: "topIncome", icon: TrendingUp },
-  { id: "subscriptions-total", i18nKey: "subscriptionsTotal", icon: Repeat },
-  { id: "savings", i18nKey: "savings", icon: Wallet },
+  "topExpenses",
+  "topIncome",
+  "subscriptionsTotal",
+  "savings",
 ] as const;
 
 type GreetingKey = "morning" | "afternoon" | "evening";
@@ -116,8 +148,7 @@ interface ChatPanelProps {
   accessToken: string;
   resourceId: string;
   threadId: string;
-  initialMessages: UIMessage[] | null;
-  pendingPrompt?: string | null;
+  initialMessages: UIMessage[];
   onMessageComplete: () => void;
 }
 
@@ -132,7 +163,6 @@ function ChatPanel({
   resourceId,
   threadId,
   initialMessages,
-  pendingPrompt,
   onMessageComplete,
 }: ChatPanelProps) {
   const { t } = useTranslation();
@@ -141,44 +171,46 @@ function ChatPanel({
       new DefaultChatTransport({
         api: apiUrl,
         headers: { Authorization: `Bearer ${accessToken}` },
-        prepareSendMessagesRequest: ({ messages }) => ({
-          body: {
-            messages,
-            memory: { thread: threadId, resource: resourceId },
-          },
-        }),
+        prepareSendMessagesRequest: ({ messages }) => {
+          const lastMessage = messages.at(-1);
+          return {
+            body: {
+              // Mastra loads history from DB — send only the new message.
+              // @see https://mastra.ai/guides/build-your-ui/ai-sdk-ui#using-mastra-memory
+              messages: lastMessage ? [lastMessage] : [],
+              memory: { thread: threadId, resource: resourceId },
+            },
+          };
+        },
       }),
     [apiUrl, accessToken, resourceId, threadId]
   );
 
-  const { messages, sendMessage, status, setMessages, stop, error } = useChat({
+  // Snapshot DB messages at mount — useChat only reads `messages` in the constructor.
+  // Parent must not refetch mid-session (would pass stale partial DB rows).
+  const bootstrapMessagesRef = useRef(initialMessages);
+
+  const { messages, sendMessage, status, stop, error } = useChat({
     id: threadId,
     transport,
+    messages:
+      bootstrapMessagesRef.current.length > 0
+        ? bootstrapMessagesRef.current
+        : undefined,
     onError: err => {
       console.error("[Assistant] chat error", err);
     },
   });
 
-  // Hydrate messages when the threadId changes (new thread selected via URL)
   useEffect(() => {
-    if (initialMessages) {
-      setMessages(initialMessages);
-    } else {
-      setMessages([]);
-    }
+    clearLegacyPendingStorage(threadId);
+
+    // Auto-send once for brand-new threads (in-memory queue, cleared on F5).
+    if (bootstrapMessagesRef.current.length > 0) return;
+    const text = consumeAutoSend(threadId);
+    if (text) sendMessage({ text });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
-
-  // Send the pending prompt exactly once on first mount after navigation
-  // from the greeting view.
-  const sentPendingRef = useRef(false);
-  useEffect(() => {
-    if (pendingPrompt && !sentPendingRef.current) {
-      sentPendingRef.current = true;
-      sendMessage({ text: pendingPrompt });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingPrompt]);
 
   // Refresh the thread list after a message completes
   const wasStreamingRef = useRef(false);
@@ -199,33 +231,29 @@ function ChatPanel({
     <>
       <Conversation className="flex-1 min-h-0 rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm">
         <ConversationContent>
-          {messages.map(message => {
-            const text = message.parts
-              .filter(p => p.type === "text")
-              .map(p => (p as { text: string }).text)
-              .join("");
-            const isUser = message.role === "user";
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                    isUser
-                      ? "bg-[var(--button-primary)] text-white"
-                      : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                  }`}
-                >
-                  {text}
-                </div>
-              </div>
-            );
-          })}
-          {!hasMessages && (
-            <div className="flex h-full items-center justify-center text-sm text-[var(--text-secondary)]">
-              {t("assistant.emptyChatHint")}
-            </div>
+          {hasMessages ? (
+            messages.map(message => {
+              const text = message.parts
+                .filter(p => p.type === "text")
+                .map(p => (p as { text: string }).text)
+                .join("");
+              return (
+                <Message from={message.role} key={message.id}>
+                  <MessageContent>
+                    {message.role === "assistant" ? (
+                      <MessageResponse>{text}</MessageResponse>
+                    ) : (
+                      text
+                    )}
+                  </MessageContent>
+                </Message>
+              );
+            })
+          ) : (
+            <ConversationEmptyState
+              title={t("assistant.emptyChatHint")}
+              className="text-[var(--text-secondary)]"
+            />
           )}
         </ConversationContent>
       </Conversation>
@@ -291,7 +319,6 @@ function ChatView({
 }: ChatViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const [showHistory, setShowHistory] = useState(false);
 
   return (
@@ -339,37 +366,50 @@ function ChatView({
         </TooltipProvider>
       </div>
 
-      {showHistory && (
-        <HistoryList
-          activeThreadId={threadId}
-          onSelect={id => {
-            setShowHistory(false);
-            navigate(`/assistant/${id}`);
-          }}
-          onNewChat={() => {
-            setShowHistory(false);
-            navigate("/assistant");
-          }}
-        />
-      )}
-
-      <ChatPanel
-        key={threadId}
-        apiUrl={apiUrl}
-        accessToken={accessToken}
-        resourceId={resourceId}
-        threadId={threadId}
-        initialMessages={initialMessages}
-        pendingPrompt={
-          (location.state as { pendingPrompt?: string } | null)
-            ?.pendingPrompt ?? null
+      <div
+        className={
+          showHistory
+            ? "flex flex-1 min-h-0 flex-col gap-4 md:grid md:grid-cols-[1fr_320px] md:gap-4"
+            : "flex flex-1 min-h-0 flex-col gap-4"
         }
-        onMessageComplete={onMessageComplete}
-      />
+      >
+        <div className="flex min-h-0 flex-col gap-4">
+          {initialMessages === null ? (
+            <div className="flex flex-1 items-center justify-center">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <ChatPanel
+              key={threadId}
+              apiUrl={apiUrl}
+              accessToken={accessToken}
+              resourceId={resourceId}
+              threadId={threadId}
+              initialMessages={initialMessages}
+              onMessageComplete={onMessageComplete}
+            />
+          )}
+          <p className="text-center text-xs text-[var(--text-secondary)]">
+            {t("assistant.disclaimer")}
+          </p>
+        </div>
 
-      <p className="text-center text-xs text-[var(--text-secondary)]">
-        {t("assistant.disclaimer")}
-      </p>
+        {showHistory && (
+          <aside className="flex min-h-0 md:h-full md:overflow-hidden">
+            <HistoryList
+              activeThreadId={threadId}
+              onSelect={id => {
+                setShowHistory(false);
+                navigate(`/assistant/${id}`);
+              }}
+              onNewChat={() => {
+                setShowHistory(false);
+                navigate("/assistant");
+              }}
+            />
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
@@ -383,21 +423,24 @@ export function Assistant() {
   const [showHistory, setShowHistory] = useState(false);
 
   const resourceId = user?.id ?? "anonymous";
-  const { data: historyMessages } = useThreadMessages(threadIdParam ?? null);
+  const { data: historyMessages, isFetched: messagesFetched } =
+    useThreadMessages(threadIdParam ?? null);
   const { refetch: refetchThreads } = useChatThreads();
 
   // Hydrate messages on thread change
   const initialMessages = useMemo<UIMessage[] | null>(() => {
-    if (!threadIdParam || !historyMessages) return null;
-    return historyMessages
-      .filter(m => m.role === "user" || m.role === "assistant")
-      .map(m => ({
-        id: m.id,
-        role: m.role as "user" | "assistant",
-        parts: [{ type: "text" as const, text: m.content }],
-      }));
+    if (!threadIdParam || !messagesFetched) {
+      return null;
+    }
+    const seenIds = new Set<string>();
+    const deduped = (historyMessages ?? []).filter(m => {
+      if (!m.id || seenIds.has(m.id)) return false;
+      seenIds.add(m.id);
+      return true;
+    });
+    return chatMessagesToUIMessages(deduped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadIdParam, historyMessages]);
+  }, [threadIdParam, historyMessages, messagesFetched]);
 
   const isReady =
     !authLoading &&
@@ -427,7 +470,9 @@ export function Assistant() {
         accessToken={session.access_token}
         resourceId={resourceId}
         initialMessages={initialMessages}
-        onMessageComplete={() => refetchThreads()}
+        onMessageComplete={() => {
+          void refetchThreads();
+        }}
       />
     );
   }
@@ -437,7 +482,8 @@ export function Assistant() {
     const trimmed = text.trim();
     if (!trimmed) return;
     const newId = generateThreadId();
-    navigate(`/assistant/${newId}`, { state: { pendingPrompt: trimmed } });
+    queueAutoSend(newId, trimmed);
+    navigate(`/assistant/${newId}`);
   };
 
   return (
@@ -533,26 +579,15 @@ export function Assistant() {
           </TooltipProvider>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {QUICK_QUESTIONS.map(question => {
-            const Icon = question.icon;
-            return (
-              <button
-                key={question.id}
-                type="button"
-                onClick={() =>
-                  handleStartChat(
-                    t(`assistant.quickQuestions.${question.i18nKey}`)
-                  )
-                }
-                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-4 py-1.5 text-sm text-[var(--text-primary)] transition-all hover:border-[var(--button-primary)] hover:bg-[var(--button-primary)]/10 hover:text-[var(--button-primary)]"
-              >
-                <Icon className="size-4" />
-                {t(`assistant.quickQuestions.${question.i18nKey}`)}
-              </button>
-            );
-          })}
-        </div>
+        <Suggestions className="w-full">
+          {QUICK_QUESTIONS.map(key => (
+            <Suggestion
+              key={key}
+              suggestion={t(`assistant.quickQuestions.${key}`)}
+              onClick={handleStartChat}
+            />
+          ))}
+        </Suggestions>
 
         <p className="text-center text-sm text-[var(--text-secondary)]">
           {t("assistant.disclaimer")}

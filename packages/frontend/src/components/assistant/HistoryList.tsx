@@ -43,7 +43,7 @@ export function HistoryList({
   return (
     <div
       className={cn(
-        "w-full max-w-3xl rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm",
+        "flex w-full max-w-3xl flex-col rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm md:h-full",
         className
       )}
     >
@@ -62,7 +62,7 @@ export function HistoryList({
         </button>
       </div>
 
-      <div className="max-h-80 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2">
         {isLoading && (
           <div className="px-3 py-6 text-center text-sm text-[var(--text-secondary)]">
             {t("assistant.historyLoading")}
@@ -97,7 +97,7 @@ export function HistoryList({
                     {thread.title ?? t("assistant.untitledThread")}
                   </div>
                   <div className="truncate text-xs text-[var(--text-secondary)]">
-                    {formatRelativeDate(thread.updatedat, i18n.language)}
+                    {formatRelativeDate(thread.updatedAt, i18n.language)}
                   </div>
                 </button>
                 <button
