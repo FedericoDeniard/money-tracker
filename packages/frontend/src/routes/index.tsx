@@ -225,6 +225,18 @@ export function AppRoutes() {
               )
             }
           />
+          <Route
+            path="/assistant/:threadId"
+            element={
+              process.env.NODE_ENV !== "production" ? (
+                <Suspense fallback={chunkFallback}>
+                  <Assistant />
+                </Suspense>
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
         </Route>
 
         <Route

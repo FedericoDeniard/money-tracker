@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
 import { DecorativeSquare } from "../components/ui/DecorativeSquare";
 import logo from "../logo.svg";
 import {
+  ArrowLeft,
   History,
   Repeat,
   TrendingDown,
@@ -113,46 +115,27 @@ interface ChatPanelProps {
   apiUrl: string;
   accessToken: string;
   resourceId: string;
-  initialThreadId: string | null;
+  threadId: string;
   initialMessages: UIMessage[] | null;
+  pendingPrompt?: string | null;
   onMessageComplete: () => void;
 }
 
 /**
- * Owns the useChat hook. Mounted only when apiUrl + accessToken are known.
+ * Owns the useChat hook. Remounts whenever the threadId from the URL
+ * changes (parent provides a new `key`), so each thread gets a fresh
+ * Chat instance hydrated from initialMessages.
  */
 function ChatPanel({
   apiUrl,
   accessToken,
   resourceId,
-  initialThreadId,
+  threadId,
   initialMessages,
+  pendingPrompt,
   onMessageComplete,
 }: ChatPanelProps) {
   const { t } = useTranslation();
-  // threadId is read from this ref at request time so it's always
-  // in sync with the latest send call, even if React state hasn't flushed.
-  const threadIdRef = useRef<string | null>(initialThreadId);
-  // Force a remount of the chat hook when the user explicitly switches
-  // threads from the history panel. The new threadId becomes a key on
-  // useChat (via `id`), which recreates the underlying Chat instance and
-  // hydrates the messages from initialMessages.
-  const [chatKey, setChatKey] = useState<string>(
-    initialThreadId ?? `new-${Date.now()}`
-  );
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(
-    initialThreadId
-  );
-
-  // Sync parent-driven thread changes (history selection) into local state
-  useEffect(() => {
-    if (initialThreadId && initialThreadId !== threadIdRef.current) {
-      threadIdRef.current = initialThreadId;
-      setActiveThreadId(initialThreadId);
-      setChatKey(initialThreadId);
-    }
-  }, [initialThreadId]);
-
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -161,22 +144,22 @@ function ChatPanel({
         prepareSendMessagesRequest: ({ messages }) => ({
           body: {
             messages,
-            memory: { thread: threadIdRef.current ?? "", resource: resourceId },
+            memory: { thread: threadId, resource: resourceId },
           },
         }),
       }),
-    [apiUrl, accessToken, resourceId]
+    [apiUrl, accessToken, resourceId, threadId]
   );
 
   const { messages, sendMessage, status, setMessages, stop, error } = useChat({
-    id: chatKey,
+    id: threadId,
     transport,
     onError: err => {
       console.error("[Assistant] chat error", err);
     },
   });
 
-  // Hydrate messages when the chat key changes (new thread selected)
+  // Hydrate messages when the threadId changes (new thread selected via URL)
   useEffect(() => {
     if (initialMessages) {
       setMessages(initialMessages);
@@ -184,7 +167,18 @@ function ChatPanel({
       setMessages([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatKey]);
+  }, [threadId]);
+
+  // Send the pending prompt exactly once on first mount after navigation
+  // from the greeting view.
+  const sentPendingRef = useRef(false);
+  useEffect(() => {
+    if (pendingPrompt && !sentPendingRef.current) {
+      sentPendingRef.current = true;
+      sendMessage({ text: pendingPrompt });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPrompt]);
 
   // Refresh the thread list after a message completes
   const wasStreamingRef = useRef(false);
@@ -199,56 +193,49 @@ function ChatPanel({
     }
   }, [status, onMessageComplete]);
 
-  const handleSend = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    if (!threadIdRef.current) {
-      const id = generateThreadId();
-      threadIdRef.current = id;
-      setActiveThreadId(id);
-    }
-    sendMessage({ text: trimmed });
-  };
-
   const hasMessages = messages.length > 0;
 
   return (
     <>
-      {hasMessages && (
-        <Conversation className="h-[50vh] rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm">
-          <ConversationContent>
-            {messages.map(message => {
-              const text = message.parts
-                .filter(p => p.type === "text")
-                .map(p => (p as { text: string }).text)
-                .join("");
-              const isUser = message.role === "user";
-              return (
+      <Conversation className="flex-1 min-h-0 rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm">
+        <ConversationContent>
+          {messages.map(message => {
+            const text = message.parts
+              .filter(p => p.type === "text")
+              .map(p => (p as { text: string }).text)
+              .join("");
+            const isUser = message.role === "user";
+            return (
+              <div
+                key={message.id}
+                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+              >
                 <div
-                  key={message.id}
-                  className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                    isUser
+                      ? "bg-[var(--button-primary)] text-white"
+                      : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                  }`}
                 >
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                      isUser
-                        ? "bg-[var(--button-primary)] text-white"
-                        : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                    }`}
-                  >
-                    {text}
-                  </div>
+                  {text}
                 </div>
-              );
-            })}
-          </ConversationContent>
-        </Conversation>
-      )}
+              </div>
+            );
+          })}
+          {!hasMessages && (
+            <div className="flex h-full items-center justify-center text-sm text-[var(--text-secondary)]">
+              {t("assistant.emptyChatHint")}
+            </div>
+          )}
+        </ConversationContent>
+      </Conversation>
 
       <TooltipProvider delayDuration={0}>
         <PromptInputProvider>
           <PromptInput
             onSubmit={message => {
-              handleSend(message.text);
+              const trimmed = message.text.trim();
+              if (trimmed) sendMessage({ text: trimmed });
             }}
             className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
           >
@@ -281,55 +268,127 @@ function ChatPanel({
           })}
         </p>
       )}
-
-      {!hasMessages && !activeThreadId && (
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {QUICK_QUESTIONS.map(question => {
-            const Icon = question.icon;
-            return (
-              <button
-                key={question.id}
-                type="button"
-                onClick={() =>
-                  handleSend(t(`assistant.quickQuestions.${question.i18nKey}`))
-                }
-                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-4 py-1.5 text-sm text-[var(--text-primary)] transition-all hover:border-[var(--button-primary)] hover:bg-[var(--button-primary)]/10 hover:text-[var(--button-primary)]"
-              >
-                <Icon className="size-4" />
-                {t(`assistant.quickQuestions.${question.i18nKey}`)}
-              </button>
-            );
-          })}
-        </div>
-      )}
     </>
+  );
+}
+
+interface ChatViewProps {
+  threadId: string;
+  apiUrl: string;
+  accessToken: string;
+  resourceId: string;
+  initialMessages: UIMessage[] | null;
+  onMessageComplete: () => void;
+}
+
+function ChatView({
+  threadId,
+  apiUrl,
+  accessToken,
+  resourceId,
+  initialMessages,
+  onMessageComplete,
+}: ChatViewProps) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showHistory, setShowHistory] = useState(false);
+
+  return (
+    <div className="flex h-[calc(100vh-2rem)] lg:h-[calc(100vh-4rem)] flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/assistant")}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--text-secondary)]/20 px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:border-[var(--button-primary)] hover:text-[var(--button-primary)]"
+            aria-label={t("assistant.back")}
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>{t("assistant.back")}</span>
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative size-7 flex items-center justify-center shrink-0">
+              <DecorativeSquare size={28} className="absolute inset-0 m-auto" />
+              <img
+                src={logo}
+                alt={t("assistant.logoAlt")}
+                className="relative z-10 w-full h-full p-1 object-contain"
+              />
+            </div>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">
+              {t("assistant.brand")}
+            </span>
+          </div>
+        </div>
+        <TooltipProvider delayDuration={0}>
+          <button
+            type="button"
+            onClick={() => setShowHistory(v => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--text-secondary)]/20 px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:border-[var(--button-primary)] hover:text-[var(--button-primary)]"
+          >
+            <History
+              className={
+                showHistory
+                  ? "size-3.5 text-[var(--button-primary)]"
+                  : "size-3.5"
+              }
+            />
+            <span>{t("assistant.history")}</span>
+          </button>
+        </TooltipProvider>
+      </div>
+
+      {showHistory && (
+        <HistoryList
+          activeThreadId={threadId}
+          onSelect={id => {
+            setShowHistory(false);
+            navigate(`/assistant/${id}`);
+          }}
+          onNewChat={() => {
+            setShowHistory(false);
+            navigate("/assistant");
+          }}
+        />
+      )}
+
+      <ChatPanel
+        key={threadId}
+        apiUrl={apiUrl}
+        accessToken={accessToken}
+        resourceId={resourceId}
+        threadId={threadId}
+        initialMessages={initialMessages}
+        pendingPrompt={
+          (location.state as { pendingPrompt?: string } | null)
+            ?.pendingPrompt ?? null
+        }
+        onMessageComplete={onMessageComplete}
+      />
+
+      <p className="text-center text-xs text-[var(--text-secondary)]">
+        {t("assistant.disclaimer")}
+      </p>
+    </div>
   );
 }
 
 export function Assistant() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { threadId: threadIdParam } = useParams<{ threadId: string }>();
   const { user, session, loading: authLoading } = useAuth();
   const { data: config, isLoading: configLoading } = useConfig();
-  const [threadId, setThreadId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
   const resourceId = user?.id ?? "anonymous";
-  const { data: historyMessages } = useThreadMessages(threadId);
+  const { data: historyMessages } = useThreadMessages(threadIdParam ?? null);
   const { refetch: refetchThreads } = useChatThreads();
-
-  const handleNewChat = () => {
-    setThreadId(null);
-    setShowHistory(false);
-  };
-
-  const handleSelectThread = (id: string) => {
-    setThreadId(id);
-    setShowHistory(false);
-  };
 
   // Hydrate messages on thread change
   const initialMessages = useMemo<UIMessage[] | null>(() => {
-    if (!threadId || !historyMessages) return null;
+    if (!threadIdParam || !historyMessages) return null;
     return historyMessages
       .filter(m => m.role === "user" || m.role === "assistant")
       .map(m => ({
@@ -338,7 +397,7 @@ export function Assistant() {
         parts: [{ type: "text" as const, text: m.content }],
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId, historyMessages]);
+  }, [threadIdParam, historyMessages]);
 
   const isReady =
     !authLoading &&
@@ -351,6 +410,35 @@ export function Assistant() {
     `assistant.greeting.${getGreetingKey(new Date().getHours())}`
   );
   const finalName = displayName || t("assistant.defaultName");
+
+  // Chat view: navigated to /assistant/:threadId
+  if (threadIdParam) {
+    if (!isReady) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner />
+        </div>
+      );
+    }
+    return (
+      <ChatView
+        threadId={threadIdParam}
+        apiUrl={`${config.mastraServerUrl}/chat/financial-agent`}
+        accessToken={session.access_token}
+        resourceId={resourceId}
+        initialMessages={initialMessages}
+        onMessageComplete={() => refetchThreads()}
+      />
+    );
+  }
+
+  // Greeting view: /assistant (no thread)
+  const handleStartChat = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const newId = generateThreadId();
+    navigate(`/assistant/${newId}`, { state: { pendingPrompt: trimmed } });
+  };
 
   return (
     <div
@@ -402,9 +490,12 @@ export function Assistant() {
 
         {showHistory && (
           <HistoryList
-            activeThreadId={threadId}
-            onSelect={handleSelectThread}
-            onNewChat={handleNewChat}
+            activeThreadId={null}
+            onSelect={id => {
+              setShowHistory(false);
+              navigate(`/assistant/${id}`);
+            }}
+            onNewChat={() => setShowHistory(false)}
           />
         )}
 
@@ -413,15 +504,55 @@ export function Assistant() {
             <LoadingSpinner />
           </div>
         ) : (
-          <ChatPanel
-            apiUrl={`${config.mastraServerUrl}/chat/financial-agent`}
-            accessToken={session.access_token}
-            resourceId={resourceId}
-            initialThreadId={threadId}
-            initialMessages={initialMessages}
-            onMessageComplete={() => refetchThreads()}
-          />
+          <TooltipProvider delayDuration={0}>
+            <PromptInputProvider>
+              <PromptInput
+                onSubmit={message => handleStartChat(message.text)}
+                className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
+              >
+                <PromptInputBody>
+                  <PromptInputTextarea
+                    placeholder={t("assistant.placeholder")}
+                    className="text-base"
+                  />
+                </PromptInputBody>
+                <PromptInputFooter>
+                  <PromptInputTools>
+                    <PromptInputActionMenu>
+                      <PromptInputActionMenuTrigger />
+                      <PromptInputActionMenuContent>
+                        <PromptInputActionAddAttachments />
+                        <PromptInputActionAddScreenshot />
+                      </PromptInputActionMenuContent>
+                    </PromptInputActionMenu>
+                  </PromptInputTools>
+                  <PromptInputSubmit status="ready" />
+                </PromptInputFooter>
+              </PromptInput>
+            </PromptInputProvider>
+          </TooltipProvider>
         )}
+
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {QUICK_QUESTIONS.map(question => {
+            const Icon = question.icon;
+            return (
+              <button
+                key={question.id}
+                type="button"
+                onClick={() =>
+                  handleStartChat(
+                    t(`assistant.quickQuestions.${question.i18nKey}`)
+                  )
+                }
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] px-4 py-1.5 text-sm text-[var(--text-primary)] transition-all hover:border-[var(--button-primary)] hover:bg-[var(--button-primary)]/10 hover:text-[var(--button-primary)]"
+              >
+                <Icon className="size-4" />
+                {t(`assistant.quickQuestions.${question.i18nKey}`)}
+              </button>
+            );
+          })}
+        </div>
 
         <p className="text-center text-sm text-[var(--text-secondary)]">
           {t("assistant.disclaimer")}

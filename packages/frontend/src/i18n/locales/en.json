@@ -870,6 +870,7 @@
     },
     "history": "History",
     "newChat": "New chat",
+    "back": "Back",
     "historyLoading": "Loading conversations…",
     "historyEmpty": "No conversations yet",
     "untitledThread": "Untitled conversation",

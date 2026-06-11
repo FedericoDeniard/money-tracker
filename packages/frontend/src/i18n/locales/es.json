@@ -870,6 +870,7 @@
     },
     "history": "Historial",
     "newChat": "Nueva conversación",
+    "back": "Volver",
     "historyLoading": "Cargando conversaciones…",
     "historyEmpty": "Aún no hay conversaciones",
     "untitledThread": "Conversación sin título",
