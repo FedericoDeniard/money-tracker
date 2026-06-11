@@ -355,7 +355,7 @@ function ChatPanel({
             <PromptInputFooter>
               <PromptInputTools>
                 <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger />
+                  <PromptInputActionMenuTrigger className="bg-white" />
                   <PromptInputActionMenuContent>
                     <PromptInputActionAddAttachments />
                     <PromptInputActionAddScreenshot />
@@ -599,7 +599,7 @@ export function Assistant() {
                           <PromptInputFooter>
                             <PromptInputTools>
                               <PromptInputActionMenu>
-                                <PromptInputActionMenuTrigger />
+                                <PromptInputActionMenuTrigger className="bg-white" />
                                 <PromptInputActionMenuContent>
                                   <PromptInputActionAddAttachments />
                                   <PromptInputActionAddScreenshot />
