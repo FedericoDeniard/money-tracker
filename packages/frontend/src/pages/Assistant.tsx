@@ -40,6 +40,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { nanoid } from "nanoid";
 import { chatMessagesToUIMessages } from "../lib/mastra-messages";
+import { LazyMotion, m, AnimatePresence, domAnimation } from "framer-motion";
 
 /**
  * Generates a unique thread id. Uses crypto.randomUUID when available
@@ -103,6 +104,13 @@ function getGreetingKey(hour: number): GreetingKey {
   if (hour < 12) return "morning";
   if (hour < 18) return "afternoon";
   return "evening";
+}
+
+function navigateWithTransition(
+  navigate: ReturnType<typeof useNavigate>,
+  to: string
+): void {
+  navigate(to);
 }
 
 function getDisplayName(user: ReturnType<typeof useAuth>["user"]): string {
@@ -448,25 +456,11 @@ export function Assistant() {
   const finalName = displayName || t("assistant.defaultName");
 
   // Chat view: navigated to /assistant/:threadId
-  if (threadIdParam) {
-    if (!isReady) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <LoadingSpinner />
-        </div>
-      );
-    }
+  if (threadIdParam && !isReady) {
     return (
-      <ChatView
-        threadId={threadIdParam}
-        apiUrl={`${config.mastraServerUrl}/chat/financial-agent`}
-        accessToken={session.access_token}
-        resourceId={resourceId}
-        initialMessages={initialMessages}
-        onMessageComplete={() => {
-          void refetchThreads();
-        }}
-      />
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner />
+      </div>
     );
   }
 
@@ -476,98 +470,134 @@ export function Assistant() {
     if (!trimmed) return;
     const newId = generateThreadId();
     queueAutoSend(newId, trimmed);
-    navigate(`/assistant/${newId}`);
+    navigateWithTransition(navigate, `/assistant/${newId}`);
   };
 
+  const viewKey = threadIdParam ? `chat-${threadIdParam}` : "greeting";
+
   return (
-    <div
-      className="relative flex h-[calc(100vh-2rem)] lg:h-[calc(100vh-4rem)] flex-col"
-      key={i18n.language}
-    >
-      <img
-        src={logo}
-        alt=""
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 lg:size-80 opacity-[0.06] grayscale pointer-events-none select-none"
-      />
+    <LazyMotion features={domAnimation} strict>
+      <AnimatePresence mode="wait" initial={false}>
+        <m.div
+          key={viewKey}
+          initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -24, filter: "blur(8px)" }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          className="relative flex h-[calc(100vh-2rem)] lg:h-[calc(100vh-4rem)] flex-col"
+        >
+          <img
+            src={logo}
+            alt=""
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 lg:size-80 opacity-[0.06] grayscale pointer-events-none select-none"
+          />
 
-      <HistorySidebar
-        show={showHistory}
-        activeThreadId={null}
-        onSelect={id => {
-          setShowHistory(false);
-          navigate(`/assistant/${id}`);
-        }}
-        onNewChat={() => setShowHistory(false)}
-      >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-12 lg:pt-16 lg:pb-24">
-            <h1 className="text-5xl lg:text-6xl xl:text-7xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
-              {greeting},{" "}
-              <span className="relative inline-block">
-                {finalName}
-                <GreetingCurve />
-              </span>
-            </h1>
-          </div>
-
-          <div className="w-full max-w-3xl mx-auto space-y-4 px-4 pb-4 lg:pb-8">
-            <div className="flex justify-end">
-              <HistoryToggleButton
-                show={showHistory}
-                onToggle={() => setShowHistory(v => !v)}
+          {threadIdParam ? (
+            <HistorySidebar
+              show={showHistory}
+              activeThreadId={threadIdParam}
+              onSelect={id => {
+                setShowHistory(false);
+                navigate(`/assistant/${id}`);
+              }}
+              onNewChat={() => {
+                setShowHistory(false);
+                navigate("/assistant");
+              }}
+            >
+              <ChatView
+                threadId={threadIdParam}
+                apiUrl={`${config.mastraServerUrl}/chat/financial-agent`}
+                accessToken={session.access_token}
+                resourceId={resourceId}
+                initialMessages={initialMessages}
+                onMessageComplete={() => {
+                  void refetchThreads();
+                }}
               />
-            </div>
+            </HistorySidebar>
+          ) : (
+            <HistorySidebar
+              show={showHistory}
+              activeThreadId={null}
+              onSelect={id => {
+                setShowHistory(false);
+                navigate(`/assistant/${id}`);
+              }}
+              onNewChat={() => setShowHistory(false)}
+            >
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-12 lg:pt-16 lg:pb-24">
+                  <h1 className="text-5xl lg:text-6xl xl:text-7xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
+                    {greeting},{" "}
+                    <span className="relative inline-block">
+                      {finalName}
+                      <GreetingCurve />
+                    </span>
+                  </h1>
+                </div>
 
-            {!isReady ? (
-              <div className="flex items-center justify-center py-12">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <TooltipProvider delayDuration={0}>
-                <PromptInputProvider>
-                  <PromptInput
-                    onSubmit={message => handleStartChat(message.text)}
-                    className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
-                  >
-                    <PromptInputBody>
-                      <PromptInputTextarea
-                        placeholder={t("assistant.placeholder")}
-                        className="text-base"
+                <div className="w-full max-w-3xl mx-auto space-y-4 px-4 pb-4 lg:pb-8">
+                  <div className="flex justify-end">
+                    <HistoryToggleButton
+                      show={showHistory}
+                      onToggle={() => setShowHistory(v => !v)}
+                    />
+                  </div>
+
+                  {!isReady ? (
+                    <div className="flex items-center justify-center py-12">
+                      <LoadingSpinner />
+                    </div>
+                  ) : (
+                    <TooltipProvider delayDuration={0}>
+                      <PromptInputProvider>
+                        <PromptInput
+                          onSubmit={message => handleStartChat(message.text)}
+                          className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
+                        >
+                          <PromptInputBody>
+                            <PromptInputTextarea
+                              placeholder={t("assistant.placeholder")}
+                              className="text-base"
+                            />
+                          </PromptInputBody>
+                          <PromptInputFooter>
+                            <PromptInputTools>
+                              <PromptInputActionMenu>
+                                <PromptInputActionMenuTrigger />
+                                <PromptInputActionMenuContent>
+                                  <PromptInputActionAddAttachments />
+                                  <PromptInputActionAddScreenshot />
+                                </PromptInputActionMenuContent>
+                              </PromptInputActionMenu>
+                            </PromptInputTools>
+                            <PromptInputSubmit status="ready" />
+                          </PromptInputFooter>
+                        </PromptInput>
+                      </PromptInputProvider>
+                    </TooltipProvider>
+                  )}
+
+                  <Suggestions className="w-full">
+                    {QUICK_QUESTIONS.map(key => (
+                      <Suggestion
+                        key={key}
+                        suggestion={t(`assistant.quickQuestions.${key}`)}
+                        onClick={handleStartChat}
                       />
-                    </PromptInputBody>
-                    <PromptInputFooter>
-                      <PromptInputTools>
-                        <PromptInputActionMenu>
-                          <PromptInputActionMenuTrigger />
-                          <PromptInputActionMenuContent>
-                            <PromptInputActionAddAttachments />
-                            <PromptInputActionAddScreenshot />
-                          </PromptInputActionMenuContent>
-                        </PromptInputActionMenu>
-                      </PromptInputTools>
-                      <PromptInputSubmit status="ready" />
-                    </PromptInputFooter>
-                  </PromptInput>
-                </PromptInputProvider>
-              </TooltipProvider>
-            )}
+                    ))}
+                  </Suggestions>
 
-            <Suggestions className="w-full">
-              {QUICK_QUESTIONS.map(key => (
-                <Suggestion
-                  key={key}
-                  suggestion={t(`assistant.quickQuestions.${key}`)}
-                  onClick={handleStartChat}
-                />
-              ))}
-            </Suggestions>
-
-            <p className="text-center text-sm text-[var(--text-secondary)]">
-              {t("assistant.disclaimer")}
-            </p>
-          </div>
-        </div>
-      </HistorySidebar>
-    </div>
+                  <p className="text-center text-sm text-[var(--text-secondary)]">
+                    {t("assistant.disclaimer")}
+                  </p>
+                </div>
+              </div>
+            </HistorySidebar>
+          )}
+        </m.div>
+      </AnimatePresence>
+    </LazyMotion>
   );
 }
