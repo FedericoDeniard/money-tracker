@@ -277,7 +277,7 @@ function ChatPanel({
   return (
     <>
       <Conversation className="relative min-h-0 flex-1 overflow-hidden">
-        <ConversationContent className="gap-3 p-0 pt-4 lg:pt-0 justify-end">
+        <ConversationContent className="gap-3 p-0 px-4 pt-4 lg:pt-0 justify-end">
           {hasMessages ? (
             messages.map(message => {
               const text = message.parts
