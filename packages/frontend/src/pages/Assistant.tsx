@@ -46,6 +46,7 @@ import {
   motion,
   AnimatePresence,
   domAnimation,
+  useAnimate,
 } from "framer-motion";
 
 /**
@@ -136,6 +137,27 @@ function getDisplayName(user: ReturnType<typeof useAuth>["user"]): string {
     }
   }
   return "";
+}
+
+function AnimatedMessage({ children }: { children: React.ReactNode }) {
+  const [scope, animate] = useAnimate();
+
+  useEffect(() => {
+    animate(
+      scope.current,
+      { opacity: 1, y: 0, scale: 1 },
+      { duration: 0.25, ease: "easeOut" }
+    );
+  }, [animate, scope]);
+
+  return (
+    <div
+      ref={scope}
+      style={{ opacity: 0, transform: "translateY(20px) scale(0.95)" }}
+    >
+      {children}
+    </div>
+  );
 }
 
 function GreetingCurve() {
@@ -291,14 +313,9 @@ function ChatPanel({
 
               if (isNewMessage && isUser) {
                 return (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
-                  >
+                  <AnimatedMessage key={message.id}>
                     {messageContent}
-                  </motion.div>
+                  </AnimatedMessage>
                 );
               }
 
