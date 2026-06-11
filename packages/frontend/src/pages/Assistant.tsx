@@ -405,7 +405,7 @@ function ChatView({
   const [showHistory, setShowHistory] = useState(false);
 
   return (
-    <div className="flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] flex-col gap-4">
+    <div className="flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] flex-col">
       <HistorySidebar
         show={showHistory}
         activeThreadId={threadId}
@@ -418,7 +418,12 @@ function ChatView({
           navigate("/assistant");
         }}
       >
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <img
+            src={logo}
+            alt=""
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 lg:size-80 opacity-[0.06] grayscale pointer-events-none select-none"
+          />
           {initialMessages === null ? (
             <div className="flex flex-1 items-center justify-center">
               <LoadingSpinner />
@@ -526,12 +531,6 @@ export function Assistant() {
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
           className="relative flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] flex-col"
         >
-          <img
-            src={logo}
-            alt=""
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 lg:size-80 opacity-[0.06] grayscale pointer-events-none select-none"
-          />
-
           {threadIdParam ? (
             <HistorySidebar
               show={showHistory}
@@ -562,8 +561,13 @@ export function Assistant() {
             >
               {/* Contenido principal (greeting + prompt + suggestions) */}
               <div
-                className={`${hasHistoryInGreeting ? "col-span-1 row-span-1" : "col-span-1 row-span-1"} flex min-h-0 flex-col`}
+                className={`${hasHistoryInGreeting ? "col-span-1 row-span-1" : "col-span-1 row-span-1"} relative flex min-h-0 flex-col`}
               >
+                <img
+                  src={logo}
+                  alt=""
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 lg:size-80 opacity-[0.06] grayscale pointer-events-none select-none"
+                />
                 <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-12 lg:pt-16 lg:pb-24">
                   <h1 className="text-5xl lg:text-6xl xl:text-7xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
                     {greeting},{" "}
