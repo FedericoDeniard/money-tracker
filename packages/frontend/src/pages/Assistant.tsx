@@ -247,7 +247,7 @@ function ChatPanel({
   return (
     <>
       <Conversation className="relative min-h-0 flex-1 overflow-hidden">
-        <ConversationContent className="gap-3 p-0 pt-4 lg:pt-0">
+        <ConversationContent className="gap-3 p-0 pt-4 lg:pt-0 justify-end">
           {hasMessages ? (
             messages.map(message => {
               const text = message.parts
@@ -361,7 +361,7 @@ function ChatView({
   const [showHistory, setShowHistory] = useState(false);
 
   return (
-    <div className="flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-4rem)] flex-col gap-4">
+    <div className="flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] flex-col gap-4">
       <HistorySidebar
         show={showHistory}
         activeThreadId={threadId}
@@ -394,7 +394,7 @@ function ChatView({
           )}
         </div>
       </HistorySidebar>
-      <p className="shrink-0 text-center text-xs text-[var(--text-secondary)] mb-4 lg:mb-0">
+      <p className="shrink-0 text-center text-xs text-[var(--text-secondary)]">
         {t("assistant.disclaimer")}
       </p>
     </div>
@@ -470,7 +470,7 @@ export function Assistant() {
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           exit={{ opacity: 0, y: -24, filter: "blur(8px)" }}
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-          className="relative flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-4rem)] flex-col"
+          className="relative flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] flex-col"
         >
           <img
             src={logo}
