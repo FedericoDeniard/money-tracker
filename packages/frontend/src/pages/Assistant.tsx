@@ -31,6 +31,7 @@ import {
 } from "../components/ai-elements/message";
 import { Suggestion, Suggestions } from "../components/ai-elements/suggestion";
 import { TooltipProvider } from "../components/ui/shadcn/tooltip";
+import { HistoryList } from "../components/assistant/HistoryList";
 import { HistorySidebar } from "../components/assistant/HistorySidebar";
 import { HistoryToggleButton } from "../components/assistant/HistoryToggleButton";
 import { TypingIndicator } from "../components/assistant/TypingIndicator";
@@ -503,16 +504,13 @@ export function Assistant() {
               />
             </HistorySidebar>
           ) : (
-            <HistorySidebar
-              show={showHistory}
-              activeThreadId={null}
-              onSelect={id => {
-                setShowHistory(false);
-                navigate(`/assistant/${id}`);
-              }}
-              onNewChat={() => setShowHistory(false)}
+            <div
+              className={`grid h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] gap-4 ${showHistory ? "grid-cols-[1fr_320px] grid-rows-[1fr_auto]" : "grid-cols-1 grid-rows-[1fr_auto]"}`}
             >
-              <div className="flex min-h-0 flex-1 flex-col">
+              {/* Contenido principal (greeting + prompt + suggestions) */}
+              <div
+                className={`${showHistory ? "col-span-1 row-span-1" : "col-span-1 row-span-1"} flex min-h-0 flex-col`}
+              >
                 <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-12 lg:pt-16 lg:pb-24">
                   <h1 className="text-5xl lg:text-6xl xl:text-7xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
                     {greeting},{" "}
@@ -571,13 +569,32 @@ export function Assistant() {
                       />
                     ))}
                   </Suggestions>
-
-                  <p className="text-center text-sm text-[var(--text-secondary)]">
-                    {t("assistant.disclaimer")}
-                  </p>
                 </div>
               </div>
-            </HistorySidebar>
+
+              {/* Historial (solo cuando está abierto) */}
+              {showHistory && (
+                <div className="col-span-1 row-span-1 flex min-h-0 overflow-hidden">
+                  <HistoryList
+                    activeThreadId={null}
+                    onSelect={id => {
+                      setShowHistory(false);
+                      navigate(`/assistant/${id}`);
+                    }}
+                    onNewChat={() => setShowHistory(false)}
+                  />
+                </div>
+              )}
+
+              {/* Disclaimer */}
+              <div
+                className={`${showHistory ? "col-span-2" : "col-span-1"} row-span-1`}
+              >
+                <p className="text-center text-sm text-[var(--text-secondary)]">
+                  {t("assistant.disclaimer")}
+                </p>
+              </div>
+            </div>
           )}
         </m.div>
       </AnimatePresence>

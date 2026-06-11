@@ -20,7 +20,7 @@ export function HistorySidebar({
     <div
       className={
         show
-          ? "flex flex-1 min-h-0 flex-col md:grid md:grid-cols-[1fr_320px] md:gap-4"
+          ? "flex flex-1 min-h-0 flex-col md:grid md:grid-cols-[1fr_320px] md:grid-rows-[1fr] md:gap-4"
           : "flex flex-1 min-h-0 flex-col"
       }
     >
