@@ -208,6 +208,7 @@ function ChatPanel({
   // Snapshot DB messages at mount — useChat only reads `messages` in the constructor.
   // Parent must not refetch mid-session (would pass stale partial DB rows).
   const bootstrapMessagesRef = useRef(initialMessages);
+  const initialMessageIdsRef = useRef(new Set(initialMessages.map(m => m.id)));
 
   const { messages, sendMessage, status, stop, error } = useChat({
     id: threadId,
@@ -263,7 +264,11 @@ function ChatPanel({
                 .join("");
               const isUser = message.role === "user";
               const showDots = message.id === streamingAssistantId;
-              return (
+              const isNewMessage = !initialMessageIdsRef.current.has(
+                message.id
+              );
+
+              const messageContent = (
                 <Message from={message.role} key={message.id}>
                   <MessageContent
                     className={
@@ -283,6 +288,21 @@ function ChatPanel({
                   </MessageContent>
                 </Message>
               );
+
+              if (isNewMessage && isUser) {
+                return (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    {messageContent}
+                  </motion.div>
+                );
+              }
+
+              return messageContent;
             })
           ) : (
             <ConversationEmptyState
