@@ -597,6 +597,7 @@
       "transactions": "transactions emails movements finances",
       "subscriptions": "subscriptions recurring monthly yearly payments",
       "metrics": "metrics statistics analysis charts reports finances",
+      "assistant": "assistant chat ai help copilot",
       "settings": "configuration preferences settings",
       "logout": "sign out exit logout"
     }
@@ -866,6 +867,16 @@
       "topIncome": "What's my biggest source of income?",
       "subscriptionsTotal": "How much do I spend on subscriptions?",
       "savings": "Am I saving money this month?"
-    }
+    },
+    "history": "History",
+    "newChat": "New chat",
+    "historyLoading": "Loading conversations…",
+    "historyEmpty": "No conversations yet",
+    "untitledThread": "Untitled conversation",
+    "deleteThread": "Delete conversation",
+    "deleteThreadConfirm": "Delete this conversation?",
+    "emptyChatHint": "Send a message to start a new conversation",
+    "errorGeneric": "Something went wrong: {{message}}",
+    "errorUnknown": "Unknown error"
   }
 }

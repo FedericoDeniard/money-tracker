@@ -31,7 +31,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000",
     "frame-src 'none'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -74,6 +74,10 @@ const server = serve({
           anonKey: process.env.SUPABASE_ANON_KEY,
         },
         backendUrl: `${(process.env.SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1`,
+        // Standalone Mastra server URL (chat / agents).
+        // Falls back to localhost:4111 in dev.
+        mastraServerUrl:
+          process.env.MASTRA_SERVER_URL ?? "http://localhost:4111",
         // Public VAPID key for Web Push subscription — safe to expose
         vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? null,
       };

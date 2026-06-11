@@ -1,11 +1,13 @@
-# dependencies (bun install)
+# dependencies (pnpm / bun)
 node_modules
+.pnpm-store
 bun.lock
 
 # output
 out
 dist
 *.tgz
+.mastra/
 
 # code coverage
 coverage

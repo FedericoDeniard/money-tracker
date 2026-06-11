@@ -1,0 +1,25 @@
+{
+  "name": "mastra-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "mastra start"
+  },
+  "dependencies": {
+    "@mastra/ai-sdk": "latest",
+    "@mastra/core": "latest",
+    "@mastra/memory": "latest",
+    "@mastra/pg": "latest",
+    "@openrouter/ai-sdk-provider": "latest",
+    "ai": "^6.0.200",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "mastra": "latest",
+    "typescript": "^6.0.3"
+  }
+}

@@ -597,6 +597,7 @@
       "transactions": "transacciones emails movimientos finanzas",
       "subscriptions": "suscripciones recurrentes pagos mensuales anuales",
       "metrics": "metricas estadisticas analisis graficos reportes finanzas",
+      "assistant": "asistente chat ia ayuda copilot",
       "settings": "configuracion preferencias ajustes",
       "logout": "salir cerrar sesion logout"
     }
@@ -866,6 +867,16 @@
       "topIncome": "¿Cuál es mi mayor fuente de ingresos?",
       "subscriptionsTotal": "¿Cuánto gasto en suscripciones?",
       "savings": "¿Estoy ahorrando este mes?"
-    }
+    },
+    "history": "Historial",
+    "newChat": "Nueva conversación",
+    "historyLoading": "Cargando conversaciones…",
+    "historyEmpty": "Aún no hay conversaciones",
+    "untitledThread": "Conversación sin título",
+    "deleteThread": "Eliminar conversación",
+    "deleteThreadConfirm": "¿Eliminar esta conversación?",
+    "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
+    "errorGeneric": "Algo salió mal: {{message}}",
+    "errorUnknown": "Error desconocido"
   }
 }
