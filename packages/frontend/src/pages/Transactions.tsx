@@ -269,7 +269,7 @@ export function Transactions() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] gap-4">
+    <div className="flex flex-col h-[calc(100dvh-64px)] lg:h-full gap-4">
       {/* Filter card: title+description render immediately;
           Currency+Email dropdowns inside have their own Suspense */}
       <div data-tour="transaction-filters">

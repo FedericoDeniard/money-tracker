@@ -43,7 +43,7 @@ export function HistoryList({
   return (
     <div
       className={cn(
-        "flex w-full max-w-3xl flex-col rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm md:h-full",
+        "flex w-full max-w-3xl flex-col md:rounded-2xl md:border md:border-[var(--text-secondary)]/20 md:bg-[var(--bg-primary)] md:shadow-sm h-full",
         className
       )}
     >

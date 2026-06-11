@@ -5,7 +5,6 @@ import { useAuth } from "../hooks/useAuth";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
 import logo from "../logo.svg";
-import { ArrowLeft } from "lucide-react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -159,6 +158,8 @@ interface ChatPanelProps {
   threadId: string;
   initialMessages: UIMessage[];
   onMessageComplete: () => void;
+  showHistory: boolean;
+  onToggleHistory: () => void;
 }
 
 /**
@@ -173,6 +174,8 @@ function ChatPanel({
   threadId,
   initialMessages,
   onMessageComplete,
+  showHistory,
+  onToggleHistory,
 }: ChatPanelProps) {
   const { t } = useTranslation();
   const transport = useMemo(
@@ -244,12 +247,7 @@ function ChatPanel({
   return (
     <>
       <Conversation className="relative min-h-0 flex-1 overflow-hidden">
-        <img
-          src={logo}
-          alt=""
-          className="pointer-events-none absolute inset-0 m-auto size-48 select-none opacity-[0.06] grayscale"
-        />
-        <ConversationContent className="gap-3 p-0">
+        <ConversationContent className="gap-3 p-0 pt-4 lg:pt-0">
           {hasMessages ? (
             messages.map(message => {
               const text = message.parts
@@ -319,6 +317,10 @@ function ChatPanel({
                     <PromptInputActionAddScreenshot />
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
+                <HistoryToggleButton
+                  show={showHistory}
+                  onToggle={onToggleHistory}
+                />
               </PromptInputTools>
               <PromptInputSubmit status={status} onStop={stop} />
             </PromptInputFooter>
@@ -359,25 +361,7 @@ function ChatView({
   const [showHistory, setShowHistory] = useState(false);
 
   return (
-    <div className="flex h-[calc(100vh-2rem)] lg:h-[calc(100vh-4rem)] flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate("/assistant")}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--text-secondary)]/20 px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:border-[var(--button-primary)] hover:text-[var(--button-primary)]"
-            aria-label={t("assistant.back")}
-          >
-            <ArrowLeft className="size-3.5" />
-            <span>{t("assistant.back")}</span>
-          </button>
-        </div>
-        <HistoryToggleButton
-          show={showHistory}
-          onToggle={() => setShowHistory(v => !v)}
-        />
-      </div>
-
+    <div className="flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-4rem)] flex-col gap-4">
       <HistorySidebar
         show={showHistory}
         activeThreadId={threadId}
@@ -390,7 +374,7 @@ function ChatView({
           navigate("/assistant");
         }}
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <div className="flex min-h-0 flex-1 flex-col">
           {initialMessages === null ? (
             <div className="flex flex-1 items-center justify-center">
               <LoadingSpinner />
@@ -404,13 +388,15 @@ function ChatView({
               threadId={threadId}
               initialMessages={initialMessages}
               onMessageComplete={onMessageComplete}
+              showHistory={showHistory}
+              onToggleHistory={() => setShowHistory(v => !v)}
             />
           )}
-          <p className="shrink-0 text-center text-xs text-[var(--text-secondary)]">
-            {t("assistant.disclaimer")}
-          </p>
         </div>
       </HistorySidebar>
+      <p className="shrink-0 text-center text-xs text-[var(--text-secondary)] mb-4 lg:mb-0">
+        {t("assistant.disclaimer")}
+      </p>
     </div>
   );
 }
@@ -484,7 +470,7 @@ export function Assistant() {
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           exit={{ opacity: 0, y: -24, filter: "blur(8px)" }}
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-          className="relative flex h-[calc(100vh-2rem)] lg:h-[calc(100vh-4rem)] flex-col"
+          className="relative flex h-[calc(100dvh-64px)] lg:h-[calc(100vh-4rem)] flex-col"
         >
           <img
             src={logo}
@@ -538,13 +524,6 @@ export function Assistant() {
                 </div>
 
                 <div className="w-full max-w-3xl mx-auto space-y-4 px-4 pb-4 lg:pb-8">
-                  <div className="flex justify-end">
-                    <HistoryToggleButton
-                      show={showHistory}
-                      onToggle={() => setShowHistory(v => !v)}
-                    />
-                  </div>
-
                   {!isReady ? (
                     <div className="flex items-center justify-center py-12">
                       <LoadingSpinner />
@@ -571,6 +550,10 @@ export function Assistant() {
                                   <PromptInputActionAddScreenshot />
                                 </PromptInputActionMenuContent>
                               </PromptInputActionMenu>
+                              <HistoryToggleButton
+                                show={showHistory}
+                                onToggle={() => setShowHistory(v => !v)}
+                              />
                             </PromptInputTools>
                             <PromptInputSubmit status="ready" />
                           </PromptInputFooter>

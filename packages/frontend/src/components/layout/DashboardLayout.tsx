@@ -66,7 +66,7 @@ export function DashboardLayout() {
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <main className="relative flex-1 p-4 lg:p-8 lg:ml-64 min-h-[calc(100vh-64px)] lg:min-h-screen w-full overflow-x-hidden">
+      <main className="relative flex-1 px-4 py-0 lg:p-8 lg:ml-64 h-[calc(100dvh-64px)] lg:h-auto lg:min-h-screen w-full overflow-x-hidden overflow-y-auto">
         <div className="fixed right-0 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
           <button
             type="button"

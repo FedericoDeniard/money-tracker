@@ -17,14 +17,10 @@ export function HistoryToggleButton({
       <button
         type="button"
         onClick={onToggle}
-        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--text-secondary)]/20 px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:border-[var(--button-primary)] hover:text-[var(--button-primary)]"
+        className={`inline-flex items-center justify-center rounded-md p-2 transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] ${show ? "bg-[var(--button-primary)]/10 text-[var(--button-primary)]" : "text-[var(--text-secondary)]"}`}
+        aria-label={t("assistant.history")}
       >
-        <History
-          className={
-            show ? "size-3.5 text-[var(--button-primary)]" : "size-3.5"
-          }
-        />
-        <span>{t("assistant.history")}</span>
+        <History className="size-4" />
       </button>
     </TooltipProvider>
   );
