@@ -74,7 +74,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {links.map(link => {
-          const isActive = location.pathname === link.path;
+          const isActive =
+            location.pathname === link.path ||
+            location.pathname.startsWith(`${link.path}/`);
           return (
             <Link
               key={link.path}
