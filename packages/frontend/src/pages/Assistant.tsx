@@ -4,9 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
-import { DecorativeSquare } from "../components/ui/DecorativeSquare";
 import logo from "../logo.svg";
-import { ArrowLeft, History } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -33,7 +32,9 @@ import {
 } from "../components/ai-elements/message";
 import { Suggestion, Suggestions } from "../components/ai-elements/suggestion";
 import { TooltipProvider } from "../components/ui/shadcn/tooltip";
-import { HistoryList } from "../components/assistant/HistoryList";
+import { HistorySidebar } from "../components/assistant/HistorySidebar";
+import { HistoryToggleButton } from "../components/assistant/HistoryToggleButton";
+import { TypingIndicator } from "../components/assistant/TypingIndicator";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
@@ -226,24 +227,45 @@ function ChatPanel({
   }, [status, onMessageComplete]);
 
   const hasMessages = messages.length > 0;
+  const isThinking = status === "submitted" || status === "streaming";
+  const lastMessage = messages.at(-1);
+  const streamingAssistantId =
+    isThinking && lastMessage?.role === "assistant" ? lastMessage.id : null;
+  const showStandaloneTyping = isThinking && lastMessage?.role === "user";
 
   return (
     <>
-      <Conversation className="flex-1 min-h-0 rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm">
-        <ConversationContent>
+      <Conversation className="relative min-h-0 flex-1 overflow-hidden">
+        <img
+          src={logo}
+          alt=""
+          className="pointer-events-none absolute inset-0 m-auto size-48 select-none opacity-[0.06] grayscale"
+        />
+        <ConversationContent className="gap-3 p-0">
           {hasMessages ? (
             messages.map(message => {
               const text = message.parts
                 .filter(p => p.type === "text")
                 .map(p => (p as { text: string }).text)
                 .join("");
+              const isUser = message.role === "user";
+              const showDots = message.id === streamingAssistantId;
               return (
                 <Message from={message.role} key={message.id}>
-                  <MessageContent>
-                    {message.role === "assistant" ? (
-                      <MessageResponse>{text}</MessageResponse>
-                    ) : (
+                  <MessageContent
+                    className={
+                      isUser
+                        ? "group-[.is-user]:rounded-lg group-[.is-user]:bg-[var(--button-primary)] group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-white"
+                        : "rounded-lg bg-[var(--accent)]/40 px-4 py-3 text-[var(--text-primary)]"
+                    }
+                  >
+                    {isUser ? (
                       text
+                    ) : (
+                      <>
+                        <MessageResponse>{text}</MessageResponse>
+                        {showDots && <TypingIndicator />}
+                      </>
                     )}
                   </MessageContent>
                 </Message>
@@ -254,6 +276,13 @@ function ChatPanel({
               title={t("assistant.emptyChatHint")}
               className="text-[var(--text-secondary)]"
             />
+          )}
+          {showStandaloneTyping && (
+            <Message from="assistant">
+              <MessageContent className="rounded-lg bg-[var(--accent)]/40 px-4 py-3 text-[var(--text-primary)]">
+                <TypingIndicator />
+              </MessageContent>
+            </Message>
           )}
         </ConversationContent>
       </Conversation>
@@ -334,46 +363,26 @@ function ChatView({
             <ArrowLeft className="size-3.5" />
             <span>{t("assistant.back")}</span>
           </button>
-          <div className="flex items-center gap-2">
-            <div className="relative size-7 flex items-center justify-center shrink-0">
-              <DecorativeSquare size={28} className="absolute inset-0 m-auto" />
-              <img
-                src={logo}
-                alt={t("assistant.logoAlt")}
-                className="relative z-10 w-full h-full p-1 object-contain"
-              />
-            </div>
-            <span className="text-sm font-semibold text-[var(--text-primary)]">
-              {t("assistant.brand")}
-            </span>
-          </div>
         </div>
-        <TooltipProvider delayDuration={0}>
-          <button
-            type="button"
-            onClick={() => setShowHistory(v => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--text-secondary)]/20 px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:border-[var(--button-primary)] hover:text-[var(--button-primary)]"
-          >
-            <History
-              className={
-                showHistory
-                  ? "size-3.5 text-[var(--button-primary)]"
-                  : "size-3.5"
-              }
-            />
-            <span>{t("assistant.history")}</span>
-          </button>
-        </TooltipProvider>
+        <HistoryToggleButton
+          show={showHistory}
+          onToggle={() => setShowHistory(v => !v)}
+        />
       </div>
 
-      <div
-        className={
-          showHistory
-            ? "flex flex-1 min-h-0 flex-col gap-4 md:grid md:grid-cols-[1fr_320px] md:gap-4"
-            : "flex flex-1 min-h-0 flex-col gap-4"
-        }
+      <HistorySidebar
+        show={showHistory}
+        activeThreadId={threadId}
+        onSelect={id => {
+          setShowHistory(false);
+          navigate(`/assistant/${id}`);
+        }}
+        onNewChat={() => {
+          setShowHistory(false);
+          navigate("/assistant");
+        }}
       >
-        <div className="flex min-h-0 flex-col gap-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           {initialMessages === null ? (
             <div className="flex flex-1 items-center justify-center">
               <LoadingSpinner />
@@ -389,27 +398,11 @@ function ChatView({
               onMessageComplete={onMessageComplete}
             />
           )}
-          <p className="text-center text-xs text-[var(--text-secondary)]">
+          <p className="shrink-0 text-center text-xs text-[var(--text-secondary)]">
             {t("assistant.disclaimer")}
           </p>
         </div>
-
-        {showHistory && (
-          <aside className="flex min-h-0 md:h-full md:overflow-hidden">
-            <HistoryList
-              activeThreadId={threadId}
-              onSelect={id => {
-                setShowHistory(false);
-                navigate(`/assistant/${id}`);
-              }}
-              onNewChat={() => {
-                setShowHistory(false);
-                navigate("/assistant");
-              }}
-            />
-          </aside>
-        )}
-      </div>
+      </HistorySidebar>
     </div>
   );
 }
@@ -488,111 +481,93 @@ export function Assistant() {
 
   return (
     <div
-      className="flex flex-col items-center space-y-6 py-8 lg:py-12"
+      className="relative flex h-[calc(100vh-2rem)] lg:h-[calc(100vh-4rem)] flex-col"
       key={i18n.language}
     >
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex items-center gap-3">
-          <div className="relative size-10 flex items-center justify-center shrink-0">
-            <DecorativeSquare size={40} className="absolute inset-0 m-auto" />
-            <img
-              src={logo}
-              alt={t("assistant.logoAlt")}
-              className="relative z-10 w-full h-full p-1.5 object-contain"
-            />
-          </div>
-          <span className="text-2xl font-semibold text-[var(--text-primary)]">
-            {t("assistant.brand")}
-          </span>
-        </div>
-        <h1 className="text-3xl lg:text-4xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
-          {greeting},{" "}
-          <span className="relative inline-block">
-            {finalName}
-            <GreetingCurve />
-          </span>
-        </h1>
-      </div>
+      <img
+        src={logo}
+        alt=""
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-64 lg:size-80 opacity-[0.06] grayscale pointer-events-none select-none"
+      />
 
-      <div className="w-full max-w-3xl space-y-4">
-        <div className="flex justify-end">
-          <TooltipProvider delayDuration={0}>
-            <button
-              type="button"
-              onClick={() => setShowHistory(v => !v)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--text-secondary)]/20 px-3 py-1.5 text-xs text-[var(--text-primary)] transition-colors hover:border-[var(--button-primary)] hover:text-[var(--button-primary)]"
-            >
-              <History
-                className={
-                  showHistory
-                    ? "size-3.5 text-[var(--button-primary)]"
-                    : "size-3.5"
-                }
+      <HistorySidebar
+        show={showHistory}
+        activeThreadId={null}
+        onSelect={id => {
+          setShowHistory(false);
+          navigate(`/assistant/${id}`);
+        }}
+        onNewChat={() => setShowHistory(false)}
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-12 lg:pt-16 lg:pb-24">
+            <h1 className="text-5xl lg:text-6xl xl:text-7xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
+              {greeting},{" "}
+              <span className="relative inline-block">
+                {finalName}
+                <GreetingCurve />
+              </span>
+            </h1>
+          </div>
+
+          <div className="w-full max-w-3xl mx-auto space-y-4 px-4 pb-4 lg:pb-8">
+            <div className="flex justify-end">
+              <HistoryToggleButton
+                show={showHistory}
+                onToggle={() => setShowHistory(v => !v)}
               />
-              <span>{t("assistant.history")}</span>
-            </button>
-          </TooltipProvider>
-        </div>
+            </div>
 
-        {showHistory && (
-          <HistoryList
-            activeThreadId={null}
-            onSelect={id => {
-              setShowHistory(false);
-              navigate(`/assistant/${id}`);
-            }}
-            onNewChat={() => setShowHistory(false)}
-          />
-        )}
+            {!isReady ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <TooltipProvider delayDuration={0}>
+                <PromptInputProvider>
+                  <PromptInput
+                    onSubmit={message => handleStartChat(message.text)}
+                    className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
+                  >
+                    <PromptInputBody>
+                      <PromptInputTextarea
+                        placeholder={t("assistant.placeholder")}
+                        className="text-base"
+                      />
+                    </PromptInputBody>
+                    <PromptInputFooter>
+                      <PromptInputTools>
+                        <PromptInputActionMenu>
+                          <PromptInputActionMenuTrigger />
+                          <PromptInputActionMenuContent>
+                            <PromptInputActionAddAttachments />
+                            <PromptInputActionAddScreenshot />
+                          </PromptInputActionMenuContent>
+                        </PromptInputActionMenu>
+                      </PromptInputTools>
+                      <PromptInputSubmit status="ready" />
+                    </PromptInputFooter>
+                  </PromptInput>
+                </PromptInputProvider>
+              </TooltipProvider>
+            )}
 
-        {!isReady ? (
-          <div className="flex items-center justify-center py-12">
-            <LoadingSpinner />
+            <Suggestions className="w-full">
+              {QUICK_QUESTIONS.map(key => (
+                <Suggestion
+                  key={key}
+                  suggestion={t(`assistant.quickQuestions.${key}`)}
+                  onClick={handleStartChat}
+                />
+              ))}
+            </Suggestions>
+
+            <p className="text-center text-sm text-[var(--text-secondary)]">
+              {t("assistant.disclaimer")}
+            </p>
           </div>
-        ) : (
-          <TooltipProvider delayDuration={0}>
-            <PromptInputProvider>
-              <PromptInput
-                onSubmit={message => handleStartChat(message.text)}
-                className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
-              >
-                <PromptInputBody>
-                  <PromptInputTextarea
-                    placeholder={t("assistant.placeholder")}
-                    className="text-base"
-                  />
-                </PromptInputBody>
-                <PromptInputFooter>
-                  <PromptInputTools>
-                    <PromptInputActionMenu>
-                      <PromptInputActionMenuTrigger />
-                      <PromptInputActionMenuContent>
-                        <PromptInputActionAddAttachments />
-                        <PromptInputActionAddScreenshot />
-                      </PromptInputActionMenuContent>
-                    </PromptInputActionMenu>
-                  </PromptInputTools>
-                  <PromptInputSubmit status="ready" />
-                </PromptInputFooter>
-              </PromptInput>
-            </PromptInputProvider>
-          </TooltipProvider>
-        )}
-
-        <Suggestions className="w-full">
-          {QUICK_QUESTIONS.map(key => (
-            <Suggestion
-              key={key}
-              suggestion={t(`assistant.quickQuestions.${key}`)}
-              onClick={handleStartChat}
-            />
-          ))}
-        </Suggestions>
-
-        <p className="text-center text-sm text-[var(--text-secondary)]">
-          {t("assistant.disclaimer")}
-        </p>
-      </div>
+        </div>
+      </HistorySidebar>
     </div>
   );
 }

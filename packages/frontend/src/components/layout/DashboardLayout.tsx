@@ -83,7 +83,7 @@ export function DashboardLayout() {
             )}
           </button>
         </div>
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto h-full max-w-7xl">
           <Outlet />
         </div>
       </main>

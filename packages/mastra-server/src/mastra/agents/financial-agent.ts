@@ -23,6 +23,18 @@ Guidelines:
     options: {
       lastMessages: 50,
       workingMemory: { enabled: true },
+      generateTitle: {
+        model: openrouter("deepseek/deepseek-v4-flash"),
+        instructions: `Generate a concise thread title (3-6 words) based on the user's first message.
+
+Requirements:
+- Write the title in the same language as the user's first message
+- Be specific and descriptive of the topic or question
+- Use title case in the language's convention
+- Do not include quotes, colons, or trailing punctuation
+- Do not include the app name or generic words like "chat" or "question"
+- Return only the title, no preamble or explanation`,
+      },
     },
   }),
 });
