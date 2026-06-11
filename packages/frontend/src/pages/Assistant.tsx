@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -40,7 +40,13 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { nanoid } from "nanoid";
 import { chatMessagesToUIMessages } from "../lib/mastra-messages";
-import { LazyMotion, m, AnimatePresence, domAnimation } from "framer-motion";
+import {
+  LazyMotion,
+  m,
+  motion,
+  AnimatePresence,
+  domAnimation,
+} from "framer-motion";
 
 /**
  * Generates a unique thread id. Uses crypto.randomUUID when available
@@ -409,6 +415,16 @@ export function Assistant() {
   const { user, session, loading: authLoading } = useAuth();
   const { data: config, isLoading: configLoading } = useConfig();
   const [showHistory, setShowHistory] = useState(false);
+  const [isHistoryAnimating, setIsHistoryAnimating] = useState(false);
+  const prevShowHistory = useRef(showHistory);
+  const hasHistoryInGreeting = showHistory || isHistoryAnimating;
+
+  useLayoutEffect(() => {
+    if (prevShowHistory.current === true && showHistory === false) {
+      setIsHistoryAnimating(true);
+    }
+    prevShowHistory.current = showHistory;
+  }, [showHistory]);
 
   const resourceId = user?.id ?? "anonymous";
   const { data: historyMessages, isFetched: messagesFetched } =
@@ -505,11 +521,11 @@ export function Assistant() {
             </HistorySidebar>
           ) : (
             <div
-              className={`grid h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] gap-4 ${showHistory ? "grid-cols-[1fr_320px] grid-rows-[1fr_auto]" : "grid-cols-1 grid-rows-[1fr_auto]"}`}
+              className={`grid h-[calc(100dvh-64px)] lg:h-[calc(100vh-16px)] gap-4 ${hasHistoryInGreeting ? "grid-cols-[1fr_320px] grid-rows-[1fr_auto]" : "grid-cols-1 grid-rows-[1fr_auto]"}`}
             >
               {/* Contenido principal (greeting + prompt + suggestions) */}
               <div
-                className={`${showHistory ? "col-span-1 row-span-1" : "col-span-1 row-span-1"} flex min-h-0 flex-col`}
+                className={`${hasHistoryInGreeting ? "col-span-1 row-span-1" : "col-span-1 row-span-1"} flex min-h-0 flex-col`}
               >
                 <div className="flex flex-1 items-center justify-center px-4 pt-8 pb-12 lg:pt-16 lg:pb-24">
                   <h1 className="text-5xl lg:text-6xl xl:text-7xl font-semibold text-[var(--text-primary)] tracking-tight text-center">
@@ -550,7 +566,12 @@ export function Assistant() {
                               </PromptInputActionMenu>
                               <HistoryToggleButton
                                 show={showHistory}
-                                onToggle={() => setShowHistory(v => !v)}
+                                onToggle={() => {
+                                  setShowHistory(v => {
+                                    if (!v) setIsHistoryAnimating(true);
+                                    return !v;
+                                  });
+                                }}
                               />
                             </PromptInputTools>
                             <PromptInputSubmit status="ready" />
@@ -573,22 +594,31 @@ export function Assistant() {
               </div>
 
               {/* Historial (solo cuando está abierto) */}
-              {showHistory && (
-                <div className="col-span-1 row-span-1 flex min-h-0 overflow-hidden">
-                  <HistoryList
-                    activeThreadId={null}
-                    onSelect={id => {
-                      setShowHistory(false);
-                      navigate(`/assistant/${id}`);
-                    }}
-                    onNewChat={() => setShowHistory(false)}
-                  />
-                </div>
-              )}
+              <AnimatePresence>
+                {showHistory && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onAnimationComplete={() => setIsHistoryAnimating(false)}
+                    className="col-span-1 row-span-1 flex min-h-0 overflow-hidden"
+                  >
+                    <HistoryList
+                      activeThreadId={null}
+                      onSelect={id => {
+                        setShowHistory(false);
+                        navigate(`/assistant/${id}`);
+                      }}
+                      onNewChat={() => setShowHistory(false)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Disclaimer */}
               <div
-                className={`${showHistory ? "col-span-2" : "col-span-1"} row-span-1`}
+                className={`${hasHistoryInGreeting ? "col-span-2" : "col-span-1"} row-span-1`}
               >
                 <p className="text-center text-sm text-[var(--text-secondary)]">
                   {t("assistant.disclaimer")}
