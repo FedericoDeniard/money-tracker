@@ -1,7 +1,23 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
+import { toast } from "../utils/toast";
+import { getSupabase } from "../lib/supabase";
+import { queryKeys } from "../lib/query-client";
+import {
+  useUploadChatAttachments,
+  useDeleteChatAttachments,
+} from "../hooks/useChatAttachments";
+import type { ChatAttachment } from "../services/chat-attachments.service";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
 import logo from "../logo.svg";
@@ -18,6 +34,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
+  usePromptInputAttachments,
 } from "../components/ai-elements/prompt-input";
 import {
   Conversation,
@@ -31,12 +48,18 @@ import {
 } from "../components/ai-elements/message";
 import { Suggestion, Suggestions } from "../components/ai-elements/suggestion";
 import { TooltipProvider } from "../components/ui/shadcn/tooltip";
+import {
+  Attachments,
+  Attachment,
+  AttachmentPreview,
+  AttachmentRemove,
+} from "../components/ai-elements/attachments";
 import { HistoryList } from "../components/assistant/HistoryList";
 import { HistorySidebar } from "../components/assistant/HistorySidebar";
 import { HistoryToggleButton } from "../components/assistant/HistoryToggleButton";
 import { TypingIndicator } from "../components/assistant/TypingIndicator";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, type ChatStatus, type UIMessage } from "ai";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { nanoid } from "nanoid";
 import { chatMessagesToUIMessages } from "../lib/mastra-messages";
@@ -160,6 +183,138 @@ function AnimatedMessage({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface PromptInputWithUploadProps {
+  threadId: string;
+  sendMessage: (msg: {
+    text: string;
+    files?: Array<{
+      type: "file";
+      mediaType: string;
+      filename: string;
+      url: string;
+    }>;
+  }) => void;
+  status: ChatStatus;
+  stop: () => void;
+  showHistory: boolean;
+  onToggleHistory: () => void;
+  placeholder: string;
+  onAttachmentsUploaded: (attachments: ChatAttachment[]) => void;
+}
+
+function PromptInputWithUpload({
+  threadId,
+  sendMessage,
+  status,
+  stop,
+  showHistory,
+  onToggleHistory,
+  placeholder,
+  onAttachmentsUploaded,
+}: PromptInputWithUploadProps) {
+  // Hooks must be called inside PromptInputProvider — this component is
+  // mounted under <PromptInputProvider> in ChatPanel.
+  const {
+    files: promptFiles,
+    clear: clearPromptFiles,
+    remove: removePromptFile,
+  } = usePromptInputAttachments();
+  const uploadAttachments = useUploadChatAttachments();
+
+  return (
+    <PromptInput
+      onSubmit={async message => {
+        const trimmed = message.text.trim();
+        if (!trimmed && promptFiles.length === 0) return;
+
+        let uploaded: Awaited<
+          ReturnType<typeof uploadAttachments.mutateAsync>
+        > = [];
+        if (promptFiles.length > 0) {
+          const filesToUpload = await Promise.all(
+            promptFiles.map(async f => {
+              const response = await fetch(f.url);
+              const blob = await response.blob();
+              return new File([blob], f.filename ?? "file", {
+                type: f.mediaType ?? blob.type,
+              });
+            })
+          );
+          try {
+            uploaded = await uploadAttachments.mutateAsync({
+              threadId,
+              files: filesToUpload,
+            });
+            onAttachmentsUploaded(uploaded);
+          } catch (err) {
+            console.error("[Assistant] attachment upload failed", err);
+            return;
+          }
+        }
+
+        // Always send `files` to the backend when present. The Mastra agent
+        // has an input processor that transforms `file` parts into `text`
+        // parts containing the storage URL and filename. That way:
+        //   - Vision-capable models (Claude, GPT-4o, Gemini) can fetch the
+        //     URL via their providers' image-input pipelines.
+        //   - Text-only models (deepseek-v4-flash, etc.) just see the URL
+        //     as text and never throw "no endpoints support image input".
+        // No hardcoded model list, no per-model branching.
+        if (uploaded.length > 0) {
+          sendMessage({
+            text: trimmed,
+            files: uploaded.map(a => ({
+              type: "file" as const,
+              mediaType: a.mime_type,
+              filename: a.filename,
+              url: a.signedUrl,
+            })),
+          });
+        } else if (trimmed) {
+          sendMessage({ text: trimmed });
+        }
+        clearPromptFiles();
+      }}
+      className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
+    >
+      <PromptInputBody>
+        {promptFiles.length > 0 && (
+          <div
+            data-align="block-start"
+            className="order-first flex w-full flex-wrap items-end justify-start gap-2 px-3 pt-3"
+          >
+            {promptFiles.map(file => (
+              <Attachment
+                key={file.id}
+                data={file}
+                onRemove={() => removePromptFile(file.id)}
+                className="bg-blue-500/10"
+              >
+                <AttachmentPreview />
+                <AttachmentRemove className="bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent)]/80" />
+              </Attachment>
+            ))}
+          </div>
+        )}
+        <PromptInputTextarea placeholder={placeholder} className="text-base" />
+      </PromptInputBody>
+      <PromptInputFooter>
+        <PromptInputTools>
+          <PromptInputActionMenu>
+            <PromptInputActionMenuTrigger className="bg-white" />
+            <PromptInputActionMenuContent>
+              <PromptInputActionAddAttachments />
+              <PromptInputActionAddScreenshot />
+            </PromptInputActionMenuContent>
+          </PromptInputActionMenu>
+          <HistoryToggleButton show={showHistory} onToggle={onToggleHistory} />
+        </PromptInputTools>
+        <PromptInputSubmit status={status} onStop={stop} />
+      </PromptInputFooter>
+    </PromptInput>
+  );
+}
+
 function GreetingCurve() {
   return (
     <svg
@@ -189,6 +344,7 @@ interface ChatPanelProps {
   onMessageComplete: () => void;
   showHistory: boolean;
   onToggleHistory: () => void;
+  onHardError: () => void;
 }
 
 /**
@@ -205,8 +361,10 @@ function ChatPanel({
   onMessageComplete,
   showHistory,
   onToggleHistory,
+  onHardError,
 }: ChatPanelProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -226,23 +384,169 @@ function ChatPanel({
       }),
     [apiUrl, accessToken, resourceId, threadId]
   );
-
   // Snapshot DB messages at mount — useChat only reads `messages` in the constructor.
   // Parent must not refetch mid-session (would pass stale partial DB rows).
   const bootstrapMessagesRef = useRef(initialMessages);
   const initialMessageIdsRef = useRef(new Set(initialMessages.map(m => m.id)));
+  // Track the most recent uploaded attachments so we can roll them back
+  // (delete from storage + DB) if the model rejects the request.
+  const pendingAttachmentsRef = useRef<ChatAttachment[]>([]);
+  // Captures the last user message we sent so the error handler can
+  // remove it from the local message list — otherwise the failed prompt
+  // stays on screen, the next send replays the same broken history,
+  // and the empty assistant reply piles on top.
+  const lastSentUserIdRef = useRef<string | null>(null);
+  // Holds setMessages from useChat so the error handler (declared above
+  // the hook call) can mutate the chat state.
+  const setMessagesRef = useRef<
+    | ((messages: UIMessage[] | ((prev: UIMessage[]) => UIMessage[])) => void)
+    | null
+  >(null);
+  // Bumped after a hard error so the parent re-keys ChatPanel and the
+  // useChat hook re-initialises from a clean state. The setMessages
+  // approach alone was not enough — the hook was repopulating from its
+  // own internal history and re-sending the failed file part on the
+  // next submission.
+  const deleteAttachments = useDeleteChatAttachments();
 
-  const { messages, sendMessage, status, stop, error } = useChat({
+  const handleAttachmentsUploaded = useCallback(
+    (attachments: ChatAttachment[]) => {
+      pendingAttachmentsRef.current = attachments;
+    },
+    []
+  );
+
+  const handleError = useCallback(
+    (err: Error) => {
+      console.error("[Assistant] chat error", err);
+      const message = err instanceof Error ? err.message : String(err ?? "");
+      const lower = message.toLowerCase();
+      const isUnsupportedImageError =
+        lower.includes("image input") ||
+        lower.includes("does not support image") ||
+        (lower.includes("vision") && lower.includes("support"));
+
+      // Always drop the just-sent user message AND any empty assistant
+      // reply that the useChat hook may have auto-inserted after the
+      // error. Otherwise the failed prompt and the empty assistant
+      // bubble stay on screen, and the next submission replays the
+      // broken history (including the file part).
+      const setMessages = setMessagesRef.current;
+      const lastId = lastSentUserIdRef.current;
+      if (setMessages && lastId) {
+        setMessages(prev => {
+          // Find the index of the failed user message and drop it
+          // along with anything that came after (typically an empty
+          // assistant placeholder the SDK inserted when the stream
+          // errored out).
+          const idx = prev.findIndex(m => m.id === lastId);
+          if (idx === -1) return prev;
+          return prev.slice(0, idx);
+        });
+        lastSentUserIdRef.current = null;
+      }
+
+      // Force the parent to remount this ChatPanel with a fresh useChat
+      // instance. The setMessages call above cleans up local state, but
+      // the hook was re-populating the next send from its own internal
+      // history (which still included the file part). A remount is the
+      // only way to fully reset the stream.
+      onHardError();
+
+      if (isUnsupportedImageError) {
+        // Delete the failed message from Mastra memory so it doesn't get
+        // re-sent in subsequent requests (the image stays in the agent's
+        // memory and causes the same error on every send)
+        if (lastId) {
+          void (async () => {
+            const supabase = await getSupabase();
+            const { error } = await supabase
+              .from("mastra_messages")
+              .delete()
+              .eq("id", lastId);
+            if (error) {
+              console.error(
+                "[Assistant] failed to delete message from Mastra memory",
+                error
+              );
+            } else {
+              // Invalidate the messages query to force a refetch from DB
+              // This ensures the ChatPanel remounts with the correct messages
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.chatThreads.messages(threadId),
+              });
+            }
+          })();
+        }
+
+        const pending = pendingAttachmentsRef.current;
+        if (pending.length > 0) {
+          void deleteAttachments.mutateAsync(pending).catch(e => {
+            console.error(
+              "[Assistant] failed to roll back attachments after provider error",
+              e
+            );
+          });
+          pendingAttachmentsRef.current = [];
+        }
+        toast.error(t("assistant.imageNotSupported"));
+      } else {
+        toast.error(
+          t("assistant.errorGeneric", {
+            message:
+              err instanceof Error ? err.message : t("assistant.errorUnknown"),
+          })
+        );
+      }
+    },
+    [deleteAttachments, onHardError, t, queryClient, threadId]
+  );
+
+  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
     id: threadId,
     transport,
     messages:
       bootstrapMessagesRef.current.length > 0
         ? bootstrapMessagesRef.current
         : undefined,
-    onError: err => {
-      console.error("[Assistant] chat error", err);
-    },
+    onError: handleError,
   });
+  setMessagesRef.current = setMessages;
+  // Always-current snapshot of messages for the send wrapper's microtask.
+  // Capturing `messages` directly in the closure would freeze the value
+  // at callback creation time and miss the optimistic update.
+  const messagesRef = useRef<UIMessage[]>(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages, status]);
+
+  // Track the most recent user message so the error handler can remove
+  // it. `sendMessage` adds the optimistic message to `messages` before
+  // the network call resolves, so we capture the id from there.
+  const wrappedSendMessage = useCallback(
+    (msg: Parameters<typeof sendMessage>[0]) => {
+      sendMessage(msg);
+      // Defer to next tick so the optimistic message is in `messages`.
+      queueMicrotask(() => {
+        const lastUser = [...messagesRef.current]
+          .reverse()
+          .find(m => m.role === "user");
+        if (lastUser) {
+          lastSentUserIdRef.current = lastUser.id;
+        }
+      });
+    },
+    [sendMessage]
+  );
+
+  // Drop the pending-attachments list once the assistant has successfully
+  // responded to that user message — at that point the upload is "used".
+  useEffect(() => {
+    if (status === "ready" && pendingAttachmentsRef.current.length > 0) {
+      pendingAttachmentsRef.current = [];
+      lastSentUserIdRef.current = null;
+    }
+  }, [status, messages.length]);
 
   useEffect(() => {
     clearLegacyPendingStorage(threadId);
@@ -300,7 +604,29 @@ function ChatPanel({
                     }
                   >
                     {isUser ? (
-                      text
+                      <>
+                        {message.files && message.files.length > 0 && (
+                          <Attachments
+                            variant="grid"
+                            className="mb-2 [button]:hidden"
+                          >
+                            {message.files.map(file => (
+                              <Attachment
+                                key={file.url}
+                                data={
+                                  {
+                                    ...file,
+                                    id: file.url,
+                                  } as never
+                                }
+                              >
+                                <AttachmentPreview />
+                              </Attachment>
+                            ))}
+                          </Attachments>
+                        )}
+                        {text}
+                      </>
                     ) : (
                       <>
                         <MessageResponse>{text}</MessageResponse>
@@ -339,46 +665,39 @@ function ChatPanel({
 
       <TooltipProvider delayDuration={0}>
         <PromptInputProvider>
-          <PromptInput
-            onSubmit={message => {
-              const trimmed = message.text.trim();
-              if (trimmed) sendMessage({ text: trimmed });
-            }}
-            className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
-          >
-            <PromptInputBody>
-              <PromptInputTextarea
-                placeholder={t("assistant.placeholder")}
-                className="text-base"
-              />
-            </PromptInputBody>
-            <PromptInputFooter>
-              <PromptInputTools>
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger className="bg-white" />
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                    <PromptInputActionAddScreenshot />
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
-                <HistoryToggleButton
-                  show={showHistory}
-                  onToggle={onToggleHistory}
-                />
-              </PromptInputTools>
-              <PromptInputSubmit status={status} onStop={stop} />
-            </PromptInputFooter>
-          </PromptInput>
+          <PromptInputWithUpload
+            threadId={threadId}
+            sendMessage={wrappedSendMessage}
+            status={status}
+            stop={stop}
+            showHistory={showHistory}
+            onToggleHistory={onToggleHistory}
+            placeholder={t("assistant.placeholder")}
+            onAttachmentsUploaded={handleAttachmentsUploaded}
+          />
         </PromptInputProvider>
       </TooltipProvider>
 
-      {error && (
-        <p className="text-center text-sm text-red-500">
-          {t("assistant.errorGeneric", {
-            message: error.message ?? t("assistant.errorUnknown"),
-          })}
-        </p>
-      )}
+      {error &&
+        (() => {
+          const msg = error.message ?? "";
+          const lower = msg.toLowerCase();
+          const isUnsupportedImage =
+            lower.includes("image input") ||
+            lower.includes("does not support image") ||
+            (lower.includes("vision") && lower.includes("support"));
+          // The toast for image-not-supported handles UX feedback; don't
+          // also render the long message inline (it overflows the prompt
+          // area and looks like a layout break).
+          if (isUnsupportedImage) return null;
+          return (
+            <p className="text-center text-sm text-red-500">
+              {t("assistant.errorGeneric", {
+                message: msg || t("assistant.errorUnknown"),
+              })}
+            </p>
+          );
+        })()}
     </>
   );
 }
@@ -390,6 +709,8 @@ interface ChatViewProps {
   resourceId: string;
   initialMessages: UIMessage[] | null;
   onMessageComplete: () => void;
+  onHardError: () => void;
+  panelKey: string;
 }
 
 function ChatView({
@@ -399,6 +720,8 @@ function ChatView({
   resourceId,
   initialMessages,
   onMessageComplete,
+  onHardError,
+  panelKey,
 }: ChatViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -430,7 +753,7 @@ function ChatView({
             </div>
           ) : (
             <ChatPanel
-              key={threadId}
+              key={panelKey}
               apiUrl={apiUrl}
               accessToken={accessToken}
               resourceId={resourceId}
@@ -439,6 +762,7 @@ function ChatView({
               onMessageComplete={onMessageComplete}
               showHistory={showHistory}
               onToggleHistory={() => setShowHistory(v => !v)}
+              onHardError={onHardError}
             />
           )}
         </div>
@@ -458,6 +782,19 @@ export function Assistant() {
   const { data: config, isLoading: configLoading } = useConfig();
   const [showHistory, setShowHistory] = useState(false);
   const [isHistoryAnimating, setIsHistoryAnimating] = useState(false);
+  // Bumped after a hard chat error so ChatPanel remounts with a fresh
+  // useChat instance. The hook keeps its own internal stream history,
+  // so a setMessages call alone is not enough to stop it from
+  // re-sending the failed file part on the next submission.
+  const [chatInstance, setChatInstance] = useState(0);
+  // Used implicitly through the `key` prop on ChatPanel below.
+  void chatInstance;
+  // Pass the increment through a stable callback so the linter sees
+  // the setter as used even though it's only invoked by ChatPanel.
+  const handleHardError = useCallback(() => {
+    setChatInstance(c => c + 1);
+  }, []);
+  void handleHardError;
   const prevShowHistory = useRef(showHistory);
   const hasHistoryInGreeting = showHistory || isHistoryAnimating;
 
@@ -553,6 +890,8 @@ export function Assistant() {
                 onMessageComplete={() => {
                   void refetchThreads();
                 }}
+                onHardError={handleHardError}
+                panelKey={`${threadIdParam}-${chatInstance}`}
               />
             </HistorySidebar>
           ) : (

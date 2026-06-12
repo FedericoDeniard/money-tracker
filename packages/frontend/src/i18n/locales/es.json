@@ -878,6 +878,7 @@
     "deleteThreadConfirm": "¿Eliminar esta conversación?",
     "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
     "errorGeneric": "Algo salió mal: {{message}}",
-    "errorUnknown": "Error desconocido"
+    "errorUnknown": "Error desconocido",
+    "imageNotSupported": "El modelo actual no soporta imágenes. Probá con otro modelo o describí tu pedido en texto."
   }
 }

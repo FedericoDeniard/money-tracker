@@ -878,6 +878,7 @@
     "deleteThreadConfirm": "Delete this conversation?",
     "emptyChatHint": "Send a message to start a new conversation",
     "errorGeneric": "Something went wrong: {{message}}",
-    "errorUnknown": "Unknown error"
+    "errorUnknown": "Unknown error",
+    "imageNotSupported": "The current model does not support image input. Try a different model or describe your request in text."
   }
 }
