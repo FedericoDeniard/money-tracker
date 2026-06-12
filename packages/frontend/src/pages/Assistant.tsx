@@ -18,6 +18,7 @@ import {
   useDeleteChatAttachments,
 } from "../hooks/useChatAttachments";
 import type { ChatAttachment } from "../services/chat-attachments.service";
+import type { FileUIPart } from "ai";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
 import logo from "../logo.svg";
@@ -232,6 +233,7 @@ function AssistantPromptInput({
 
   return (
     <PromptInput
+      accept="image/*"
       onSubmit={async message => {
         const trimmed = message.text.trim();
         if (!trimmed && promptFiles.length === 0) return;
@@ -643,24 +645,30 @@ function ChatPanel({
                   >
                     {isUser ? (
                       <>
-                        {message.files && message.files.length > 0 && (
+                        {message.parts.filter(p => p.type === "file").length >
+                          0 && (
                           <Attachments
                             variant="grid"
                             className="mb-2 [button]:hidden"
                           >
-                            {message.files.map(file => (
-                              <Attachment
-                                key={file.url}
-                                data={
-                                  {
-                                    ...file,
-                                    id: file.url,
-                                  } as never
-                                }
-                              >
-                                <AttachmentPreview />
-                              </Attachment>
-                            ))}
+                            {message.parts
+                              .filter(p => p.type === "file")
+                              .map(file => {
+                                const f = file as FileUIPart;
+                                return (
+                                  <Attachment
+                                    key={f.url}
+                                    data={
+                                      {
+                                        ...f,
+                                        id: f.url,
+                                      } as never
+                                    }
+                                  >
+                                    <AttachmentPreview />
+                                  </Attachment>
+                                );
+                              })}
                           </Attachments>
                         )}
                         {text}

@@ -14,7 +14,7 @@ export const financialAgent = new Agent({
   id: "financial-agent",
   name: "Financial Assistant",
   instructions: FINANCIAL_AGENT_INSTRUCTIONS,
-  model: openrouter("deepseek/deepseek-v4-flash"),
+  model: openrouter("google/gemma-4-31b-it"),
   memory: new Memory({
     options: {
       lastMessages: 50,
