@@ -421,8 +421,8 @@ export const PromptInputActionAddAttachments = ({
   const attachments = usePromptInputAttachments();
 
   const handleSelect = useCallback(
-    (_e: Event) => {
-      // Don't preventDefault — Radix closes the dropdown after select.
+    (e: Event) => {
+      e.preventDefault();
       attachments.openFileDialog();
     },
     [attachments]

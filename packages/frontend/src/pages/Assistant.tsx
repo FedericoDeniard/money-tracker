@@ -94,21 +94,31 @@ function generateThreadId(): string {
  * In-memory auto-send queue. Cleared on page reload so F5 never re-fires
  * the greeting prompt (sessionStorage persisted across reloads — root cause).
  */
-const autoSendByThread = new Map<string, string>();
+interface QueuedAutoSend {
+  text: string;
+  files: Array<{
+    type: "file";
+    mediaType: string;
+    filename: string;
+    url: string;
+  }>;
+}
+
+const autoSendByThread = new Map<string, QueuedAutoSend>();
 /** Prevents duplicate auto-send on React Strict Mode double-mount (same page session). */
 const autoSendConsumedThreads = new Set<string>();
 
-function queueAutoSend(threadId: string, text: string): void {
-  autoSendByThread.set(threadId, text);
+function queueAutoSend(threadId: string, payload: QueuedAutoSend): void {
+  autoSendByThread.set(threadId, payload);
 }
 
-function consumeAutoSend(threadId: string): string | undefined {
+function consumeAutoSend(threadId: string): QueuedAutoSend | undefined {
   if (autoSendConsumedThreads.has(threadId)) return undefined;
-  const text = autoSendByThread.get(threadId);
-  if (text === undefined) return undefined;
+  const payload = autoSendByThread.get(threadId);
+  if (payload === undefined) return undefined;
   autoSendByThread.delete(threadId);
   autoSendConsumedThreads.add(threadId);
-  return text;
+  return payload;
 }
 
 function clearLegacyPendingStorage(threadId: string): void {
@@ -183,37 +193,36 @@ function AnimatedMessage({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface PromptInputWithUploadProps {
-  threadId: string;
-  sendMessage: (msg: {
+interface AssistantPromptInputProps {
+  resolveThreadId: () => string;
+  onSend: (payload: {
+    threadId: string;
     text: string;
-    files?: Array<{
+    files: Array<{
       type: "file";
       mediaType: string;
       filename: string;
       url: string;
     }>;
   }) => void;
-  status: ChatStatus;
-  stop: () => void;
+  onAttachmentsUploaded?: (attachments: ChatAttachment[]) => void;
+  status?: ChatStatus;
+  stop?: () => void;
   showHistory: boolean;
   onToggleHistory: () => void;
   placeholder: string;
-  onAttachmentsUploaded: (attachments: ChatAttachment[]) => void;
 }
 
-function PromptInputWithUpload({
-  threadId,
-  sendMessage,
-  status,
+function AssistantPromptInput({
+  resolveThreadId,
+  onSend,
+  onAttachmentsUploaded,
+  status = "ready",
   stop,
   showHistory,
   onToggleHistory,
   placeholder,
-  onAttachmentsUploaded,
-}: PromptInputWithUploadProps) {
-  // Hooks must be called inside PromptInputProvider — this component is
-  // mounted under <PromptInputProvider> in ChatPanel.
+}: AssistantPromptInputProps) {
   const {
     files: promptFiles,
     clear: clearPromptFiles,
@@ -227,9 +236,8 @@ function PromptInputWithUpload({
         const trimmed = message.text.trim();
         if (!trimmed && promptFiles.length === 0) return;
 
-        let uploaded: Awaited<
-          ReturnType<typeof uploadAttachments.mutateAsync>
-        > = [];
+        const threadId = resolveThreadId();
+        let uploaded: ChatAttachment[] = [];
         if (promptFiles.length > 0) {
           const filesToUpload = await Promise.all(
             promptFiles.map(async f => {
@@ -245,34 +253,21 @@ function PromptInputWithUpload({
               threadId,
               files: filesToUpload,
             });
-            onAttachmentsUploaded(uploaded);
+            onAttachmentsUploaded?.(uploaded);
           } catch (err) {
             console.error("[Assistant] attachment upload failed", err);
             return;
           }
         }
 
-        // Always send `files` to the backend when present. The Mastra agent
-        // has an input processor that transforms `file` parts into `text`
-        // parts containing the storage URL and filename. That way:
-        //   - Vision-capable models (Claude, GPT-4o, Gemini) can fetch the
-        //     URL via their providers' image-input pipelines.
-        //   - Text-only models (deepseek-v4-flash, etc.) just see the URL
-        //     as text and never throw "no endpoints support image input".
-        // No hardcoded model list, no per-model branching.
-        if (uploaded.length > 0) {
-          sendMessage({
-            text: trimmed,
-            files: uploaded.map(a => ({
-              type: "file" as const,
-              mediaType: a.mime_type,
-              filename: a.filename,
-              url: a.signedUrl,
-            })),
-          });
-        } else if (trimmed) {
-          sendMessage({ text: trimmed });
-        }
+        const files = uploaded.map(a => ({
+          type: "file" as const,
+          mediaType: a.mime_type,
+          filename: a.filename,
+          url: a.signedUrl,
+        }));
+
+        onSend({ threadId, text: trimmed, files });
         clearPromptFiles();
       }}
       className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
@@ -302,7 +297,7 @@ function PromptInputWithUpload({
         <PromptInputTools>
           <PromptInputActionMenu>
             <PromptInputActionMenuTrigger className="bg-white" />
-            <PromptInputActionMenuContent>
+            <PromptInputActionMenuContent style={{ backgroundColor: "#fff" }}>
               <PromptInputActionAddAttachments />
               <PromptInputActionAddScreenshot />
             </PromptInputActionMenuContent>
@@ -417,7 +412,7 @@ function ChatPanel({
   );
 
   const handleError = useCallback(
-    (err: Error) => {
+    async (err: Error) => {
       console.error("[Assistant] chat error", err);
       const message = err instanceof Error ? err.message : String(err ?? "");
       const lower = message.toLowerCase();
@@ -426,19 +421,10 @@ function ChatPanel({
         lower.includes("does not support image") ||
         (lower.includes("vision") && lower.includes("support"));
 
-      // Always drop the just-sent user message AND any empty assistant
-      // reply that the useChat hook may have auto-inserted after the
-      // error. Otherwise the failed prompt and the empty assistant
-      // bubble stay on screen, and the next submission replays the
-      // broken history (including the file part).
       const setMessages = setMessagesRef.current;
       const lastId = lastSentUserIdRef.current;
       if (setMessages && lastId) {
         setMessages(prev => {
-          // Find the index of the failed user message and drop it
-          // along with anything that came after (typically an empty
-          // assistant placeholder the SDK inserted when the stream
-          // errored out).
           const idx = prev.findIndex(m => m.id === lastId);
           if (idx === -1) return prev;
           return prev.slice(0, idx);
@@ -446,37 +432,21 @@ function ChatPanel({
         lastSentUserIdRef.current = null;
       }
 
-      // Force the parent to remount this ChatPanel with a fresh useChat
-      // instance. The setMessages call above cleans up local state, but
-      // the hook was re-populating the next send from its own internal
-      // history (which still included the file part). A remount is the
-      // only way to fully reset the stream.
-      onHardError();
-
-      if (isUnsupportedImageError) {
-        // Delete the failed message from Mastra memory so it doesn't get
-        // re-sent in subsequent requests (the image stays in the agent's
-        // memory and causes the same error on every send)
-        if (lastId) {
-          void (async () => {
-            const supabase = await getSupabase();
-            const { error } = await supabase
-              .from("mastra_messages")
-              .delete()
-              .eq("id", lastId);
-            if (error) {
-              console.error(
-                "[Assistant] failed to delete message from Mastra memory",
-                error
-              );
-            } else {
-              // Invalidate the messages query to force a refetch from DB
-              // This ensures the ChatPanel remounts with the correct messages
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.chatThreads.messages(threadId),
-              });
-            }
-          })();
+      if (isUnsupportedImageError && lastId) {
+        const supabase = await getSupabase();
+        const { error } = await supabase
+          .from("mastra_messages")
+          .delete()
+          .eq("id", lastId);
+        if (error) {
+          console.error(
+            "[Assistant] failed to delete message from Mastra memory",
+            error
+          );
+        } else {
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.chatThreads.messages(threadId),
+          });
         }
 
         const pending = pendingAttachmentsRef.current;
@@ -498,6 +468,8 @@ function ChatPanel({
           })
         );
       }
+
+      onHardError();
     },
     [deleteAttachments, onHardError, t, queryClient, threadId]
   );
@@ -553,8 +525,14 @@ function ChatPanel({
 
     // Auto-send once for brand-new threads (in-memory queue, cleared on F5).
     if (bootstrapMessagesRef.current.length > 0) return;
-    const text = consumeAutoSend(threadId);
-    if (text) sendMessage({ text });
+    const payload = consumeAutoSend(threadId);
+    if (payload) {
+      if (payload.files.length > 0) {
+        sendMessage({ text: payload.text, files: payload.files });
+      } else if (payload.text) {
+        sendMessage({ text: payload.text });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
@@ -665,15 +643,21 @@ function ChatPanel({
 
       <TooltipProvider delayDuration={0}>
         <PromptInputProvider>
-          <PromptInputWithUpload
-            threadId={threadId}
-            sendMessage={wrappedSendMessage}
+          <AssistantPromptInput
+            resolveThreadId={() => threadId}
+            onSend={({ text, files }) => {
+              if (files.length > 0) {
+                wrappedSendMessage({ text, files });
+              } else {
+                wrappedSendMessage({ text });
+              }
+            }}
+            onAttachmentsUploaded={handleAttachmentsUploaded}
             status={status}
             stop={stop}
             showHistory={showHistory}
             onToggleHistory={onToggleHistory}
             placeholder={t("assistant.placeholder")}
-            onAttachmentsUploaded={handleAttachmentsUploaded}
           />
         </PromptInputProvider>
       </TooltipProvider>
@@ -847,14 +831,6 @@ export function Assistant() {
   }
 
   // Greeting view: /assistant (no thread)
-  const handleStartChat = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const newId = generateThreadId();
-    queueAutoSend(newId, trimmed);
-    navigateWithTransition(navigate, `/assistant/${newId}`);
-  };
-
   const viewKey = threadIdParam ? `chat-${threadIdParam}` : "greeting";
 
   return (
@@ -925,38 +901,24 @@ export function Assistant() {
                   ) : (
                     <TooltipProvider delayDuration={0}>
                       <PromptInputProvider>
-                        <PromptInput
-                          onSubmit={message => handleStartChat(message.text)}
-                          className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
-                        >
-                          <PromptInputBody>
-                            <PromptInputTextarea
-                              placeholder={t("assistant.placeholder")}
-                              className="text-base"
-                            />
-                          </PromptInputBody>
-                          <PromptInputFooter>
-                            <PromptInputTools>
-                              <PromptInputActionMenu>
-                                <PromptInputActionMenuTrigger className="bg-white" />
-                                <PromptInputActionMenuContent>
-                                  <PromptInputActionAddAttachments />
-                                  <PromptInputActionAddScreenshot />
-                                </PromptInputActionMenuContent>
-                              </PromptInputActionMenu>
-                              <HistoryToggleButton
-                                show={showHistory}
-                                onToggle={() => {
-                                  setShowHistory(v => {
-                                    if (!v) setIsHistoryAnimating(true);
-                                    return !v;
-                                  });
-                                }}
-                              />
-                            </PromptInputTools>
-                            <PromptInputSubmit status="ready" />
-                          </PromptInputFooter>
-                        </PromptInput>
+                        <AssistantPromptInput
+                          resolveThreadId={generateThreadId}
+                          onSend={({ threadId, text, files }) => {
+                            queueAutoSend(threadId, { text, files });
+                            navigateWithTransition(
+                              navigate,
+                              `/assistant/${threadId}`
+                            );
+                          }}
+                          showHistory={showHistory}
+                          onToggleHistory={() => {
+                            setShowHistory(v => {
+                              if (!v) setIsHistoryAnimating(true);
+                              return !v;
+                            });
+                          }}
+                          placeholder={t("assistant.placeholder")}
+                        />
                       </PromptInputProvider>
                     </TooltipProvider>
                   )}
@@ -966,7 +928,14 @@ export function Assistant() {
                       <Suggestion
                         key={key}
                         suggestion={t(`assistant.quickQuestions.${key}`)}
-                        onClick={handleStartChat}
+                        onClick={text => {
+                          const threadId = generateThreadId();
+                          queueAutoSend(threadId, { text, files: [] });
+                          navigateWithTransition(
+                            navigate,
+                            `/assistant/${threadId}`
+                          );
+                        }}
                       />
                     ))}
                   </Suggestions>
