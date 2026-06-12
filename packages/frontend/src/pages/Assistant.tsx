@@ -238,16 +238,11 @@ function AssistantPromptInput({
 
         const threadId = resolveThreadId();
         let uploaded: ChatAttachment[] = [];
-        // Keep blobs around so we can produce inline data URLs when the
-        // signed URL points to localhost (AI providers like Google AI
-        // Studio cannot fetch private/localhost URLs).
-        const blobs: Blob[] = [];
         if (promptFiles.length > 0) {
           const filesToUpload = await Promise.all(
             promptFiles.map(async f => {
               const response = await fetch(f.url);
               const blob = await response.blob();
-              blobs.push(blob);
               return new File([blob], f.filename ?? "file", {
                 type: f.mediaType ?? blob.type,
               });
@@ -265,33 +260,12 @@ function AssistantPromptInput({
           }
         }
 
-        const files = await Promise.all(
-          uploaded.map(async (a, i) => {
-            // Use the original blob to create a data URL when the signed
-            // URL is a private/localhost address that the AI provider
-            // cannot reach over the open internet.
-            const url = new URL(a.signedUrl);
-            if (url.hostname === "127.0.0.1" || url.hostname === "localhost") {
-              const blob = blobs[i];
-              return {
-                type: "file" as const,
-                mediaType: a.mime_type,
-                filename: a.filename,
-                url: await new Promise<string>(resolve => {
-                  const r = new FileReader();
-                  r.onloadend = () => resolve(r.result as string);
-                  r.readAsDataURL(blob);
-                }),
-              };
-            }
-            return {
-              type: "file" as const,
-              mediaType: a.mime_type,
-              filename: a.filename,
-              url: a.signedUrl,
-            };
-          })
-        );
+        const files = uploaded.map(a => ({
+          type: "file" as const,
+          mediaType: a.mime_type,
+          filename: a.filename,
+          url: a.signedUrl,
+        }));
 
         onSend({ threadId, text: trimmed, files });
         clearPromptFiles();
