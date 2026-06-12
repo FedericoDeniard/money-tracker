@@ -340,6 +340,7 @@ interface ChatPanelProps {
   showHistory: boolean;
   onToggleHistory: () => void;
   onHardError: () => void;
+  onGreetingImageError?: () => void;
 }
 
 /**
@@ -357,6 +358,7 @@ function ChatPanel({
   showHistory,
   onToggleHistory,
   onHardError,
+  onGreetingImageError,
 }: ChatPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -386,6 +388,11 @@ function ChatPanel({
   // Track the most recent uploaded attachments so we can roll them back
   // (delete from storage + DB) if the model rejects the request.
   const pendingAttachmentsRef = useRef<ChatAttachment[]>([]);
+  // Set to true only during the greeting auto-send (consumeAutoSend).
+  // handleError checks this to decide whether to navigate back to
+  // greeting on image errors — we cannot rely on bootstrapMessagesRef
+  // because it captures initialMessages at mount time and never updates.
+  const isGreetingAutoSendRef = useRef(false);
   // Captures the last user message we sent so the error handler can
   // remove it from the local message list — otherwise the failed prompt
   // stays on screen, the next send replays the same broken history,
@@ -423,32 +430,55 @@ function ChatPanel({
 
       const setMessages = setMessagesRef.current;
       const lastId = lastSentUserIdRef.current;
-      if (setMessages && lastId) {
+
+      // ── Remove the offending user message from local state ──────────────
+      if (setMessages) {
         setMessages(prev => {
-          const idx = prev.findIndex(m => m.id === lastId);
-          if (idx === -1) return prev;
-          return prev.slice(0, idx);
+          if (lastId) {
+            const idx = prev.findIndex(m => m.id === lastId);
+            if (idx === -1) return prev;
+            return prev.slice(0, idx);
+          }
+          // Fallback (auto-send case where lastId was never set):
+          // remove the last user message.
+          for (let i = prev.length - 1; i >= 0; i--) {
+            if (prev[i].role === "user") {
+              return prev.slice(0, i);
+            }
+          }
+          return prev;
         });
         lastSentUserIdRef.current = null;
       }
 
-      if (isUnsupportedImageError && lastId) {
+      // ── Cleanup for unsupported-image errors ──────────────────────────
+      if (isUnsupportedImageError) {
         const supabase = await getSupabase();
-        const { error } = await supabase
-          .from("mastra_messages")
-          .delete()
-          .eq("id", lastId);
-        if (error) {
-          console.error(
-            "[Assistant] failed to delete message from Mastra memory",
-            error
-          );
-        } else {
-          await queryClient.invalidateQueries({
-            queryKey: queryKeys.chatThreads.messages(threadId),
-          });
+
+        // Best-effort: delete the offending message from Mastra memory by
+        // its client-generated ID. In the chat-view flow the message is
+        // persisted synchronously by Mastra so this delete succeeds.
+        // In the greeting auto-send flow the write is async — the
+        // navigation fix below (@see onGreetingImageError) handles that
+        // case by abandoning the thread entirely.
+        if (lastId) {
+          const { error: delErr } = await supabase
+            .from("mastra_messages")
+            .delete()
+            .eq("id", lastId);
+          if (delErr) {
+            console.error(
+              "[Assistant] failed to delete message from Mastra memory",
+              delErr
+            );
+          } else {
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.chatThreads.messages(threadId),
+            });
+          }
         }
 
+        // Roll back the uploaded attachments (storage + metadata).
         const pending = pendingAttachmentsRef.current;
         if (pending.length > 0) {
           void deleteAttachments.mutateAsync(pending).catch(e => {
@@ -459,6 +489,7 @@ function ChatPanel({
           });
           pendingAttachmentsRef.current = [];
         }
+
         toast.error(t("assistant.imageNotSupported"));
       } else {
         toast.error(
@@ -469,9 +500,27 @@ function ChatPanel({
         );
       }
 
-      onHardError();
+      // ── Decide what to do after the error ──────────────────────────────
+      // Greeting auto-send: the thread was just created. Mastra caches the
+      // image message asynchronously and will re-send it on the next
+      // request, causing the same error. Navigate back to the greeting
+      // view so the next message creates a brand-new thread.
+      // Chat-view error: remount the ChatPanel (existing behavior).
+      if (isUnsupportedImageError && isGreetingAutoSendRef.current) {
+        isGreetingAutoSendRef.current = false;
+        onGreetingImageError?.();
+      } else {
+        onHardError();
+      }
     },
-    [deleteAttachments, onHardError, t, queryClient, threadId]
+    [
+      deleteAttachments,
+      onHardError,
+      onGreetingImageError,
+      t,
+      queryClient,
+      threadId,
+    ]
   );
 
   const { messages, sendMessage, status, stop, error, setMessages } = useChat({
@@ -513,10 +562,17 @@ function ChatPanel({
 
   // Drop the pending-attachments list once the assistant has successfully
   // responded to that user message — at that point the upload is "used".
+  // Also clears the greeting-auto-send flag so subsequent image errors in
+  // this thread are handled via the normal hard-error (remount) flow.
   useEffect(() => {
-    if (status === "ready" && pendingAttachmentsRef.current.length > 0) {
-      pendingAttachmentsRef.current = [];
-      lastSentUserIdRef.current = null;
+    if (status === "ready") {
+      if (pendingAttachmentsRef.current.length > 0) {
+        pendingAttachmentsRef.current = [];
+        lastSentUserIdRef.current = null;
+      }
+      if (isGreetingAutoSendRef.current) {
+        isGreetingAutoSendRef.current = false;
+      }
     }
   }, [status, messages.length]);
 
@@ -527,10 +583,14 @@ function ChatPanel({
     if (bootstrapMessagesRef.current.length > 0) return;
     const payload = consumeAutoSend(threadId);
     if (payload) {
+      // Flag for handleError: this message was sent via greeting auto-send.
+      // Cleared in the "ready" effect after a successful round-trip, or
+      // in handleError when navigating back to the greeting on error.
+      isGreetingAutoSendRef.current = true;
       if (payload.files.length > 0) {
-        sendMessage({ text: payload.text, files: payload.files });
+        wrappedSendMessage({ text: payload.text, files: payload.files });
       } else if (payload.text) {
-        sendMessage({ text: payload.text });
+        wrappedSendMessage({ text: payload.text });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -694,6 +754,7 @@ interface ChatViewProps {
   initialMessages: UIMessage[] | null;
   onMessageComplete: () => void;
   onHardError: () => void;
+  onGreetingImageError?: () => void;
   panelKey: string;
 }
 
@@ -705,6 +766,7 @@ function ChatView({
   initialMessages,
   onMessageComplete,
   onHardError,
+  onGreetingImageError,
   panelKey,
 }: ChatViewProps) {
   const { t } = useTranslation();
@@ -747,6 +809,7 @@ function ChatView({
               showHistory={showHistory}
               onToggleHistory={() => setShowHistory(v => !v)}
               onHardError={onHardError}
+              onGreetingImageError={onGreetingImageError}
             />
           )}
         </div>
@@ -779,6 +842,15 @@ export function Assistant() {
     setChatInstance(c => c + 1);
   }, []);
   void handleHardError;
+
+  // When an image error occurs from the greeting auto-send (brand-new
+  // thread with no history), we navigate back to the greeting view so
+  // the next user message creates a fresh thread. Mastra's async memory
+  // persistence means the offending message would otherwise be re-sent
+  // to the model on every subsequent request.
+  const handleGreetingImageError = useCallback(() => {
+    navigate("/assistant");
+  }, [navigate]);
   const prevShowHistory = useRef(showHistory);
   const hasHistoryInGreeting = showHistory || isHistoryAnimating;
 
@@ -867,6 +939,7 @@ export function Assistant() {
                   void refetchThreads();
                 }}
                 onHardError={handleHardError}
+                onGreetingImageError={handleGreetingImageError}
                 panelKey={`${threadIdParam}-${chatInstance}`}
               />
             </HistorySidebar>
