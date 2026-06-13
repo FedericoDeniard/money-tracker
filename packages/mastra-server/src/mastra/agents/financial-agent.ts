@@ -5,6 +5,7 @@ import {
   FINANCIAL_AGENT_INSTRUCTIONS,
   THREAD_TITLE_INSTRUCTIONS,
 } from "./prompts";
+import { listTransactionsTool } from "../tools/list-transactions";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -25,4 +26,7 @@ export const financialAgent = new Agent({
       },
     },
   }),
+  tools: {
+    listTransactionsTool,
+  },
 });
