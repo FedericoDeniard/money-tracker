@@ -18,7 +18,6 @@ import {
   useDeleteChatAttachments,
 } from "../hooks/useChatAttachments";
 import type { ChatAttachment } from "../services/chat-attachments.service";
-import type { FileUIPart } from "ai";
 import { useConfig } from "../hooks/useConfig";
 import { useChatThreads, useThreadMessages } from "../hooks/useChatThreads";
 import logo from "../logo.svg";
@@ -42,15 +41,10 @@ import {
   ConversationContent,
   ConversationEmptyState,
 } from "../components/ai-elements/conversation";
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from "../components/ai-elements/message";
+import { Message, MessageContent } from "../components/ai-elements/message";
 import { Suggestion, Suggestions } from "../components/ai-elements/suggestion";
 import { TooltipProvider } from "../components/ui/shadcn/tooltip";
 import {
-  Attachments,
   Attachment,
   AttachmentPreview,
   AttachmentRemove,
@@ -58,6 +52,7 @@ import {
 import { HistoryList } from "../components/assistant/HistoryList";
 import { HistorySidebar } from "../components/assistant/HistorySidebar";
 import { HistoryToggleButton } from "../components/assistant/HistoryToggleButton";
+import { MessageParts } from "../components/assistant/MessageParts";
 import { TypingIndicator } from "../components/assistant/TypingIndicator";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ChatStatus, type UIMessage } from "ai";
@@ -559,7 +554,7 @@ function ChatPanel({
         }
       });
     },
-    [sendMessage]
+    [sendMessage, status, threadId]
   );
 
   // Drop the pending-attachments list once the assistant has successfully
@@ -624,10 +619,6 @@ function ChatPanel({
         <ConversationContent className="gap-3 p-0 px-4 pt-4 pb-4 lg:pt-0 justify-end">
           {hasMessages ? (
             messages.map(message => {
-              const text = message.parts
-                .filter(p => p.type === "text")
-                .map(p => (p as { text: string }).text)
-                .join("");
               const isUser = message.role === "user";
               const showDots = message.id === streamingAssistantId;
               const isNewMessage = !initialMessageIdsRef.current.has(
@@ -643,42 +634,8 @@ function ChatPanel({
                         : "rounded-lg bg-[var(--accent)]/40 px-4 py-3 text-[var(--text-primary)]"
                     }
                   >
-                    {isUser ? (
-                      <>
-                        {message.parts.filter(p => p.type === "file").length >
-                          0 && (
-                          <Attachments
-                            variant="grid"
-                            className="mb-2 [button]:hidden"
-                          >
-                            {message.parts
-                              .filter(p => p.type === "file")
-                              .map(file => {
-                                const f = file as FileUIPart;
-                                return (
-                                  <Attachment
-                                    key={f.url}
-                                    data={
-                                      {
-                                        ...f,
-                                        id: f.url,
-                                      } as never
-                                    }
-                                  >
-                                    <AttachmentPreview />
-                                  </Attachment>
-                                );
-                              })}
-                          </Attachments>
-                        )}
-                        {text}
-                      </>
-                    ) : (
-                      <>
-                        <MessageResponse>{text}</MessageResponse>
-                        {showDots && <TypingIndicator />}
-                      </>
-                    )}
+                    <MessageParts parts={message.parts} isUser={isUser} />
+                    {showDots && !isUser && <TypingIndicator />}
                   </MessageContent>
                 </Message>
               );

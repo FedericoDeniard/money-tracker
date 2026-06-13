@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseFromToken } from "../../lib/supabase-from-token";
 
 const CATEGORY_VALUES = [
+  "salary",
   "entertainment",
   "investment",
   "food",
