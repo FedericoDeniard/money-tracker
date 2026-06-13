@@ -83,11 +83,18 @@ export function ChatPanel({
   // stays on screen, the next send replays the same broken history,
   // and the empty assistant reply piles on top.
   const lastSentUserIdRef = useRef<string | null>(null);
+
+  const keepaliveFetch = useCallback<typeof fetch>(
+    (input, init) => fetch(input, { ...init, keepalive: true }),
+    []
+  );
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: apiUrl,
         headers: { Authorization: `Bearer ${accessToken}` },
+        fetch: keepaliveFetch,
         prepareSendMessagesRequest: ({ messages }) => {
           const lastMessage = messages.at(-1);
           return {
@@ -100,7 +107,7 @@ export function ChatPanel({
           };
         },
       }),
-    [apiUrl, accessToken, resourceId, threadId]
+    [apiUrl, accessToken, resourceId, threadId, keepaliveFetch]
   );
 
   const handleAttachmentsUploaded = useCallback(

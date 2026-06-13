@@ -1,10 +1,10 @@
 import { Mastra } from "@mastra/core";
 import { PostgresStore } from "@mastra/pg";
-import { chatRoute } from "@mastra/ai-sdk";
 import { MastraAuthSupabase } from "@mastra/auth-supabase";
 import { getAuthenticatedUser } from "@mastra/server/auth";
 import { RequestContext } from "@mastra/core/request-context";
 import { financialAgent } from "./agents/financial-agent";
+import { resilientChatRoute } from "./routes/resilient-chat-route";
 
 const storage = new PostgresStore({
   id: "mastra-storage",
@@ -53,20 +53,20 @@ async function ensureMastraTablesExposed(store: PostgresStore): Promise<void> {
       `DROP POLICY IF EXISTS "Users can read their own threads" ON public.mastra_threads`,
       `CREATE POLICY "Users can read their own threads"
          ON public.mastra_threads FOR SELECT TO authenticated
-         USING (resourceid = auth.uid()::text)`,
+         USING ("resourceId" = auth.uid()::text)`,
       `DROP POLICY IF EXISTS "Users can create their own threads" ON public.mastra_threads`,
       `CREATE POLICY "Users can create their own threads"
          ON public.mastra_threads FOR INSERT TO authenticated
-         WITH CHECK (resourceid = auth.uid()::text)`,
+         WITH CHECK ("resourceId" = auth.uid()::text)`,
       `DROP POLICY IF EXISTS "Users can update their own threads" ON public.mastra_threads`,
       `CREATE POLICY "Users can update their own threads"
          ON public.mastra_threads FOR UPDATE TO authenticated
-         USING (resourceid = auth.uid()::text)
-         WITH CHECK (resourceid = auth.uid()::text)`,
+         USING ("resourceId" = auth.uid()::text)
+         WITH CHECK ("resourceId" = auth.uid()::text)`,
       `DROP POLICY IF EXISTS "Users can delete their own threads" ON public.mastra_threads`,
       `CREATE POLICY "Users can delete their own threads"
          ON public.mastra_threads FOR DELETE TO authenticated
-         USING (resourceid = auth.uid()::text)`,
+         USING ("resourceId" = auth.uid()::text)`,
 
       // --- mastra_messages: scoped via the parent thread's resourceId
       `DROP POLICY IF EXISTS "Users can read messages from their own threads" ON public.mastra_messages`,
@@ -74,7 +74,7 @@ async function ensureMastraTablesExposed(store: PostgresStore): Promise<void> {
          ON public.mastra_messages FOR SELECT TO authenticated
          USING (
            thread_id IN (
-             SELECT id FROM public.mastra_threads WHERE resourceid = auth.uid()::text
+             SELECT id FROM public.mastra_threads WHERE "resourceId" = auth.uid()::text
            )
          )`,
       `DROP POLICY IF EXISTS "Users can insert messages into their own threads" ON public.mastra_messages`,
@@ -82,7 +82,7 @@ async function ensureMastraTablesExposed(store: PostgresStore): Promise<void> {
          ON public.mastra_messages FOR INSERT TO authenticated
          WITH CHECK (
            thread_id IN (
-             SELECT id FROM public.mastra_threads WHERE resourceid = auth.uid()::text
+             SELECT id FROM public.mastra_threads WHERE "resourceId" = auth.uid()::text
            )
          )`,
       `DROP POLICY IF EXISTS "Users can update messages in their own threads" ON public.mastra_messages`,
@@ -90,7 +90,7 @@ async function ensureMastraTablesExposed(store: PostgresStore): Promise<void> {
          ON public.mastra_messages FOR UPDATE TO authenticated
          USING (
            thread_id IN (
-             SELECT id FROM public.mastra_threads WHERE resourceid = auth.uid()::text
+             SELECT id FROM public.mastra_threads WHERE "resourceId" = auth.uid()::text
            )
          )`,
       `DROP POLICY IF EXISTS "Users can delete messages in their own threads" ON public.mastra_messages`,
@@ -98,7 +98,7 @@ async function ensureMastraTablesExposed(store: PostgresStore): Promise<void> {
          ON public.mastra_messages FOR DELETE TO authenticated
          USING (
            thread_id IN (
-             SELECT id FROM public.mastra_threads WHERE resourceid = auth.uid()::text
+             SELECT id FROM public.mastra_threads WHERE "resourceId" = auth.uid()::text
            )
          )`,
 
@@ -160,12 +160,7 @@ export const mastra = new Mastra({
       protected: ["/chat/*"],
       public: [["/api/*", "GET"]],
     }),
-    apiRoutes: [
-      chatRoute({
-        path: "/chat/:agentId",
-        version: "v6",
-      }),
-    ],
+    apiRoutes: [resilientChatRoute()],
     middleware: [
       async (context, next) => {
         // server.middleware runs BEFORE the per-route auth check, so the user
