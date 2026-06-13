@@ -8,6 +8,16 @@ project_id = "money-tracker"
 enabled = true
 # Port to use for the API URL.
 port = 54321
+# Whether newly-created tables, views, sequences, and functions in the `public`
+# schema are automatically reachable through the Data API roles
+# (anon, authenticated, service_role) without explicit GRANTs.
+# Supabase CLI 2.102+ defaults to false (opt-in). We set true here because
+# Mastra's PostgresStore creates its own tables at runtime (mastra_threads,
+# mastra_messages, mastra_resources, etc.) and would otherwise be invisible to
+# the frontend after a `supabase db reset`. Scheduled for removal by Supabase
+# on 2026-10-30; when that happens, GRANTs need to be applied explicitly
+# (handled by the runtime hook in packages/mastra-server/src/mastra/index.ts).
+auto_expose_new_tables = true
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
 schemas = ["public", "graphql_public"]
