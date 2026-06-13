@@ -879,6 +879,19 @@
     "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
     "errorGeneric": "Algo salió mal: {{message}}",
     "errorUnknown": "Error desconocido",
-    "imageNotSupported": "El modelo actual no soporta imágenes. Probá con otro modelo o describí tu pedido en texto."
+    "imageNotSupported": "El modelo actual no soporta imágenes. Probá con otro modelo o describí tu pedido en texto.",
+    "tools": {
+      "listTransactions": "Listar Transacciones",
+      "calculate": "Calcular"
+    },
+    "toolStates": {
+      "input-streaming": "Pendiente",
+      "input-available": "Corriendo",
+      "output-available": "Listo",
+      "output-error": "Error",
+      "output-denied": "Denegado",
+      "approval-requested": "Esperando",
+      "approval-responded": "Respondido"
+    }
   }
 }

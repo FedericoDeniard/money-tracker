@@ -879,6 +879,19 @@
     "emptyChatHint": "Send a message to start a new conversation",
     "errorGeneric": "Something went wrong: {{message}}",
     "errorUnknown": "Unknown error",
-    "imageNotSupported": "The current model does not support image input. Try a different model or describe your request in text."
+    "imageNotSupported": "The current model does not support image input. Try a different model or describe your request in text.",
+    "tools": {
+      "listTransactions": "List Transactions",
+      "calculate": "Calculate"
+    },
+    "toolStates": {
+      "input-streaming": "Pending",
+      "input-available": "Running",
+      "output-available": "Done",
+      "output-error": "Error",
+      "output-denied": "Denied",
+      "approval-requested": "Awaiting",
+      "approval-responded": "Responded"
+    }
   }
 }
