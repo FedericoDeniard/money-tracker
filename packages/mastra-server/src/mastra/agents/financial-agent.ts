@@ -6,6 +6,7 @@ import {
   THREAD_TITLE_INSTRUCTIONS,
 } from "./prompts";
 import { listTransactionsTool } from "../tools/list-transactions";
+import { listSubscriptionsTool } from "../tools/list-subscriptions";
 import { calculateTool } from "../tools/calculate";
 
 const openrouter = createOpenRouter({
@@ -29,6 +30,7 @@ export const financialAgent = new Agent({
   }),
   tools: {
     listTransactionsTool,
+    listSubscriptionsTool,
     calculateTool,
   },
 });

@@ -882,6 +882,7 @@
     "imageNotSupported": "The current model does not support image input. Try a different model or describe your request in text.",
     "tools": {
       "listTransactions": "List Transactions",
+      "listSubscriptions": "List Subscriptions",
       "calculate": "Calculate"
     },
     "toolStates": {

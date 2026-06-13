@@ -882,6 +882,7 @@
     "imageNotSupported": "El modelo actual no soporta imágenes. Probá con otro modelo o describí tu pedido en texto.",
     "tools": {
       "listTransactions": "Listar Transacciones",
+      "listSubscriptions": "Listar Suscripciones",
       "calculate": "Calcular"
     },
     "toolStates": {
