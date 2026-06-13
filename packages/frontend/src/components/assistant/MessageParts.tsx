@@ -1,4 +1,4 @@
-import type { FileUIPart, UIMessage } from "ai";
+import type { UIMessage } from "ai";
 
 import {
   Attachment,
@@ -33,27 +33,25 @@ export type MessagePartsProps = {
 };
 
 export function MessageParts({ parts, isUser }: MessagePartsProps) {
-  const fileParts = isUser
-    ? parts.filter((p): p is FileUIPart => p.type === "file")
-    : [];
-
   return (
     <>
-      {fileParts.length > 0 && (
-        <Attachments variant="grid" className="mb-2 [button]:hidden">
-          {fileParts.map(file => (
-            <Attachment
-              key={file.url}
-              data={{ ...file, id: file.url } as never}
-            >
-              <AttachmentPreview />
-            </Attachment>
-          ))}
-        </Attachments>
-      )}
       {parts.map(part => {
         if (part.type === "text") {
           return <MessageResponse key={part.text}>{part.text}</MessageResponse>;
+        }
+
+        if (part.type === "file" && isUser) {
+          return (
+            <Attachments
+              key={part.url}
+              variant="grid"
+              className="mb-2 [button]:hidden"
+            >
+              <Attachment data={{ ...part, id: part.url } as never}>
+                <AttachmentPreview />
+              </Attachment>
+            </Attachments>
+          );
         }
 
         if (isToolPart(part)) {
