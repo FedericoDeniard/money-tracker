@@ -6,22 +6,12 @@ import {
   Attachments,
 } from "@/components/ai-elements/attachments";
 import { MessageResponse } from "@/components/ai-elements/message";
-import { Tool, ToolHeader } from "@/components/ai-elements/tool";
+import { ToolPill } from "./ToolPill";
 
 type ToolPart = Extract<
   UIMessage["parts"][number],
   { type: `tool-${string}` | "dynamic-tool" }
 >;
-
-const TOOL_DEFAULT_OPEN_STATES: Record<ToolPart["state"], boolean> = {
-  "input-streaming": false,
-  "input-available": true,
-  "output-available": true,
-  "output-error": true,
-  "approval-requested": false,
-  "approval-responded": false,
-  "output-denied": false,
-};
 
 function isToolPart(part: UIMessage["parts"][number]): part is ToolPart {
   return part.type === "dynamic-tool" || part.type.startsWith("tool-");
@@ -62,20 +52,7 @@ export function MessageParts({ parts, isUser }: MessagePartsProps) {
             );
           }
           return (
-            <Tool
-              key={`${part.type}-${part.toolCallId}`}
-              defaultOpen={TOOL_DEFAULT_OPEN_STATES[part.state]}
-              className="mb-2 w-fit rounded-lg border-0 bg-[var(--accent)] text-[var(--primary)]"
-            >
-              <ToolHeader
-                type={part.type as never}
-                state={part.state}
-                toolName={
-                  part.type === "dynamic-tool" ? part.toolName : undefined
-                }
-                className="p-2 [&>svg:last-child]:hidden [&_svg]:text-[var(--primary)]/70"
-              />
-            </Tool>
+            <ToolPill key={`${part.type}-${part.toolCallId}`} part={part} />
           );
         }
 
