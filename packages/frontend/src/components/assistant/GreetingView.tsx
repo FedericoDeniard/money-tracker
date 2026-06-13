@@ -46,6 +46,7 @@ export function GreetingView({
                 queueAutoSend(threadId, { text, files: [] });
                 navigate(`/assistant/${threadId}`);
               }}
+              className="border-[var(--text-secondary)]/20 transition-colors hover:border-[var(--button-primary)] hover:bg-[var(--button-primary)]/5 hover:text-[var(--button-primary)]"
             />
           ))}
         </QuickQuestions>
