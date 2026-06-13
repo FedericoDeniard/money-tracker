@@ -121,7 +121,7 @@ function AssistantInputBody({
         onSend({ threadId, text: trimmed, files });
         clearPromptFiles();
       }}
-      className="overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
+      className="shrink-0 overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
     >
       <PromptInputBody>
         {promptFiles.length > 0 && (
