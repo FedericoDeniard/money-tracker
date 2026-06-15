@@ -7,6 +7,7 @@ import {
 } from "@/components/ai-elements/attachments";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { ToolPill } from "./ToolPill";
+import { CreateTransactionConfirmation } from "./CreateTransactionConfirmation";
 
 type ToolPart = Extract<
   UIMessage["parts"][number],
@@ -20,9 +21,16 @@ function isToolPart(part: UIMessage["parts"][number]): part is ToolPart {
 export type MessagePartsProps = {
   parts: UIMessage["parts"];
   isUser: boolean;
+  onApproveTool?: (id: string) => void;
+  onRejectTool?: (id: string) => void;
 };
 
-export function MessageParts({ parts, isUser }: MessagePartsProps) {
+export function MessageParts({
+  parts,
+  isUser,
+  onApproveTool,
+  onRejectTool,
+}: MessagePartsProps) {
   return (
     <>
       {parts.map(part => {
@@ -49,6 +57,28 @@ export function MessageParts({ parts, isUser }: MessagePartsProps) {
             console.error(
               `[tool:${part.toolName ?? part.type}]`,
               part.errorText
+            );
+          }
+          if (
+            part.type === "tool-createTransactionTool" &&
+            onApproveTool &&
+            onRejectTool
+          ) {
+            return (
+              <CreateTransactionConfirmation
+                key={`${part.type}-${part.toolCallId}`}
+                // The local part is already typed as ToolPart, which is a
+                // superset of the strict CreateTransactionToolUIPart shape.
+                // Runtime guards in CreateTransactionConfirmation cover
+                // the un-narrowed cases.
+                part={
+                  part as unknown as Parameters<
+                    typeof CreateTransactionConfirmation
+                  >[0]["part"]
+                }
+                onApprove={onApproveTool}
+                onReject={onRejectTool}
+              />
             );
           }
           return (

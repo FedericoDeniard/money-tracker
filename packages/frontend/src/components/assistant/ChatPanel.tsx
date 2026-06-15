@@ -117,7 +117,15 @@ export function ChatPanel({
     []
   );
 
-  const { messages, sendMessage, status, stop, error, setMessages } = useChat({
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop,
+    error,
+    setMessages,
+    addToolApprovalResponse,
+  } = useChat({
     id: threadId,
     transport,
     messages:
@@ -125,6 +133,19 @@ export function ChatPanel({
         ? bootstrapMessagesRef.current
         : undefined,
   });
+
+  const handleApproveTool = useCallback(
+    (id: string) => {
+      addToolApprovalResponse({ id, approved: true });
+    },
+    [addToolApprovalResponse]
+  );
+  const handleRejectTool = useCallback(
+    (id: string) => {
+      addToolApprovalResponse({ id, approved: false });
+    },
+    [addToolApprovalResponse]
+  );
 
   // React to error state changes. Wrapped in useEffect (not onError)
   // so we can read setMessages after the hook call without ref-mirroring.
@@ -302,7 +323,12 @@ export function ChatPanel({
                         : "rounded-lg bg-[var(--accent)]/40 px-4 py-3 text-[var(--text-primary)]"
                     }
                   >
-                    <MessageParts parts={message.parts} isUser={isUser} />
+                    <MessageParts
+                      parts={message.parts}
+                      isUser={isUser}
+                      onApproveTool={handleApproveTool}
+                      onRejectTool={handleRejectTool}
+                    />
                     {showDots && !isUser && <TypingIndicator />}
                   </MessageContent>
                 </Message>

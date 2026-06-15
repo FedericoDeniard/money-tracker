@@ -883,7 +883,8 @@
     "tools": {
       "listTransactions": "Listar Transacciones",
       "listSubscriptions": "Listar Suscripciones",
-      "calculate": "Calcular"
+      "calculate": "Calcular",
+      "createTransaction": "Crear Transacción"
     },
     "toolStates": {
       "input-streaming": "Pendiente",
@@ -893,6 +894,24 @@
       "output-denied": "Denegado",
       "approval-requested": "Esperando",
       "approval-responded": "Respondido"
+    },
+    "createTransaction": {
+      "title": "¿Crear esta transacción?",
+      "subtitle": "Revisá los detalles y confirmá para guardar.",
+      "merchant": "Comercio",
+      "amount": "Monto",
+      "type": "Tipo",
+      "types": {
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "category": "Categoría",
+      "date": "Fecha",
+      "description": "Descripción",
+      "approved": "Transacción creada",
+      "rejected": "Transacción cancelada",
+      "processing": "Guardando transacción...",
+      "error": "No se pudo crear la transacción"
     }
   }
 }

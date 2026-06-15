@@ -8,6 +8,7 @@ import {
 import { listTransactionsTool } from "../tools/list-transactions";
 import { listSubscriptionsTool } from "../tools/list-subscriptions";
 import { calculateTool } from "../tools/calculate";
+import { createTransactionTool } from "../tools/create-transaction";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -32,5 +33,6 @@ export const financialAgent = new Agent({
     listTransactionsTool,
     listSubscriptionsTool,
     calculateTool,
+    createTransactionTool,
   },
 });

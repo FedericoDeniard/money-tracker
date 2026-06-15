@@ -883,7 +883,8 @@
     "tools": {
       "listTransactions": "List Transactions",
       "listSubscriptions": "List Subscriptions",
-      "calculate": "Calculate"
+      "calculate": "Calculate",
+      "createTransaction": "Create Transaction"
     },
     "toolStates": {
       "input-streaming": "Pending",
@@ -893,6 +894,24 @@
       "output-denied": "Denied",
       "approval-requested": "Awaiting",
       "approval-responded": "Responded"
+    },
+    "createTransaction": {
+      "title": "Create this transaction?",
+      "subtitle": "Review the details and confirm to save.",
+      "merchant": "Merchant",
+      "amount": "Amount",
+      "type": "Type",
+      "types": {
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "category": "Category",
+      "date": "Date",
+      "description": "Description",
+      "approved": "Transaction created",
+      "rejected": "Transaction cancelled",
+      "processing": "Saving transaction...",
+      "error": "Could not create the transaction"
     }
   }
 }
