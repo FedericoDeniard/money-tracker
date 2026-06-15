@@ -115,4 +115,39 @@ export const createTransactionTool = createTool({
       message: "Transaction created successfully.",
     };
   },
+  toModelOutput: output => {
+    if (!output.success || !output.transaction) {
+      return {
+        type: "content",
+        value: [
+          {
+            type: "text",
+            text:
+              output.message ||
+              "The transaction could not be created. Ask the user how to proceed.",
+          },
+        ],
+      };
+    }
+    const t = output.transaction;
+    const signedAmount =
+      t.transactionType === "expense"
+        ? `-${t.currency} ${t.amount.toLocaleString()}`
+        : `+${t.currency} ${t.amount.toLocaleString()}`;
+    return {
+      type: "content",
+      value: [
+        {
+          type: "text",
+          text:
+            `Transaction saved successfully.\n` +
+            `Merchant: ${t.merchant}\n` +
+            `Amount: ${signedAmount}\n` +
+            `Category: ${t.category}\n` +
+            `Date: ${t.transactionDate}\n\n` +
+            `Reply to the user in plain prose confirming these details. Do NOT call any more tools.`,
+        },
+      ],
+    };
+  },
 });
