@@ -149,6 +149,9 @@ const result = await Bun.build({
   minify: true,
   target: "browser",
   sourcemap: "linked",
+  // Emit absolute asset paths (e.g. /chunk-xxx.js) so they resolve correctly
+  // on any route, including SPA fallback paths like /auth/callback.
+  publicPath: "/",
   ...cliConfig,
   define: {
     ...((cliConfig.define as Record<string, string>) ?? {}),
