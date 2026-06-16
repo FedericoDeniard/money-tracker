@@ -896,8 +896,13 @@
       "approval-responded": "Respondido"
     },
     "createTransaction": {
-      "title": "¿Crear esta transacción?",
-      "subtitle": "Revisá los detalles y confirmá para guardar.",
+      "counter": "{{current}} / {{total}}",
+      "previous": "Transacción anterior",
+      "next": "Siguiente transacción",
+      "title_one": "¿Crear esta transacción?",
+      "title_other": "¿Crear estas {{count}} transacciones?",
+      "subtitle_one": "Revisá los detalles y confirmá para guardar.",
+      "subtitle_other": "Revisá todas las {{count}} transacciones y confirmá para guardar.",
       "merchant": "Comercio",
       "amount": "Monto",
       "type": "Tipo",
@@ -908,10 +913,15 @@
       "category": "Categoría",
       "date": "Fecha",
       "description": "Descripción",
-      "approved": "Transacción creada",
-      "rejected": "Transacción cancelada",
-      "processing": "Guardando transacción...",
-      "error": "No se pudo crear la transacción"
+      "approved_one": "Transacción creada",
+      "approved_other": "{{count}} transacciones creadas",
+      "rejected_one": "Transacción cancelada",
+      "rejected_other": "{{count}} transacciones canceladas",
+      "processing_one": "Guardando transacción...",
+      "processing_other": "Guardando {{count}} transacciones...",
+      "canceling_one": "Cancelando transacción...",
+      "canceling_other": "Cancelando {{count}} transacciones...",
+      "error": "No se pudieron crear las transacciones"
     }
   }
 }

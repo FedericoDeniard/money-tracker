@@ -132,6 +132,21 @@ export function ChatPanel({
       bootstrapMessagesRef.current.length > 0
         ? bootstrapMessagesRef.current
         : undefined,
+    // Auto-send a new request whenever a tool approval has been responded to
+    // (state === "approval-responded"). Without this, `addToolApprovalResponse`
+    // only updates the local part state and never makes a server request, so
+    // the agent's paused run is never resumed and the spinner sticks on
+    // "Guardando transacción…" forever.
+    sendAutomaticallyWhen: ({ messages: msgs }) => {
+      const last = msgs.at(-1);
+      if (!last || last.role !== "assistant") return false;
+      return last.parts.some(
+        (p: { type?: string; state?: string }) =>
+          typeof p.type === "string" &&
+          p.type.startsWith("tool-") &&
+          p.state === "approval-responded"
+      );
+    },
   });
 
   const handleApproveTool = useCallback(

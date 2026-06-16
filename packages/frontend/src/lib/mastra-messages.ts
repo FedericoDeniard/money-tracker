@@ -156,6 +156,72 @@ function hydrateApprovalToolParts(messages: UIMessage[]): UIMessage[] {
 }
 
 /**
+ * When the user denies a tool, Mastra persists a tool result with the string
+ * `"Tool call was not approved by the user"` and `state: "result"`. After
+ * `toAISdkMessages` converts that to AI SDK v6 it lands as
+ * `state: "output-available"` with the same string in `output` — not
+ * `state: "output-denied"`. Our tool UIs key off the v6 states, so we rewrite
+ * the part here to the correct denied state.
+ *
+ * The string is the canonical signal Mastra uses server-side when resuming an
+ * agent run with `{ approved: false }` — see
+ * `node_modules/@mastra/core/dist/chunk-*.js` (search "not approved"). Mastra
+ * also streams the live denial as a `tool-result` with
+ * `output: { type: "execution-denied", reason?: string }`; we cover that
+ * shape too in case a future version persists it as-is.
+ *
+ * @see https://mastra.ai/guides/build-your-ui/ai-sdk-ui#loading-historical-messages
+ */
+const TOOL_DENIED_RESULT = "Tool call was not approved by the user";
+
+function isExecutionDeniedOutput(output: unknown): boolean {
+  if (typeof output === "string") {
+    return output === TOOL_DENIED_RESULT;
+  }
+  if (output && typeof output === "object" && "type" in output) {
+    return (output as { type: unknown }).type === "execution-denied";
+  }
+  return false;
+}
+
+function hydrateDeniedToolParts(messages: UIMessage[]): UIMessage[] {
+  return messages.map(message => {
+    if (!Array.isArray(message.parts) || message.parts.length === 0) {
+      return message;
+    }
+    let mutated = false;
+    const parts = message.parts.map(part => {
+      if (!part || typeof part !== "object") return part;
+      const p = part as Record<string, unknown>;
+      if (
+        typeof p.type !== "string" ||
+        !p.type.startsWith("tool-") ||
+        p.state !== "output-available" ||
+        typeof p.toolCallId !== "string" ||
+        !isExecutionDeniedOutput(p.output)
+      ) {
+        return part;
+      }
+      mutated = true;
+      const {
+        output: _output,
+        resultProviderMetadata: _rpm,
+        result: _result,
+        ...rest
+      } = p;
+      return {
+        ...rest,
+        type: p.type,
+        toolCallId: p.toolCallId,
+        state: "output-denied",
+        approval: { id: p.toolCallId, approved: false },
+      };
+    });
+    return mutated ? { ...message, parts } : message;
+  });
+}
+
+/**
  * Maps Supabase mastra_messages rows to MastraDBMessage shape, then converts
  * to AI SDK v6 UIMessage[] via the official Mastra utility.
  *
@@ -180,5 +246,6 @@ export function chatMessagesToUIMessages(rows: ChatMessage[]): UIMessage[] {
   const converted = toAISdkMessages(dbMessages, {
     version: "v6",
   }) as UIMessage[];
-  return hydrateApprovalToolParts(converted);
+  const denied = hydrateDeniedToolParts(converted);
+  return hydrateApprovalToolParts(denied);
 }

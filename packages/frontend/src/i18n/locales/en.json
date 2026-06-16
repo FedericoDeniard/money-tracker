@@ -896,8 +896,13 @@
       "approval-responded": "Responded"
     },
     "createTransaction": {
-      "title": "Create this transaction?",
-      "subtitle": "Review the details and confirm to save.",
+      "counter": "{{current}} / {{total}}",
+      "previous": "Previous transaction",
+      "next": "Next transaction",
+      "title_one": "Create this transaction?",
+      "title_other": "Create these {{count}} transactions?",
+      "subtitle_one": "Review the details and confirm to save.",
+      "subtitle_other": "Review all {{count}} transactions and confirm to save.",
       "merchant": "Merchant",
       "amount": "Amount",
       "type": "Type",
@@ -908,10 +913,15 @@
       "category": "Category",
       "date": "Date",
       "description": "Description",
-      "approved": "Transaction created",
-      "rejected": "Transaction cancelled",
-      "processing": "Saving transaction...",
-      "error": "Could not create the transaction"
+      "approved_one": "Transaction created",
+      "approved_other": "{{count}} transactions created",
+      "rejected_one": "Transaction cancelled",
+      "rejected_other": "{{count}} transactions cancelled",
+      "processing_one": "Saving transaction...",
+      "processing_other": "Saving {{count}} transactions...",
+      "canceling_one": "Cancelling transaction...",
+      "canceling_other": "Cancelling {{count}} transactions...",
+      "error": "Could not create the transactions"
     }
   }
 }

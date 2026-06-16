@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowDown,
   ArrowUp,
   CheckIcon,
+  ChevronLeft,
+  ChevronRight,
   CircleAlert,
   Loader2,
   XIcon,
@@ -10,7 +13,7 @@ import {
 import type { ToolUIPart } from "ai";
 import { Button } from "@/components/ui/Button";
 
-type CreateTransactionInput = {
+type CreateTransactionTxn = {
   transaction_type?: "income" | "expense";
   merchant?: string;
   amount?: number;
@@ -20,17 +23,24 @@ type CreateTransactionInput = {
   transaction_description?: string;
 };
 
+type CreateTransactionInput = {
+  transactions: CreateTransactionTxn[];
+};
+
+type CreateTransactionOutputTxn = {
+  id: string;
+  transactionDate: string;
+  merchant: string;
+  amount: number;
+  currency: string;
+  transactionType: "income" | "expense";
+  category: string;
+};
+
 type CreateTransactionOutput = {
   success: boolean;
-  transaction: {
-    id: string;
-    transactionDate: string;
-    merchant: string;
-    amount: number;
-    currency: string;
-    transactionType: "income" | "expense";
-    category: string;
-  } | null;
+  transactions: CreateTransactionOutputTxn[];
+  totalCount: number;
   message: string;
 };
 
@@ -47,49 +57,111 @@ interface CreateTransactionConfirmationProps {
   onReject: (id: string) => void;
 }
 
+const TOOL_DENIED_RESULT = "Tool call was not approved by the user";
+
+/**
+ * Mastra does not emit a `tool-output-denied` chunk on the wire for rejected
+ * tools. See `node_modules/@mastra/core/dist/chunk-*.js` — the `execution-denied`
+ * branch in the tool-call approval flow. It surfaces in the UI as either:
+ *
+ * - `output: { type: "execution-denied", reason?: string }` (live streaming)
+ * - `output: "Tool call was not approved by the user"` (persisted / reloaded)
+ */
+function isExecutionDeniedOutput(output: unknown): boolean {
+  if (typeof output === "string") {
+    return output === TOOL_DENIED_RESULT;
+  }
+  if (output && typeof output === "object" && "type" in output) {
+    return (output as { type: unknown }).type === "execution-denied";
+  }
+  return false;
+}
+
 export function CreateTransactionConfirmation({
   part,
   onApprove,
   onReject,
 }: CreateTransactionConfirmationProps) {
   const { t, i18n } = useTranslation();
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   if (part.state === "input-streaming" || part.state === "input-available") {
     return null;
   }
 
-  if (!part.input) return null;
-  const input = part.input;
-  const type = input.transaction_type;
-  const isIncome = type === "income";
-  const isExpense = type === "expense";
+  if (!part.input?.transactions || part.input.transactions.length === 0) {
+    return null;
+  }
 
-  const amountDisplay =
-    input.amount != null ? input.amount.toLocaleString() : "—";
-  const currency = input.currency ?? "USD";
-  const amountValue = `${isIncome ? "+" : isExpense ? "-" : ""}${currency} ${amountDisplay}`;
-  const formattedAmount =
-    input.amount != null
-      ? new Intl.NumberFormat(i18n.language, {
-          style: "currency",
-          currency: input.currency ?? "USD",
-        }).format(input.amount)
-      : "—";
+  // Mastra does NOT emit a `tool-output-denied` chunk on the wire when a tool
+  // is rejected. Instead it forwards a synthetic `tool-result` with
+  // `output: { type: "execution-denied", reason: ... }` to the LLM and, on the
+  // client, that lands here as `state: "output-available"` with the same
+  // object on `output`. We also see the persisted form (`result: "Tool call
+  // was not approved by the user"`) after reloading. Both mean "denied".
+  const isDenied =
+    part.state === "output-denied" ||
+    (part.state === "output-available" && isExecutionDeniedOutput(part.output));
+  const transactions = part.input.transactions;
+  const total = transactions.length;
+  const current = transactions[currentIndex] ?? transactions[0];
+  const showCarousel = total > 1;
 
   if (part.state === "approval-requested") {
     const approvalId = part.approval.id;
+    const type = current.transaction_type;
+    const isIncome = type === "income";
+    const isExpense = type === "expense";
+    const currency = current.currency ?? "USD";
+    const amountDisplay =
+      current.amount != null ? current.amount.toLocaleString() : "—";
+    const amountValue = `${isIncome ? "+" : isExpense ? "-" : ""}${currency} ${amountDisplay}`;
+    const formattedAmount =
+      current.amount != null
+        ? new Intl.NumberFormat(i18n.language, {
+            style: "currency",
+            currency: current.currency ?? "USD",
+          }).format(current.amount)
+        : "—";
 
     return (
       <article
         className="my-3 max-w-md rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm"
-        aria-label={t("assistant.createTransaction.title")}
+        aria-label={t("assistant.createTransaction.title", { count: total })}
       >
         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
-          {t("assistant.createTransaction.title")}
+          {t("assistant.createTransaction.title", { count: total })}
         </h3>
         <p className="text-sm text-[var(--text-secondary)] mb-5">
-          {t("assistant.createTransaction.subtitle")}
+          {t("assistant.createTransaction.subtitle", { count: total })}
         </p>
+
+        {showCarousel && (
+          <div className="flex items-center justify-center gap-1 mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+              disabled={currentIndex === 0}
+              aria-label={t("assistant.createTransaction.previous")}
+              icon={<ChevronLeft size={16} />}
+            />
+            <span className="min-w-12 text-center text-sm tabular-nums text-[var(--text-secondary)]">
+              {t("assistant.createTransaction.counter", {
+                current: currentIndex + 1,
+                total,
+              })}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentIndex(i => Math.min(total - 1, i + 1))}
+              disabled={currentIndex === total - 1}
+              aria-label={t("assistant.createTransaction.next")}
+              icon={<ChevronRight size={16} />}
+            />
+          </div>
+        )}
 
         <div className="flex justify-center mb-4">
           <div
@@ -129,7 +201,7 @@ export function CreateTransactionConfirmation({
               {t("assistant.createTransaction.merchant")}
             </dt>
             <dd className="truncate font-medium text-[var(--text-primary)]">
-              {input.merchant ?? "—"}
+              {current.merchant ?? "—"}
             </dd>
           </div>
           <div className="min-w-0">
@@ -137,7 +209,7 @@ export function CreateTransactionConfirmation({
               {t("assistant.createTransaction.category")}
             </dt>
             <dd className="truncate font-medium text-[var(--text-primary)]">
-              {input.category ?? "—"}
+              {current.category ?? "—"}
             </dd>
           </div>
           <div className="min-w-0">
@@ -145,16 +217,16 @@ export function CreateTransactionConfirmation({
               {t("assistant.createTransaction.date")}
             </dt>
             <dd className="truncate font-medium text-[var(--text-primary)]">
-              {input.transaction_date ?? "—"}
+              {current.transaction_date ?? "—"}
             </dd>
           </div>
-          {input.transaction_description && (
+          {current.transaction_description && (
             <div className="col-span-2 min-w-0">
               <dt className="text-xs font-medium text-[var(--text-secondary)]">
                 {t("assistant.createTransaction.description")}
               </dt>
               <dd className="font-medium text-[var(--text-primary)]">
-                {input.transaction_description}
+                {current.transaction_description}
               </dd>
             </div>
           )}
@@ -183,36 +255,47 @@ export function CreateTransactionConfirmation({
   }
 
   if (part.state === "approval-responded") {
+    const wasApproved = part.approval.approved !== false;
+    const processingKey = wasApproved
+      ? "assistant.createTransaction.processing"
+      : "assistant.createTransaction.canceling";
     return (
       <div
         className="my-3 flex w-full max-w-md items-center gap-3 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4"
-        aria-label={t("assistant.createTransaction.processing")}
+        aria-label={t(processingKey, { count: total })}
       >
-        <Loader2 className="size-4 shrink-0 animate-spin text-[var(--text-secondary)]" />
+        <Loader2
+          className={`size-4 shrink-0 animate-spin ${
+            wasApproved ? "text-[var(--text-secondary)]" : "text-rose-600"
+          }`}
+        />
         <span className="text-sm font-medium text-[var(--text-primary)]">
-          {t("assistant.createTransaction.processing")}
+          {t(processingKey, { count: total })}
         </span>
       </div>
     );
   }
 
-  if (part.state === "output-denied") {
+  if (isDenied) {
+    const summary = transactions
+      .map(t => t.merchant)
+      .filter(Boolean)
+      .join(", ");
     return (
       <div
         className="my-3 flex w-full max-w-md items-center gap-3 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4"
-        aria-label={t("assistant.createTransaction.rejected")}
+        aria-label={t("assistant.createTransaction.rejected", { count: total })}
       >
         <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700">
           <XIcon className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            {t("assistant.createTransaction.rejected")}
+            {t("assistant.createTransaction.rejected", { count: total })}
           </p>
-          {input.merchant && (
+          {summary && (
             <p className="truncate text-xs text-[var(--text-secondary)]">
-              {input.merchant} <span className="text-zinc-300">•</span>{" "}
-              {formattedAmount}
+              {summary}
             </p>
           )}
         </div>
@@ -243,22 +326,25 @@ export function CreateTransactionConfirmation({
     );
   }
 
+  const summary = transactions
+    .map(t => t.merchant)
+    .filter(Boolean)
+    .join(", ");
   return (
     <div
       className="my-3 flex w-full max-w-md items-center gap-3 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4"
-      aria-label={t("assistant.createTransaction.approved")}
+      aria-label={t("assistant.createTransaction.approved", { count: total })}
     >
       <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
         <CheckIcon className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-[var(--text-primary)]">
-          {t("assistant.createTransaction.approved")}
+          {t("assistant.createTransaction.approved", { count: total })}
         </p>
-        {input.merchant && (
-          <p className="truncate text-xs text-[var(--text-secondary)]">
-            {input.merchant} <span className="text-zinc-300">•</span>{" "}
-            {formattedAmount}
+        {summary && (
+          <p className="line-clamp-2 text-xs text-[var(--text-secondary)]">
+            {summary}
           </p>
         )}
       </div>

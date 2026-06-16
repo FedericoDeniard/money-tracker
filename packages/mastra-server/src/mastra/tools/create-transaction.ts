@@ -21,42 +21,52 @@ const TRANSACTION_TYPE_VALUES = ["income", "expense"] as const;
 export const createTransactionTool = createTool({
   id: "create-transaction",
   description:
-    "Create a new transaction on behalf of the user. Use this only when the user explicitly asks to add, log, register, or record a transaction (income or expense). Do NOT use this for transactions already detected from Gmail emails (those are inserted by the email processing pipeline). The tool requires explicit user approval before any database write: the agent must summarize the proposed transaction (merchant, amount, category, date, description) and then call this tool so the user can confirm or cancel.",
+    "Create one or more new transactions on behalf of the user. Pass an array of 1-50 transactions in a single call. Use this only when the user explicitly asks to add, log, register, or record transactions (income or expense). Do NOT use this for transactions already detected from Gmail emails (those are inserted by the email processing pipeline). The tool requires explicit user approval before any database write: the agent must summarize the proposed transactions and then call this tool so the user can confirm or cancel.",
   requireApproval: true,
   inputSchema: z.object({
-    transaction_type: z
-      .enum(TRANSACTION_TYPE_VALUES)
-      .describe("Type of transaction: 'income' or 'expense'."),
-    merchant: z
-      .string()
+    transactions: z
+      .array(
+        z.object({
+          transaction_type: z
+            .enum(TRANSACTION_TYPE_VALUES)
+            .describe("Type of transaction: 'income' or 'expense'."),
+          merchant: z
+            .string()
+            .min(1)
+            .max(255)
+            .describe("Merchant name, e.g. 'Starbucks', 'Acme Corp'."),
+          amount: z
+            .number()
+            .positive()
+            .describe("Transaction amount as a positive number, e.g. 50.00."),
+          currency: z
+            .string()
+            .length(3)
+            .toUpperCase()
+            .default("USD")
+            .describe("ISO 4217 currency code. Defaults to 'USD'."),
+          category: z.enum(CATEGORY_VALUES).describe("Spending category."),
+          transaction_date: z
+            .string()
+            .date()
+            .describe("Transaction date in YYYY-MM-DD format."),
+          transaction_description: z
+            .string()
+            .min(1)
+            .max(500)
+            .describe("Short description of the transaction."),
+        })
+      )
       .min(1)
-      .max(255)
-      .describe("Merchant name, e.g. 'Starbucks', 'Acme Corp'."),
-    amount: z
-      .number()
-      .positive()
-      .describe("Transaction amount as a positive number, e.g. 50.00."),
-    currency: z
-      .string()
-      .length(3)
-      .toUpperCase()
-      .default("USD")
-      .describe("ISO 4217 currency code. Defaults to 'USD'."),
-    category: z.enum(CATEGORY_VALUES).describe("Spending category."),
-    transaction_date: z
-      .string()
-      .date()
-      .describe("Transaction date in YYYY-MM-DD format."),
-    transaction_description: z
-      .string()
-      .min(1)
-      .max(500)
-      .describe("Short description of the transaction."),
+      .max(50)
+      .describe(
+        "Array of 1-50 transactions to create. Batch all transactions into a single call instead of invoking the tool multiple times."
+      ),
   }),
   outputSchema: z.object({
     success: z.boolean(),
-    transaction: z
-      .object({
+    transactions: z.array(
+      z.object({
         id: z.string().uuid(),
         transactionDate: z.string(),
         merchant: z.string(),
@@ -65,7 +75,8 @@ export const createTransactionTool = createTool({
         transactionType: z.enum(TRANSACTION_TYPE_VALUES),
         category: z.enum(CATEGORY_VALUES),
       })
-      .nullable(),
+    ),
+    totalCount: z.number().int().nonnegative(),
     message: z.string(),
   }),
   requestContextSchema: z.object({
@@ -75,34 +86,34 @@ export const createTransactionTool = createTool({
   execute: async (input, ctx) => {
     const { supabaseToken, userId } = ctx.requestContext!.all;
     const supabase = supabaseFromToken(supabaseToken);
+    const results = [];
 
-    const { data, error } = await supabase
-      .from("transactions")
-      .insert({
-        user_id: userId,
-        amount: input.amount,
-        currency: input.currency,
-        transaction_type: input.transaction_type,
-        transaction_description: input.transaction_description,
-        transaction_date: input.transaction_date,
-        merchant: input.merchant,
-        category: input.category,
-        date: `${input.transaction_date}T00:00:00Z`,
-        source_email: "manual",
-        source_message_id: `manual-${crypto.randomUUID()}`,
-      })
-      .select(
-        "id, transaction_date, merchant, amount, currency, transaction_type, category"
-      )
-      .single();
+    for (const txn of input.transactions) {
+      const { data, error } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: userId,
+          amount: txn.amount,
+          currency: txn.currency,
+          transaction_type: txn.transaction_type,
+          transaction_description: txn.transaction_description,
+          transaction_date: txn.transaction_date,
+          merchant: txn.merchant,
+          category: txn.category,
+          date: `${txn.transaction_date}T00:00:00Z`,
+          source_email: "manual",
+          source_message_id: `manual-${crypto.randomUUID()}`,
+        })
+        .select(
+          "id, transaction_date, merchant, amount, currency, transaction_type, category"
+        )
+        .single();
 
-    if (error) {
-      throw new Error(`Failed to create transaction: ${error.message}`);
-    }
+      if (error) {
+        throw new Error(`Failed to create transaction: ${error.message}`);
+      }
 
-    return {
-      success: true,
-      transaction: {
+      results.push({
         id: data.id as string,
         transactionDate: data.transaction_date as string,
         merchant: data.merchant as string,
@@ -111,12 +122,18 @@ export const createTransactionTool = createTool({
         transactionType:
           data.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
         category: data.category as (typeof CATEGORY_VALUES)[number],
-      },
-      message: "Transaction created successfully.",
+      });
+    }
+
+    return {
+      success: true,
+      transactions: results,
+      totalCount: results.length,
+      message: `${results.length} transaction(s) created successfully.`,
     };
   },
   toModelOutput: output => {
-    if (!output.success || !output.transaction) {
+    if (!output.success || output.transactions.length === 0) {
       return {
         type: "content",
         value: [
@@ -124,27 +141,26 @@ export const createTransactionTool = createTool({
             type: "text",
             text:
               output.message ||
-              "The transaction could not be created. Ask the user how to proceed.",
+              "The transactions could not be created. Ask the user how to proceed.",
           },
         ],
       };
     }
-    const t = output.transaction;
-    const signedAmount =
-      t.transactionType === "expense"
-        ? `-${t.currency} ${t.amount.toLocaleString()}`
-        : `+${t.currency} ${t.amount.toLocaleString()}`;
+    const lines = output.transactions.map(t => {
+      const signedAmount =
+        t.transactionType === "expense"
+          ? `-${t.currency} ${t.amount.toLocaleString()}`
+          : `+${t.currency} ${t.amount.toLocaleString()}`;
+      return `- ${t.merchant}: ${signedAmount} (${t.category}, ${t.transactionDate})`;
+    });
     return {
       type: "content",
       value: [
         {
           type: "text",
           text:
-            `Transaction saved successfully.\n` +
-            `Merchant: ${t.merchant}\n` +
-            `Amount: ${signedAmount}\n` +
-            `Category: ${t.category}\n` +
-            `Date: ${t.transactionDate}\n\n` +
+            `${output.totalCount} transaction(s) saved:\n` +
+            `${lines.join("\n")}\n\n` +
             `Reply to the user in plain prose confirming these details. Do NOT call any more tools.`,
         },
       ],
