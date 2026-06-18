@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "mastra dev",
     "build": "mastra build",
-    "start": "mastra start"
+    "start": "mastra start",
+    "export-schema": "bun ./scripts/export-mastra-schema.ts"
   },
   "dependencies": {
     "@mastra/ai-sdk": "latest",
