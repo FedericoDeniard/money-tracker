@@ -89,11 +89,23 @@ export function ChatPanel({
     []
   );
 
+  // Stable browser timezone (IANA identifier, e.g.
+  // "America/Argentina/Buenos_Aires"). Computed once; the mastra-server
+  // middleware reads it so tools like getCurrentDateTool and
+  // getSpendingSummaryTool resolve dates in the user's local timezone.
+  const userTimezone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    []
+  );
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: apiUrl,
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "X-User-Timezone": userTimezone,
+        },
         fetch: keepaliveFetch,
         prepareSendMessagesRequest: ({ messages }) => {
           const lastMessage = messages.at(-1);
@@ -107,7 +119,7 @@ export function ChatPanel({
           };
         },
       }),
-    [apiUrl, accessToken, resourceId, threadId, keepaliveFetch]
+    [apiUrl, accessToken, resourceId, threadId, keepaliveFetch, userTimezone]
   );
 
   const handleAttachmentsUploaded = useCallback(

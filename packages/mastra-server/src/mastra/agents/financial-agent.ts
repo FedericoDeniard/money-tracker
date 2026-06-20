@@ -9,6 +9,10 @@ import { listTransactionsTool } from "../tools/list-transactions";
 import { listSubscriptionsTool } from "../tools/list-subscriptions";
 import { calculateTool } from "../tools/calculate";
 import { createTransactionTool } from "../tools/create-transaction";
+import { getSpendingSummaryTool } from "../tools/get-spending-summary";
+import { updateTransactionTool } from "../tools/update-transaction";
+import { deleteTransactionTool } from "../tools/delete-transaction";
+import { getCurrentDateTool } from "../tools/get-current-date";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -34,5 +38,9 @@ export const financialAgent = new Agent({
     listSubscriptionsTool,
     calculateTool,
     createTransactionTool,
+    getSpendingSummaryTool,
+    updateTransactionTool,
+    deleteTransactionTool,
+    getCurrentDateTool,
   },
 });

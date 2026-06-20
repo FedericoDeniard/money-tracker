@@ -30,6 +30,7 @@ export const mastra = new Mastra({
     cors: {
       origin: corsOrigins,
       credentials: true,
+      allowHeaders: ["X-User-Timezone"],
     },
     auth: new MastraAuthSupabase({
       url: process.env.SUPABASE_URL!,
@@ -64,6 +65,15 @@ export const mastra = new Mastra({
             requestContext.set("userId", user.id);
           }
           requestContext.set("supabaseToken", token);
+
+          // Forward the client's IANA timezone so date-sensitive tools
+          // (getCurrentDateTool, getSpendingSummaryTool) resolve relative
+          // ranges in the user's local time instead of UTC. The header is
+          // optional; tools fall back to UTC when it is absent.
+          const timezone = context.req.header("x-user-timezone");
+          if (timezone) {
+            requestContext.set("userTimezone", timezone);
+          }
         }
 
         await next();

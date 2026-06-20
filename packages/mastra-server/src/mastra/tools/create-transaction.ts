@@ -1,22 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { supabaseFromToken } from "../../lib/supabase-from-token";
-
-const CATEGORY_VALUES = [
-  "salary",
-  "entertainment",
-  "investment",
-  "food",
-  "transport",
-  "services",
-  "health",
-  "education",
-  "housing",
-  "clothing",
-  "other",
-] as const;
-
-const TRANSACTION_TYPE_VALUES = ["income", "expense"] as const;
+import { CATEGORY_VALUES, TRANSACTION_TYPE_VALUES } from "./constants";
 
 export const createTransactionTool = createTool({
   id: "create-transaction",
@@ -146,13 +131,22 @@ export const createTransactionTool = createTool({
         ],
       };
     }
-    const lines = output.transactions.map(t => {
-      const signedAmount =
-        t.transactionType === "expense"
-          ? `-${t.currency} ${t.amount.toLocaleString()}`
-          : `+${t.currency} ${t.amount.toLocaleString()}`;
-      return `- ${t.merchant}: ${signedAmount} (${t.category}, ${t.transactionDate})`;
-    });
+    const lines = output.transactions.map(
+      (t: {
+        transactionType: string;
+        currency: string;
+        amount: number;
+        merchant: string;
+        category: string;
+        transactionDate: string;
+      }) => {
+        const signedAmount =
+          t.transactionType === "expense"
+            ? `-${t.currency} ${t.amount.toLocaleString()}`
+            : `+${t.currency} ${t.amount.toLocaleString()}`;
+        return `- ${t.merchant}: ${signedAmount} (${t.category}, ${t.transactionDate})`;
+      }
+    );
     return {
       type: "content",
       value: [

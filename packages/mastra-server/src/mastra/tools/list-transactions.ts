@@ -1,22 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { supabaseFromToken } from "../../lib/supabase-from-token";
-
-const CATEGORY_VALUES = [
-  "salary",
-  "entertainment",
-  "investment",
-  "food",
-  "transport",
-  "services",
-  "health",
-  "education",
-  "housing",
-  "clothing",
-  "other",
-] as const;
-
-const TRANSACTION_TYPE_VALUES = ["income", "expense"] as const;
+import { CATEGORY_VALUES, TRANSACTION_TYPE_VALUES } from "./constants";
 
 export const listTransactionsTool = createTool({
   id: "list-transactions",
