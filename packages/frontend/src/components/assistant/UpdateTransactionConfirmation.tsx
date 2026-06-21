@@ -77,11 +77,12 @@ export function UpdateTransactionConfirmation({
 }: UpdateTransactionConfirmationProps) {
   const { t, i18n } = useTranslation();
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fetchLoading, setFetchLoading] = useState(true);
 
   const input = part.input;
   const transactionId = input?.transactionId ?? "";
   const updates = input?.updates ?? {};
+  const loading = transactionId !== "" && fetchLoading;
 
   const changedFields = Object.keys(updates).filter(
     (k): k is keyof UpdateFields =>
@@ -91,10 +92,7 @@ export function UpdateTransactionConfirmation({
 
   useEffect(() => {
     if (part.state !== "approval-requested") return;
-    if (!transactionId) {
-      setLoading(false);
-      return;
-    }
+    if (!transactionId) return;
 
     let cancelled = false;
     void (async () => {
@@ -114,7 +112,7 @@ export function UpdateTransactionConfirmation({
       } else {
         setDetail(data as unknown as TransactionDetail);
       }
-      setLoading(false);
+      setFetchLoading(false);
     })();
 
     return () => {

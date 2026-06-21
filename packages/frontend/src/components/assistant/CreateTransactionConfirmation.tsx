@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowDown,
@@ -85,6 +85,16 @@ export function CreateTransactionConfirmation({
   const { t, i18n } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const transactions = part.input?.transactions ?? [];
+  const current = transactions[currentIndex] ?? transactions[0];
+  const formattedAmount = useMemo(() => {
+    if (!current || current.amount == null) return "—";
+    return new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: current.currency ?? "USD",
+    }).format(current.amount);
+  }, [current, i18n.language]);
+
   if (part.state === "input-streaming" || part.state === "input-available") {
     return null;
   }
@@ -102,9 +112,7 @@ export function CreateTransactionConfirmation({
   const isDenied =
     part.state === "output-denied" ||
     (part.state === "output-available" && isExecutionDeniedOutput(part.output));
-  const transactions = part.input.transactions;
   const total = transactions.length;
-  const current = transactions[currentIndex] ?? transactions[0];
   const showCarousel = total > 1;
 
   if (part.state === "approval-requested") {
@@ -116,13 +124,6 @@ export function CreateTransactionConfirmation({
     const amountDisplay =
       current.amount != null ? current.amount.toLocaleString() : "—";
     const amountValue = `${isIncome ? "+" : isExpense ? "-" : ""}${currency} ${amountDisplay}`;
-    const formattedAmount =
-      current.amount != null
-        ? new Intl.NumberFormat(i18n.language, {
-            style: "currency",
-            currency: current.currency ?? "USD",
-          }).format(current.amount)
-        : "—";
 
     return (
       <article
@@ -278,8 +279,7 @@ export function CreateTransactionConfirmation({
 
   if (isDenied) {
     const summary = transactions
-      .map(t => t.merchant)
-      .filter(Boolean)
+      .flatMap(t => (t.merchant ? [t.merchant] : []))
       .join(", ");
     return (
       <div
@@ -327,8 +327,7 @@ export function CreateTransactionConfirmation({
   }
 
   const summary = transactions
-    .map(t => t.merchant)
-    .filter(Boolean)
+    .flatMap(t => (t.merchant ? [t.merchant] : []))
     .join(", ");
   return (
     <div

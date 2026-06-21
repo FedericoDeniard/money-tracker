@@ -110,7 +110,7 @@ function useCurrencyMetrics(
         .slice(0, 3)
         .map(([name, amount]) => ({ name, amount })),
     }));
-  }, [transactions, selectedPeriod]);
+  }, [transactions]);
 }
 
 // ─── Helpers for behavioral insights ─────────────────────────────────────────

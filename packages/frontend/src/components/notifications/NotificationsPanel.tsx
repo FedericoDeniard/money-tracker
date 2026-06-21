@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState } from "react";
 import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
@@ -215,12 +215,14 @@ export function NotificationsPanel({
   const [filter, setFilter] = useState<PanelFilter>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Limpiar selección cuando se cierra el panel o cambia el filtro
-  useEffect(() => {
+  // Limpiar selección cuando se cierra el panel
+  const prevIsOpenRef = useRef(isOpen);
+  if (isOpen !== prevIsOpenRef.current) {
+    prevIsOpenRef.current = isOpen;
     if (!isOpen) {
       setSelectedIds([]);
     }
-  }, [isOpen, filter]);
+  }
 
   const notificationsQuery = useNotifications({
     archived: false,
@@ -330,6 +332,8 @@ export function NotificationsPanel({
                       >
                         <div className="flex items-center gap-3">
                           <button
+                            type="button"
+                            aria-label={t("notifications.selectAll")}
                             onClick={toggleSelectAll}
                             className="group relative flex size-5 items-center justify-center rounded border-2 border-[var(--button-primary)] bg-[var(--button-primary)] transition-all"
                           >

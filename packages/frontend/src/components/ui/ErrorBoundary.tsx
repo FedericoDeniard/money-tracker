@@ -33,6 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="text-center space-y-3">
             <p className="text-[var(--error)] text-sm">{error.message}</p>
             <button
+              type="button"
               onClick={this.reset}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--button-primary)] text-white hover:opacity-90 transition-opacity"
             >
