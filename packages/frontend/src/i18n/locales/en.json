@@ -884,7 +884,11 @@
       "listTransactions": "List Transactions",
       "listSubscriptions": "List Subscriptions",
       "calculate": "Calculate",
-      "createTransaction": "Create Transaction"
+      "createTransaction": "Create Transaction",
+      "getSpendingSummary": "Spending Summary",
+      "updateTransaction": "Update Transaction",
+      "deleteTransaction": "Delete Transaction",
+      "getCurrentDate": "Current Date"
     },
     "toolStates": {
       "input-streaming": "Pending",
@@ -894,6 +898,16 @@
       "output-denied": "Denied",
       "approval-requested": "Awaiting",
       "approval-responded": "Responded"
+    },
+    "toolGroup": {
+      "toolsUsed_one": "{{count}} tool used",
+      "toolsUsed_other": "{{count}} tools used",
+      "aggregateState": {
+        "active": "Running",
+        "done": "Done",
+        "error": "Error",
+        "denied": "Denied"
+      }
     },
     "createTransaction": {
       "counter": "{{current}} / {{total}}",
@@ -922,6 +936,46 @@
       "canceling_one": "Cancelling transaction...",
       "canceling_other": "Cancelling {{count}} transactions...",
       "error": "Could not create the transactions"
+    },
+    "deleteTransaction": {
+      "title_one": "Delete this transaction?",
+      "title_other": "Delete these {{count}} transactions?",
+      "subtitle_one": "This action cannot be undone.",
+      "subtitle_other": "This action cannot be undone.",
+      "loadingDetails": "Loading transaction details…",
+      "notFound_one": "Transaction not found or already deleted.",
+      "notFound_other": "Transactions not found or already deleted.",
+      "reason": "Reason",
+      "approved_one": "Transaction deleted",
+      "approved_other": "{{count}} transactions deleted",
+      "rejected_one": "Deletion cancelled",
+      "rejected_other": "Deletion cancelled",
+      "processing_one": "Deleting transaction…",
+      "processing_other": "Deleting {{count}} transactions…",
+      "canceling_one": "Cancelling deletion…",
+      "canceling_other": "Cancelling deletion…",
+      "error": "Could not delete the transactions"
+    },
+    "updateTransaction": {
+      "title": "Update this transaction?",
+      "subtitle": "Review the changes below.",
+      "transactionId": "Transaction ID",
+      "notFound": "Transaction not found or already deleted.",
+      "noChanges": "No changes to show.",
+      "fields": {
+        "category": "Category",
+        "merchant": "Merchant",
+        "amount": "Amount",
+        "currency": "Currency",
+        "transaction_description": "Description",
+        "transaction_type": "Type",
+        "transaction_date": "Date"
+      },
+      "approved": "Transaction updated",
+      "rejected": "Update cancelled",
+      "processing": "Updating transaction…",
+      "canceling": "Cancelling update…",
+      "error": "Could not update the transaction"
     }
   }
 }
