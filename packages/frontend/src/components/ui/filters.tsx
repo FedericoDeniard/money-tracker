@@ -1,11 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
-import {
-  type Filter,
-  type FilterOption,
-  type FilterType,
-} from "./filters-types";
+import { type Filter, type FilterOption, FilterType } from "./filters-types";
 import { FilterIcon } from "./FilterIcon";
 import { FilterOperatorDropdown } from "./FilterOperatorDropdown";
 import { FilterValueCombobox } from "./FilterValueCombobox";

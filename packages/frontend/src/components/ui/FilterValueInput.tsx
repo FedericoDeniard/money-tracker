@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { FilterType } from "./filters-types";
+import { type FilterType } from "./filters-types";
 
 export function FilterValueInput({
   filterType: _filterType,
