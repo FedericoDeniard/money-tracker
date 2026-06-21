@@ -5,6 +5,7 @@ import {
 import { getSupabase } from "../lib/supabase";
 import {
   createTransactionsService,
+  type Transaction,
   type TransactionFilters,
   type TransactionPage,
 } from "../services/transactions.service";
@@ -87,7 +88,16 @@ export function flattenTransactionsData(
   data: ReturnType<typeof useTransactions>["data"] | undefined
 ) {
   if (!data) return [];
-  return data.pages.flatMap(page => page.transactions);
+  const seen = new Set<string>();
+  const result: Transaction[] = [];
+  for (const page of data.pages) {
+    for (const transaction of page.transactions) {
+      if (seen.has(transaction.id)) continue;
+      seen.add(transaction.id);
+      result.push(transaction);
+    }
+  }
+  return result;
 }
 
 // Utility function to get total count from infinite query
