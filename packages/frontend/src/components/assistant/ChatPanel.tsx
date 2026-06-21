@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useChat, type UIMessage } from "@ai-sdk/react";
@@ -262,17 +262,22 @@ export function ChatPanel({
 
   // useEffectEvent gives us a stable callback that always reads the
   // latest `messages` from useChat — no need to mirror it into a ref.
-  const wrappedSendMessage = useEffectEvent(
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const wrappedSendMessage = useCallback(
     (msg: Parameters<typeof sendMessage>[0]) => {
       sendMessage(msg);
       // Defer to next tick so the optimistic message is in `messages`.
       queueMicrotask(() => {
-        const lastUser = [...messages].reverse().find(m => m.role === "user");
+        const lastUser = [...messagesRef.current]
+          .reverse()
+          .find(m => m.role === "user");
         if (lastUser) {
           lastSentUserIdRef.current = lastUser.id;
         }
       });
-    }
+    },
+    [sendMessage]
   );
 
   // Drop the pending-attachments list once the assistant has successfully
@@ -305,9 +310,8 @@ export function ChatPanel({
         wrappedSendMessage({ text: payload.text });
       }
     }
-    // wrappedSendMessage is a useEffectEvent and must not be in deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId]);
+    // wrappedSendMessage is stable (depends only on sendMessage).
+  }, [threadId, wrappedSendMessage]);
 
   // Refresh the thread list after a message completes
   const wasStreamingRef = useRef(false);
@@ -390,11 +394,7 @@ export function ChatPanel({
       <AssistantInput
         resolveThreadId={() => threadId}
         onSend={({ text, files }) => {
-          if (files.length > 0) {
-            wrappedSendMessage({ text, files });
-          } else {
-            wrappedSendMessage({ text });
-          }
+          wrappedSendMessage(files.length > 0 ? { text, files } : { text });
         }}
         onAttachmentsUploaded={handleAttachmentsUploaded}
         status={status}

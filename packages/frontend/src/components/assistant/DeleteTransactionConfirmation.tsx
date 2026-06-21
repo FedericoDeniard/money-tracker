@@ -49,20 +49,18 @@ export function DeleteTransactionConfirmation({
 }: DeleteTransactionConfirmationProps) {
   const { t } = useTranslation();
   const [details, setDetails] = useState<TransactionDetail[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const input = part.input;
   const ids = input?.transactionIds ?? [];
   const reason = input?.reason;
   const count = ids.length;
+  const loading = count > 0 && fetchLoading;
 
   useEffect(() => {
     if (part.state !== "approval-requested") return;
-    if (ids.length === 0) {
-      setLoading(false);
-      return;
-    }
+    if (ids.length === 0) return;
 
     let cancelled = false;
     void (async () => {
@@ -82,7 +80,7 @@ export function DeleteTransactionConfirmation({
       } else {
         setDetails((data ?? []) as unknown as TransactionDetail[]);
       }
-      setLoading(false);
+      setFetchLoading(false);
     })();
 
     return () => {

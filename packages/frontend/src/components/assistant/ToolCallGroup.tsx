@@ -8,7 +8,7 @@ import {
   XIcon,
 } from "lucide-react";
 import type { UIMessage } from "ai";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Collapsible,
@@ -88,13 +88,11 @@ export function ToolCallGroup({ parts }: ToolCallGroupProps) {
   // tools reach a final state. The user can still toggle manually after
   // the auto-collapse; we only react to state transitions, not to user
   // clicks (Radix keeps the user-controlled value between renders).
-  useEffect(() => {
-    if (aggregateState === "active") {
-      setOpen(true);
-    } else {
-      setOpen(false);
-    }
-  }, [aggregateState]);
+  const [prevAggregateState, setPrevAggregateState] = useState(aggregateState);
+  if (aggregateState !== prevAggregateState) {
+    setPrevAggregateState(aggregateState);
+    setOpen(aggregateState === "active");
+  }
 
   const config = AGGREGATE_STATE_CONFIG[aggregateState];
   const StateIcon = config.icon;

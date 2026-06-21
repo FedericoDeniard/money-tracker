@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
@@ -215,12 +215,14 @@ export function NotificationsPanel({
   const [filter, setFilter] = useState<PanelFilter>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Limpiar selección cuando se cierra el panel o cambia el filtro
-  useEffect(() => {
+  // Limpiar selección cuando se cierra el panel
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (!isOpen) {
       setSelectedIds([]);
     }
-  }, [isOpen, filter]);
+  }
 
   const notificationsQuery = useNotifications({
     archived: false,
