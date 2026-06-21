@@ -29,6 +29,9 @@ const Metrics = lazy(() =>
 const Subscriptions = lazy(() =>
   import("../pages/Subscriptions").then(m => ({ default: m.Subscriptions }))
 );
+const Assistant = lazy(() =>
+  import("../pages/Assistant").then(m => ({ default: m.Assistant }))
+);
 const NotFound = lazy(() =>
   import("../pages/NotFound").then(m => ({ default: m.NotFound }))
 );
@@ -208,6 +211,30 @@ export function AppRoutes() {
               <Suspense fallback={chunkFallback}>
                 <Metrics />
               </Suspense>
+            }
+          />
+          <Route
+            path="/assistant"
+            element={
+              process.env.NODE_ENV !== "production" ? (
+                <Suspense fallback={chunkFallback}>
+                  <Assistant />
+                </Suspense>
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/assistant/:threadId"
+            element={
+              process.env.NODE_ENV !== "production" ? (
+                <Suspense fallback={chunkFallback}>
+                  <Assistant />
+                </Suspense>
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
             }
           />
         </Route>

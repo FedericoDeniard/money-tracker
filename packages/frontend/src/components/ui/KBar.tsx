@@ -92,6 +92,18 @@ function KBarInner() {
       section: t("kbar.navigation"),
       perform: () => navigate("/subscriptions"),
     },
+    ...(process.env.NODE_ENV !== "production"
+      ? [
+          {
+            id: "assistant",
+            name: t("navigation.assistant"),
+            shortcut: ["a"],
+            keywords: t("kbar.keywords.assistant"),
+            section: t("kbar.navigation"),
+            perform: () => navigate("/assistant"),
+          },
+        ]
+      : []),
     {
       id: "settings",
       name: t("navigation.settings"),
@@ -149,17 +161,19 @@ function KBarInner() {
                         ? "💰"
                         : item.id === "subscriptions"
                           ? "🔁"
-                          : item.id === "settings"
-                            ? "⚙️"
-                            : item.id === "language"
-                              ? "🌐"
-                              : item.id === "login"
-                                ? "🔑"
-                                : item.id === "register"
-                                  ? "👤"
-                                  : item.id === "logout"
-                                    ? "⚡"
-                                    : "📄"}
+                          : item.id === "assistant"
+                            ? "💬"
+                            : item.id === "settings"
+                              ? "⚙️"
+                              : item.id === "language"
+                                ? "🌐"
+                                : item.id === "login"
+                                  ? "🔑"
+                                  : item.id === "register"
+                                    ? "👤"
+                                    : item.id === "logout"
+                                      ? "⚡"
+                                      : "📄"}
                   </span>
                   <div className="flex-1">{item.name}</div>
                   {item.shortcut && (

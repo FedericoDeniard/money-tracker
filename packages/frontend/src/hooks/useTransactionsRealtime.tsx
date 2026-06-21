@@ -63,21 +63,14 @@ export function useTransactionsRealtime() {
 
             toast.custom(
               id => (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="w-full rounded-xl shadow-lg border p-4 flex items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative overflow-hidden group"
+                <button
+                  type="button"
+                  className="w-full rounded-xl shadow-lg border p-4 flex items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative overflow-hidden group text-left appearance-none"
                   style={{
                     backgroundColor: "var(--bg-primary)",
                     borderColor: "var(--bg-secondary)",
                   }}
                   onClick={() => toast.dismiss(id)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toast.dismiss(id);
-                    }
-                  }}
                 >
                   <div
                     className="absolute left-0 top-0 bottom-0 w-1"
@@ -147,7 +140,7 @@ export function useTransactionsRealtime() {
                       {newTransaction.currency}
                     </span>
                   </div>
-                </div>
+                </button>
               ),
               {
                 duration: 5000,

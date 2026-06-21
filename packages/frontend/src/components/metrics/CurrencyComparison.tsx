@@ -133,19 +133,17 @@ function CurrencyCard({
   getCurrencySymbol: (currency: string) => string;
 }) {
   const { t } = useTranslation();
-  return (
-    <div
-      key={metrics.currency}
-      onClick={() => onCurrencySelect?.(metrics.currency)}
-      onKeyDown={e => {
-        if ((e.key === "Enter" || e.key === " ") && onCurrencySelect) {
-          onCurrencySelect(metrics.currency);
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      className={`bg-[var(--bg-secondary)] p-6 rounded-xl border border-transparent hover:border-[var(--border)] transition-all duration-300 ${onCurrencySelect ? "cursor-pointer hover:shadow-md" : ""}`}
-    >
+  const cardClassName = `bg-[var(--bg-secondary)] p-6 rounded-xl border border-transparent hover:border-[var(--border)] transition-all duration-300 ${onCurrencySelect ? "cursor-pointer hover:shadow-md" : ""}`;
+  const content = (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
+          {metrics.currency}
+        </h3>
+        <span className="text-xs font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] px-2 py-1 rounded-full border border-[var(--border)]">
+          {metrics.transactionCount} {t("metrics.transactions")}
+        </span>
+      </div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
           {metrics.currency}
@@ -235,6 +233,25 @@ function CurrencyCard({
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (onCurrencySelect) {
+    return (
+      <button
+        type="button"
+        key={metrics.currency}
+        onClick={() => onCurrencySelect(metrics.currency)}
+        className={`${cardClassName} w-full text-left appearance-none`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div key={metrics.currency} className={cardClassName}>
+      {content}
     </div>
   );
 }

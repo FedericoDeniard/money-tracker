@@ -25,6 +25,7 @@
     "subscriptions": "Subscriptions",
     "metrics": "Metrics",
     "settings": "Settings",
+    "assistant": "Assistant",
     "logout": "Logout",
     "home": "Home",
     "emails": "Emails"
@@ -596,6 +597,7 @@
       "transactions": "transactions emails movements finances",
       "subscriptions": "subscriptions recurring monthly yearly payments",
       "metrics": "metrics statistics analysis charts reports finances",
+      "assistant": "assistant chat ai help copilot",
       "settings": "configuration preferences settings",
       "logout": "sign out exit logout"
     }
@@ -846,6 +848,134 @@
     "changes": {
       "title": "Changes to This Policy",
       "content": "This privacy policy may be updated periodically. Changes will be published at this same URL. I recommend reviewing it from time to time to stay informed."
+    }
+  },
+  "assistant": {
+    "brand": "Money Tracker",
+    "logoAlt": "Money Tracker Logo",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "defaultName": "there",
+    "placeholder": "Ask about your transactions, subscriptions, or spending...",
+    "historyTooltip": "History",
+    "disclaimer": "AI can make mistakes. Please check important information.",
+    "quickQuestions": {
+      "topExpenses": "What are my biggest expenses?",
+      "topIncome": "What's my biggest source of income?",
+      "subscriptionsTotal": "How much do I spend on subscriptions?",
+      "savings": "Am I saving money this month?"
+    },
+    "history": "History",
+    "newChat": "New chat",
+    "back": "Back",
+    "historyLoading": "Loading conversations…",
+    "historyEmpty": "No conversations yet",
+    "untitledThread": "Untitled conversation",
+    "deleteThread": "Delete conversation",
+    "deleteThreadConfirm": "Delete this conversation?",
+    "emptyChatHint": "Send a message to start a new conversation",
+    "errorGeneric": "Something went wrong: {{message}}",
+    "errorUnknown": "Unknown error",
+    "imageNotSupported": "The current model does not support image input. Try a different model or describe your request in text.",
+    "tools": {
+      "listTransactions": "List Transactions",
+      "listSubscriptions": "List Subscriptions",
+      "calculate": "Calculate",
+      "createTransaction": "Create Transaction",
+      "getSpendingSummary": "Spending Summary",
+      "updateTransaction": "Update Transaction",
+      "deleteTransaction": "Delete Transaction",
+      "getCurrentDate": "Current Date"
+    },
+    "toolStates": {
+      "input-streaming": "Pending",
+      "input-available": "Running",
+      "output-available": "Done",
+      "output-error": "Error",
+      "output-denied": "Denied",
+      "approval-requested": "Awaiting",
+      "approval-responded": "Responded"
+    },
+    "toolGroup": {
+      "toolsUsed_one": "{{count}} tool used",
+      "toolsUsed_other": "{{count}} tools used",
+      "aggregateState": {
+        "active": "Running",
+        "done": "Done",
+        "error": "Error",
+        "denied": "Denied"
+      }
+    },
+    "createTransaction": {
+      "counter": "{{current}} / {{total}}",
+      "previous": "Previous transaction",
+      "next": "Next transaction",
+      "title_one": "Create this transaction?",
+      "title_other": "Create these {{count}} transactions?",
+      "subtitle_one": "Review the details and confirm to save.",
+      "subtitle_other": "Review all {{count}} transactions and confirm to save.",
+      "merchant": "Merchant",
+      "amount": "Amount",
+      "type": "Type",
+      "types": {
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "category": "Category",
+      "date": "Date",
+      "description": "Description",
+      "approved_one": "Transaction created",
+      "approved_other": "{{count}} transactions created",
+      "rejected_one": "Transaction cancelled",
+      "rejected_other": "{{count}} transactions cancelled",
+      "processing_one": "Saving transaction...",
+      "processing_other": "Saving {{count}} transactions...",
+      "canceling_one": "Cancelling transaction...",
+      "canceling_other": "Cancelling {{count}} transactions...",
+      "error": "Could not create the transactions"
+    },
+    "deleteTransaction": {
+      "title_one": "Delete this transaction?",
+      "title_other": "Delete these {{count}} transactions?",
+      "subtitle_one": "This action cannot be undone.",
+      "subtitle_other": "This action cannot be undone.",
+      "loadingDetails": "Loading transaction details…",
+      "notFound_one": "Transaction not found or already deleted.",
+      "notFound_other": "Transactions not found or already deleted.",
+      "reason": "Reason",
+      "approved_one": "Transaction deleted",
+      "approved_other": "{{count}} transactions deleted",
+      "rejected_one": "Deletion cancelled",
+      "rejected_other": "Deletion cancelled",
+      "processing_one": "Deleting transaction…",
+      "processing_other": "Deleting {{count}} transactions…",
+      "canceling_one": "Cancelling deletion…",
+      "canceling_other": "Cancelling deletion…",
+      "error": "Could not delete the transactions"
+    },
+    "updateTransaction": {
+      "title": "Update this transaction?",
+      "subtitle": "Review the changes below.",
+      "transactionId": "Transaction ID",
+      "notFound": "Transaction not found or already deleted.",
+      "noChanges": "No changes to show.",
+      "fields": {
+        "category": "Category",
+        "merchant": "Merchant",
+        "amount": "Amount",
+        "currency": "Currency",
+        "transaction_description": "Description",
+        "transaction_type": "Type",
+        "transaction_date": "Date"
+      },
+      "approved": "Transaction updated",
+      "rejected": "Update cancelled",
+      "processing": "Updating transaction…",
+      "canceling": "Cancelling update…",
+      "error": "Could not update the transaction"
     }
   }
 }
