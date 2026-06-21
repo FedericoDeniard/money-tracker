@@ -147,6 +147,7 @@ export function TransactionFormModal({
           </label>
           <input
             type="text"
+            aria-label={t("transactions.merchant")}
             value={formData.merchant}
             onChange={e =>
               setFormData(prev => ({ ...prev, merchant: e.target.value }))
@@ -164,6 +165,7 @@ export function TransactionFormModal({
           </label>
           <input
             type="date"
+            aria-label={t("transactions.date")}
             value={formData.transaction_date}
             onChange={e =>
               setFormData(prev => ({
@@ -185,6 +187,7 @@ export function TransactionFormModal({
           <input
             type="number"
             step="0.01"
+            aria-label={t("transactions.amount")}
             min="0.01"
             value={formData.amount}
             onChange={e =>

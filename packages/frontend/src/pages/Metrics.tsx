@@ -25,13 +25,11 @@ const CategoryPieChart = lazy(
 const CategoryTreeMapChart = lazy(
   () => import("../components/charts/CategoryTreeMapChart")
 );
-import {
-  MetricCard,
-  FilterBar,
-  InsightsSection,
-  CurrencyComparison,
-  type MetricCardProps,
-} from "../components/metrics";
+import { MetricCard } from "../components/metrics/MetricCard";
+import { FilterBar } from "../components/metrics/FilterBar";
+import { InsightsSection } from "../components/metrics/InsightsSection";
+import { CurrencyComparison } from "../components/metrics/CurrencyComparison";
+import type { MetricCardProps } from "../components/metrics/MetricCard";
 import { getCurrencySymbol } from "../utils/currency";
 
 interface CategoryData {

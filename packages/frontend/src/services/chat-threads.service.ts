@@ -22,7 +22,7 @@ export interface ChatMessage {
 }
 
 /** Helper to extract plain text from a MastraDBMessage content field */
-export function extractMessageText(content: unknown): string {
+function extractMessageText(content: unknown): string {
   // Try to parse JSON string (content is stored as text column, not jsonb)
   let parsed = content;
   if (typeof content === "string") {

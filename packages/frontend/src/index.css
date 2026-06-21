@@ -2,6 +2,18 @@
 
 @source "../node_modules/streamdown/dist/*.js";
 
+@keyframes typing {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
 @layer base {
   :root {
     --primary: #1e293b; /* dark navy background - primary color */

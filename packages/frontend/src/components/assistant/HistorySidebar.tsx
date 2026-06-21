@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LazyMotion, m, domAnimation } from "framer-motion";
 import { HistoryList } from "./HistoryList";
 
 interface HistorySidebarProps {
@@ -45,20 +45,22 @@ export function HistorySidebar({
       </div>
       <AnimatePresence>
         {show && (
-          <motion.aside
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onAnimationComplete={() => setIsAnimating(false)}
-            className="flex min-h-0 overflow-hidden md:h-full md:flex-none"
-          >
-            <HistoryList
-              activeThreadId={activeThreadId}
-              onSelect={onSelect}
-              onNewChat={onNewChat}
-            />
-          </motion.aside>
+          <LazyMotion features={domAnimation}>
+            <m.aside
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onAnimationComplete={() => setIsAnimating(false)}
+              className="flex min-h-0 overflow-hidden md:h-full md:flex-none"
+            >
+              <HistoryList
+                activeThreadId={activeThreadId}
+                onSelect={onSelect}
+                onNewChat={onNewChat}
+              />
+            </m.aside>
+          </LazyMotion>
         )}
       </AnimatePresence>
     </div>

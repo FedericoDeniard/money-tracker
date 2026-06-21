@@ -23,14 +23,15 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
 
-import Filters, {
-  AnimateChangeInHeight,
+import Filters from "../ui/filters";
+import { AnimateChangeInHeight } from "../ui/AnimateChangeInHeight";
+import { FilterIcon } from "../ui/FilterIcon";
+import {
   FilterOperator,
   FilterType,
-  FilterIcon,
   getFilterTypeName,
-} from "../ui/filters";
-import type { Filter, FilterOption } from "../ui/filters";
+} from "../ui/filters-types";
+import type { Filter, FilterOption } from "../ui/filters-types";
 
 import type { TransactionFilters } from "../../services/transactions.service";
 import { useTransactionFilters } from "../../hooks/useTransactionFilters";

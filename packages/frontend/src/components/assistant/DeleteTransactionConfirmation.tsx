@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowDown,
@@ -53,7 +53,10 @@ export function DeleteTransactionConfirmation({
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const input = part.input;
-  const ids = input?.transactionIds ?? [];
+  const ids = useMemo(
+    () => input?.transactionIds ?? [],
+    [input?.transactionIds]
+  );
   const reason = input?.reason;
   const count = ids.length;
   const loading = count > 0 && fetchLoading;
@@ -86,11 +89,10 @@ export function DeleteTransactionConfirmation({
     return () => {
       cancelled = true;
     };
-  }, [part.state, ids.length]);
+  }, [part.state, ids]);
 
   const summary = details
-    .map(d => d.merchant)
-    .filter(Boolean)
+    .flatMap(d => (d.merchant ? [d.merchant] : []))
     .join(", ");
 
   const total = details.length;

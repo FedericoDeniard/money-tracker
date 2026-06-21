@@ -46,7 +46,7 @@ function buildStoragePath(
  * Path convention: {userId}/{threadId}/{uuid}.{ext}
  * (enforced by storage RLS policy `(storage.foldername(name))[1] = auth.uid()::text`).
  */
-export async function uploadChatAttachment(
+async function uploadChatAttachment(
   threadId: string,
   file: File
 ): Promise<ChatAttachment> {
@@ -110,7 +110,7 @@ export async function uploadChatAttachment(
 }
 
 /** Fetch a fresh signed URL for an existing attachment row. */
-export async function getChatAttachment(
+async function getChatAttachment(
   attachmentId: string
 ): Promise<ChatAttachment> {
   const supabase = await getSupabase();

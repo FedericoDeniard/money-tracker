@@ -2,11 +2,9 @@ import { Suspense, useMemo, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "../components/ui/EmptyState";
-import {
-  SubscriptionCard,
-  SubscriptionListItem,
-  SubscriptionsHeader,
-} from "../components/subscriptions";
+import { SubscriptionCard } from "../components/subscriptions/SubscriptionCard";
+import { SubscriptionListItem } from "../components/subscriptions/SubscriptionListItem";
+import { SubscriptionsHeader } from "../components/subscriptions/SubscriptionsHeader";
 import type {
   SubscriptionSortBy,
   SubscriptionStatusFilter,

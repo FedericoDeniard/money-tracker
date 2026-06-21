@@ -16,6 +16,21 @@ import {
   type ClipboardReadError,
 } from "../../hooks/useClipboardFile";
 
+function getFileIcon(file: File) {
+  if (file.type === "application/pdf") {
+    return <File className="size-8 text-red-500" />;
+  }
+  return <File className="size-8 text-blue-500" />;
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
+
 type TransactionFormData = {
   transaction_type: "income" | "expense";
   merchant: string;
@@ -186,21 +201,6 @@ function FilePreview({
   isProcessing: boolean;
   onClear: () => void;
 }) {
-  const getFileIcon = (file: File) => {
-    if (file.type === "application/pdf") {
-      return <File className="size-8 text-red-500" />;
-    }
-    return <File className="size-8 text-blue-500" />;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
   return (
     <div className="border rounded-xl p-4 bg-zinc-50">
       <div className="flex items-center gap-3">
@@ -304,24 +304,27 @@ export function UploadTransactionModal({
   const isProcessing =
     uploadState === "uploading" || uploadState === "processing";
 
-  const validateFile = (file: File): string | null => {
-    if (!SUPPORTED_TYPES.includes(file.type)) {
-      return t(
-        "upload.errors.unsupportedType",
-        "Unsupported file type. Please upload PDF or image files."
-      );
-    }
-    const maxSize =
-      file.type === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE;
-    if (file.size > maxSize) {
-      const maxSizeMB = Math.round(maxSize / (1024 * 1024));
-      return t(
-        "upload.errors.fileTooLarge",
-        `File too large. Maximum size is ${maxSizeMB}MB.`
-      );
-    }
-    return null;
-  };
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      if (!SUPPORTED_TYPES.includes(file.type)) {
+        return t(
+          "upload.errors.unsupportedType",
+          "Unsupported file type. Please upload PDF or image files."
+        );
+      }
+      const maxSize =
+        file.type === "application/pdf" ? MAX_PDF_SIZE : MAX_IMAGE_SIZE;
+      if (file.size > maxSize) {
+        const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+        return t(
+          "upload.errors.fileTooLarge",
+          `File too large. Maximum size is ${maxSizeMB}MB.`
+        );
+      }
+      return null;
+    },
+    [t]
+  );
 
   const handleFileSelect = useCallback(
     (file: File, source: "file" | "clipboard" = "file") => {
@@ -339,7 +342,7 @@ export function UploadTransactionModal({
             : "",
       });
     },
-    [t]
+    [t, validateFile]
   );
 
   const getClipboardErrorMessage = useCallback(
@@ -458,21 +461,6 @@ export function UploadTransactionModal({
   const handleClose = () => {
     resetModal();
     onClose();
-  };
-
-  const getFileIcon = (file: File) => {
-    if (file.type === "application/pdf") {
-      return <File className="size-8 text-red-500" />;
-    }
-    return <File className="size-8 text-blue-500" />;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (

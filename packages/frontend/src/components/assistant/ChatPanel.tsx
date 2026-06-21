@@ -69,7 +69,10 @@ export function ChatPanel({
   // Snapshot DB messages at mount — useChat only reads `messages` in the constructor.
   // Parent must not refetch mid-session (would pass stale partial DB rows).
   const bootstrapMessagesRef = useRef(initialMessages);
-  const initialMessageIdsRef = useRef(new Set(initialMessages.map(m => m.id)));
+  const initialMessageIdsRef = useRef<Set<string> | null>(null);
+  if (initialMessageIdsRef.current === null) {
+    initialMessageIdsRef.current = new Set(initialMessages.map(m => m.id));
+  }
   // Track the most recent uploaded attachments so we can roll them back
   // (delete from storage + DB) if the model rejects the request.
   const pendingAttachmentsRef = useRef<ChatAttachment[]>([]);
@@ -341,7 +344,7 @@ export function ChatPanel({
             messages.map(message => {
               const isUser = message.role === "user";
               const showDots = message.id === streamingAssistantId;
-              const isNewMessage = !initialMessageIdsRef.current.has(
+              const isNewMessage = !initialMessageIdsRef.current!.has(
                 message.id
               );
 
