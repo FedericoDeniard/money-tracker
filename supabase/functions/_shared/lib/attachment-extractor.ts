@@ -23,6 +23,10 @@ export interface PdfAttachmentForAiFallback {
 export interface PdfExtractionResult {
   texts: string[];
   fallbackPdfAttachments: PdfAttachmentForAiFallback[];
+  // Bytes of every PDF that was successfully downloaded/decoded, regardless of
+  // whether its text was extractable. Used to persist the original ticket/receipt
+  // alongside the transaction.
+  allPdfAttachments: PdfAttachmentForAiFallback[];
 }
 
 interface DetectedAttachment {
@@ -389,7 +393,7 @@ export async function extractPdfDataForAiFallback(
     });
 
     if (detected.length === 0) {
-      return { texts: [], fallbackPdfAttachments: [] };
+      return { texts: [], fallbackPdfAttachments: [], allPdfAttachments: [] };
     }
 
     const toProcess = detected
@@ -398,6 +402,7 @@ export async function extractPdfDataForAiFallback(
 
     const texts: string[] = [];
     const fallbackPdfAttachments: PdfAttachmentForAiFallback[] = [];
+    const allPdfAttachments: PdfAttachmentForAiFallback[] = [];
 
     for (const attachment of toProcess) {
       try {
@@ -427,6 +432,13 @@ export async function extractPdfDataForAiFallback(
           byteLength: bytes.length,
         });
 
+        const pdfAttachment: PdfAttachmentForAiFallback = {
+          data: bytes,
+          mimeType: "application/pdf",
+          filename: attachment.filename,
+        };
+        allPdfAttachments.push(pdfAttachment);
+
         const pdf = await getDocumentProxy(bytes);
         const { text } = await extractText(pdf, { mergePages: true });
 
@@ -440,21 +452,17 @@ export async function extractPdfDataForAiFallback(
             filename: attachment.filename,
             byteLength: bytes.length,
           });
-          fallbackPdfAttachments.push({
-            data: bytes,
-            mimeType: "application/pdf",
-            filename: attachment.filename,
-          });
+          fallbackPdfAttachments.push(pdfAttachment);
         }
       } catch (error) {
         console.warn(`Error extracting PDF ${attachment.filename}:`, error);
       }
     }
 
-    return { texts, fallbackPdfAttachments };
+    return { texts, fallbackPdfAttachments, allPdfAttachments };
   } catch (error) {
     console.warn("Error detecting PDF attachments:", error);
-    return { texts: [], fallbackPdfAttachments: [] };
+    return { texts: [], fallbackPdfAttachments: [], allPdfAttachments: [] };
   }
 }
 

@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
+import { saveTransactionAttachments } from "../_shared/lib/transaction-attachments.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { createSystemNotification } from "../_shared/notifications.ts";
 import {
@@ -328,112 +329,104 @@ Deno.serve(async req => {
 
     console.log("Analyzing email...", { bodyTextLength: bodyText.length });
 
-    // Use shared document analysis pipeline (image/PDF extraction + AI)
-    try {
-      const aiResult = await analyzeDocumentForTransaction({
-        kind: "gmail",
-        accessToken: firstToken.access_token || "",
-        messageId: message.id,
-        payload: message.payload,
-        bodyText,
-        userFullName,
-        attachmentOptions: {
-          fetchAttachmentData: async (
-            targetMessageId: string,
-            attachmentId: string
-          ) => {
-            const attachmentResponse = await fetchGmailWithRecovery(
-              supabase,
-              firstToken,
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
-              { method: "GET" },
-              "webhook_fetch_attachment"
-            );
-            if (!attachmentResponse.ok) return null;
-            return await attachmentResponse.json();
-          },
+    // Use shared document analysis pipeline (image/PDF extraction + AI).
+    // The pipeline never throws on AI errors: it returns { aiError: true }
+    // so we can run the keyword fallback with the already-extracted attachments.
+    const aiResult = await analyzeDocumentForTransaction({
+      kind: "gmail",
+      accessToken: firstToken.access_token || "",
+      messageId: message.id,
+      payload: message.payload,
+      bodyText,
+      userFullName,
+      attachmentOptions: {
+        fetchAttachmentData: async (
+          targetMessageId: string,
+          attachmentId: string
+        ) => {
+          const attachmentResponse = await fetchGmailWithRecovery(
+            supabase,
+            firstToken,
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${targetMessageId}/attachments/${attachmentId}`,
+            { method: "GET" },
+            "webhook_fetch_attachment"
+          );
+          if (!attachmentResponse.ok) return null;
+          return await attachmentResponse.json();
         },
-      });
+      },
+    });
 
-      // Flush Langfuse events before returning (critical for serverless)
-      const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
-      await flushLangfuse();
+    // Flush Langfuse events before returning (critical for serverless)
+    const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
+    await flushLangfuse();
 
-      if (aiResult.hasTransaction) {
-        console.log("Transaction detected by AI", { fromEmail, subject });
-        const transaction = aiResult.data;
+    if (aiResult.hasTransaction) {
+      console.log("Transaction detected by AI", { fromEmail, subject });
+      const transaction = aiResult.data;
 
-        // Create transaction for each user with valid token
-        for (const tokenData of validTokens) {
-          const { error: insertError } = await supabase
-            .from("transactions")
-            .insert({
-              user_id: tokenData.user_id, // ← Agregar user_id explícitamente
-              user_oauth_token_id: tokenData.id,
-              source_email: fromEmail,
-              source_message_id: message.id,
-              date: date,
-              amount: transaction.amount,
-              currency: transaction.currency,
-              transaction_type: transaction.type,
-              transaction_description: transaction.description,
-              transaction_date: transaction.date || date.split("T")[0],
-              merchant: transaction.merchant,
-              category: transaction.category,
-            });
+      // Create transaction for each user with valid token. Due to the UNIQUE
+      // constraint on source_message_id only the first insert succeeds; the
+      // rest are skipped as duplicates. Attachments are persisted once, linked
+      // to the first successfully created transaction.
+      let savedTransaction: { id: string; user_id: string } | null = null;
 
-          if (insertError) {
-            if (insertError.code === "23505") {
-              console.log(
-                `Transaction already exists for user ${tokenData.user_id}`
-              );
-            } else {
-              console.error(
-                `Error saving transaction for user ${tokenData.user_id}`,
-                { error: insertError }
-              );
-            }
-          } else {
+      for (const tokenData of validTokens) {
+        const { data: inserted, error: insertError } = await supabase
+          .from("transactions")
+          .insert({
+            user_id: tokenData.user_id,
+            user_oauth_token_id: tokenData.id,
+            source_email: fromEmail,
+            source_message_id: message.id,
+            date: date,
+            amount: transaction.amount,
+            currency: transaction.currency,
+            transaction_type: transaction.type,
+            transaction_description: transaction.description,
+            transaction_date: transaction.date || date.split("T")[0],
+            merchant: transaction.merchant,
+            category: transaction.category,
+          })
+          .select("id, user_id")
+          .single();
+
+        if (insertError) {
+          if (insertError.code === "23505") {
             console.log(
-              `AI transaction saved for user ${tokenData.user_id}: ${transaction.amount} ${transaction.currency}`
+              `Transaction already exists for user ${tokenData.user_id}`
+            );
+          } else {
+            console.error(
+              `Error saving transaction for user ${tokenData.user_id}`,
+              { error: insertError }
             );
           }
-        }
-
-        console.log(
-          `AI transaction processed for ${validTokens.length} user(s)`
-        );
-      } else {
-        console.log("No transaction detected by AI - discarding");
-
-        // Save in discarded_emails for each valid user
-        for (const tokenData of validTokens) {
-          const { error: discardError } = await supabase
-            .from("discarded_emails")
-            .insert({
-              user_oauth_token_id: tokenData.id,
-              message_id: message.id,
-              reason: aiResult.reason || "No transaction detected",
-            });
-
-          if (discardError) {
-            if (discardError.code === "23505") {
-              console.log(
-                `Email already discarded for user ${tokenData.user_id}`
-              );
-            } else {
-              console.error(
-                `Error saving discarded email for user ${tokenData.user_id}`,
-                { error: discardError }
-              );
-            }
-          }
+        } else if (inserted && !savedTransaction) {
+          savedTransaction = inserted;
+          console.log(
+            `AI transaction saved for user ${tokenData.user_id}: ${transaction.amount} ${transaction.currency}`
+          );
         }
       }
-    } catch (error) {
-      console.error("Error in AI processing:", error);
 
-      // Fallback to keyword detection
+      if (savedTransaction && aiResult.attachments.length > 0) {
+        await saveTransactionAttachments({
+          supabase,
+          transactionId: savedTransaction.id,
+          userId: savedTransaction.user_id,
+          attachments: aiResult.attachments,
+        });
+      }
+
+      console.log(`AI transaction processed for ${validTokens.length} user(s)`);
+    } else if (aiResult.aiError) {
+      // AI pipeline failed unexpectedly — fall back to keyword detection using
+      // the attachments that were already extracted before the error.
+      console.error("AI processing failed, using keyword fallback", {
+        reason: aiResult.reason,
+      });
+
       const transactionKeywords = [
         "purchase",
         "payment",
@@ -458,11 +451,13 @@ Deno.serve(async req => {
           subject,
         });
 
-        // Create transaction for each user with valid token
+        let savedTransaction: { id: string; user_id: string } | null = null;
+
         for (const tokenData of validTokens) {
-          const { error: insertError } = await supabase
+          const { data: inserted, error: insertError } = await supabase
             .from("transactions")
             .insert({
+              user_id: tokenData.user_id,
               user_oauth_token_id: tokenData.id,
               source_email: fromEmail,
               source_message_id: message.id,
@@ -474,7 +469,9 @@ Deno.serve(async req => {
               transaction_date: date.split("T")[0],
               merchant: fromEmail,
               category: "uncategorized",
-            });
+            })
+            .select("id, user_id")
+            .single();
 
           if (insertError) {
             if (insertError.code === "23505") {
@@ -487,11 +484,21 @@ Deno.serve(async req => {
                 { error: insertError }
               );
             }
-          } else {
+          } else if (inserted && !savedTransaction) {
+            savedTransaction = inserted;
             console.log(
               `Fallback transaction saved for user ${tokenData.user_id}`
             );
           }
+        }
+
+        if (savedTransaction && aiResult.attachments.length > 0) {
+          await saveTransactionAttachments({
+            supabase,
+            transactionId: savedTransaction.id,
+            userId: savedTransaction.user_id,
+            attachments: aiResult.attachments,
+          });
         }
 
         console.log(
@@ -511,6 +518,32 @@ Deno.serve(async req => {
             });
 
           if (discardError && discardError.code !== "23505") {
+            console.error(
+              `Error saving discarded email for user ${tokenData.user_id}`,
+              { error: discardError }
+            );
+          }
+        }
+      }
+    } else {
+      console.log("No transaction detected by AI - discarding");
+
+      // Save in discarded_emails for each valid user
+      for (const tokenData of validTokens) {
+        const { error: discardError } = await supabase
+          .from("discarded_emails")
+          .insert({
+            user_oauth_token_id: tokenData.id,
+            message_id: message.id,
+            reason: aiResult.reason || "No transaction detected",
+          });
+
+        if (discardError) {
+          if (discardError.code === "23505") {
+            console.log(
+              `Email already discarded for user ${tokenData.user_id}`
+            );
+          } else {
             console.error(
               `Error saving discarded email for user ${tokenData.user_id}`,
               { error: discardError }
