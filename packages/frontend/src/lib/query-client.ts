@@ -86,4 +86,9 @@ export const queryKeys = {
     messages: (threadId: string) =>
       ["chat-threads", "messages", threadId] as const,
   },
+  transactionAttachments: {
+    all: ["transaction-attachments"] as const,
+    list: (transactionId: string) =>
+      [...queryKeys.transactionAttachments.all, "list", transactionId] as const,
+  },
 } as const;

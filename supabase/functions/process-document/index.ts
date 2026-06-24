@@ -4,6 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireUserAuth } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
+import { saveTransactionAttachments } from "../_shared/lib/transaction-attachments.ts";
 
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -100,6 +101,23 @@ Deno.serve(async req => {
     const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
     await flushLangfuse();
 
+    if (aiResult.aiError) {
+      console.error(
+        "AI processing failed for uploaded document:",
+        aiResult.reason
+      );
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: aiResult.reason || "AI processing failed",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     if (aiResult.hasTransaction) {
       console.log(
         "AI successfully extracted transaction from uploaded document"
@@ -135,6 +153,15 @@ Deno.serve(async req => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
+      }
+
+      if (aiResult.attachments.length > 0) {
+        await saveTransactionAttachments({
+          supabase,
+          transactionId: savedTransaction.id,
+          userId: savedTransaction.user_id,
+          attachments: aiResult.attachments,
+        });
       }
 
       return new Response(
