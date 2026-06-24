@@ -20,6 +20,22 @@ const distDir = join(import.meta.dir, "..", "dist");
 // Resolve the public directory (static assets: manifest, icons)
 const publicDir = join(import.meta.dir, "..", "public");
 
+// Derive the Mastra server origin from MASTRA_SERVER_URL so the CSP
+// allows XHR/fetch/SSE connections to it. The env var may include a
+// path (we only want the origin). Falls back to localhost in dev.
+function getMastraOrigin(): string | null {
+  const raw = process.env.MASTRA_SERVER_URL;
+  if (!raw) return null;
+  const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    return new URL(withProto).origin;
+  } catch {
+    return null;
+  }
+}
+
+const mastraOrigin = getMastraOrigin();
+
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -31,7 +47,8 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000" +
+      (mastraOrigin ? ` ${mastraOrigin}` : ""),
     "frame-src 'none'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -75,9 +92,14 @@ const server = serve({
         },
         backendUrl: `${(process.env.SUPABASE_URL || "").replace(/\/+$/, "")}/functions/v1`,
         // Standalone Mastra server URL (chat / agents).
-        // Falls back to localhost:4111 in dev.
-        mastraServerUrl:
-          process.env.MASTRA_SERVER_URL ?? "http://localhost:4111",
+        // Falls back to localhost:4111 in dev. Auto-prefixes https://
+        // when the env var is missing the protocol so the browser
+        // doesn't treat it as a relative path.
+        mastraServerUrl: process.env.MASTRA_SERVER_URL
+          ? /^https?:\/\//i.test(process.env.MASTRA_SERVER_URL)
+            ? process.env.MASTRA_SERVER_URL
+            : `https://${process.env.MASTRA_SERVER_URL}`
+          : "http://localhost:4111",
         // Public VAPID key for Web Push subscription — safe to expose
         vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? null,
       };
