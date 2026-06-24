@@ -15,6 +15,7 @@
     "@mastra/core": "latest",
     "@mastra/memory": "latest",
     "@mastra/pg": "latest",
+    "@mastra/server": "latest",
     "@openrouter/ai-sdk-provider": "latest",
     "@supabase/supabase-js": "^2.108.1",
     "ai": "^6.0.200",
