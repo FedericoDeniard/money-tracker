@@ -1,0 +1,29 @@
+{
+  "name": "mastra-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "mastra build",
+    "start": "mastra start",
+    "export-schema": "bun ./scripts/export-mastra-schema.ts"
+  },
+  "dependencies": {
+    "@mastra/ai-sdk": "latest",
+    "@mastra/auth-supabase": "latest",
+    "@mastra/core": "latest",
+    "@mastra/memory": "latest",
+    "@mastra/pg": "latest",
+    "@openrouter/ai-sdk-provider": "latest",
+    "@supabase/supabase-js": "^2.108.1",
+    "ai": "^6.0.200",
+    "expr-eval": "^2.0.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "mastra": "latest",
+    "typescript": "^6.0.3"
+  }
+}

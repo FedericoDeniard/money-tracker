@@ -1,0 +1,11 @@
+packages:
+  - "packages/*"
+allowBuilds:
+  "@google/genai": true
+  bufferutil: true
+  bun: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - ai@6.0.200

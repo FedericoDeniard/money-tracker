@@ -8,6 +8,7 @@ import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { useFormatDate } from "../../hooks/useFormatDate";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EditTransactionModal } from "./EditTransactionModal";
+import { TransactionAttachments } from "./TransactionAttachments";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -188,6 +189,9 @@ export function TransactionDetail({
             </div>
           </div>
         </div>
+
+        {/* Attachments */}
+        <TransactionAttachments transactionId={transaction.id} />
       </div>
 
       {/* Footer Actions — always visible at the bottom */}
@@ -228,6 +232,7 @@ export function TransactionDetail({
 
       {/* Edit Modal */}
       <EditTransactionModal
+        key={transaction.id}
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onSave={handleUpdate}

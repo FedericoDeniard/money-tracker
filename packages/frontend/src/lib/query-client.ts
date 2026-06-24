@@ -81,4 +81,14 @@ export const queryKeys = {
   serverConfig: {
     all: ["server-config"] as const,
   },
+  chatThreads: {
+    all: ["chat-threads"] as const,
+    messages: (threadId: string) =>
+      ["chat-threads", "messages", threadId] as const,
+  },
+  transactionAttachments: {
+    all: ["transaction-attachments"] as const,
+    list: (transactionId: string) =>
+      [...queryKeys.transactionAttachments.all, "list", transactionId] as const,
+  },
 } as const;

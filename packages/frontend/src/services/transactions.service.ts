@@ -163,7 +163,11 @@ export class TransactionsService {
     }
     if (tokenId) {
       if (filters?.emailOperator === "is not") {
-        query = query.neq("user_oauth_token_id", tokenId);
+        // SQL three-valued logic: NULL != tokenId is NULL (excluded).
+        // Explicitly include nulls so unlinked transactions are returned.
+        query = query.or(
+          `user_oauth_token_id.neq.${tokenId},user_oauth_token_id.is.null`
+        );
       } else {
         query = query.eq("user_oauth_token_id", tokenId);
       }

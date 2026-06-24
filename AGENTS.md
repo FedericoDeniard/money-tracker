@@ -4,7 +4,7 @@
 
 money-tracker is a personal finance tracker that connects to Gmail to automatically detect and extract financial transactions from emails using AI (xAI). It is a npm workspace monorepo with a React 19 frontend backed by Supabase (Postgres + Edge Functions).
 
-Stack: TypeScript (strict), React 19, React Router v7, TanStack Query, Tailwind CSS v4, Bun runtime, Supabase (Postgres + Edge Functions + Realtime), Deno (Edge Functions), Zod, React Hook Form, Lucide React, Sonner, Recharts.
+Stack: TypeScript (strict), React 19, React Router v7, TanStack Query, Tailwind CSS v4, Bun runtime, pnpm workspaces, Supabase (Postgres + Edge Functions + Realtime), Deno (Edge Functions), Zod, React Hook Form, Lucide React, Sonner, Recharts, AI SDK (`@ai-sdk/react`, `ai`), AI Elements (CLI vendored at `packages/frontend/src/components/ai-elements/`).
 
 ## Project Structure
 
@@ -50,7 +50,16 @@ bun docker:db:migration:up      # apply pending migrations
 # Supabase Edge Functions (deploy via Supabase CLI)
 supabase functions deploy <function-name>
 supabase functions serve        # local dev
+
+# AI Elements (vendored via CLI, not a runtime import)
+cd packages/frontend
+pnpm dlx ai-elements@latest add <component>   # install/update one component (e.g. prompt-input, message, conversation, attachments, suggestion)
+pnpm dlx ai-elements@latest                   # install/update all components
 ```
+
+> **Note:** AI Elements copies component source into `src/components/ai-elements/` and shadcn primitives into `src/components/ui/shadcn/`. These files are committed to the repo and updated via the CLI, not imported from an npm package at runtime. The `ai-elements` package is a devDependency (CLI tool only).
+>
+> Currently vendored and in use: `prompt-input`, `message`, `conversation`, `suggestion`. `attachments` is an optional add-on — install only when needed via the CLI.
 
 ## Code Style
 

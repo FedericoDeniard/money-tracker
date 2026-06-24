@@ -4,6 +4,8 @@
 export interface AppConfig {
   supabase: { url: string; anonKey: string };
   backendUrl: string;
+  /** URL of the standalone Mastra server (e.g. http://localhost:4111). */
+  mastraServerUrl: string;
   /** VAPID public key for Web Push subscriptions. Null if push is not configured on the server. */
   vapidPublicKey: string | null;
 }

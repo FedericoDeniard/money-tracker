@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import type { Transaction } from "../../services/transactions.service";
@@ -106,18 +106,6 @@ export function EditTransactionModal({
     transaction_date: transaction.transaction_date || transaction.date,
   });
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setFormData({
-      transaction_type: transaction.transaction_type,
-      merchant: transaction.merchant || "",
-      amount: transaction.amount.toString(),
-      currency: transaction.currency,
-      category: transaction.category,
-      transaction_date: transaction.transaction_date || transaction.date,
-    });
-  }, [transaction, isOpen]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
@@ -196,6 +184,7 @@ export function EditTransactionModal({
           </label>
           <input
             type="text"
+            aria-label={t("transactions.merchant")}
             value={formData.merchant}
             onChange={e =>
               setFormData(prev => ({ ...prev, merchant: e.target.value }))
@@ -212,6 +201,7 @@ export function EditTransactionModal({
           </label>
           <input
             type="date"
+            aria-label={t("transactions.date")}
             value={formData.transaction_date}
             onChange={e =>
               setFormData(prev => ({
@@ -234,6 +224,7 @@ export function EditTransactionModal({
             type="number"
             step="0.01"
             min="0.01"
+            aria-label={t("transactions.amount")}
             value={formData.amount}
             onChange={e =>
               setFormData(prev => ({ ...prev, amount: e.target.value }))

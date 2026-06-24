@@ -25,6 +25,7 @@
     "subscriptions": "Suscripciones",
     "metrics": "Métricas",
     "settings": "Configuración",
+    "assistant": "Asistente",
     "logout": "Cerrar Sesión",
     "home": "Inicio",
     "emails": "Emails"
@@ -95,6 +96,9 @@
     "category": "Categoría",
     "description": "Descripción",
     "reference": "Referencia",
+    "attachments": "Adjuntos",
+    "viewAttachment": "Ver",
+    "downloadAttachment": "Descargar",
     "status": "Estado",
     "successful": "Exitoso",
     "sourceEmail": "Email de origen",
@@ -596,6 +600,7 @@
       "transactions": "transacciones emails movimientos finanzas",
       "subscriptions": "suscripciones recurrentes pagos mensuales anuales",
       "metrics": "metricas estadisticas analisis graficos reportes finanzas",
+      "assistant": "asistente chat ia ayuda copilot",
       "settings": "configuracion preferencias ajustes",
       "logout": "salir cerrar sesion logout"
     }
@@ -846,6 +851,134 @@
     "changes": {
       "title": "Cambios en esta política",
       "content": "Esta política de privacidad puede actualizarse periódicamente. Los cambios serán publicados en esta misma URL. Te recomiendo revisarla de vez en cuando para mantenerte informado."
+    }
+  },
+  "assistant": {
+    "brand": "Money Tracker",
+    "logoAlt": "Logo de Money Tracker",
+    "greeting": {
+      "morning": "Buen día",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "defaultName": "vos",
+    "placeholder": "Preguntá sobre tus transacciones, suscripciones o gastos...",
+    "historyTooltip": "Historial",
+    "disclaimer": "La IA puede cometer errores. Verificá la información importante.",
+    "quickQuestions": {
+      "topExpenses": "¿Cuáles son mis mayores gastos?",
+      "topIncome": "¿Cuál es mi mayor fuente de ingresos?",
+      "subscriptionsTotal": "¿Cuánto gasto en suscripciones?",
+      "savings": "¿Estoy ahorrando este mes?"
+    },
+    "history": "Historial",
+    "newChat": "Nueva conversación",
+    "back": "Volver",
+    "historyLoading": "Cargando conversaciones…",
+    "historyEmpty": "Aún no hay conversaciones",
+    "untitledThread": "Conversación sin título",
+    "deleteThread": "Eliminar conversación",
+    "deleteThreadConfirm": "¿Eliminar esta conversación?",
+    "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
+    "errorGeneric": "Algo salió mal: {{message}}",
+    "errorUnknown": "Error desconocido",
+    "imageNotSupported": "El modelo actual no soporta imágenes. Probá con otro modelo o describí tu pedido en texto.",
+    "tools": {
+      "listTransactions": "Listar Transacciones",
+      "listSubscriptions": "Listar Suscripciones",
+      "calculate": "Calcular",
+      "createTransaction": "Crear Transacción",
+      "getSpendingSummary": "Resumen de Gastos",
+      "updateTransaction": "Actualizar Transacción",
+      "deleteTransaction": "Eliminar Transacción",
+      "getCurrentDate": "Fecha Actual"
+    },
+    "toolStates": {
+      "input-streaming": "Pendiente",
+      "input-available": "Corriendo",
+      "output-available": "Listo",
+      "output-error": "Error",
+      "output-denied": "Denegado",
+      "approval-requested": "Esperando",
+      "approval-responded": "Respondido"
+    },
+    "toolGroup": {
+      "toolsUsed_one": "{{count}} herramienta usada",
+      "toolsUsed_other": "{{count}} herramientas usadas",
+      "aggregateState": {
+        "active": "En progreso",
+        "done": "Listo",
+        "error": "Error",
+        "denied": "Denegado"
+      }
+    },
+    "createTransaction": {
+      "counter": "{{current}} / {{total}}",
+      "previous": "Transacción anterior",
+      "next": "Siguiente transacción",
+      "title_one": "¿Crear esta transacción?",
+      "title_other": "¿Crear estas {{count}} transacciones?",
+      "subtitle_one": "Revisá los detalles y confirmá para guardar.",
+      "subtitle_other": "Revisá todas las {{count}} transacciones y confirmá para guardar.",
+      "merchant": "Comercio",
+      "amount": "Monto",
+      "type": "Tipo",
+      "types": {
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "category": "Categoría",
+      "date": "Fecha",
+      "description": "Descripción",
+      "approved_one": "Transacción creada",
+      "approved_other": "{{count}} transacciones creadas",
+      "rejected_one": "Transacción cancelada",
+      "rejected_other": "{{count}} transacciones canceladas",
+      "processing_one": "Guardando transacción...",
+      "processing_other": "Guardando {{count}} transacciones...",
+      "canceling_one": "Cancelando transacción...",
+      "canceling_other": "Cancelando {{count}} transacciones...",
+      "error": "No se pudieron crear las transacciones"
+    },
+    "deleteTransaction": {
+      "title_one": "¿Eliminar esta transacción?",
+      "title_other": "¿Eliminar estas {{count}} transacciones?",
+      "subtitle_one": "Esta acción no se puede deshacer.",
+      "subtitle_other": "Esta acción no se puede deshacer.",
+      "loadingDetails": "Cargando detalles de la transacción…",
+      "notFound_one": "Transacción no encontrada o ya eliminada.",
+      "notFound_other": "Transacciones no encontradas o ya eliminadas.",
+      "reason": "Motivo",
+      "approved_one": "Transacción eliminada",
+      "approved_other": "{{count}} transacciones eliminadas",
+      "rejected_one": "Eliminación cancelada",
+      "rejected_other": "Eliminación cancelada",
+      "processing_one": "Eliminando transacción…",
+      "processing_other": "Eliminando {{count}} transacciones…",
+      "canceling_one": "Cancelando eliminación…",
+      "canceling_other": "Cancelando eliminación…",
+      "error": "No se pudieron eliminar las transacciones"
+    },
+    "updateTransaction": {
+      "title": "¿Actualizar esta transacción?",
+      "subtitle": "Revisá los cambios abajo.",
+      "transactionId": "ID de transacción",
+      "notFound": "Transacción no encontrada o ya eliminada.",
+      "noChanges": "No hay cambios para mostrar.",
+      "fields": {
+        "category": "Categoría",
+        "merchant": "Comercio",
+        "amount": "Monto",
+        "currency": "Moneda",
+        "transaction_description": "Descripción",
+        "transaction_type": "Tipo",
+        "transaction_date": "Fecha"
+      },
+      "approved": "Transacción actualizada",
+      "rejected": "Actualización cancelada",
+      "processing": "Actualizando transacción…",
+      "canceling": "Cancelando actualización…",
+      "error": "No se pudo actualizar la transacción"
     }
   }
 }

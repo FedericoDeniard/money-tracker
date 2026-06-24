@@ -5,6 +5,7 @@ import {
   BarChart3,
   SlidersHorizontal,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -37,6 +38,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/subscriptions",
     },
     { icon: BarChart3, label: t("navigation.metrics"), path: "/metrics" },
+    ...(process.env.NODE_ENV !== "production"
+      ? [
+          {
+            icon: MessageSquare,
+            label: t("navigation.assistant"),
+            path: "/assistant" as const,
+          },
+        ]
+      : []),
     {
       icon: SlidersHorizontal,
       label: t("navigation.settings"),
@@ -64,7 +74,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {links.map(link => {
-          const isActive = location.pathname === link.path;
+          const isActive =
+            location.pathname === link.path ||
+            location.pathname.startsWith(`${link.path}/`);
           return (
             <Link
               key={link.path}

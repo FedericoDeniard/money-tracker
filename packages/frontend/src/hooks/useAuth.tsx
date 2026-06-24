@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { getSupabase } from "../lib/supabase";
 
@@ -159,10 +159,10 @@ export function useAuth() {
     };
   }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const supabase = await getSupabase();
     await supabase.auth.signOut();
-  };
+  }, []);
 
   return {
     user,

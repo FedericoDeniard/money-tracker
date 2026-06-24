@@ -4,7 +4,7 @@ import { createTransactionsService } from "../services/transactions.service";
 import { queryKeys } from "../lib/query-client";
 
 export function useTransactionFilters() {
-  const currenciesQuery = useSuspenseQuery({
+  const { data: currencies, refetch: refetchCurrencies } = useSuspenseQuery({
     queryKey: queryKeys.transactionFilters.currencies(),
     queryFn: async () => {
       const supabase = await getSupabase();
@@ -15,7 +15,7 @@ export function useTransactionFilters() {
     gcTime: 30 * 60 * 1000,
   });
 
-  const emailsQuery = useSuspenseQuery({
+  const { data: emails, refetch: refetchEmails } = useSuspenseQuery({
     queryKey: queryKeys.transactionFilters.emails(),
     queryFn: async () => {
       const supabase = await getSupabase();
@@ -27,11 +27,11 @@ export function useTransactionFilters() {
   });
 
   return {
-    currencies: currenciesQuery.data,
-    emails: emailsQuery.data,
+    currencies,
+    emails,
     refetch: () => {
-      currenciesQuery.refetch();
-      emailsQuery.refetch();
+      void refetchCurrencies();
+      void refetchEmails();
     },
   };
 }
