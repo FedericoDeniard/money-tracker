@@ -136,8 +136,18 @@ async function analyzeUploadedFile(
   let images: ImageAttachment[] = [];
   let pdfTexts: string[] = [];
   let pdfFallbackAttachments: PdfAttachmentForAiFallback[] = [];
+  let pdfAttachments: PdfAttachmentForAiFallback[] = [];
 
   if (isPdf) {
+    const pdfAttachment: PdfAttachmentForAiFallback = {
+      data: fileBytes,
+      mimeType: "application/pdf",
+      filename: fileName,
+    };
+
+    // Always persist the original PDF as a transaction attachment
+    pdfAttachments.push(pdfAttachment);
+
     try {
       const pdf = await getDocumentProxy(fileBytes);
       const { text } = await extractText(pdf, { mergePages: true });
@@ -151,22 +161,14 @@ async function analyzeUploadedFile(
         console.warn(
           `[document-analysis] PDF has no extractable text, queuing for AI fallback: ${fileName}`
         );
-        pdfFallbackAttachments.push({
-          data: fileBytes,
-          mimeType: "application/pdf",
-          filename: fileName,
-        });
+        pdfFallbackAttachments.push(pdfAttachment);
       }
     } catch (error) {
       console.warn(
-        `[document-analysis] PDF extraction error, queuing for AI fallback: ${fileName}`,
+        `[document-analysis] PDF extraction error: ${fileName}`,
         error
       );
-      pdfFallbackAttachments.push({
-        data: fileBytes,
-        mimeType: "application/pdf",
-        filename: fileName,
-      });
+      pdfFallbackAttachments.push(pdfAttachment);
     }
   } else {
     images.push({
@@ -188,10 +190,7 @@ async function analyzeUploadedFile(
     imageCount: images.length,
   });
 
-  const attachments: AnalyzedAttachment[] = [
-    ...images,
-    ...pdfFallbackAttachments,
-  ];
+  const attachments: AnalyzedAttachment[] = [...images, ...pdfAttachments];
 
   try {
     const result = await extractTransactionFromEmail(
