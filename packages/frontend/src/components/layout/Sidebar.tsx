@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useConfig } from "../../hooks/useConfig";
 import { DecorativeSquare } from "../ui/DecorativeSquare";
 import { Button } from "../ui/Button";
 import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
@@ -24,6 +25,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const { signOut } = useAuth();
   const { t } = useTranslation();
+  const { data: config } = useConfig();
+  const isChatEnabled = config?.chatEnabled !== false;
 
   const links = [
     { icon: PieChart, label: t("navigation.dashboard"), path: "/dashboard" },
@@ -38,7 +41,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/subscriptions",
     },
     { icon: BarChart3, label: t("navigation.metrics"), path: "/metrics" },
-    ...(process.env.CHAT_ENABLED !== "false"
+    ...(isChatEnabled
       ? [
           {
             icon: MessageSquare,

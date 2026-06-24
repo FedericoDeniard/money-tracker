@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useConfig } from "../hooks/useConfig";
 import { ErrorBoundary } from "../components/ui/ErrorBoundary";
 import { SuspenseFallbackPage } from "../components/ui/SuspenseFallback";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
@@ -53,8 +54,6 @@ const PrivacyPolicy = lazy(() =>
 
 const chunkFallback = <SuspenseFallbackPage />;
 
-const isChatEnabled = process.env.CHAT_ENABLED !== "false";
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -92,6 +91,9 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function AppRoutes() {
+  const { data: config } = useConfig();
+  const isChatEnabled = config?.chatEnabled !== false;
+
   return (
     // ErrorBoundary catches any unhandled query errors
     <ErrorBoundary>

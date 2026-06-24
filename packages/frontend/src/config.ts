@@ -8,6 +8,8 @@ export interface AppConfig {
   mastraServerUrl: string;
   /** VAPID public key for Web Push subscriptions. Null if push is not configured on the server. */
   vapidPublicKey: string | null;
+  /** Whether the chat/assistant feature is enabled. Defaults to true on the server. */
+  chatEnabled: boolean;
 }
 
 let configCache: AppConfig | null = null;

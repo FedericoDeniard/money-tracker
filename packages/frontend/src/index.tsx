@@ -102,6 +102,8 @@ const server = serve({
           : "http://localhost:4111",
         // Public VAPID key for Web Push subscription — safe to expose
         vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? null,
+        // Chat/assistant feature flag — defaults to enabled
+        chatEnabled: process.env.CHAT_ENABLED !== "false",
       };
 
       if (!config.supabase.url || !config.supabase.anonKey) {
