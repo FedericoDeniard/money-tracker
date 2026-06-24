@@ -53,6 +53,8 @@ const PrivacyPolicy = lazy(() =>
 
 const chunkFallback = <SuspenseFallbackPage />;
 
+const isChatEnabled = process.env.CHAT_ENABLED !== "false";
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -216,7 +218,7 @@ export function AppRoutes() {
           <Route
             path="/assistant"
             element={
-              process.env.NODE_ENV !== "production" ? (
+              isChatEnabled ? (
                 <Suspense fallback={chunkFallback}>
                   <Assistant />
                 </Suspense>
@@ -228,7 +230,7 @@ export function AppRoutes() {
           <Route
             path="/assistant/:threadId"
             element={
-              process.env.NODE_ENV !== "production" ? (
+              isChatEnabled ? (
                 <Suspense fallback={chunkFallback}>
                   <Assistant />
                 </Suspense>
