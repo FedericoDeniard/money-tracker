@@ -38,7 +38,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/subscriptions",
     },
     { icon: BarChart3, label: t("navigation.metrics"), path: "/metrics" },
-    ...(process.env.NODE_ENV !== "production"
+    ...(process.env.CHAT_ENABLED !== "false"
       ? [
           {
             icon: MessageSquare,
