@@ -6,9 +6,23 @@ import { RequestContext } from "@mastra/core/request-context";
 import { financialAgent } from "./agents/financial-agent";
 import { resilientChatRoute } from "./routes/resilient-chat-route";
 
+const supabaseDbUrl = process.env.SUPABASE_DB_URL;
+if (supabaseDbUrl) {
+  try {
+    const parsed = new URL(supabaseDbUrl);
+    console.log(
+      `[mastra] SUPABASE_DB_URL -> user="${parsed.username}" host="${parsed.hostname}" port="${parsed.port}" db="${parsed.pathname.replace(/^\//, "")}"`
+    );
+  } catch {
+    console.log(`[mastra] SUPABASE_DB_URL (unparseable) -> "${supabaseDbUrl}"`);
+  }
+} else {
+  console.log("[mastra] SUPABASE_DB_URL -> <undefined>");
+}
+
 const storage = new PostgresStore({
   id: "mastra-storage",
-  connectionString: process.env.SUPABASE_DB_URL!,
+  connectionString: supabaseDbUrl!,
 });
 
 const defaultOrigins = [
