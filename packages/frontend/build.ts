@@ -156,6 +156,11 @@ const result = await Bun.build({
   define: {
     ...((cliConfig.define as Record<string, string>) ?? {}),
     "process.env.NODE_ENV": JSON.stringify("production"),
+    // Inlined at build time so the browser bundle doesn't reference `process`.
+    // Defaults to "true" when unset.
+    "process.env.CHAT_ENABLED": JSON.stringify(
+      process.env.CHAT_ENABLED ?? "true"
+    ),
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_TIMESTAMP__: JSON.stringify(buildTimestamp),
   },
