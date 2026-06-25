@@ -77,6 +77,7 @@ class ChatThreadsService {
     // RLS filters by resourceId = auth.uid()::text automatically.
     // Cast to our local type because Mastra tables aren't in database.types yet.
     const { data, error } = await this.supabase
+      .schema("ai")
       .from("mastra_threads" as never)
       .select("*")
       .order('"updatedAt"', { ascending: false })
@@ -94,6 +95,7 @@ class ChatThreadsService {
 
   async listMessages(threadId: string): Promise<ChatMessage[]> {
     const { data, error } = await this.supabase
+      .schema("ai")
       .from("mastra_messages" as never)
       .select("*")
       .eq("thread_id", threadId)
@@ -110,6 +112,7 @@ class ChatThreadsService {
 
   async deleteThread(threadId: string): Promise<void> {
     const { error } = await this.supabase
+      .schema("ai")
       .from("mastra_threads" as never)
       .delete()
       .eq("id", threadId);

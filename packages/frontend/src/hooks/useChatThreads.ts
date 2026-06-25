@@ -45,7 +45,7 @@ function useMastraThreadTitleRealtime() {
           "postgres_changes",
           {
             event: "UPDATE",
-            schema: "public",
+            schema: "ai",
             table: "mastra_threads",
           },
           payload => {

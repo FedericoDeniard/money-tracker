@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -7,133 +8,8 @@ export type Json =
   | Json[]
 
 export type Database = {
-  public: {
+  ai: {
     Tables: {
-      chat_attachments: {
-        Row: {
-          created_at: string
-          filename: string
-          id: string
-          mime_type: string
-          size_bytes: number
-          storage_path: string
-          thread_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          filename: string
-          id?: string
-          mime_type: string
-          size_bytes: number
-          storage_path: string
-          thread_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          filename?: string
-          id?: string
-          mime_type?: string
-          size_bytes?: number
-          storage_path?: string
-          thread_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      discarded_emails: {
-        Row: {
-          discarded_at: string | null
-          id: string
-          message_id: string
-          reason: string | null
-          transaction_id: string | null
-          user_oauth_token_id: string
-        }
-        Insert: {
-          discarded_at?: string | null
-          id?: string
-          message_id: string
-          reason?: string | null
-          transaction_id?: string | null
-          user_oauth_token_id: string
-        }
-        Update: {
-          discarded_at?: string | null
-          id?: string
-          message_id?: string
-          reason?: string | null
-          transaction_id?: string | null
-          user_oauth_token_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discarded_emails_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "discarded_emails_user_oauth_token_id_fkey"
-            columns: ["user_oauth_token_id"]
-            isOneToOne: false
-            referencedRelation: "user_oauth_tokens"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      gmail_watches: {
-        Row: {
-          created_at: string | null
-          expiration: string | null
-          gmail_email: string
-          history_id: string | null
-          id: string
-          is_active: boolean | null
-          label_ids: string[] | null
-          topic_name: string
-          updated_at: string | null
-          user_id: string
-          watch_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          expiration?: string | null
-          gmail_email: string
-          history_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          label_ids?: string[] | null
-          topic_name: string
-          updated_at?: string | null
-          user_id: string
-          watch_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          expiration?: string | null
-          gmail_email?: string
-          history_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          label_ids?: string[] | null
-          topic_name?: string
-          updated_at?: string | null
-          user_id?: string
-          watch_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gmail_watches_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       mastra_agent_versions: {
         Row: {
           agentId: string
@@ -2045,6 +1921,172 @@ export type Database = {
         }
         Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      chat_attachments: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      discarded_emails: {
+        Row: {
+          discarded_at: string | null
+          id: string
+          message_id: string
+          reason: string | null
+          transaction_id: string | null
+          user_oauth_token_id: string
+        }
+        Insert: {
+          discarded_at?: string | null
+          id?: string
+          message_id: string
+          reason?: string | null
+          transaction_id?: string | null
+          user_oauth_token_id: string
+        }
+        Update: {
+          discarded_at?: string | null
+          id?: string
+          message_id?: string
+          reason?: string | null
+          transaction_id?: string | null
+          user_oauth_token_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discarded_emails_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discarded_emails_user_oauth_token_id_fkey"
+            columns: ["user_oauth_token_id"]
+            isOneToOne: false
+            referencedRelation: "user_oauth_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gmail_watches: {
+        Row: {
+          created_at: string | null
+          expiration: string | null
+          gmail_email: string
+          history_id: string | null
+          id: string
+          is_active: boolean | null
+          label_ids: string[] | null
+          topic_name: string
+          updated_at: string | null
+          user_id: string
+          watch_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expiration?: string | null
+          gmail_email: string
+          history_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          label_ids?: string[] | null
+          topic_name: string
+          updated_at?: string | null
+          user_id: string
+          watch_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expiration?: string | null
+          gmail_email?: string
+          history_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          label_ids?: string[] | null
+          topic_name?: string
+          updated_at?: string | null
+          user_id?: string
+          watch_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gmail_watches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_categories: {
         Row: {
           created_at: string
@@ -2841,6 +2883,12 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  ai: {
+    Enums: {},
+  },
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       notification_importance: ["low", "normal", "high", "critical"],
