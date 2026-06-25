@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from "@mastra/server/auth";
 import { RequestContext } from "@mastra/core/request-context";
 import { financialAgent } from "./agents/financial-agent";
 import { resilientChatRoute } from "./routes/resilient-chat-route";
+import { getRoleFromToken } from "../lib/roles";
 
 const supabaseDbUrl = process.env.SUPABASE_DB_URL;
 if (supabaseDbUrl) {
@@ -80,6 +81,11 @@ export const mastra = new Mastra({
             requestContext.set("userId", user.id);
           }
           requestContext.set("supabaseToken", token);
+
+          // Propagate the role injected by the custom access token hook so
+          // tools/agents can branch on it (e.g. per-role rate limits, tier
+          // specific tool restrictions, or different system prompts).
+          requestContext.set("userRole", getRoleFromToken(token));
 
           // Forward the client's IANA timezone so date-sensitive tools
           // (getCurrentDateTool, getSpendingSummaryTool) resolve relative
