@@ -12,8 +12,10 @@ import {
 import type { Transaction } from "../../services/transactions.service";
 
 export type TransactionFormData = {
+  name: string;
   transaction_type: "income" | "expense";
   merchant: string;
+  transaction_description: string;
   amount: string;
   currency: string;
   category: string;
@@ -46,9 +48,11 @@ export function TransactionFormModal({
   const [formData, setFormData] = useState<TransactionFormData>(() => {
     if (initialData) return initialData;
     return {
+      name: transaction?.name || "",
       transaction_type:
         (transaction?.transaction_type as "income" | "expense") || "expense",
       merchant: transaction?.merchant || "",
+      transaction_description: transaction?.transaction_description || "",
       amount: transaction?.amount.toString() || "",
       currency: transaction?.currency || "USD",
       category: transaction?.category || "other",
@@ -138,6 +142,47 @@ export function TransactionFormModal({
             <option value="income">{t("transactions.income")}</option>
             <option value="expense">{t("transactions.expense")}</option>
           </select>
+        </div>
+
+        {/* Name */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {t("transactions.name")}
+          </label>
+          <input
+            type="text"
+            aria-label={t("transactions.name")}
+            value={formData.name}
+            onChange={e =>
+              setFormData(prev => ({ ...prev, name: e.target.value }))
+            }
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
+            disabled={isPending}
+            maxLength={255}
+            required
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {t("transactions.description")}
+          </label>
+          <textarea
+            aria-label={t("transactions.description")}
+            value={formData.transaction_description}
+            onChange={e =>
+              setFormData(prev => ({
+                ...prev,
+                transaction_description: e.target.value,
+              }))
+            }
+            rows={2}
+            className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors resize-none"
+            disabled={isPending}
+            maxLength={500}
+            required
+          />
         </div>
 
         {/* Merchant */}

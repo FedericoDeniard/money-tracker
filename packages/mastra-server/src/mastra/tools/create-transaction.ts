@@ -15,6 +15,13 @@ export const createTransactionTool = createTool({
           transaction_type: z
             .enum(TRANSACTION_TYPE_VALUES)
             .describe("Type of transaction: 'income' or 'expense'."),
+          name: z
+            .string()
+            .min(1)
+            .max(255)
+            .describe(
+              "Short headline for the transaction, e.g. 'June 2026 salary' or 'Coffee at Starbucks'. Used as the card title."
+            ),
           merchant: z
             .string()
             .min(1)
@@ -39,7 +46,7 @@ export const createTransactionTool = createTool({
             .string()
             .min(1)
             .max(500)
-            .describe("Short description of the transaction."),
+            .describe("Longer description of what the transaction is for."),
         })
       )
       .min(1)
@@ -54,6 +61,7 @@ export const createTransactionTool = createTool({
       z.object({
         id: z.string().uuid(),
         transactionDate: z.string(),
+        name: z.string(),
         merchant: z.string(),
         amount: z.number(),
         currency: z.string().length(3),
@@ -81,6 +89,7 @@ export const createTransactionTool = createTool({
           amount: txn.amount,
           currency: txn.currency,
           transaction_type: txn.transaction_type,
+          name: txn.name,
           transaction_description: txn.transaction_description,
           transaction_date: txn.transaction_date,
           merchant: txn.merchant,
@@ -90,7 +99,7 @@ export const createTransactionTool = createTool({
           source_message_id: `manual-${crypto.randomUUID()}`,
         })
         .select(
-          "id, transaction_date, merchant, amount, currency, transaction_type, category"
+          "id, transaction_date, name, merchant, amount, currency, transaction_type, category"
         )
         .single();
 
@@ -101,6 +110,7 @@ export const createTransactionTool = createTool({
       results.push({
         id: data.id as string,
         transactionDate: data.transaction_date as string,
+        name: data.name as string,
         merchant: data.merchant as string,
         amount: Number(data.amount),
         currency: data.currency as string,
@@ -136,6 +146,7 @@ export const createTransactionTool = createTool({
         transactionType: string;
         currency: string;
         amount: number;
+        name: string;
         merchant: string;
         category: string;
         transactionDate: string;
@@ -144,7 +155,7 @@ export const createTransactionTool = createTool({
           t.transactionType === "expense"
             ? `-${t.currency} ${t.amount.toLocaleString()}`
             : `+${t.currency} ${t.amount.toLocaleString()}`;
-        return `- ${t.merchant}: ${signedAmount} (${t.category}, ${t.transactionDate})`;
+        return `- ${t.name} (${t.merchant}): ${signedAmount} (${t.category}, ${t.transactionDate})`;
       }
     );
     return {

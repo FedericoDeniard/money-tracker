@@ -33,6 +33,7 @@ interface DeleteTransactionConfirmationProps {
 
 interface TransactionDetail {
   id: string;
+  name: string | null;
   merchant: string | null;
   amount: number | null;
   currency: string | null;
@@ -71,7 +72,7 @@ export function DeleteTransactionConfirmation({
       const { data, error } = await supabase
         .from("transactions")
         .select(
-          "id, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
+          "id, name, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
         )
         .in("id", ids)
         .eq("discarded", false)
@@ -92,7 +93,7 @@ export function DeleteTransactionConfirmation({
   }, [part.state, ids]);
 
   const summary = details
-    .flatMap(d => (d.merchant ? [d.merchant] : []))
+    .flatMap(d => [d.name, d.merchant].filter((v): v is string => !!v))
     .join(", ");
 
   const total = details.length;
@@ -198,6 +199,16 @@ export function DeleteTransactionConfirmation({
               : "—"}
           </dd>
         </div>
+        {current.name && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-xs font-medium text-[var(--text-secondary)]">
+              {t("assistant.createTransaction.name")}
+            </dt>
+            <dd className="font-medium text-[var(--text-primary)]">
+              {current.name}
+            </dd>
+          </div>
+        )}
         {current.transaction_description && (
           <div className="col-span-2 min-w-0">
             <dt className="text-xs font-medium text-[var(--text-secondary)]">

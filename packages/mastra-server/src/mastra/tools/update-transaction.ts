@@ -8,6 +8,14 @@ const updateFields = z.object({
     .enum(CATEGORY_VALUES)
     .optional()
     .describe("New spending category."),
+  name: z
+    .string()
+    .min(1)
+    .max(255)
+    .optional()
+    .describe(
+      "New short headline for the transaction, e.g. 'June 2026 salary'."
+    ),
   merchant: z
     .string()
     .min(1)
@@ -30,7 +38,7 @@ const updateFields = z.object({
     .min(1)
     .max(500)
     .optional()
-    .describe("New short description of the transaction."),
+    .describe("New longer description of the transaction."),
   transaction_type: z
     .enum(TRANSACTION_TYPE_VALUES)
     .optional()
@@ -47,7 +55,7 @@ const updateFields = z.object({
 export const updateTransactionTool = createTool({
   id: "update-transaction",
   description:
-    "Update a single existing transaction's fields (category, merchant, amount, currency, description, type, or date). Use this only when the user explicitly asks to change, correct, recategorize, edit, or fix a transaction. The user must identify the transaction (by merchant, date, amount, or by listing it first with listTransactionsTool). Requires explicit user approval before any database write. Never use this to delete a transaction; use deleteTransactionTool instead.",
+    "Update a single existing transaction's fields (name, category, merchant, amount, currency, description, type, or date). Use this only when the user explicitly asks to change, correct, recategorize, edit, or fix a transaction. The user must identify the transaction (by merchant, date, amount, or by listing it first with listTransactionsTool). Requires explicit user approval before any database write. Never use this to delete a transaction; use deleteTransactionTool instead.",
   requireApproval: true,
   inputSchema: z.object({
     transactionId: z
@@ -64,6 +72,7 @@ export const updateTransactionTool = createTool({
       .object({
         id: z.string().uuid(),
         transactionDate: z.string(),
+        name: z.string(),
         merchant: z.string(),
         amount: z.number(),
         currency: z.string().length(3),
@@ -85,6 +94,7 @@ export const updateTransactionTool = createTool({
     const updates = input.updates;
     if (
       updates.category === undefined &&
+      updates.name === undefined &&
       updates.merchant === undefined &&
       updates.amount === undefined &&
       updates.currency === undefined &&
@@ -102,6 +112,7 @@ export const updateTransactionTool = createTool({
     // create-transaction.ts which sets date = `${transaction_date}T00:00:00Z`).
     const payload: Record<string, unknown> = {};
     if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.name !== undefined) payload.name = updates.name;
     if (updates.merchant !== undefined) payload.merchant = updates.merchant;
     if (updates.amount !== undefined) payload.amount = updates.amount;
     if (updates.currency !== undefined) payload.currency = updates.currency;
@@ -119,7 +130,7 @@ export const updateTransactionTool = createTool({
       .update(payload)
       .eq("id", input.transactionId)
       .select(
-        "id, transaction_date, merchant, amount, currency, transaction_type, category, transaction_description"
+        "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description"
       )
       .single();
 
@@ -141,6 +152,7 @@ export const updateTransactionTool = createTool({
       transaction: {
         id: data.id as string,
         transactionDate: data.transaction_date as string,
+        name: data.name as string,
         merchant: data.merchant as string,
         amount: Number(data.amount),
         currency: data.currency as string,
@@ -178,7 +190,7 @@ export const updateTransactionTool = createTool({
           type: "text",
           text:
             `Transaction updated:\n` +
-            `- ${t.merchant}: ${signedAmount} (${t.category}, ${t.transactionDate})\n` +
+            `- ${t.name} (${t.merchant}): ${signedAmount} (${t.category}, ${t.transactionDate})\n` +
             `- Description: ${t.transactionDescription}\n\n` +
             `Reply to the user in plain prose confirming these details. Do NOT call any more tools.`,
         },

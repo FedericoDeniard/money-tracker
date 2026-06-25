@@ -191,6 +191,7 @@ Return ONLY valid JSON matching this exact schema:
     "amount": number,
     "currency": "USD|EUR|GBP|JPY|CNY|INR|AUD|CAD|CHF|SEK|NOK|DKK|PLN|CZK|HUF|RON|BGN|HRK|RUB|TRY|MXN|ARS|CLP|COP|PEN|UYU|BOB|PYG|ILS|KRW|THB|VND|IDR|MYR|PHP|SGD|HKD|NZD|ZAR|NGN|GHS|KES|EGP|MAD|TND|DZD|LBP|JOD|IQD|BHD|KWD|QAR|SAR|AED|OMR",
     "type": "income|expense",
+    "name": string,
     "description": string,
     "date": "YYYY-MM-DD|null",
     "merchant": string,
@@ -262,6 +263,7 @@ Keep merchant/description in original language from the document.${userLocale ? 
         data: {
           ...parsed.data,
           merchant: parsed.data.merchant || "Unknown",
+          name: parsed.data.name || parsed.data.description,
           date: validateAndFixDate(parsed.data.date),
         },
         usage: usage || undefined,
@@ -411,6 +413,7 @@ export async function extractTransactionFromEmail(
             data: {
               ...output.data,
               merchant: output.data.merchant || "Unknown",
+              name: output.data.name || output.data.description,
               date: validateAndFixDate(output.data.date),
             },
             usage, // Include usage information for Langfuse tracking

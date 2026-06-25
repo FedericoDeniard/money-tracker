@@ -135,6 +135,7 @@ Deno.serve(async req => {
           amount: transaction.amount,
           currency: transaction.currency || "USD",
           transaction_type: transaction.type,
+          name: transaction.name || fileName.replace(/\.[^.]+$/, ""),
           transaction_description: transaction.description,
           transaction_date:
             transaction.date || new Date().toISOString().split("T")[0],

@@ -92,6 +92,7 @@
     "time": "Hora",
     "dateTime": "Fecha y Hora",
     "type": "Tipo",
+    "name": "Nombre",
     "merchant": "Comercio",
     "category": "Categoría",
     "description": "Descripción",
@@ -929,6 +930,7 @@
       },
       "category": "Categoría",
       "date": "Fecha",
+      "name": "Nombre",
       "description": "Descripción",
       "approved_one": "Transacción creada",
       "approved_other": "{{count}} transacciones creadas",
@@ -967,6 +969,7 @@
       "noChanges": "No hay cambios para mostrar.",
       "fields": {
         "category": "Categoría",
+        "name": "Nombre",
         "merchant": "Comercio",
         "amount": "Monto",
         "currency": "Moneda",

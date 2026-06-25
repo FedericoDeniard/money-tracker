@@ -2,6 +2,7 @@ import type { TransactionFormData } from "../components/transactions/Transaction
 
 interface TransactionCreateInput {
   transaction_type: "income" | "expense";
+  name: string;
   merchant: string;
   amount: number;
   currency: string;
@@ -19,12 +20,13 @@ export function mapTransactionFormDataToInsert(
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   return {
     transaction_type: formData.transaction_type,
+    name: formData.name,
     merchant: formData.merchant,
     amount: parseFloat(formData.amount),
     currency: formData.currency,
     category: formData.category,
     transaction_date: formData.transaction_date,
-    transaction_description: formData.merchant,
+    transaction_description: formData.transaction_description,
     date: new Date().toISOString(),
     source_email: "",
     source_message_id: `manual-${uniqueSuffix}`,

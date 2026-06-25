@@ -161,6 +161,11 @@ export function TransactionDetail({
           />
 
           <DetailRow
+            label={t("transactions.description")}
+            value={transaction.transaction_description}
+          />
+
+          <DetailRow
             label={t("transactions.amount")}
             value={`${transaction.currency} ${amountDisplay}`}
           />

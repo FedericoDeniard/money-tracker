@@ -8,6 +8,7 @@ import { ToolApprovalCard } from "./ToolApprovalCard";
 
 type UpdateFields = {
   category?: string;
+  name?: string;
   merchant?: string;
   amount?: number;
   currency?: string;
@@ -36,6 +37,7 @@ interface UpdateTransactionConfirmationProps {
 
 interface TransactionDetail {
   id: string;
+  name: string | null;
   merchant: string | null;
   amount: number | null;
   currency: string | null;
@@ -47,6 +49,7 @@ interface TransactionDetail {
 
 const FIELD_LABELS: Record<keyof UpdateFields, string> = {
   category: "assistant.createTransaction.category",
+  name: "assistant.createTransaction.name",
   merchant: "assistant.createTransaction.merchant",
   amount: "assistant.createTransaction.amount",
   currency: "assistant.updateTransaction.fields.currency",
@@ -100,7 +103,7 @@ export function UpdateTransactionConfirmation({
       const { data, error } = await supabase
         .from("transactions")
         .select(
-          "id, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
+          "id, name, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
         )
         .eq("id", transactionId)
         .eq("discarded", false)
@@ -120,7 +123,7 @@ export function UpdateTransactionConfirmation({
     };
   }, [part.state, transactionId]);
 
-  const summary = detail?.merchant ?? "";
+  const summary = detail?.name ?? detail?.merchant ?? "";
 
   // Build the approval-requested content (mimics CreateTransactionConfirmation)
   const isIncome =
@@ -225,6 +228,30 @@ export function UpdateTransactionConfirmation({
             </div>
           );
         })}
+
+        {(changedFields.includes("name") || detail.name) && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-xs font-medium text-[var(--text-secondary)]">
+              {t(FIELD_LABELS.name)}
+            </dt>
+            {changedFields.includes("name") ? (
+              <dd>
+                {detail.name && (
+                  <span className="font-medium text-[var(--text-secondary)] line-through">
+                    {detail.name}
+                  </span>
+                )}{" "}
+                <span className="font-semibold text-[var(--text-primary)]">
+                  {updates.name}
+                </span>
+              </dd>
+            ) : (
+              <dd className="font-medium text-[var(--text-primary)]">
+                {detail.name}
+              </dd>
+            )}
+          </div>
+        )}
 
         {(changedFields.includes("transaction_description") ||
           detail.transaction_description) && (
