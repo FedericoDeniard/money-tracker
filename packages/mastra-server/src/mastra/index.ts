@@ -22,6 +22,7 @@ if (supabaseDbUrl) {
 
 const storage = new PostgresStore({
   id: "mastra-storage",
+  schemaName: "ai",
   connectionString: supabaseDbUrl!,
 });
 
@@ -97,9 +98,10 @@ export const mastra = new Mastra({
 });
 
 // Schema and RLS for the mastra_* tables are owned by a Supabase migration
-// (see supabase/migrations/*_mastra_schema_and_rls.sql). The migration
-// creates all 35 tables with ENABLE ROW LEVEL SECURITY, attaches the
-// per-user policies to the 5 tables the frontend reads, and installs an
+// (see supabase/migrations/20260618010249_mastra_schema_and_rls.sql and
+// 20260625022751_move_mastra_tables_to_ai_schema.sql). The migration creates
+// all 35 tables in the `ai` schema with ENABLE ROW LEVEL SECURITY, attaches
+// the per-user policies to the 5 tables the frontend reads, and installs an
 // event trigger that auto-enables RLS on any future mastra_* table Mastra
 // may add. There is intentionally no runtime hook here: deploy order is
 // irrelevant — whichever side lands first, the tables end up locked down.
