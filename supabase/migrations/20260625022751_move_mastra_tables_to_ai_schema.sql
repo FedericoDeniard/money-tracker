@@ -51,30 +51,43 @@ grant usage on schema ai to authenticated, anon, service_role;
 -- 2. Drop the existing RLS policies on the 5 user-facing tables
 -- ----------------------------------------------------------------------------
 -- The policies are dropped by exact name (the names are stable per
--- 20260618010249_mastra_schema_and_rls.sql). If a policy is missing, the
--- `drop policy` would error and abort the migration, so we guard each
--- drop with an existence check.
+-- 20260618010249_mastra_schema_and_rls.sql). We use explicit `DROP POLICY
+-- IF EXISTS` statements instead of a `DO $$ ... pg_policies ... $$` block:
+-- the catalog read inside the DO block holds an AccessShareLock on
+-- pg_policies for the whole transaction, which deadlocks against any
+-- concurrent process (Supabase Realtime / Auth) holding locks on the
+-- user tables. Explicit per-policy statements release the catalog lock
+-- immediately and let Postgres fail fast on a single statement instead
+-- of aborting the whole block.
 
-do $$
-declare
-  pol record;
-begin
-  for pol in
-    select schemaname, tablename, policyname
-    from pg_policies
-    where schemaname = 'public'
-      and tablename in (
-        'mastra_threads',
-        'mastra_messages',
-        'mastra_resources',
-        'mastra_observational_memory',
-        'mastra_notifications'
-      )
-  loop
-    execute format('drop policy if exists %I on %I.%I',
-      pol.policyname, pol.schemaname, pol.tablename);
-  end loop;
-end $$;
+-- public.mastra_threads
+drop policy if exists "Users can read their own threads"            on public.mastra_threads;
+drop policy if exists "Users can create their own threads"          on public.mastra_threads;
+drop policy if exists "Users can update their own threads"          on public.mastra_threads;
+drop policy if exists "Users can delete their own threads"          on public.mastra_threads;
+
+-- public.mastra_messages
+drop policy if exists "Users can read messages from their own threads"     on public.mastra_messages;
+drop policy if exists "Users can insert messages into their own threads"   on public.mastra_messages;
+drop policy if exists "Users can update messages in their own threads"     on public.mastra_messages;
+drop policy if exists "Users can delete messages in their own threads"     on public.mastra_messages;
+
+-- public.mastra_resources
+drop policy if exists "Users can read their own working memory"     on public.mastra_resources;
+drop policy if exists "Users can write their own working memory"    on public.mastra_resources;
+drop policy if exists "Users can update their own working memory"   on public.mastra_resources;
+drop policy if exists "Users can delete their own working memory"   on public.mastra_resources;
+
+-- public.mastra_observational_memory
+drop policy if exists "Users can read their own observational memory"   on public.mastra_observational_memory;
+drop policy if exists "Users can write their own observational memory"  on public.mastra_observational_memory;
+drop policy if exists "Users can update their own observational memory"  on public.mastra_observational_memory;
+drop policy if exists "Users can delete their own observational memory"  on public.mastra_observational_memory;
+
+-- public.mastra_notifications
+drop policy if exists "Users can read their own notifications"   on public.mastra_notifications;
+drop policy if exists "Users can update their own notifications" on public.mastra_notifications;
+drop policy if exists "Users can delete their own notifications" on public.mastra_notifications;
 
 
 -- ----------------------------------------------------------------------------
