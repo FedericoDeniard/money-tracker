@@ -30,8 +30,11 @@ alter table public.transactions
 -- For manually created transactions, this used to be a copy of `merchant`
 -- (`utils/transactionForm.ts`), so the new `name` will equal the old card
 -- title — the user-visible result is unchanged.
+-- Some historical rows have descriptions longer than 255 characters
+-- (e.g. pasted email bodies). Truncate to fit the new column and let the
+-- user trim them later from the edit modal.
 update public.transactions
-  set name = transaction_description
+  set name = left(transaction_description, 255)
   where name is null;
 
 -- Step 3: enforce NOT NULL. Safe now because the backfill above populated
