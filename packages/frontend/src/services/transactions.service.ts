@@ -17,6 +17,7 @@ export interface Transaction extends TransactionRow {
 export type TransactionCreateInput = Pick<
   TransactionRow,
   | "transaction_type"
+  | "name"
   | "merchant"
   | "amount"
   | "currency"
@@ -158,7 +159,7 @@ export class TransactionsService {
     if (filters?.serviceName?.trim()) {
       const term = filters.serviceName.trim();
       query = query.or(
-        `merchant.ilike.%${term}%,transaction_description.ilike.%${term}%`
+        `merchant.ilike.%${term}%,transaction_description.ilike.%${term}%,name.ilike.%${term}%`
       );
     }
     if (tokenId) {
@@ -242,7 +243,7 @@ export class TransactionsService {
     if (filters?.serviceName?.trim()) {
       const term = filters.serviceName.trim();
       query = query.or(
-        `merchant.ilike.%${term}%,transaction_description.ilike.%${term}%`
+        `merchant.ilike.%${term}%,transaction_description.ilike.%${term}%,name.ilike.%${term}%`
       );
     }
 

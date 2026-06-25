@@ -92,6 +92,7 @@
     "time": "Time",
     "dateTime": "Date and Time",
     "type": "Type",
+    "name": "Name",
     "merchant": "Merchant",
     "category": "Category",
     "description": "Description",
@@ -929,6 +930,7 @@
       },
       "category": "Category",
       "date": "Date",
+      "name": "Name",
       "description": "Description",
       "approved_one": "Transaction created",
       "approved_other": "{{count}} transactions created",
@@ -967,6 +969,7 @@
       "noChanges": "No changes to show.",
       "fields": {
         "category": "Category",
+        "name": "Name",
         "merchant": "Merchant",
         "amount": "Amount",
         "currency": "Currency",

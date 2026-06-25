@@ -62,7 +62,7 @@ export function TransactionCard({
                 isSelected ? "text-white" : "text-[var(--text-primary)]"
               }`}
             >
-              {transaction.transaction_description}
+              {transaction.name}
             </h3>
             <p
               className={`text-sm truncate ${

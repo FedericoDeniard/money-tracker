@@ -115,8 +115,7 @@ export function useTransactionsRealtime() {
                       className="text-sm truncate"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      {newTransaction.merchant ||
-                        newTransaction.transaction_description}
+                      {newTransaction.merchant || newTransaction.name}
                     </p>
                   </div>
 

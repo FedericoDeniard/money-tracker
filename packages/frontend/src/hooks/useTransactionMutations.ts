@@ -183,6 +183,7 @@ export function useTransactionMutations(): UseTransactionMutationsReturn {
             currency: newTransaction.currency,
             date: newTransaction.date,
             merchant: newTransaction.merchant,
+            name: newTransaction.name,
             source_email: newTransaction.source_email,
             source_message_id: newTransaction.source_message_id,
             transaction_date: newTransaction.transaction_date,

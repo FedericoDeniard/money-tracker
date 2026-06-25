@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 
 type CreateTransactionTxn = {
   transaction_type?: "income" | "expense";
+  name?: string;
   merchant?: string;
   amount?: number;
   currency?: string;
@@ -30,6 +31,7 @@ type CreateTransactionInput = {
 type CreateTransactionOutputTxn = {
   id: string;
   transactionDate: string;
+  name: string;
   merchant: string;
   amount: number;
   currency: string;
@@ -221,6 +223,16 @@ export function CreateTransactionConfirmation({
               {current.transaction_date ?? "—"}
             </dd>
           </div>
+          {current.name && (
+            <div className="col-span-2 min-w-0">
+              <dt className="text-xs font-medium text-[var(--text-secondary)]">
+                {t("assistant.createTransaction.name")}
+              </dt>
+              <dd className="font-medium text-[var(--text-primary)]">
+                {current.name}
+              </dd>
+            </div>
+          )}
           {current.transaction_description && (
             <div className="col-span-2 min-w-0">
               <dt className="text-xs font-medium text-[var(--text-secondary)]">
@@ -279,7 +291,7 @@ export function CreateTransactionConfirmation({
 
   if (isDenied) {
     const summary = transactions
-      .flatMap(t => (t.merchant ? [t.merchant] : []))
+      .flatMap(t => [t.name, t.merchant].filter((v): v is string => !!v))
       .join(", ");
     return (
       <div
@@ -327,7 +339,7 @@ export function CreateTransactionConfirmation({
   }
 
   const summary = transactions
-    .flatMap(t => (t.merchant ? [t.merchant] : []))
+    .flatMap(t => [t.name, t.merchant].filter((v): v is string => !!v))
     .join(", ");
   return (
     <div
