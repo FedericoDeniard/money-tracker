@@ -100,6 +100,68 @@ drop function if exists public.mastra_auto_enable_rls();
 
 
 -- ----------------------------------------------------------------------------
+-- 3.5. Drop any ai.mastra_* tables the Mastra server auto-created on boot
+-- ----------------------------------------------------------------------------
+-- Race condition: if the Mastra server starts with `schemaName: 'ai'` before
+-- this migration has moved the tables out of `public`, the server's
+-- PostgresStore.init() will CREATE TABLE the mastra_* tables directly in
+-- `ai`. The subsequent SET SCHEMA below would then fail with 42P07
+-- "relation 'mastra_*' already exists in schema 'ai'".
+--
+-- We drop any auto-created `ai.mastra_*` tables here (CASCADE handles
+-- indexes, constraints, and the auto-RLS event trigger's view of them).
+-- The 20260625025110_rename_legacy_mastra_constraints migration runs
+-- after this one and renames the surviving `public_*`-prefixed
+-- constraints to the schema-correct names so Mastra's init on the next
+-- boot finds them.
+--
+-- This is destructive of any rows the auto-create populated, which is
+-- acceptable because (a) PostgresStore only writes during agent runs and
+-- (b) this migration is the canonical "first deploy of the ai schema"
+-- step.
+--
+-- We use explicit `DROP TABLE IF EXISTS` statements (not a DO block that
+-- queries pg_class) to avoid holding a catalog lock across multiple
+-- table drops, which is the same deadlock pattern that bit step 2.
+
+drop table if exists ai.mastra_threads                       cascade;
+drop table if exists ai.mastra_messages                      cascade;
+drop table if exists ai.mastra_resources                     cascade;
+drop table if exists ai.mastra_observational_memory           cascade;
+drop table if exists ai.mastra_notifications                 cascade;
+drop table if exists ai.mastra_ai_spans                      cascade;
+drop table if exists ai.mastra_scorers                       cascade;
+drop table if exists ai.mastra_scorer_definitions            cascade;
+drop table if exists ai.mastra_scorer_definition_versions    cascade;
+drop table if exists ai.mastra_prompt_blocks                 cascade;
+drop table if exists ai.mastra_prompt_block_versions         cascade;
+drop table if exists ai.mastra_agents                        cascade;
+drop table if exists ai.mastra_agent_versions                cascade;
+drop table if exists ai.mastra_mcp_clients                   cascade;
+drop table if exists ai.mastra_mcp_client_versions           cascade;
+drop table if exists ai.mastra_mcp_servers                   cascade;
+drop table if exists ai.mastra_mcp_server_versions           cascade;
+drop table if exists ai.mastra_workspaces                    cascade;
+drop table if exists ai.mastra_workspace_versions            cascade;
+drop table if exists ai.mastra_skills                        cascade;
+drop table if exists ai.mastra_skill_versions                cascade;
+drop table if exists ai.mastra_skill_blobs                   cascade;
+drop table if exists ai.mastra_tool_provider_connections     cascade;
+drop table if exists ai.mastra_workflow_snapshot             cascade;
+drop table if exists ai.mastra_datasets                      cascade;
+drop table if exists ai.mastra_dataset_items                 cascade;
+drop table if exists ai.mastra_dataset_versions              cascade;
+drop table if exists ai.mastra_experiments                   cascade;
+drop table if exists ai.mastra_experiment_results            cascade;
+drop table if exists ai.mastra_background_tasks              cascade;
+drop table if exists ai.mastra_favorites                     cascade;
+drop table if exists ai.mastra_channel_installations         cascade;
+drop table if exists ai.mastra_channel_config                cascade;
+drop table if exists ai.mastra_schedules                     cascade;
+drop table if exists ai.mastra_schedule_triggers             cascade;
+
+
+-- ----------------------------------------------------------------------------
 -- 4. Move all 35 mastra_* tables from public to ai
 -- ----------------------------------------------------------------------------
 -- `ALTER TABLE ... SET SCHEMA` is metadata-only (no row copy). The trigger
