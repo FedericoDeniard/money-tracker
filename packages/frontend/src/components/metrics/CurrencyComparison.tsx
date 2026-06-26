@@ -144,14 +144,6 @@ function CurrencyCard({
           {metrics.transactionCount} {t("metrics.transactions")}
         </span>
       </div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
-          {metrics.currency}
-        </h3>
-        <span className="text-xs font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] px-2 py-1 rounded-full border border-[var(--border)]">
-          {metrics.transactionCount} {t("metrics.transactions")}
-        </span>
-      </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
