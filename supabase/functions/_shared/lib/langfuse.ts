@@ -103,7 +103,7 @@ export async function traceOperation<T>(
 
     trace.generation({
       name: "ai-completion",
-      model: "grok-4.20-non-reasoning-latest",
+      model: Deno.env.get("XAI_MODEL") ?? "grok-4.20-non-reasoning-latest",
       input: generationInput,
       output: serializedOutput,
       startTime: operationStartTime,

@@ -45,8 +45,9 @@ function validateAndFixDate(dateString?: string): string | undefined {
   }
 }
 
-const MODEL = "grok-4.20-non-reasoning-latest";
-const FILE_FALLBACK_MODEL = "grok-4.20-reasoning-latest";
+const MODEL = Deno.env.get("XAI_MODEL") ?? "grok-4.20-non-reasoning-latest";
+const FILE_FALLBACK_MODEL =
+  Deno.env.get("XAI_FILE_FALLBACK_MODEL") ?? "grok-4.20-reasoning-latest";
 const TEMPERATURE = 0.1;
 
 function extractJsonObject(text: string): string | null {
