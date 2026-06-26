@@ -119,7 +119,8 @@ async function extractTransactionFromPdfWithXaiFile(
   emailContent: string,
   userFullName: string | undefined,
   pdfAttachments: PdfAttachmentForAiFallback[],
-  userLocale?: string
+  userLocale?: string,
+  userClarifications?: string
 ): Promise<(TransactionResponse & { usage?: unknown }) | null> {
   const apiKey = Deno.env.get("XAI_API_KEY") || "";
   if (!apiKey) {
@@ -183,7 +184,21 @@ async function extractTransactionFromPdfWithXaiFile(
 Analyze all attached PDF receipts and the email body to determine if there is a completed financial transaction.
 Email body:
 ${emailContent}
+${
+  userClarifications
+    ? `\nADDITIONAL CONTEXT FROM USER (clarifications provided before uploading the document):\n${userClarifications}\n\nThe user typed this as free-form context to help you understand what the document is about. It is NOT a verbatim instruction and you must NOT copy it into any field. Use it only to inform your decisions about the \`name\`, \`merchant\`, \`description\`, and \`category\` fields — extract the underlying meaning and write a clean, normalized value. Do not use clarifications to override \`amount\`, \`currency\`, \`type\`, or \`date\` — those must still come from the document. Still respect the "completed movement" rule and do not invent transactions that are not supported by the document itself.
 
+EXAMPLES — how to apply user clarifications:
+- Clarification: "bought 3 kilos of milanesa" → name: "Milanesas", description: "Milanesa purchase", category: "food"
+- Clarification: "this is a refund for Monday's purchase" → name: "Refund", description: "Return of previous purchase", category: "other"
+- Clarification: "dinner with friends" → name: "Dinner with friends", description: "Restaurant dinner with friends", category: "food"
+- Clarification: "gas for the trip" → name: "Gas", description: "Fuel fill-up for trip", category: "transport"
+- Clarification: "paid rent to my sister" → name: "Rent", description: "Rent payment", merchant: "Sister", category: "housing"
+- Clarification: "took the motorcycle to repair" → name: "Motorcycle repair", description: "Motorcycle service", category: "transport" (infer the category from the SUBJECT the user mentions — here, the motorcycle — not from the verb "to repair", which would default to "services")
+
+Notice the pattern: the clarification is short and conversational, but the output is a clean, normalized transaction title. The LLM extracts the topic and writes a polished, concise value. When the user names a specific subject (a vehicle, a property, a person), infer the category from that subject rather than from the action being performed.\n`
+    : ""
+}
 Return ONLY valid JSON matching this exact schema:
 {
   "hasTransaction": boolean,
@@ -300,7 +315,8 @@ export async function extractTransactionFromEmail(
   images?: ImageAttachment[],
   pdfTexts?: string[],
   pdfFallbackAttachments?: PdfAttachmentForAiFallback[],
-  userLocale?: string
+  userLocale?: string,
+  userClarifications?: string
 ): Promise<TransactionResponse> {
   // === GUARDRAIL: cheap model pre-filter ===
   const hasAttachments =
@@ -342,6 +358,20 @@ export async function extractTransactionFromEmail(
 
   if (userLocale) {
     dynamicPrompt += `\n\nIMPORTANT: Write the "reason" field in this language: ${userLocale}. Keep merchant and description in the original document language.`;
+  }
+
+  if (userClarifications) {
+    dynamicPrompt += `\n\nADDITIONAL CONTEXT FROM USER (clarifications provided before uploading the document):\n${userClarifications}\n\nThe user typed this as free-form context to help you understand what the document is about. It is NOT a verbatim instruction and you must NOT copy it into any field. Use it only to inform your decisions about the \`name\`, \`merchant\`, \`description\`, and \`category\` fields — extract the underlying meaning and write a clean, normalized value. Do not use clarifications to override \`amount\`, \`currency\`, \`type\`, or \`date\` — those must still come from the document. Still respect the "completed movement" rule and do not invent transactions that are not supported by the document itself.
+
+EXAMPLES — how to apply user clarifications:
+- Clarification: "bought 3 kilos of milanesa" → name: "Milanesas", description: "Milanesa purchase", category: "food"
+- Clarification: "this is a refund for Monday's purchase" → name: "Refund", description: "Return of previous purchase", category: "other"
+- Clarification: "dinner with friends" → name: "Dinner with friends", description: "Restaurant dinner with friends", category: "food"
+- Clarification: "gas for the trip" → name: "Gas", description: "Fuel fill-up for trip", category: "transport"
+- Clarification: "paid rent to my sister" → name: "Rent", description: "Rent payment", merchant: "Sister", category: "housing"
+- Clarification: "took the motorcycle to repair" → name: "Motorcycle repair", description: "Motorcycle service", category: "transport" (infer the category from the SUBJECT the user mentions — here, the motorcycle — not from the verb "to repair", which would default to "services")
+
+Notice the pattern: the clarification is short and conversational, but the output is a clean, normalized transaction title. The LLM extracts the topic and writes a polished, concise value. When the user names a specific subject (a vehicle, a property, a person), infer the category from that subject rather than from the action being performed.`;
   }
 
   return await traceOperation(
@@ -442,7 +472,8 @@ export async function extractTransactionFromEmail(
             emailContent,
             userFullName,
             pdfFallbackAttachments,
-            userLocale
+            userLocale,
+            userClarifications
           );
           if (fallbackResult?.hasTransaction) {
             console.log(
@@ -478,6 +509,7 @@ export async function extractTransactionFromEmail(
       fallbackPdfCount: pdfFallbackAttachments?.length || 0,
       contentLength: emailContent.length,
       hasUserContext: !!userFullName,
+      hasUserClarifications: !!userClarifications,
     }
   );
 }

@@ -37,6 +37,7 @@ export interface UploadedFileInput {
   fileName: string;
   userFullName?: string;
   userLocale?: string;
+  userClarifications?: string;
 }
 
 export type DocumentInput = GmailAttachmentInput | UploadedFileInput;
@@ -127,7 +128,14 @@ async function analyzeGmailAttachments(
 async function analyzeUploadedFile(
   input: UploadedFileInput
 ): Promise<AnalyzeDocumentResult> {
-  const { fileBytes, contentType, fileName, userFullName, userLocale } = input;
+  const {
+    fileBytes,
+    contentType,
+    fileName,
+    userFullName,
+    userLocale,
+    userClarifications,
+  } = input;
 
   const normalizedMimeType =
     contentType === "image/jpg" ? "image/jpeg" : contentType;
@@ -199,7 +207,8 @@ async function analyzeUploadedFile(
       images,
       pdfTexts,
       pdfFallbackAttachments,
-      userLocale
+      userLocale,
+      userClarifications
     );
     return { ...result, attachments };
   } catch (error) {

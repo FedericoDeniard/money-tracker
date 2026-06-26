@@ -173,6 +173,12 @@
       "clipboardEmpty": "No supported file found in clipboard.",
       "clipboardPermissionDenied": "Clipboard access was denied. Please allow paste access and try again.",
       "clipboardReadFailed": "Could not read clipboard content."
+    },
+    "clarifications": {
+      "label": "Clarifications (optional)",
+      "placeholder": "Provide extra context for the AI (e.g. installment plan, refund, currency hint, etc.)",
+      "help": "Optional context that helps the AI infer the name, merchant, description, and category. Not copied verbatim.",
+      "counter": "{{count}} / {{max}}"
     }
   },
   "metrics": {

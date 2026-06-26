@@ -13,6 +13,7 @@ const ALLOWED_TYPES = [
   "application/pdf",
 ];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_CLARIFICATIONS_LENGTH = 250;
 
 Deno.serve(async req => {
   const preflightResponse = handleCorsPreflightRequest(req);
@@ -45,6 +46,22 @@ Deno.serve(async req => {
         ?.split(";")[0]
         ?.trim() ||
       undefined;
+
+    const rawClarifications = req.headers.get("x-user-clarifications");
+    const userClarifications = rawClarifications
+      ? rawClarifications.trim().slice(0, MAX_CLARIFICATIONS_LENGTH) ||
+        undefined
+      : undefined;
+
+    if (userClarifications) {
+      console.log(
+        `[process-document] User clarifications received (${userClarifications.length} chars): ${userClarifications}`
+      );
+    } else if (rawClarifications) {
+      console.warn(
+        "[process-document] x-user-clarifications header was present but empty after trim, ignoring"
+      );
+    }
 
     const arrayBuffer = await req.arrayBuffer();
     const fileBytes = new Uint8Array(arrayBuffer);
@@ -96,6 +113,7 @@ Deno.serve(async req => {
       fileName,
       userFullName,
       userLocale,
+      userClarifications,
     });
 
     const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
