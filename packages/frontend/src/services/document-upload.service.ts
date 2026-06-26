@@ -11,7 +11,8 @@ export async function uploadDocumentForAnalysis(
   fileData: ArrayBuffer,
   fileName: string,
   fileType: string,
-  locale?: string
+  locale?: string,
+  userClarifications?: string
 ): Promise<DocumentUploadResult> {
   const [supabase, config] = await Promise.all([getSupabase(), getConfig()]);
 
@@ -33,6 +34,9 @@ export async function uploadDocumentForAnalysis(
       "Content-Type": fileType,
       "X-File-Name": fileName,
       ...(locale ? { "X-User-Locale": locale } : {}),
+      ...(userClarifications
+        ? { "X-User-Clarifications": userClarifications }
+        : {}),
     },
     body: fileData,
   });

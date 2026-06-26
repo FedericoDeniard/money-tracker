@@ -173,6 +173,12 @@
       "clipboardEmpty": "No se encontró ningún archivo compatible en el portapapeles.",
       "clipboardPermissionDenied": "Se denegó el acceso al portapapeles. Permite pegar e inténtalo nuevamente.",
       "clipboardReadFailed": "No se pudo leer el contenido del portapapeles."
+    },
+    "clarifications": {
+      "label": "Aclaraciones (opcional)",
+      "placeholder": "Agrega contexto para la IA (ej. compra en cuotas, reintegro, pista de moneda, etc.)",
+      "help": "Contexto opcional que ayuda a la IA a inferir el título, comercio, descripción y categoría. No se copia tal cual.",
+      "counter": "{{count}} / {{max}}"
     }
   },
   "metrics": {
