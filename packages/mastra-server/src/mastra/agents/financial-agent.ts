@@ -18,17 +18,22 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+const FINANCIAL_AGENT_MODEL =
+  process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ?? "google/gemma-4-31b-it";
+const THREAD_TITLE_MODEL =
+  process.env.OPENROUTER_THREAD_TITLE_MODEL ?? "google/gemini-2.5-flash-lite";
+
 export const financialAgent = new Agent({
   id: "financial-agent",
   name: "Financial Assistant",
   instructions: FINANCIAL_AGENT_INSTRUCTIONS,
-  model: openrouter("google/gemma-4-31b-it"),
+  model: openrouter(FINANCIAL_AGENT_MODEL),
   memory: new Memory({
     options: {
       lastMessages: 50,
       workingMemory: { enabled: true },
       generateTitle: {
-        model: openrouter("google/gemini-2.5-flash-lite"),
+        model: openrouter(THREAD_TITLE_MODEL),
         instructions: THREAD_TITLE_INSTRUCTIONS,
       },
     },
