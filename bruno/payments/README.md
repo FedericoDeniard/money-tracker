@@ -35,38 +35,38 @@ provider-agnostic billing webhooks. the only provider registered today is
 ## structure
 
 requests are organised by billing domain into three folders. every
-request name is jargon-free: "preapproval" (mp's term) is rendered as
-"plan" or "subscription" depending on context, so you don't need to
-know mp's api to read the sidebar.
+action verb is paired with an explicit destination so the name alone
+is unambiguous: "in MP" means it hits mercado pago's api directly,
+"in DB" means it hits our `payments.subscription_plans` table.
 
-| folder           | request                 | what it does                                                      |
-| ---------------- | ----------------------- | ----------------------------------------------------------------- |
-| `plans/`         | `create plan`           | creates a plan in mp via api. saves `{{mpPlanId}}` to the env.    |
-| `plans/`         | `list plans in mp`      | lists the plans in your mp account.                               |
-| `plans/`         | `get plan in mp`        | reads a single plan from mp by id.                                |
-| `plans/`         | `register plan`         | registers a plan in our local db (`payments.subscription_plans`). |
-| `plans/`         | `list registered plans` | lists plans in our db.                                            |
-| `plans/`         | `get registered plan`   | reads a single plan from our db.                                  |
-| `subscriptions/` | `health`                | sanity check that supabase is up.                                 |
-| `subscriptions/` | `create checkout`       | returns the plan's `initPoint` (the link the user opens to pay).  |
-| `subscriptions/` | `get subscription`      | reads a single subscription from mp.                              |
-| `subscriptions/` | `list subscriptions`    | lists subscriptions in mp.                                        |
-| `subscriptions/` | `cancel subscription`   | cancels a subscription in mp.                                     |
-| `webhooks/`      | `subscription created`  | mock: fires the "subscription created" event mp would send.       |
-| `webhooks/`      | `subscription updated`  | mock: fires the "subscription updated" event.                     |
-| `webhooks/`      | `subscription payment`  | mock: fires the "payment processed" event.                        |
-| `webhooks/`      | `invalid signature`     | mock: webhook with a tampered hmac.                               |
-| `webhooks/`      | `missing signature`     | mock: webhook with no hmac header.                                |
-| `webhooks/`      | `unknown provider`      | sanity check that the router rejects unregistered providers.      |
+| folder           | request                | what it does                                                      |
+| ---------------- | ---------------------- | ----------------------------------------------------------------- |
+| `plans/`         | `create plan in MP`    | creates a plan in mp via api. saves `{{mpPlanId}}` to the env.    |
+| `plans/`         | `list plans in MP`     | lists the plans in your mp account.                               |
+| `plans/`         | `get plan in MP`       | reads a single plan from mp by id.                                |
+| `plans/`         | `create plan in DB`    | registers a plan in our local db (`payments.subscription_plans`). |
+| `plans/`         | `list plans in DB`     | lists plans in our db.                                            |
+| `plans/`         | `get plan in DB`       | reads a single plan from our db.                                  |
+| `subscriptions/` | `health`               | sanity check that supabase is up.                                 |
+| `subscriptions/` | `create checkout`      | returns the plan's `initPoint` (the link the user opens to pay).  |
+| `subscriptions/` | `get subscription`     | reads a single subscription from mp.                              |
+| `subscriptions/` | `list subscriptions`   | lists subscriptions in mp.                                        |
+| `subscriptions/` | `cancel subscription`  | cancels a subscription in mp.                                     |
+| `webhooks/`      | `subscription created` | mock: fires the "subscription created" event mp would send.       |
+| `webhooks/`      | `subscription updated` | mock: fires the "subscription updated" event.                     |
+| `webhooks/`      | `subscription payment` | mock: fires the "payment processed" event.                        |
+| `webhooks/`      | `invalid signature`    | mock: webhook with a tampered hmac.                               |
+| `webhooks/`      | `missing signature`    | mock: webhook with no hmac header.                                |
+| `webhooks/`      | `unknown provider`     | sanity check that the router rejects unregistered providers.      |
 
 ## end-to-end flow
 
 the canonical happy path uses 4 requests from the `plans/` and
 `subscriptions/` folders. run them in order:
 
-1. `plans/create plan` → creates a plan in mp, saves `{{mpPlanId}}` in
-   the environment via the post-response script.
-2. `plans/register plan` → registers the mp plan in
+1. `plans/create plan in MP` → creates a plan in mp, saves `{{mpPlanId}}`
+   in the environment via the post-response script.
+2. `plans/create plan in DB` → registers the mp plan in
    `payments.subscription_plans` so the app knows about it. replace
    `provider_plan_id` in the body with the real id from mp (copy from
    the response of step 1).

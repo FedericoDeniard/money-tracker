@@ -1,7 +1,7 @@
 meta {
   name: list subscriptions
   type: http
-  seq: 4
+  seq: 3
 }
 
 get {
@@ -10,7 +10,7 @@ get {
   auth: bearer
 }
 
-query {
+params:query {
   status: authorized
   limit: 10
 }
@@ -19,14 +19,14 @@ auth:bearer {
   token: {{mpAccessToken}}
 }
 
-docs {
-  lists recent subscriptions in the test seller's account. useful to
-  confirm that a real subscription ended up in MP before checking the
-  webhook. the url hits MP's `/preapproval/search` endpoint.
-}
-
 tests {
   test("status is 200", function() {
     expect(res.getStatus()).to.equal(200);
   });
+}
+
+docs {
+  lists recent subscriptions in the test seller's account. useful to
+  confirm that a real subscription ended up in MP before checking the
+  webhook. the url hits MP's `/preapproval/search` endpoint.
 }

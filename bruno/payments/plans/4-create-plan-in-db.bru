@@ -1,0 +1,62 @@
+meta {
+  name: create plan in DB
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/subscription_plans
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{supabaseAnonKey}}
+  Content-Type: application/json
+  Prefer: return=representation
+}
+
+body:json {
+  {
+    "plan_key": "pro_monthly",
+    "display_name": "Pro Mensual",
+    "internal_tier": "pro",
+    "provider": "mercadopago",
+    "provider_plan_id": "REPLACE_WITH_REAL_MP_PLAN_ID",
+    "amount": 15000,
+    "currency": "ARS",
+    "frequency": 1,
+    "frequency_type": "months",
+    "trial_days": 0,
+    "is_active": true
+  }
+}
+
+docs {
+  registers a plan in the `payments.subscription_plans` table. replace
+  `provider_plan_id` with the id from a real plan created via
+  `create plan in MP` (the body of the response from mp contains the
+  `id` field).
+
+  rls: anon key bypasses rls in this local stack, so the insert works
+  directly. in hosted supabase the insert would have to go through
+  service_role (e.g. an admin edge function) because rls would block
+  anon-key writes.
+
+  the `Prefer: return=representation` header makes postgrest return
+  the inserted row in the response body so the test can assert on
+  plan_key and id without a follow-up select.
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  test("response has the inserted plan_key", function() {
+    expect(res.getBody()).to.have.property("plan_key", "pro_monthly");
+  });
+  test("response has a uuid id", function() {
+    expect(res.getBody()).to.have.property("id").that.matches(/^[0-9a-f-]{36}$/);
+  });
+}

@@ -21,8 +21,8 @@ auth:bearer {
 
 docs {
   lists the plans in your MP account. useful to confirm that
-  `create plan` actually created a plan in MP before registering it in
-  our db via `register plan`.
+  `create plan in MP` actually created a plan in MP before registering
+  it in our db via `create plan in DB`.
 
   query params are mp-native. the most useful are:
     - status:    'active' | 'cancelled' | all (omit to return everything)
@@ -35,7 +35,7 @@ docs {
   support. start with `status=active&limit=10` and add more as needed.
 
   note: the url hits MP's `/preapproval_plan/search` endpoint — same
-  "preapproval = subscription" mapping as in `create plan`.
+  "preapproval = subscription" mapping as in `create plan in MP`.
 }
 
 tests {
