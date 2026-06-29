@@ -1,0 +1,22 @@
+meta {
+  name: 2. health
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/functions/v1/health
+  body: none
+  auth: none
+}
+
+docs {
+  sanity check that the base url is reachable. the health edge function is
+  already deployed in this project and accepts unauthenticated GETs.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

@@ -1,0 +1,31 @@
+meta {
+  name: 11. search preapprovals
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{mpApiUrl}}/preapproval/search
+  body: none
+  auth: bearer
+}
+
+query {
+  status: authorized
+  limit: 10
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+docs {
+  lists recent preapprovals in the test seller's account. useful to confirm
+  that a real create-subscription ended up in MP before checking the webhook.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

@@ -1,0 +1,28 @@
+meta {
+  name: 10. get preapproval
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{mpApiUrl}}/preapproval/{{preapprovalId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+docs {
+  raw MP API call. replace preapprovalId with a real id from the
+  create-subscription response. confirms the access token is valid and
+  fetches the current state.
+}
+
+tests {
+  test("status is 200 or 404", function() {
+    const status = res.getStatus();
+    expect([200, 404]).to.include(status);
+  });
+}

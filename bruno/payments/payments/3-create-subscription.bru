@@ -1,0 +1,54 @@
+meta {
+  name: 3. create-subscription (mp)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/functions/v1/create-subscription
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{internalSecret}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "provider": "mercadopago",
+    "plan_id": "{{mpPlanId}}"
+  }
+}
+
+docs {
+  plan-based flow. the edge function reads the plan_id from the body
+  (saved by `1. create-plan` post-response script) and returns that
+  plan's init_point. copy initPoint from the response and open it in
+  a browser logged in as the test_comprador to complete the test
+  payment (test card 4509 9535 6623 3704 / CVV 123 / vto 12/30 / doc
+  12345678).
+
+  for the standalone preapproval flow, add payer_email + reason +
+  transaction_amount + frequency + frequency_type + currency_id to the
+  body. (this hits POST /preapproval and is rejected with 500 on this
+  seller account - use the plan flow.)
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("returns providerSubscriptionId and initPoint", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("providerSubscriptionId").that.is.a("string");
+    expect(body).to.have.property("initPoint").that.is.a("string");
+  });
+  test("mode is plan", function() {
+    expect(res.getBody()).to.have.property("mode", "plan");
+  });
+}

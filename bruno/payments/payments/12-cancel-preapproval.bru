@@ -1,0 +1,37 @@
+meta {
+  name: 12. cancel preapproval
+  type: http
+  seq: 12
+}
+
+put {
+  url: {{mpApiUrl}}/preapproval/{{preapprovalId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "status": "cancelled"
+  }
+}
+
+docs {
+  cancels a preapproval. replace preapprovalId with a real id. after this,
+  MP should dispatch a subscription_preapproval.updated webhook (action:
+  preapproval.updated, status: cancelled) to payments-webhook.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
