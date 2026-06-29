@@ -1,0 +1,44 @@
+meta {
+  name: get plan in MP
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{mpApiUrl}}/preapproval_plan/{{preapprovalPlanId}}
+  body: none
+  auth: bearer
+}
+
+query {
+  _explicit_vars: 1
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+vars:pre-request {
+  preapprovalPlanId: eddf7827ed744dde95c1b4d9e1f6d9d1
+}
+
+docs {
+  fetches a single plan from MP. the var name is `preapprovalPlanId`
+  because that's the mp api field name. the default value
+  (`eddf7827ed744dde95c1b4d9e1f6d9d1`) is the plan we created during
+  the alpha test. to use a different plan, change the `preapprovalPlanId`
+  value in the vars tab (you can copy the id from the response of
+  `create plan` or `list plans in MP`).
+}
+
+tests {
+  test("status is 200 or 404", function() {
+    const status = res.getStatus();
+    expect([200, 404]).to.include(status);
+  });
+  test("response has a plan id when 200", function() {
+    if (res.getStatus() === 200) {
+      expect(res.getBody()).to.have.property("id").that.is.a("string");
+    }
+  });
+}

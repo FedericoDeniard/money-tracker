@@ -1,7 +1,7 @@
 meta {
-  name: 7. webhook invalid signature
+  name: subscription updated
   type: http
-  seq: 7
+  seq: 2
 }
 
 post {
@@ -20,7 +20,11 @@ body:json {
   {
     "id": "{{preapprovalId}}",
     "type": "subscription_preapproval",
-    "action": "preapproval.created",
+    "action": "preapproval.updated",
+    "date_created": "2026-06-28T15:30:00.000-04:00",
+    "user_id": 123456789,
+    "api_version": "v1",
+    "live_mode": false,
     "data": { "id": "{{preapprovalId}}" }
   }
 }
@@ -31,26 +35,21 @@ script:pre-request {
   const requestId = crypto.randomUUID();
   const dataId = bru.getEnvVar("preapprovalId");
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-  let hmac = crypto.createHmac("sha256", bru.getEnvVar("webhookSecret"))
+  const hmac = crypto.createHmac("sha256", bru.getEnvVar("webhookSecret"))
     .update(manifest)
     .digest("hex");
-  // intentionally corrupt the last 8 hex chars
-  hmac = hmac.slice(0, hmac.length - 8) + "deadbeef";
   bru.setVar("_mpSignature", `ts=${ts},v1=${hmac}`);
   bru.setVar("_mpRequestId", requestId);
 }
 
 docs {
-  same payload as #4 but with a corrupted signature. expected behavior:
-   - in MP_ENVIRONMENT=test: edge function responds 200, persists the event
-     with processing_status: rejected_signature (audit-only).
-   - in MP_ENVIRONMENT=production: edge function responds 401.
-  switch environments and re-run to confirm both paths.
+  same payload shape as `subscription created` but with
+  `action=preapproval.updated`. the edge function maps it to
+  NormalizedWebhookTopic "subscription.updated".
 }
 
 tests {
-  test("status is 200 in test env or 401 in production", function() {
-    const status = res.getStatus();
-    expect([200, 401]).to.include(status);
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
   });
 }

@@ -1,7 +1,7 @@
 meta {
-  name: 12. cancel preapproval
+  name: cancel subscription
   type: http
-  seq: 12
+  seq: 5
 }
 
 put {
@@ -25,9 +25,10 @@ body:json {
 }
 
 docs {
-  cancels a preapproval. replace preapprovalId with a real id. after this,
-  MP should dispatch a subscription_preapproval.updated webhook (action:
-  preapproval.updated, status: cancelled) to payments-webhook.
+  cancels a subscription. the var name is `preapprovalId` because
+  that's the MP api field name. replace it with a real id. after this,
+  MP should dispatch a `subscription updated` webhook to payments-webhook
+  (visible in `webhooks/subscription updated` mock).
 }
 
 tests {

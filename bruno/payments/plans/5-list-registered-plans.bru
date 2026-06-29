@@ -1,0 +1,34 @@
+meta {
+  name: list registered plans
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/subscription_plans?select=*&order=plan_key
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{supabaseAnonKey}}
+}
+
+docs {
+  reads the `payments.subscription_plans` table via postgrest. returns
+  every row ordered by plan_key. anon key is sufficient because the rls
+  policy "authenticated users can read active plans" filters by
+  is_active = true when used with a real authenticated jwt; with the
+  anon key postgrest bypasses the policy and returns all rows so we
+  can also see plans that are temporarily inactive during testing.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("response is an array", function() {
+    expect(res.getBody()).to.be.an("array");
+  });
+}

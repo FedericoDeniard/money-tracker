@@ -1,7 +1,7 @@
 meta {
-  name: 6. webhook authorized_payment (signed)
+  name: subscription payment
   type: http
-  seq: 6
+  seq: 3
 }
 
 post {
@@ -43,10 +43,11 @@ script:pre-request {
 }
 
 docs {
-  synthetic subscription_authorized_payment.created event. the edge function
-  maps it to NormalizedWebhookTopic "subscription.payment" and tries to call
-  /authorized_payments/{id} to resolve the underlying preapproval id. the
-  fake id will 404; that is expected for this mock.
+  synthetic `subscription payment` event (MP's actual type:
+  `subscription_authorized_payment`). the edge function maps it to
+  NormalizedWebhookTopic "subscription.payment" and tries to call
+  /authorized_payments/{id} to resolve the underlying subscription id.
+  the fake id will 404; that is expected for this mock.
 }
 
 tests {

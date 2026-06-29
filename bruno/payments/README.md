@@ -14,7 +14,7 @@ provider-agnostic billing webhooks. the only provider registered today is
 
 ## running locally
 
-1. `bun docker:up` (supabase + edge functions)
+1. `supabase start` (supabase + edge functions)
 2. fill in `bruno/payments/environments/local.bru`:
    - `mpAccessToken`: your APP_USR- test token from
      https://www.mercadopago.com.ar/developers/panel/app
@@ -32,29 +32,68 @@ provider-agnostic billing webhooks. the only provider registered today is
 - approved: 4509 9535 6623 3704, cvv 123, exp 12/30, doc 12345678
 - rejected: 5031 7557 3253 2671
 
+## structure
+
+requests are organised by billing domain into three folders. every
+request name is jargon-free: "preapproval" (mp's term) is rendered as
+"plan" or "subscription" depending on context, so you don't need to
+know mp's api to read the sidebar.
+
+| folder           | request                 | what it does                                                      |
+| ---------------- | ----------------------- | ----------------------------------------------------------------- |
+| `plans/`         | `create plan`           | creates a plan in mp via api. saves `{{mpPlanId}}` to the env.    |
+| `plans/`         | `list plans in mp`      | lists the plans in your mp account.                               |
+| `plans/`         | `get plan in mp`        | reads a single plan from mp by id.                                |
+| `plans/`         | `register plan`         | registers a plan in our local db (`payments.subscription_plans`). |
+| `plans/`         | `list registered plans` | lists plans in our db.                                            |
+| `plans/`         | `get registered plan`   | reads a single plan from our db.                                  |
+| `subscriptions/` | `health`                | sanity check that supabase is up.                                 |
+| `subscriptions/` | `create checkout`       | returns the plan's `initPoint` (the link the user opens to pay).  |
+| `subscriptions/` | `get subscription`      | reads a single subscription from mp.                              |
+| `subscriptions/` | `list subscriptions`    | lists subscriptions in mp.                                        |
+| `subscriptions/` | `cancel subscription`   | cancels a subscription in mp.                                     |
+| `webhooks/`      | `subscription created`  | mock: fires the "subscription created" event mp would send.       |
+| `webhooks/`      | `subscription updated`  | mock: fires the "subscription updated" event.                     |
+| `webhooks/`      | `subscription payment`  | mock: fires the "payment processed" event.                        |
+| `webhooks/`      | `invalid signature`     | mock: webhook with a tampered hmac.                               |
+| `webhooks/`      | `missing signature`     | mock: webhook with no hmac header.                                |
+| `webhooks/`      | `unknown provider`      | sanity check that the router rejects unregistered providers.      |
+
 ## end-to-end flow
 
-1. `2-create-subscription.bru` → copy `initPoint` from the response
-2. open `initPoint` in a browser logged in as the test_comprador
-3. pay with the approved test card
-4. wait ~5-10s for the webhook to land, then query:
+the canonical happy path uses 4 requests from the `plans/` and
+`subscriptions/` folders. run them in order:
 
-   ```sql
-   select provider, provider_subscription_id, status, mp_payer_email,
-          transaction_amount, currency_id
-     from subscriptions
-    order by updated_at desc
-    limit 1;
+1. `plans/create plan` → creates a plan in mp, saves `{{mpPlanId}}` in
+   the environment via the post-response script.
+2. `plans/register plan` → registers the mp plan in
+   `payments.subscription_plans` so the app knows about it. replace
+   `provider_plan_id` in the body with the real id from mp (copy from
+   the response of step 1).
+3. `subscriptions/create checkout` → returns the plan's `initPoint`.
+   copy it.
+4. open `initPoint` in a browser logged in as the test_comprador, pay
+   with the approved test card. ~5-10s later, the webhook lands and
+   `payments.subscriptions` is upserted with `status = 'authorized'`.
+5. `subscriptions/cancel subscription` (optional) → cancels a
+   subscription; mp dispatches another webhook with
+   `action=preapproval.updated, status=cancelled`.
 
-   select provider, topic, action, signature_valid, processing_status,
-          received_at
-     from subscription_events
-    order by received_at desc
-    limit 5;
-   ```
+verify the result in the db:
 
-5. `11-cancel-preapproval.bru` to trigger another webhook with
-   action=preapproval.updated, status=cancelled.
+```sql
+select provider, provider_subscription_id, status, reason, mp_payer_email,
+       transaction_amount, currency_id, updated_at
+  from payments.subscriptions
+ order by updated_at desc
+ limit 1;
+
+select provider, topic, action, signature_valid, processing_status,
+       received_at
+  from payments.subscription_events
+ order by received_at desc
+ limit 5;
+```
 
 ## adding a new provider
 
@@ -63,7 +102,7 @@ provider-agnostic billing webhooks. the only provider registered today is
 - register it in `_shared/lib/payments/index.ts`.
 - extend the enum:
   ```sql
-  alter type public.provider_name add value 'stripe';
+  alter type payments.provider_name add value 'stripe';
   ```
 - point the new provider's webhook url at
   `${baseUrl}/functions/v1/payments-webhook/<provider>`.

@@ -1,5 +1,5 @@
 meta {
-  name: 1. create-plan (mp)
+  name: create plan
   type: http
   seq: 1
 }
@@ -61,16 +61,19 @@ tests {
 }
 
 docs {
-  creates a new preapproval plan directly against the MP API. the
-  response body includes a fresh `id` (the plan id) and `init_point`
-  (the public checkout url). the post-response script captures `id`
-  into the env var `mpPlanId` so subsequent requests can use
-  `{{mpPlanId}}` to reference the new plan without editing files.
-  
+  creates a new plan in MP via the API. the response body includes a
+  fresh `id` (the plan id) and `init_point` (the public checkout url
+  the user opens to pay). the post-response script captures `id` into
+  the env var `mpPlanId` so subsequent requests can use `{{mpPlanId}}`
+  to reference the new plan without editing files.
+
   why this exists: it lets the entire flow live in bruno. after
-  running this, `3. create-subscription` automatically picks up the
-  new plan id from the env var.
-  
+  running this, `subscriptions/create checkout` automatically picks up
+  the new plan id from the env var.
+
   run this once per seller (the plan persists in MP). re-running
   creates a new plan and overwrites mpPlanId in memory.
+
+  note: the url hits MP's `/preapproval_plan` endpoint — "preapproval"
+  is MP's term for subscription. our equivalent concept is "plan".
 }

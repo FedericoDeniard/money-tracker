@@ -1,0 +1,56 @@
+meta {
+  name: invalid signature
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/functions/v1/payments-webhook/mercadopago
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  x-signature: {{_mpSignature}}
+  x-request-id: {{_mpRequestId}}
+}
+
+body:json {
+  {
+    "id": "{{preapprovalId}}",
+    "type": "subscription_preapproval",
+    "action": "preapproval.created",
+    "data": { "id": "{{preapprovalId}}" }
+  }
+}
+
+script:pre-request {
+  const crypto = require("crypto");
+  const ts = Math.floor(Date.now() / 1000);
+  const requestId = crypto.randomUUID();
+  const dataId = bru.getEnvVar("preapprovalId");
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  let hmac = crypto.createHmac("sha256", bru.getEnvVar("webhookSecret"))
+    .update(manifest)
+    .digest("hex");
+  // intentionally corrupt the last 8 hex chars
+  hmac = hmac.slice(0, hmac.length - 8) + "deadbeef";
+  bru.setVar("_mpSignature", `ts=${ts},v1=${hmac}`);
+  bru.setVar("_mpRequestId", requestId);
+}
+
+docs {
+  same payload as #4 but with a corrupted signature. expected behavior:
+   - in MP_ENVIRONMENT=test: edge function responds 200, persists the event
+     with processing_status: rejected_signature (audit-only).
+   - in MP_ENVIRONMENT=production: edge function responds 401.
+  switch environments and re-run to confirm both paths.
+}
+
+tests {
+  test("status is 200 in test env or 401 in production", function() {
+    const status = res.getStatus();
+    expect([200, 401]).to.include(status);
+  });
+}

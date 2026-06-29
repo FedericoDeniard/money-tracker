@@ -1,7 +1,7 @@
 meta {
-  name: 11. search preapprovals
+  name: list subscriptions
   type: http
-  seq: 11
+  seq: 4
 }
 
 get {
@@ -20,8 +20,9 @@ auth:bearer {
 }
 
 docs {
-  lists recent preapprovals in the test seller's account. useful to confirm
-  that a real create-subscription ended up in MP before checking the webhook.
+  lists recent subscriptions in the test seller's account. useful to
+  confirm that a real subscription ended up in MP before checking the
+  webhook. the url hits MP's `/preapproval/search` endpoint.
 }
 
 tests {

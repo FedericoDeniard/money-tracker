@@ -1,7 +1,7 @@
 meta {
-  name: 5. webhook preapproval updated (signed)
+  name: subscription created
   type: http
-  seq: 5
+  seq: 1
 }
 
 post {
@@ -20,7 +20,7 @@ body:json {
   {
     "id": "{{preapprovalId}}",
     "type": "subscription_preapproval",
-    "action": "preapproval.updated",
+    "action": "preapproval.created",
     "date_created": "2026-06-28T15:30:00.000-04:00",
     "user_id": 123456789,
     "api_version": "v1",
@@ -40,15 +40,31 @@ script:pre-request {
     .digest("hex");
   bru.setVar("_mpSignature", `ts=${ts},v1=${hmac}`);
   bru.setVar("_mpRequestId", requestId);
+  console.log("[mp-webhook mock] manifest:", manifest);
+  console.log("[mp-webhook mock] signature:", `ts=${ts},v1=${hmac}`);
 }
 
 docs {
-  same as #4 but action=preapproval.updated. the edge function maps it to
-  NormalizedWebhookTopic "subscription.updated".
+  fires a synthetic `subscription created` webhook with a valid HMAC
+  signature. the payload's `type` and `action` are MP's actual values
+  (`subscription_preapproval` / `preapproval.created`) — we keep them
+  verbatim in the body because that's what MP really sends, but the
+  request's display name uses our jargon-free terminology.
+
+  the edge function should:
+   1. verify signature -> valid
+   2. insert into payments.subscription_events (processing_status: received)
+   3. call MP GET /preapproval/{id} (will 404 with the fake id and the
+      event will be marked processing_status: error; that is expected -
+      the goal is to validate the signature + parsing path, not to upsert
+      against a real subscription).
 }
 
 tests {
   test("status is 200", function() {
     expect(res.getStatus()).to.equal(200);
+  });
+  test("body reports received: true", function() {
+    expect(res.getBody()).to.have.property("received", true);
   });
 }

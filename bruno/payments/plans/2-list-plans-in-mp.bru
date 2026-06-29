@@ -1,0 +1,50 @@
+meta {
+  name: list plans in MP
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{mpApiUrl}}/preapproval_plan/search
+  body: none
+  auth: bearer
+}
+
+query {
+  status: active
+  limit: 10
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+docs {
+  lists the plans in your MP account. useful to confirm that
+  `create plan` actually created a plan in MP before registering it in
+  our db via `register plan`.
+
+  query params are mp-native. the most useful are:
+    - status:    'active' | 'cancelled' | all (omit to return everything)
+    - limit:     1..50
+    - offset:    for pagination
+    - sort:      field name, e.g. 'date_created'
+    - criteria:  'reason' for filtering by reason substring (legacy)
+
+  note: mp may return a 400 if you combine filters in ways it does not
+  support. start with `status=active&limit=10` and add more as needed.
+
+  note: the url hits MP's `/preapproval_plan/search` endpoint — same
+  "preapproval = subscription" mapping as in `create plan`.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("response has results array and paging", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("results").that.is.an("array");
+    expect(body).to.have.property("paging");
+  });
+}
