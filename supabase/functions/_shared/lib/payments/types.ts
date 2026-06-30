@@ -28,6 +28,38 @@ export interface CreateSubscriptionResult {
   status: string;
 }
 
+// partial update of a plan. every field is optional; the provider applies
+// a partial-update semantics where omitted fields are left untouched. the
+// caller is responsible for keeping any local mirror (e.g.
+// payments.subscription_plans) in sync after a successful call.
+export interface UpdatePlanInput {
+  reason?: string;
+  transactionAmount?: number;
+  currencyId?: string;
+  frequency?: number;
+  frequencyType?: "months" | "days";
+  // mapped to the provider's free-trial field. only set if > 0.
+  trialDays?: number;
+  backUrl?: string;
+}
+
+export interface PlanDetails {
+  id: string;
+  status: string;
+  reason: string | null;
+  // the full auto_recurring block as returned by the provider. we keep it
+  // untyped because the schema varies per provider (mp nests frequency /
+  // amount / currency inside auto_recurring; stripe uses price_data
+  // with a different shape). callers that need specific fields should
+  // cast or destructure with care.
+  autoRecurring: unknown;
+  backUrl: string | null;
+  initPoint: string | null;
+  dateCreated: string | null;
+  lastModified: string | null;
+  raw: unknown;
+}
+
 export interface SubscriptionDetails {
   providerSubscriptionId: string;
   status: string;
@@ -90,6 +122,13 @@ export interface PaymentProvider {
   // plans and create-subscription hands back the plan's checkout url
   // instead of creating a brand-new preapproval each time.
   getPlan(planId: string): Promise<{ id: string; initPoint: string } | null>;
+  // partial update of a plan. returns the updated plan, or null if the
+  // provider could not find it (typically 404). throws on any other
+  // provider-side error (400, 401, 500) or on an empty input.
+  updatePlan(
+    planId: string,
+    input: UpdatePlanInput
+  ): Promise<PlanDetails | null>;
   verifyWebhookSignature(
     req: Request,
     rawBody: string

@@ -93,3 +93,26 @@ export const authorizedPaymentResponseSchema = z.object({
 export type AuthorizedPaymentResponse = z.infer<
   typeof authorizedPaymentResponseSchema
 >;
+
+// ─── update preapproval plan response (PUT /preapproval_plan/{id}) ────────
+// the response shape mirrors the create-preapproval-plan response plus a
+// `last_modified` timestamp. we only validate the fields the caller reads
+// directly; the rest is exposed via the `raw` field for forense.
+export const updatePreapprovalPlanResponseSchema = z.object({
+  id: z.string(),
+  application_id: z.number().optional(),
+  collector_id: z.number().optional(),
+  status: z.string(),
+  reason: z.string().optional().nullable(),
+  auto_recurring: z.unknown().optional().nullable(),
+  payment_methods_allowed: z.unknown().optional().nullable(),
+  back_url: z.string().optional().nullable(),
+  external_reference: z.string().optional().nullable(),
+  init_point: z.string().optional(),
+  date_created: z.string().optional(),
+  last_modified: z.string().optional(),
+});
+
+export type UpdatePreapprovalPlanResponse = z.infer<
+  typeof updatePreapprovalPlanResponseSchema
+>;

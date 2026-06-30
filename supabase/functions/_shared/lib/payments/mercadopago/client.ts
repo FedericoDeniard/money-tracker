@@ -9,7 +9,9 @@ import type {
   CreateSubscriptionResult,
   NormalizedWebhookEvent,
   PaymentProvider,
+  PlanDetails,
   SubscriptionDetails,
+  UpdatePlanInput,
   WebhookVerification,
 } from "../types.ts";
 import { getMPConfig } from "./config.ts";
@@ -19,6 +21,7 @@ import {
   preapprovalResponseSchema,
   preapprovalWebhookSchema,
   authorizedPaymentWebhookSchema,
+  updatePreapprovalPlanResponseSchema,
   type AuthorizedPaymentResponse,
 } from "./types.ts";
 import { verifyMPWebhookSignature } from "./webhook.ts";
@@ -134,6 +137,92 @@ export class MercadoPagoProvider implements PaymentProvider {
     const json = (await response.json()) as { id: string; init_point?: string };
     if (!json.init_point) return null;
     return { id: json.id, initPoint: json.init_point };
+  }
+
+  // partial update of a preapproval plan. every input field is optional;
+  // omitted fields are left untouched by the provider. throws on empty
+  // input (no fields to update) and on any non-2xx response other than 404.
+  //
+  // the caller is responsible for keeping any local mirror in sync
+  // (e.g. payments.subscription_plans) after a successful call. MP does
+  // NOT fire a webhook for plan updates, so the only way to refresh
+  // a cached plan is to call getPlan() after this.
+  async updatePlan(
+    planId: string,
+    input: UpdatePlanInput
+  ): Promise<PlanDetails | null> {
+    const config = getMPConfig();
+
+    // build the request body. only include fields that the caller set;
+    // a missing key signals 'do not change' to MP.
+    const body: Record<string, unknown> = {};
+    if (input.reason !== undefined) body.reason = input.reason;
+    if (input.backUrl !== undefined) body.back_url = input.backUrl;
+
+    const hasAutoRecurringField =
+      input.transactionAmount !== undefined ||
+      input.currencyId !== undefined ||
+      input.frequency !== undefined ||
+      input.frequencyType !== undefined ||
+      input.trialDays !== undefined;
+    if (hasAutoRecurringField) {
+      const ar: Record<string, unknown> = {};
+      if (input.frequency !== undefined) ar.frequency = input.frequency;
+      if (input.frequencyType !== undefined) {
+        ar.frequency_type = input.frequencyType;
+      }
+      if (input.transactionAmount !== undefined) {
+        ar.transaction_amount = input.transactionAmount;
+      }
+      if (input.currencyId !== undefined) ar.currency_id = input.currencyId;
+      // map trialDays to mp's free_trial block. only meaningful if > 0.
+      if (input.trialDays !== undefined && input.trialDays > 0) {
+        ar.free_trial = {
+          frequency: input.trialDays,
+          frequency_type: "days",
+        };
+      }
+      body.auto_recurring = ar;
+    }
+
+    if (Object.keys(body).length === 0) {
+      throw new Error(
+        "updatePlan called with no fields to update (all input fields are undefined)"
+      );
+    }
+
+    const response = await fetch(
+      `${MP_API_BASE}/preapproval_plan/${encodeURIComponent(planId)}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${config.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`MP updatePlan failed (${response.status}): ${text}`);
+    }
+
+    const json = await response.json();
+    const parsed = updatePreapprovalPlanResponseSchema.parse(json);
+
+    return {
+      id: parsed.id,
+      status: parsed.status,
+      reason: parsed.reason ?? null,
+      autoRecurring: parsed.auto_recurring ?? null,
+      backUrl: parsed.back_url ?? null,
+      initPoint: parsed.init_point ?? null,
+      dateCreated: parsed.date_created ?? null,
+      lastModified: parsed.last_modified ?? null,
+      raw: json,
+    };
   }
 
   // not part of the PaymentProvider contract yet. used by the webhook router

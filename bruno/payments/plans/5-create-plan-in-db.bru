@@ -1,7 +1,7 @@
 meta {
-  name: register plan
+  name: create plan in DB
   type: http
-  seq: 4
+  seq: 5
 }
 
 post {
@@ -36,8 +36,8 @@ body:json {
 docs {
   registers a plan in the `payments.subscription_plans` table. replace
   `provider_plan_id` with the id from a real plan created via
-  `create plan` (the body of the response from mp contains the `id`
-  field).
+  `create plan in MP` (the body of the response from mp contains the
+  `id` field).
 
   rls: anon key bypasses rls in this local stack, so the insert works
   directly. in hosted supabase the insert would have to go through

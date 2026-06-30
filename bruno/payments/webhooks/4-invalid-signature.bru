@@ -41,7 +41,8 @@ script:pre-request {
 }
 
 docs {
-  same payload as #4 but with a corrupted signature. expected behavior:
+  same payload as `subscription created` but with a corrupted
+  signature. expected behavior:
    - in MP_ENVIRONMENT=test: edge function responds 200, persists the event
      with processing_status: rejected_signature (audit-only).
    - in MP_ENVIRONMENT=production: edge function responds 401.

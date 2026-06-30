@@ -39,25 +39,26 @@ action verb is paired with an explicit destination so the name alone
 is unambiguous: "in MP" means it hits mercado pago's api directly,
 "in DB" means it hits our `payments.subscription_plans` table.
 
-| folder           | request                | what it does                                                      |
-| ---------------- | ---------------------- | ----------------------------------------------------------------- |
-| `plans/`         | `create plan in MP`    | creates a plan in mp via api. saves `{{mpPlanId}}` to the env.    |
-| `plans/`         | `list plans in MP`     | lists the plans in your mp account.                               |
-| `plans/`         | `get plan in MP`       | reads a single plan from mp by id.                                |
-| `plans/`         | `create plan in DB`    | registers a plan in our local db (`payments.subscription_plans`). |
-| `plans/`         | `list plans in DB`     | lists plans in our db.                                            |
-| `plans/`         | `get plan in DB`       | reads a single plan from our db.                                  |
-| `subscriptions/` | `health`               | sanity check that supabase is up.                                 |
-| `subscriptions/` | `create checkout`      | returns the plan's `initPoint` (the link the user opens to pay).  |
-| `subscriptions/` | `get subscription`     | reads a single subscription from mp.                              |
-| `subscriptions/` | `list subscriptions`   | lists subscriptions in mp.                                        |
-| `subscriptions/` | `cancel subscription`  | cancels a subscription in mp.                                     |
-| `webhooks/`      | `subscription created` | mock: fires the "subscription created" event mp would send.       |
-| `webhooks/`      | `subscription updated` | mock: fires the "subscription updated" event.                     |
-| `webhooks/`      | `subscription payment` | mock: fires the "payment processed" event.                        |
-| `webhooks/`      | `invalid signature`    | mock: webhook with a tampered hmac.                               |
-| `webhooks/`      | `missing signature`    | mock: webhook with no hmac header.                                |
-| `webhooks/`      | `unknown provider`     | sanity check that the router rejects unregistered providers.      |
+| folder           | request                | what it does                                                                                                                                         |
+| ---------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plans/`         | `create plan in MP`    | creates a plan in mp via api. saves `{{mpPlanId}}` to the env.                                                                                       |
+| `plans/`         | `list plans in MP`     | lists the plans in your mp account.                                                                                                                  |
+| `plans/`         | `get plan in MP`       | reads a single plan from mp by id.                                                                                                                   |
+| `plans/`         | `update plan in MP`    | partial update of a plan in mp. body may include `reason`, `back_url`, and any subset of `auto_recurring` (frequency, amount, currency, free_trial). |
+| `plans/`         | `create plan in DB`    | registers a plan in our local db (`payments.subscription_plans`).                                                                                    |
+| `plans/`         | `list plans in DB`     | lists plans in our db.                                                                                                                               |
+| `plans/`         | `get plan in DB`       | reads a single plan from our db.                                                                                                                     |
+| `subscriptions/` | `health`               | sanity check that supabase is up.                                                                                                                    |
+| `subscriptions/` | `create checkout`      | returns the plan's `initPoint` (the link the user opens to pay).                                                                                     |
+| `subscriptions/` | `get subscription`     | reads a single subscription from mp.                                                                                                                 |
+| `subscriptions/` | `list subscriptions`   | lists subscriptions in mp.                                                                                                                           |
+| `subscriptions/` | `cancel subscription`  | cancels a subscription in mp.                                                                                                                        |
+| `webhooks/`      | `subscription created` | mock: fires the "subscription created" event mp would send.                                                                                          |
+| `webhooks/`      | `subscription updated` | mock: fires the "subscription updated" event.                                                                                                        |
+| `webhooks/`      | `subscription payment` | mock: fires the "payment processed" event.                                                                                                           |
+| `webhooks/`      | `invalid signature`    | mock: webhook with a tampered hmac.                                                                                                                  |
+| `webhooks/`      | `missing signature`    | mock: webhook with no hmac header.                                                                                                                   |
+| `webhooks/`      | `unknown provider`     | sanity check that the router rejects unregistered providers.                                                                                         |
 
 ## end-to-end flow
 
