@@ -1,18 +1,19 @@
 meta {
   name: get plan in DB
   type: http
-  seq: 7
+  seq: 10
 }
 
 get {
-  url: {{baseUrl}}/rest/v1/subscription_plans?select=*&id=eq.{{planId}}
+  url: {{baseUrl}}/rest/v1/plans?select=*&id=eq.{{planId}}
   body: none
   auth: none
 }
 
 headers {
   apikey: {{supabaseAnonKey}}
-  Authorization: Bearer {{supabaseAnonKey}}
+  Authorization: Bearer {{userJwt}}
+  Accept-Profile: payments
 }
 
 vars:pre-request {
@@ -20,14 +21,16 @@ vars:pre-request {
 }
 
 docs {
-  fetches a single row from `payments.subscription_plans` by id.
-  replace {{planId}} in the vars tab with a real uuid (the easiest way
-  to get one is to run `list registered plans` and copy the `id` from
-  the response).
+  fetches a single row from `payments.plans` by id. replace {{planId}}
+  in the vars tab with a real uuid (the easiest way to get one is to
+  run `list plans in DB` and copy the `id` from the response).
 
   with the placeholder uuid the response is an empty array (200) rather
   than a 404, which is postgrest's default behaviour for list-style
   endpoints with filters.
+
+  uses `userJwt` for authenticated reads; `Accept-Profile: payments`
+  routes the lookup to the `payments` schema.
 }
 
 tests {

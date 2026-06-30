@@ -407,6 +407,9 @@ verify_jwt = false
 [functions.create-subscription]
 verify_jwt = false
 
+[functions.cancel-subscription]
+verify_jwt = false
+
 [edge_runtime.secrets]
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"

@@ -10,61 +10,20 @@ put {
   auth: bearer
 }
 
-auth:bearer {
-  token: {{mpAccessToken}}
-}
-
 headers {
   Content-Type: application/json
 }
 
-vars:pre-request {
-  preapprovalPlanId: eddf7827ed744dde95c1b4d9e1f6d9d1
+auth:bearer {
+  token: {{mpAccessToken}}
 }
 
 body:json {
-  {
-    "reason": "money-tracker Pro (updated)"
-  }
+  {"status": "inactive"}
 }
 
-docs {
-  partial update of an existing preapproval plan. every field in the
-  body is optional — MP applies the change and leaves omitted fields
-  untouched. the only required parameter is the plan id (in the path
-  or via the `preapprovalPlanId` var).
-
-  by default this request only changes `reason` so the change is
-  obvious when comparing responses. to test other fields, edit the
-  body in bruno. the supported fields map to MP's auto_recurring block:
-
-    {
-      "reason": "...",                // human-readable plan name
-      "back_url": "https://...",      // post-checkout redirect
-      "auto_recurring": {            // any subset of these
-        "frequency": 1,
-        "frequency_type": "months",  // or "days"
-        "transaction_amount": 15000,
-        "currency_id": "ARS",
-        "free_trial": {              // only if trialDays > 0
-          "frequency": 7,
-          "frequency_type": "days"
-        }
-      }
-    }
-
-  caveats:
-  - mp does NOT fire a webhook when a plan is updated. if you have a
-    local mirror (e.g. payments.subscription_plans), you need to
-    update it separately after this call. in this collection we have
-    no plan-update endpoint — `create plan in DB` always inserts a
-    new row. we accept the drift between MP and the local db for
-    now; a future admin endpoint will sync both.
-  - some fields (especially `transaction_amount`) propagate to active
-    subscribers only on the next billing cycle, not retroactively.
-
-  to verify a change, run `get plan in MP` (request #3) after this
-  one and compare.
+vars:pre-request {
+  preapprovalPlanId: 1e890646ef6b4a74bc3152121efeb3d4
 }
 
 tests {
@@ -82,4 +41,43 @@ tests {
       expect(res.getBody()).to.have.property("last_modified").that.is.a("string");
     }
   });
+}
+
+docs {
+  partial update of an existing preapproval plan. every field in the
+  body is optional — MP applies the change and leaves omitted fields
+  untouched. the only required parameter is the plan id (in the path
+  or via the `preapprovalPlanId` var).
+  
+  by default this request only changes `reason` so the change is
+  obvious when comparing responses. to test other fields, edit the
+  body in bruno. the supported fields map to MP's auto_recurring block:
+  
+    {
+      "reason": "...",                // human-readable plan name
+      "back_url": "https://...",      // post-checkout redirect
+      "auto_recurring": {            // any subset of these
+        "frequency": 1,
+        "frequency_type": "months",  // or "days"
+        "transaction_amount": 15000,
+        "currency_id": "ARS",
+        "free_trial": {              // only if trialDays > 0
+          "frequency": 7,
+          "frequency_type": "days"
+        }
+      }
+    }
+  
+  caveats:
+  - mp does NOT fire a webhook when a plan is updated. if you have a
+    local mirror (e.g. payments.plans), you need to
+    update it separately after this call. in this collection we have
+    no plan-update endpoint — `create plan in DB` always inserts a
+    new row. we accept the drift between MP and the local db for
+    now; a future admin endpoint will sync both.
+  - some fields (especially `transaction_amount`) propagate to active
+    subscribers only on the next billing cycle, not retroactively.
+  
+  to verify a change, run `get plan in MP` (request #3) after this
+  one and compare.
 }

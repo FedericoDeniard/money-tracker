@@ -1961,6 +1961,89 @@ export type Database = {
   }
   payments: {
     Tables: {
+      plan_provider_variants: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          plan_id: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          id?: string
+          is_active?: boolean
+          plan_id: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          plan_id?: string
+          provider?: Database["payments"]["Enums"]["provider_name"]
+          provider_plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_provider_variants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          display_name: string
+          frequency: number
+          frequency_type: string
+          id: string
+          internal_tier: string
+          is_active: boolean
+          plan_key: string
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          frequency: number
+          frequency_type: string
+          id?: string
+          internal_tier: string
+          is_active?: boolean
+          plan_key: string
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          frequency?: number
+          frequency_type?: string
+          id?: string
+          internal_tier?: string
+          is_active?: boolean
+          plan_key?: string
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscription_events: {
         Row: {
           action: string | null
@@ -2015,57 +2098,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscription_plans: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string
-          display_name: string
-          frequency: number
-          frequency_type: string
-          id: string
-          internal_tier: string
-          is_active: boolean
-          plan_key: string
-          provider: Database["payments"]["Enums"]["provider_name"]
-          provider_plan_id: string
-          trial_days: number
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency: string
-          display_name: string
-          frequency: number
-          frequency_type: string
-          id?: string
-          internal_tier: string
-          is_active?: boolean
-          plan_key: string
-          provider: Database["payments"]["Enums"]["provider_name"]
-          provider_plan_id: string
-          trial_days?: number
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string
-          display_name?: string
-          frequency?: number
-          frequency_type?: string
-          id?: string
-          internal_tier?: string
-          is_active?: boolean
-          plan_key?: string
-          provider?: Database["payments"]["Enums"]["provider_name"]
-          provider_plan_id?: string
-          trial_days?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           auto_recurring: Json | null
@@ -2076,7 +2108,8 @@ export type Database = {
           frequency: number | null
           frequency_type: string | null
           id: string
-          mp_payer_email: string | null
+          payer_email: string | null
+          plan_id: string | null
           provider: Database["payments"]["Enums"]["provider_name"]
           provider_specific: Json | null
           provider_subscription_id: string
@@ -2096,7 +2129,8 @@ export type Database = {
           frequency?: number | null
           frequency_type?: string | null
           id?: string
-          mp_payer_email?: string | null
+          payer_email?: string | null
+          plan_id?: string | null
           provider: Database["payments"]["Enums"]["provider_name"]
           provider_specific?: Json | null
           provider_subscription_id: string
@@ -2116,7 +2150,8 @@ export type Database = {
           frequency?: number | null
           frequency_type?: string | null
           id?: string
-          mp_payer_email?: string | null
+          payer_email?: string | null
+          plan_id?: string | null
           provider?: Database["payments"]["Enums"]["provider_name"]
           provider_specific?: Json | null
           provider_subscription_id?: string
@@ -2127,7 +2162,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

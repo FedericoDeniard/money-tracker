@@ -1,28 +1,31 @@
 // create-subscription edge function.
 //
-// provider-agnostic: takes `{ provider, payer_email, reason, transaction_amount, ... }`
-// in the body and dispatches to the registered PaymentProvider. today only
-// 'mercadopago' is registered; unknown providers return 400.
+// provider-agnostic. body must include a `plan_id` (the canonical id
+// from payments.plans) and a `provider` (e.g. 'mercadopago'). the
+// function looks up the active price for that plan on the requested
+// provider in payments.plan_provider_variants, and calls the provider
+// with the variant's provider_plan_id to get the init_point back.
 //
 // auth: requires the internal functions secret (bearer). this is a
-// privileged call that hits the provider's api with real credentials, so it
-// is not exposed to the frontend. in the future a user-auth variant can be
-// added without breaking the contract.
+// privileged call that hits the provider's api with real credentials, so
+// it is not exposed to the frontend. the user-auth variant
+// (cancel-subscription) is the public-facing counterpart.
 //
 // flow:
-//   1. if body has a `plan_id`, fetch that plan and return its init_point.
-//      (recommended path - works in MP test mode where standalone
-//      preapproval creation is rejected.)
-//   2. if no plan_id, fall back to MP_DEFAULT_PLAN_ID from env.
-//   3. if no plan_id and no env default, create a fresh preapproval using
-//      the auto_recurring fields from the body. this is the standalone
-//      preapproval flow documented as "Suscripciones sin plan asociado".
+//   1. validate provider.
+//   2. look up the active variant for (plan_id, provider) in our db.
+//   3. call provider.getPlan(variant.provider_plan_id) to get the
+//      init_point from the provider (mp in our case). this is the
+//      recommended path — works on test mode where standalone
+//      preapproval creation is rejected.
+//   4. if no variant exists for (plan_id, provider), 404 with a clear
+//      message so the caller can offer a different provider to the user.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleCorsPreflightRequest, getCorsHeaders } from "../_shared/cors.ts";
 import { requireInternalAuth } from "../_shared/auth.ts";
 import { getProvider, isKnownProvider } from "../_shared/lib/payments/index.ts";
-import type { CreateSubscriptionInput } from "../_shared/lib/payments/types.ts";
 
 Deno.serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -60,62 +63,91 @@ Deno.serve(async req => {
     );
   }
 
-  const provider = getProvider(providerField);
-  if (!provider) {
+  const planId = stringField(body, "plan_id");
+  if (!planId) {
     return jsonResponse(
-      { error: `Unknown provider: ${providerField}` },
+      { error: "Missing required field: plan_id" },
       400,
       corsHeaders
     );
   }
 
-  // plan-based fast path
-  const requestedPlanId =
-    stringField(body, "plan_id") ?? Deno.env.get("MP_DEFAULT_PLAN_ID");
-  if (requestedPlanId) {
-    try {
-      const plan = await provider.getPlan(requestedPlanId);
-      if (!plan) {
-        return jsonResponse(
-          { error: `Plan not found: ${requestedPlanId}` },
-          404,
-          corsHeaders
-        );
-      }
-      return jsonResponse(
-        {
-          providerSubscriptionId: plan.id,
-          initPoint: plan.initPoint,
-          sandboxInitPoint: null,
-          status: "pending",
-          mode: "plan",
-        },
-        200,
-        corsHeaders
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[create-subscription] getPlan failed", {
-        provider: providerField,
-        message,
-      });
-      return jsonResponse({ error: message }, 502, corsHeaders);
-    }
+  // lookup the active price for (plan_id, provider) in our db. the
+  // presence of this row means the plan is enabled on the provider; the
+  // amount and currency live in the variant, but those are the
+  // provider's responsibility to surface to the user during checkout.
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { db: { schema: "payments" } }
+  );
+
+  const { data: variant, error: variantError } = await supabase
+    .from("plan_provider_variants")
+    .select("provider_plan_id, is_active, plan_id")
+    .eq("plan_id", planId)
+    .eq("provider", providerField)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (variantError) {
+    return jsonResponse(
+      { error: "variant lookup failed", details: variantError.message },
+      500,
+      corsHeaders
+    );
   }
 
-  // standalone preapproval flow (no plan)
-  const input = parseInput(body);
-  if ("error" in input) {
-    return jsonResponse({ error: input.error }, 400, corsHeaders);
+  if (!variant) {
+    return jsonResponse(
+      {
+        error: `Plan '${planId}' is not enabled on provider '${providerField}'`,
+        hint: "register the plan on this provider via payments.plan_provider_variants",
+      },
+      404,
+      corsHeaders
+    );
+  }
+
+  const provider = getProvider(providerField);
+  if (!provider) {
+    return jsonResponse(
+      { error: `Unknown provider: ${providerField}` },
+      500,
+      corsHeaders
+    );
   }
 
   try {
-    const result = await provider.createSubscription(input.value);
-    return jsonResponse({ ...result, mode: "standalone" }, 200, corsHeaders);
+    const plan = await provider.getPlan(variant.provider_plan_id);
+    if (!plan) {
+      return jsonResponse(
+        {
+          error: `Plan not found in provider: ${variant.provider_plan_id}`,
+          hint: "the variant references a provider plan id that no longer exists",
+        },
+        404,
+        corsHeaders
+      );
+    }
+    return jsonResponse(
+      {
+        providerSubscriptionId: plan.id,
+        initPoint: plan.initPoint,
+        sandboxInitPoint: null,
+        status: "pending",
+        mode: "plan",
+        planId,
+        providerPlanId: variant.provider_plan_id,
+      },
+      200,
+      corsHeaders
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[create-subscription] provider error", {
+    console.error("[create-subscription] getPlan failed", {
       provider: providerField,
+      planId,
       message,
     });
     return jsonResponse({ error: message }, 502, corsHeaders);
@@ -135,58 +167,10 @@ function jsonResponse(
   });
 }
 
-type ParseResult = { value: CreateSubscriptionInput } | { error: string };
-
-function parseInput(body: Record<string, unknown>): ParseResult {
-  const payerEmail = stringField(body, "payer_email");
-  const reason = stringField(body, "reason");
-  const transactionAmount = numberField(body, "transaction_amount");
-  const frequency = numberField(body, "frequency") ?? 1;
-  const frequencyTypeRaw = stringField(body, "frequency_type") ?? "months";
-  const currencyId = stringField(body, "currency_id") ?? "ARS";
-  const externalReference = stringField(body, "external_reference");
-
-  if (!payerEmail) return { error: "Missing required field: payer_email" };
-  if (!reason) return { error: "Missing required field: reason" };
-  if (transactionAmount === null || transactionAmount <= 0) {
-    return { error: "Missing or invalid field: transaction_amount" };
-  }
-  if (frequencyTypeRaw !== "months" && frequencyTypeRaw !== "days") {
-    return {
-      error: "Invalid field: frequency_type must be 'months' or 'days'",
-    };
-  }
-
-  return {
-    value: {
-      payerEmail,
-      reason,
-      frequency,
-      frequencyType: frequencyTypeRaw,
-      transactionAmount,
-      currencyId,
-      externalReference: externalReference ?? undefined,
-    },
-  };
-}
-
 function stringField(
   body: Record<string, unknown>,
   key: string
 ): string | null {
   const v = body[key];
   return typeof v === "string" && v.length > 0 ? v : null;
-}
-
-function numberField(
-  body: Record<string, unknown>,
-  key: string
-): number | null {
-  const v = body[key];
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v.length > 0) {
-    const n = Number(v);
-    if (Number.isFinite(n)) return n;
-  }
-  return null;
 }

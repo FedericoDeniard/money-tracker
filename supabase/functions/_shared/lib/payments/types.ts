@@ -31,7 +31,7 @@ export interface CreateSubscriptionResult {
 // partial update of a plan. every field is optional; the provider applies
 // a partial-update semantics where omitted fields are left untouched. the
 // caller is responsible for keeping any local mirror (e.g.
-// payments.subscription_plans) in sync after a successful call.
+// payments.plans) in sync after a successful call.
 export interface UpdatePlanInput {
   reason?: string;
   transactionAmount?: number;
@@ -71,6 +71,9 @@ export interface SubscriptionDetails {
   currencyId: string | null;
   externalReference: string | null;
   autoRecurring: unknown;
+  // when the subscription is associated with a preapproval plan, this is
+  // the id of that plan in mp. lets the webhook resolve plan_id in our db.
+  preapprovalPlanId: string | null;
   raw: unknown;
 }
 
@@ -129,6 +132,14 @@ export interface PaymentProvider {
     planId: string,
     input: UpdatePlanInput
   ): Promise<PlanDetails | null>;
+  // cancel or pause a subscription. idempotent: returns void on 404.
+  // `options.status` defaults to 'cancelled'. we do not return the
+  // updated subscription here — MP dispatches a webhook that the existing
+  // handler persists, which is the single source of truth for status.
+  cancelSubscription(
+    providerSubscriptionId: string,
+    options?: { status?: "cancelled" | "paused" }
+  ): Promise<void>;
   verifyWebhookSignature(
     req: Request,
     rawBody: string

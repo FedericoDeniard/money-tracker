@@ -64,6 +64,10 @@ export const preapprovalResponseSchema = z.object({
   back_url: z.string().optional().nullable(),
   date_created: z.string().optional(),
   last_modified: z.string().optional(),
+  // present when the preapproval is associated with a plan; lets us link
+  // the subscription back to our payments.plans row via the
+  // plan_provider_variants table.
+  preapproval_plan_id: z.string().optional().nullable(),
 });
 
 export type PreapprovalResponse = z.infer<typeof preapprovalResponseSchema>;

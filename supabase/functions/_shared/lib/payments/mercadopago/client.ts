@@ -111,6 +111,7 @@ export class MercadoPagoProvider implements PaymentProvider {
       currencyId: parsed.auto_recurring?.currency_id ?? null,
       externalReference: parsed.external_reference ?? null,
       autoRecurring: parsed.auto_recurring ?? null,
+      preapprovalPlanId: parsed.preapproval_plan_id ?? null,
       raw: json,
     };
   }
@@ -144,7 +145,7 @@ export class MercadoPagoProvider implements PaymentProvider {
   // input (no fields to update) and on any non-2xx response other than 404.
   //
   // the caller is responsible for keeping any local mirror in sync
-  // (e.g. payments.subscription_plans) after a successful call. MP does
+  // (e.g. payments.plans) after a successful call. MP does
   // NOT fire a webhook for plan updates, so the only way to refresh
   // a cached plan is to call getPlan() after this.
   async updatePlan(
@@ -257,6 +258,42 @@ export class MercadoPagoProvider implements PaymentProvider {
     rawBody: string
   ): Promise<WebhookVerification> {
     return verifyMPWebhookSignature(req, rawBody);
+  }
+
+  // cancels or pauses a subscription. MP accepts 'cancelled' and 'paused'
+  // as the only valid `status` values for this endpoint; we let the caller
+  // decide. on 404 (idempotency: subscription already gone) we return
+  // silently so the caller can replay the call safely.
+  async cancelSubscription(
+    providerSubscriptionId: string,
+    options?: { status?: "cancelled" | "paused" }
+  ): Promise<void> {
+    const config = getMPConfig();
+    const status = options?.status ?? "cancelled";
+
+    const response = await fetch(
+      `${MP_API_BASE}/preapproval/${encodeURIComponent(providerSubscriptionId)}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${config.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    if (response.status === 404) return; // idempotency: already gone
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        `MP cancelSubscription failed (${response.status}): ${text}`
+      );
+    }
+    // 200 → the actual state change is delivered by the subsequent
+    // subscription_preapproval.updated webhook, which the payments-webhook
+    // handler persists. we intentionally do not parse the response body
+    // here; the contract returns void and the webhook is the source of truth.
   }
 
   parseWebhookEvent(rawBody: string): NormalizedWebhookEvent {

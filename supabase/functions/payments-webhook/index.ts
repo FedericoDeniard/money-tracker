@@ -283,6 +283,7 @@ interface SubscriptionUpsertInput {
   currencyId: string | null;
   externalReference: string | null;
   autoRecurring: unknown;
+  preapprovalPlanId: string | null;
   raw: unknown;
 }
 
@@ -292,19 +293,37 @@ async function upsertSubscription(
   providerSubscriptionId: string,
   details: SubscriptionUpsertInput
 ): Promise<void> {
+  // resolve plan_id from the variant table. when the preapproval is
+  // associated with a plan (the common case in our plan-based flow),
+  // we look up the (provider, provider_plan_id) tuple and set plan_id
+  // on the row. this lets the rest of the app (cancellation, future
+  // entitlements RPC) link subscriptions to plan concepts.
+  let planId: string | null = null;
+  if (details.preapprovalPlanId) {
+    const { data: variant } = await supabase
+      .from("plan_provider_variants")
+      .select("plan_id")
+      .eq("provider", providerName)
+      .eq("provider_plan_id", details.preapprovalPlanId)
+      .eq("is_active", true)
+      .maybeSingle();
+    planId = variant?.plan_id ?? null;
+  }
+
   const { error } = await supabase.from("subscriptions").upsert(
     {
       provider: providerName,
       provider_subscription_id: providerSubscriptionId,
       status: details.status,
       reason: details.reason,
-      mp_payer_email: details.payerEmail,
+      payer_email: details.payerEmail,
       frequency: details.frequency,
       frequency_type: details.frequencyType,
       transaction_amount: details.transactionAmount,
       currency_id: details.currencyId,
       external_reference: details.externalReference,
       auto_recurring: details.autoRecurring as Record<string, unknown> | null,
+      plan_id: planId,
       raw: details.raw as Record<string, unknown>,
     },
     { onConflict: "provider,provider_subscription_id" }
