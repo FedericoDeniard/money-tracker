@@ -1,7 +1,7 @@
 // zod schemas and ts types for mercado pago subscription payloads.
 // these are provider-specific; do not import from the generic _shared/lib/payments/types.ts.
 
-import { z } from "npm:zod@3.23.8";
+import { z } from "npm:zod@4.4.3";
 
 // ─── webhook payloads ─────────────────────────────────────────────────────────
 
