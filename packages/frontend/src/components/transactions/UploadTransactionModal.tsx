@@ -43,7 +43,7 @@ type TransactionFormData = {
 interface UploadTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (transactionId: string) => void;
   onError: (error: string) => void;
 }
 
@@ -505,7 +505,7 @@ export function UploadTransactionModal({
       );
       if (result.success && result.transaction) {
         dispatch({ type: "SET_UPLOAD_STATE", state: "success" });
-        onSuccess();
+        onSuccess(result.transaction.id as string);
         setTimeout(() => {
           onClose();
           dispatch({ type: "RESET" });

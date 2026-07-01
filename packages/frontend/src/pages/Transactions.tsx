@@ -23,7 +23,7 @@ import {
 } from "../hooks/useTransactions";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getSupabase } from "../lib/supabase";
 import { createTransactionsService } from "../services/transactions.service";
 import { toast } from "sonner";
@@ -206,6 +206,7 @@ export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [state, dispatch] = useReducer(
     transactionsReducer,
@@ -280,9 +281,13 @@ export function Transactions() {
     }
   };
 
-  const handleUploadSuccess = useCallback(() => {
-    toast.success(t("upload.success", "Document processed successfully!"));
-  }, [t]);
+  const handleUploadSuccess = useCallback(
+    (transactionId: string) => {
+      toast.success(t("upload.success", "Document processed successfully!"));
+      navigate(`/transactions?id=${transactionId}`);
+    },
+    [t, navigate]
+  );
 
   const handleUploadError = useCallback(
     (error: string) => {
@@ -292,7 +297,10 @@ export function Transactions() {
   );
 
   const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction(mapTransactionFormDataToInsert(formData));
+    const transaction = await createTransaction(
+      mapTransactionFormDataToInsert(formData)
+    );
+    navigate(`/transactions?id=${transaction.id}`);
   };
 
   return (
