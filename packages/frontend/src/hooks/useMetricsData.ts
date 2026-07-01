@@ -2,6 +2,7 @@ import { useMemo, useEffect } from "react";
 import { useAllTransactions, flattenTransactionsData } from "./useTransactions";
 import { useTransactionFilters } from "./useTransactionFilters";
 import type { Transaction } from "../services/transactions.service";
+import { parseDateSafe } from "./useFormatDate";
 
 interface MetricsData {
   totalIncome: number;
@@ -67,7 +68,7 @@ export function useMetricsData({
     const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
 
     return allTransactions.filter((tx: Transaction) => {
-      const dateMatch = new Date(tx.transaction_date) >= cutoffDate;
+      const dateMatch = parseDateSafe(tx.transaction_date) >= cutoffDate;
       const currencyMatch =
         selectedCurrency === "all" || tx.currency === selectedCurrency;
       return dateMatch && currencyMatch;
@@ -131,7 +132,7 @@ export function useMetricsData({
 
     const previousPeriodTransactions =
       allTransactions?.filter((tx: Transaction) => {
-        const txDate = new Date(tx.transaction_date);
+        const txDate = parseDateSafe(tx.transaction_date);
         const currencyMatch =
           selectedCurrency === "all" || tx.currency === selectedCurrency;
         return (

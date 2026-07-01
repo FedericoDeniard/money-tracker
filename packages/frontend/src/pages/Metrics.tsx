@@ -2,6 +2,7 @@ import { useState, useMemo, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { parseDateSafe } from "../hooks/useFormatDate";
 import {
   TrendingUp,
   TrendingDown,
@@ -71,7 +72,7 @@ export function Metrics() {
     if (!filteredTransactions.length) return [];
     const monthlyMap = new Map<string, { income: number; expense: number }>();
     filteredTransactions.forEach(tx => {
-      const date = new Date(tx.transaction_date);
+      const date = parseDateSafe(tx.transaction_date);
       const monthKey = date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
