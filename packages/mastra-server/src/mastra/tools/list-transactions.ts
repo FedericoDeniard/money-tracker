@@ -75,6 +75,8 @@ export const listTransactionsTool = createTool({
         currency: z.string().length(3),
         transactionType: z.enum(TRANSACTION_TYPE_VALUES),
         category: z.enum(CATEGORY_VALUES).nullable(),
+        transactionName: z.string(),
+        transactionDescription: z.string().nullable(),
       })
     ),
     count: z.number().int().nonnegative(),
@@ -101,7 +103,7 @@ export const listTransactionsTool = createTool({
     let q = supabase
       .from("transactions")
       .select(
-        "id, transaction_date, merchant, amount, currency, transaction_type, category"
+        "id, transaction_date, merchant, amount, currency, transaction_type, category, name, transaction_description"
       )
       .eq("discarded", false)
       .order("transaction_date", { ascending: false })
@@ -132,6 +134,8 @@ export const listTransactionsTool = createTool({
       transactionType:
         r.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
       category: (r.category as (typeof CATEGORY_VALUES)[number] | null) ?? null,
+      transactionName: r.name as string,
+      transactionDescription: r.transaction_description as string | null,
     }));
 
     return { transactions, count: transactions.length };
