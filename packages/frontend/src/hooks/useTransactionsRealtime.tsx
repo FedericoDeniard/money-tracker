@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { getSupabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { formatCurrency } from "../utils/currency";
@@ -15,6 +16,7 @@ export function useTransactionsRealtime() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const supabaseRef = useRef<SupabaseClient<Database> | null>(null);
 
@@ -70,7 +72,10 @@ export function useTransactionsRealtime() {
                     backgroundColor: "var(--bg-primary)",
                     borderColor: "var(--bg-secondary)",
                   }}
-                  onClick={() => toast.dismiss(id)}
+                  onClick={() => {
+                    navigate(`/transactions?id=${newTransaction.id}`);
+                    toast.dismiss(id);
+                  }}
                 >
                   <div
                     className="absolute left-0 top-0 bottom-0 w-1"

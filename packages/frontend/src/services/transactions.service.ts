@@ -204,7 +204,7 @@ export class TransactionsService {
       query = query.range(pagination.from, pagination.to);
     }
 
-    const sortColumn = filters?.sortBy || "created_at";
+    const sortColumn = filters?.sortBy || "transaction_date";
     const { data, error, count } = await query.order(sortColumn, {
       ascending: filters?.sortOrder === "asc",
     });

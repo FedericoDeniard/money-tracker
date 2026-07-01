@@ -15,10 +15,14 @@ import { Toaster, toast } from "sonner";
 import { useAppUpdate } from "./hooks/useAppUpdate";
 import { useTranslation } from "react-i18next";
 
+function RealtimeTransactionsSubscriber() {
+  useTransactionsRealtime();
+  return null;
+}
+
 function AppContent() {
   const { loading } = useAuth();
   const { t } = useTranslation();
-  useTransactionsRealtime();
   const { updateAvailable, applyUpdate } = useAppUpdate();
 
   useEffect(() => {
@@ -44,6 +48,7 @@ function AppContent() {
 
   return (
     <BrowserRouter>
+      <RealtimeTransactionsSubscriber />
       <AppRoutes />
       {!loading && <KBar />}
       <Toaster position="bottom-center" />
