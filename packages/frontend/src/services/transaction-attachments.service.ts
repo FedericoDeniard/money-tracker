@@ -10,7 +10,7 @@ export interface TransactionAttachment extends TransactionAttachmentRow {
 const BUCKET = "transaction-attachments";
 const SIGNED_URL_TTL_SECONDS = 3600;
 
-export class TransactionAttachmentsService {
+class TransactionAttachmentsService {
   constructor(private supabase: SupabaseClient<Database>) {}
 
   async getTransactionAttachments(
