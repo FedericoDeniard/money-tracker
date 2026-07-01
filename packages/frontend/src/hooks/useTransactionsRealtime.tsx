@@ -162,5 +162,5 @@ export function useTransactionsRealtime() {
       subscription?.unsubscribe();
       channelRef.current = null;
     };
-  }, [t, user, queryClient]);
+  }, [t, user, queryClient, navigate]);
 }
