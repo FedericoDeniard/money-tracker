@@ -55,6 +55,18 @@ export const financialAgent = new Agent({
       model: openrouter(THREAD_TITLE_MODEL),
       threshold: 0.8,
       strategy: "block",
+      // Exclude data-exfiltration and tool-exfiltration: this is a financial
+      // agent whose entire job is to access the user's transactions, so the
+      // model legitimately handles sensitive data and uses tools. Those
+      // categories only catch legitimate use cases as false positives.
+      // Keep injection, jailbreak, system-override, and role-manipulation
+      // to defend against real prompt-injection attacks.
+      detectionTypes: [
+        "injection",
+        "jailbreak",
+        "system-override",
+        "role-manipulation",
+      ],
     }),
     new TopicGuardrailProcessor(),
   ],
