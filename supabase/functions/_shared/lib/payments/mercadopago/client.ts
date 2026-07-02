@@ -3,6 +3,16 @@
 // all network IO is contained here. callers depend only on the PaymentProvider
 // interface (../types.ts) so swapping providers is a one-line change in
 // ../index.ts.
+//
+// scope (post simplification): hosted-checkout flow only. the seller
+// pre-creates a preapproval_plan via POST /preapproval_plan; create-subscription
+// reads it via getPlan() and hands back its `init_point` so the user pays on
+// mp's own site. mp dispatches the subscription_preapproval webhook to
+// payments-webhook, which writes payments.subscriptions.
+//
+// createSubscription() is kept on the interface for backwards compat but
+// throws — server-side preapproval creation returned 500/404 in every env we
+// have. see commit history before the rewrite.
 
 import type {
   CreateSubscriptionInput,
@@ -17,7 +27,6 @@ import type {
 import { getMPConfig } from "./config.ts";
 import {
   authorizedPaymentResponseSchema,
-  createPreapprovalResponseSchema,
   preapprovalResponseSchema,
   preapprovalWebhookSchema,
   authorizedPaymentWebhookSchema,
@@ -31,194 +40,42 @@ const MP_API_BASE = "https://api.mercadopago.com";
 export class MercadoPagoProvider implements PaymentProvider {
   readonly name = "mercadopago" as const;
 
+  // deprecated: server-side preapproval creation is not used in this app.
+  // create-subscription now resolves only via getPlan() and redirects the
+  // user to mp's hosted checkout.
   async createSubscription(
-    input: CreateSubscriptionInput
+    _input: CreateSubscriptionInput
   ): Promise<CreateSubscriptionResult> {
-    const config = getMPConfig();
-    return input.cardTokenId && input.preapprovalPlanId
-      ? this.#createWithCardTokenFallback(input, config)
-      : this.#createPending(input, config);
-  }
-
-  // plan-based + card_token_id → try authorized, fall back to
-  // standalone pending (auto_recurring, no plan) when the account
-  // does not support card_token_id for subscriptions.
-  async #createWithCardTokenFallback(
-    input: CreateSubscriptionInput,
-    config: ReturnType<typeof getMPConfig>
-  ): Promise<CreateSubscriptionResult> {
-    const { body: authorizedBody } = this.#buildBody(input);
-
-    authorizedBody.card_token_id = input.cardTokenId;
-    authorizedBody.status = "authorized";
-
-    await this.#logOutboundBody(authorizedBody);
-
-    const response = await fetch(`${MP_API_BASE}/preapproval`, {
-      method: "POST",
-      headers: this.#authHeaders(config),
-      body: JSON.stringify(authorizedBody),
-    });
-
-    if (response.ok) {
-      const json = await response.json();
-      const parsed = createPreapprovalResponseSchema.parse(json);
-      return {
-        providerSubscriptionId: parsed.id,
-        initPoint: parsed.init_point ?? parsed.sandbox_init_point ?? "",
-        sandboxInitPoint: parsed.sandbox_init_point ?? null,
-        status: parsed.status,
-      };
-    }
-
-    // authorized failed — fall back to standalone pending (auto_recurring,
-    // no plan, no card_token_id). the user completes payment on mp's site.
-    const { pendingBody, pendingUrl } = this.#buildStandalonePendingBody(
-      input,
-      config
-    );
-
-    await this.#logOutboundBody(pendingBody);
-
-    const retry = await fetch(pendingUrl, {
-      method: "POST",
-      headers: this.#authHeaders(config),
-      body: JSON.stringify(pendingBody),
-    });
-
-    if (retry.ok) {
-      const json = await retry.json();
-      const parsed = createPreapprovalResponseSchema.parse(json);
-      return {
-        providerSubscriptionId: parsed.id,
-        initPoint: parsed.init_point ?? parsed.sandbox_init_point ?? "",
-        sandboxInitPoint: parsed.sandbox_init_point ?? null,
-        status: parsed.status,
-      };
-    }
-
-    const authorizedText = await response.text();
-    const retryText = await retry.text();
     throw new Error(
-      `MP createSubscription failed (authorized=${response.status}, standalone pending=${retry.status}): authorized=${authorizedText}; standalone=${retryText}`
+      "MercadoPagoProvider.createSubscription is deprecated — use getPlan() + redirect to init_point"
     );
   }
 
-  #buildStandalonePendingBody(
-    input: CreateSubscriptionInput,
-    config: ReturnType<typeof getMPConfig>
-  ): { pendingBody: Record<string, unknown>; pendingUrl: string } {
-    return {
-      pendingBody: {
-        reason: input.reason,
-        external_reference: input.externalReference,
-        payer_email: input.payerEmail,
-        back_url: config.backUrl,
-        notification_url: config.notificationUrl,
-        status: "pending",
-        auto_recurring: {
-          frequency: input.frequency,
-          frequency_type: input.frequencyType,
-          transaction_amount: input.transactionAmount,
-          currency_id: input.currencyId,
-        },
-      },
-      pendingUrl: `${MP_API_BASE}/preapproval`,
-    };
-  }
-
-  // pending preapproval — either plan-based (via preapproval_plan_id)
-  // or standalone (via auto_recurring). used both as the primary flow
-  // when no card_token_id and as the fallback when authorized fails.
-  async #createPending(
-    input: CreateSubscriptionInput,
-    config: ReturnType<typeof getMPConfig>
-  ): Promise<CreateSubscriptionResult> {
-    const { body } = this.#buildBody(input);
-    body.status = "pending";
-
-    await this.#logOutboundBody(body);
-
-    const response = await fetch(`${MP_API_BASE}/preapproval`, {
-      method: "POST",
-      headers: this.#authHeaders(config),
-      body: JSON.stringify(body),
-    });
-
+  // returns the init_point of an existing preapproval plan. used by
+  // create-subscription in the hosted-checkout flow: the seller
+  // pre-creates a plan (e.g. "Pro $100/mes"), getPlan reads it, and we
+  // redirect the user to plan.initPoint. mp creates the preapproval on
+  // the user-side, dispatches the subscription_preapproval webhook, and
+  // payments-webhook persists the row.
+  async getPlan(
+    planId: string
+  ): Promise<{ id: string; initPoint: string } | null> {
+    const config = getMPConfig();
+    const response = await fetch(
+      `${MP_API_BASE}/preapproval_plan/${encodeURIComponent(planId)}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${config.accessToken}` },
+      }
+    );
+    if (response.status === 404) return null;
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `MP createSubscription failed (${response.status}): ${text}`
-      );
+      throw new Error(`MP getPlan failed (${response.status}): ${text}`);
     }
-
-    const json = await response.json();
-    const parsed = createPreapprovalResponseSchema.parse(json);
-
-    return {
-      providerSubscriptionId: parsed.id,
-      initPoint: parsed.init_point ?? parsed.sandbox_init_point ?? "",
-      sandboxInitPoint: parsed.sandbox_init_point ?? null,
-      status: parsed.status,
-    };
-  }
-
-  #buildBody(input: CreateSubscriptionInput): {
-    body: Record<string, unknown>;
-    autoRecurring: Record<string, unknown> | undefined;
-  } {
-    const body: Record<string, unknown> = {
-      reason: input.reason,
-      external_reference: input.externalReference,
-      payer_email: input.payerEmail,
-      back_url: getMPConfig().backUrl,
-      notification_url: getMPConfig().notificationUrl,
-      status: "pending",
-    };
-    if (input.preapprovalPlanId) {
-      body.preapproval_plan_id = input.preapprovalPlanId;
-    } else {
-      const ar: Record<string, unknown> = {
-        frequency: input.frequency,
-        frequency_type: input.frequencyType,
-        transaction_amount: input.transactionAmount,
-        currency_id: input.currencyId,
-      };
-      body.auto_recurring = ar;
-    }
-    return { body, autoRecurring: undefined };
-  }
-
-  #authHeaders(config: ReturnType<typeof getMPConfig>): Record<string, string> {
-    return {
-      Authorization: `Bearer ${config.accessToken}`,
-      "Content-Type": "application/json",
-      "X-Idempotency-Key": crypto.randomUUID(),
-    };
-  }
-
-  async #logOutboundBody(body: Record<string, unknown>): Promise<void> {
-    try {
-      await fetch("http://172.21.0.1:8787/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "debug-flow-correct-body-c18121",
-          msg: "mp client outbound body",
-          data: {
-            url: `${MP_API_BASE}/preapproval`,
-            method: "POST",
-            bodyJson: JSON.stringify(body),
-            bodyHasCardTokenId: "card_token_id" in body,
-            bodyKeys: Object.keys(body),
-            bodyStatus: body.status,
-            bodyHasPreapprovalPlanId: "preapproval_plan_id" in body,
-          },
-        }),
-      });
-    } catch {
-      // never let logging fail the request
-    }
+    const json = (await response.json()) as { id: string; init_point?: string };
+    if (!json.init_point) return null;
+    return { id: json.id, initPoint: json.init_point };
   }
 
   async getSubscription(
@@ -260,46 +117,20 @@ export class MercadoPagoProvider implements PaymentProvider {
     };
   }
 
-  // returns the init_point of an existing preapproval plan. used by
-  // create-subscription in plan-based mode: the seller pre-creates a plan
-  // (e.g. "Pro $100/mes") and create-subscription hands back its checkout url.
-  async getPlan(
-    planId: string
-  ): Promise<{ id: string; initPoint: string } | null> {
-    const config = getMPConfig();
-    const response = await fetch(
-      `${MP_API_BASE}/preapproval_plan/${encodeURIComponent(planId)}`,
-      {
-        method: "GET",
-        headers: { Authorization: `Bearer ${config.accessToken}` },
-      }
-    );
-    if (response.status === 404) return null;
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`MP getPlan failed (${response.status}): ${text}`);
-    }
-    const json = (await response.json()) as { id: string; init_point?: string };
-    if (!json.init_point) return null;
-    return { id: json.id, initPoint: json.init_point };
-  }
-
   // partial update of a preapproval plan. every input field is optional;
   // omitted fields are left untouched by the provider. throws on empty
   // input (no fields to update) and on any non-2xx response other than 404.
   //
   // the caller is responsible for keeping any local mirror in sync
   // (e.g. payments.plans) after a successful call. MP does
-  // NOT fire a webhook for plan updates, so the only way to refresh
-  // a cached plan is to call getPlan() after this.
+  // NOT fire a webhook for plan updates, so the only way to refresh a
+  // cached plan is to call getPlan() after this.
   async updatePlan(
     planId: string,
     input: UpdatePlanInput
   ): Promise<PlanDetails | null> {
     const config = getMPConfig();
 
-    // build the request body. only include fields that the caller set;
-    // a missing key signals 'do not change' to MP.
     const body: Record<string, unknown> = {};
     if (input.reason !== undefined) body.reason = input.reason;
     if (input.backUrl !== undefined) body.back_url = input.backUrl;
@@ -320,7 +151,6 @@ export class MercadoPagoProvider implements PaymentProvider {
         ar.transaction_amount = input.transactionAmount;
       }
       if (input.currencyId !== undefined) ar.currency_id = input.currencyId;
-      // map trialDays to mp's free_trial block. only meaningful if > 0.
       if (input.trialDays !== undefined && input.trialDays > 0) {
         ar.free_trial = {
           frequency: input.trialDays,
@@ -427,7 +257,7 @@ export class MercadoPagoProvider implements PaymentProvider {
       }
     );
 
-    if (response.status === 404) return; // idempotency: already gone
+    if (response.status === 404) return;
     if (!response.ok) {
       const text = await response.text();
       throw new Error(
@@ -453,7 +283,6 @@ export class MercadoPagoProvider implements PaymentProvider {
       };
     }
 
-    // try preapproval first
     const preapproval = preapprovalWebhookSchema.safeParse(parsed);
     if (preapproval.success) {
       const isCreated = preapproval.data.action.includes("created");
@@ -469,7 +298,6 @@ export class MercadoPagoProvider implements PaymentProvider {
       };
     }
 
-    // fall back to authorized_payment
     const authPayment = authorizedPaymentWebhookSchema.safeParse(parsed);
     if (authPayment.success) {
       return {

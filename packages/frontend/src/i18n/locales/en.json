@@ -412,21 +412,14 @@
       "confirm": "Yes, cancel"
     },
     "toast": {
-      "checkoutOpened": "Redirecting to checkout...",
-      "checkoutStarted": "Subscription created",
+      "checkoutOpened": "Redirecting to Mercado Pago checkout...",
       "subscribeError": "Could not start checkout",
       "cancelSuccess": "Cancellation requested",
-      "cancelError": "Could not cancel subscription"
+      "cancelError": "Could not cancel subscription",
+      "noActiveVariant": "This plan has no active provider. Please contact support.",
+      "subscribed": "Subscription confirmed. Welcome aboard!"
     },
-    "modal": {
-      "description": "You will be charged {{amount}} monthly. Enter your card details to confirm.",
-      "cardHint": "Your card data is tokenized by Mercado Pago and never touches our servers.",
-      "testCardHint": "Test mode: use card 4509 9535 6623 3704, expiry 12/30, security code 123, DNI 12345678."
-    },
-    "brick": {
-      "loading": "Loading payment form…",
-      "error": "Could not load the payment form. Try again later."
-    }
+    "footerUrl": "Post-payment redirects back to {{url}}."
   },
   "notifications": {
     "title": "Notifications",

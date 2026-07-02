@@ -412,21 +412,14 @@
       "confirm": "Sí, cancelar"
     },
     "toast": {
-      "checkoutOpened": "Redirigiendo al checkout...",
-      "checkoutStarted": "Suscripción creada",
+      "checkoutOpened": "Redirigiendo al checkout de Mercado Pago...",
       "subscribeError": "No se pudo iniciar el checkout",
       "cancelSuccess": "Cancelación solicitada",
-      "cancelError": "No se pudo cancelar la suscripción"
+      "cancelError": "No se pudo cancelar la suscripción",
+      "noActiveVariant": "Este plan no tiene un proveedor activo. Contactá a soporte.",
+      "subscribed": "Suscripción confirmada. ¡Bienvenido!"
     },
-    "modal": {
-      "description": "Se te cobrará {{amount}} por mes. Ingresá los datos de tu tarjeta para confirmar.",
-      "cardHint": "Los datos de tu tarjeta son tokenizados por Mercado Pago y nunca tocan nuestros servidores.",
-      "testCardHint": "Modo prueba: usá la tarjeta 4509 9535 6623 3704, vencimiento 12/30, código 123, DNI 12345678."
-    },
-    "brick": {
-      "loading": "Cargando formulario de pago…",
-      "error": "No se pudo cargar el formulario de pago. Probá más tarde."
-    }
+    "footerUrl": "Después del pago volverás a {{url}}."
   },
   "notifications": {
     "title": "Notificaciones",

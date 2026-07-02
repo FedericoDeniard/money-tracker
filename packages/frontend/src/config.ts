@@ -8,10 +8,14 @@ export interface AppConfig {
   mastraServerUrl: string;
   /** VAPID public key for Web Push subscriptions. Null if push is not configured on the server. */
   vapidPublicKey: string | null;
-  /** MercadoPago public key used by Checkout Bricks client-side. Null if MP is not configured. */
-  mercadopagoPublicKey: string | null;
   /** Whether the chat/assistant feature is enabled. Defaults to true on the server. */
   chatEnabled: boolean;
+  /**
+   * Public URL of this app (no trailing slash). Used to build absolute
+   * redirect targets (e.g. the post-payment back_url for MercadoPago).
+   * Falls back to the browser origin when unset (typical in dev).
+   */
+  appUrl: string;
 }
 
 let configCache: AppConfig | null = null;

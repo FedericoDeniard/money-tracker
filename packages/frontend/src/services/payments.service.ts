@@ -19,13 +19,11 @@ export interface MySubscription extends SubscriptionRow {
 }
 
 export interface CheckoutLinkResponse {
-  providerSubscriptionId: string;
+  providerPlanId: string;
   initPoint: string;
-  sandboxInitPoint: string | null;
   status: string;
   mode: string;
   planId: string;
-  providerPlanId: string;
 }
 
 async function getEdgeFunctionsUrl(): Promise<string> {
@@ -82,8 +80,7 @@ export const paymentsService = {
 
   async createCheckoutLink(
     planId: string,
-    provider: ProviderName,
-    options?: { cardTokenId?: string }
+    provider: ProviderName
   ): Promise<CheckoutLinkResponse> {
     const [supabase, edgeFunctionsUrl, config] = await Promise.all([
       getSupabase(),
@@ -102,7 +99,6 @@ export const paymentsService = {
       body: JSON.stringify({
         plan_id: planId,
         provider,
-        card_token_id: options?.cardTokenId ?? null,
       }),
     });
 

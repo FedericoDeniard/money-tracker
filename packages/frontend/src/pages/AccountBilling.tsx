@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useAvailablePlans } from "../hooks/useAvailablePlans";
 import { useMySubscription } from "../hooks/useMySubscription";
-import { useInvalidatePaymentsQueries } from "../hooks/useCreateCheckoutLink";
+import {
+  useCreateCheckoutLink,
+  useInvalidatePaymentsQueries,
+} from "../hooks/useCreateCheckoutLink";
 import { useCancelSubscription } from "../hooks/useCancelSubscription";
 import { CurrentPlanCard } from "../components/account-billing/CurrentPlanCard";
 import { AvailablePlansList } from "../components/account-billing/AvailablePlansList";
 import { CancelSubscriptionModal } from "../components/account-billing/CancelSubscriptionModal";
-import { MpCheckoutModal } from "../components/account-billing/MpCheckoutModal";
 import { toast } from "../utils/toast";
 import type {
   MySubscription,
@@ -26,33 +29,59 @@ export function AccountBilling() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const userId = user?.id;
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: plans, isLoading: isLoadingPlans } = useAvailablePlans();
   const { data: subscription, isLoading: isLoadingSub } =
     useMySubscription(userId);
 
+  const createCheckoutLink = useCreateCheckoutLink();
   const cancelSubscription = useCancelSubscription();
   const invalidatePayments = useInvalidatePaymentsQueries();
 
   const [cancelTarget, setCancelTarget] = useState<MySubscription | null>(null);
-  const [checkoutTarget, setCheckoutTarget] = useState<PlanWithVariants | null>(
-    null
-  );
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+
+  // when mp redirects the user back here with ?subscribed=1 we toast a
+  // confirmation and invalidate the subscription cache so the new plan
+  // shows up. the webhook will be the source of truth for the row, but
+  // the user gets an immediate acknowledgement.
+  useEffect(() => {
+    if (searchParams.get("subscribed") === "1") {
+      invalidatePayments();
+      toast.success(t("accountBilling.toast.subscribed"));
+      const next = new URLSearchParams(searchParams);
+      next.delete("subscribed");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, invalidatePayments, t]);
 
   const hasActiveSubscription = subscription
     ? ACTIVE_STATUSES.has(subscription.status)
     : false;
 
-  const handleSubscribe = (plan: PlanWithVariants) => {
-    console.info("[billing] subscribe clicked", {
-      planId: plan.id,
-      userId,
-    });
-    setCheckoutTarget(plan);
-  };
+  const handleSubscribe = async (plan: PlanWithVariants) => {
+    const variant = plan.plan_provider_variants.find(v => v.is_active);
+    if (!variant) {
+      toast.error(t("accountBilling.toast.noActiveVariant"));
+      return;
+    }
 
-  const handleCheckoutSuccess = () => {
-    invalidatePayments();
+    setPendingPlanId(plan.id);
+    try {
+      const result = await createCheckoutLink.mutateAsync({
+        planId: plan.id,
+        provider: variant.provider,
+      });
+      toast.info(t("accountBilling.toast.checkoutOpened"));
+      window.location.href = result.initPoint;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t("common.error");
+      console.error("[billing] checkout link failed", error);
+      toast.error(t("accountBilling.toast.subscribeError"), message);
+      setPendingPlanId(null);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -94,7 +123,7 @@ export function AccountBilling() {
             plans={plans ?? []}
             hasActiveSubscription={hasActiveSubscription}
             isLoading={isLoadingPlans || isLoadingSub}
-            pendingPlanId={null}
+            pendingPlanId={pendingPlanId}
             onSubscribe={handleSubscribe}
           />
         </div>
@@ -106,13 +135,6 @@ export function AccountBilling() {
         subscription={cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleConfirmCancel}
-      />
-
-      <MpCheckoutModal
-        isOpen={checkoutTarget !== null}
-        plan={checkoutTarget}
-        onClose={() => setCheckoutTarget(null)}
-        onSuccess={handleCheckoutSuccess}
       />
     </div>
   );
