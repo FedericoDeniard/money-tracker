@@ -2,7 +2,6 @@ import { useMemo, useEffect } from "react";
 import { useAllTransactions, flattenTransactionsData } from "./useTransactions";
 import { useTransactionFilters } from "./useTransactionFilters";
 import type { Transaction } from "../services/transactions.service";
-import { parseDateSafe } from "./useFormatDate";
 
 interface MetricsData {
   totalIncome: number;
@@ -20,19 +19,24 @@ interface MetricsData {
 }
 
 interface UseMetricsDataOptions {
-  selectedPeriod: "30" | "90" | "365";
+  startDate?: string;
+  endDate?: string;
+  previousStartDate?: string;
+  previousEndDate?: string;
   selectedCurrency: string;
   enabled?: boolean;
 }
 
 export function useMetricsData({
-  selectedPeriod,
+  startDate,
+  endDate,
+  previousStartDate,
+  previousEndDate,
   selectedCurrency,
   enabled = true,
 }: UseMetricsDataOptions) {
-  // Get all transactions using our cached hook
   const {
-    data: transactionsData,
+    data: currentData,
     isLoading,
     error,
     refetch,
@@ -40,42 +44,67 @@ export function useMetricsData({
     hasNextPage,
     isFetchingNextPage,
   } = useAllTransactions({
-    filters: {}, // Get all transactions for metrics calculations
+    filters: { startDate, endDate },
     enabled,
   });
 
-  // Auto-fetch all pages so metrics cover ALL transactions
+  const {
+    data: previousData,
+    fetchNextPage: fetchPreviousNextPage,
+    hasNextPage: hasPreviousNextPage,
+    isFetchingNextPage: isFetchingPreviousNextPage,
+  } = useAllTransactions({
+    filters: { startDate: previousStartDate, endDate: previousEndDate },
+    enabled: enabled && Boolean(previousStartDate && previousEndDate),
+  });
+
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Flatten all pages into a single array
-  const allTransactions = useMemo(() => {
-    return flattenTransactionsData(transactionsData);
-  }, [transactionsData]);
+  useEffect(() => {
+    if (
+      enabled &&
+      previousStartDate &&
+      previousEndDate &&
+      hasPreviousNextPage &&
+      !isFetchingPreviousNextPage
+    ) {
+      fetchPreviousNextPage();
+    }
+  }, [
+    enabled,
+    previousStartDate,
+    previousEndDate,
+    hasPreviousNextPage,
+    isFetchingPreviousNextPage,
+    fetchPreviousNextPage,
+  ]);
 
-  // Get available currencies from RPC (queries ALL transactions, not just loaded pages)
+  const currentTransactions = useMemo(
+    () => flattenTransactionsData(currentData),
+    [currentData]
+  );
+
+  const previousTransactions = useMemo(
+    () => flattenTransactionsData(previousData),
+    [previousData]
+  );
+
   const { currencies: availableCurrencies } = useTransactionFilters();
 
-  // Filter transactions based on selected period and currency
   const filteredTransactions = useMemo(() => {
-    if (!allTransactions.length) return [];
+    if (selectedCurrency === "all") return currentTransactions;
+    return currentTransactions.filter(tx => tx.currency === selectedCurrency);
+  }, [currentTransactions, selectedCurrency]);
 
-    const now = new Date();
-    const daysAgo = parseInt(selectedPeriod);
-    const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  const previousFilteredTransactions = useMemo(() => {
+    if (selectedCurrency === "all") return previousTransactions;
+    return previousTransactions.filter(tx => tx.currency === selectedCurrency);
+  }, [previousTransactions, selectedCurrency]);
 
-    return allTransactions.filter((tx: Transaction) => {
-      const dateMatch = parseDateSafe(tx.transaction_date) >= cutoffDate;
-      const currencyMatch =
-        selectedCurrency === "all" || tx.currency === selectedCurrency;
-      return dateMatch && currencyMatch;
-    });
-  }, [allTransactions, selectedPeriod, selectedCurrency]);
-
-  // Calculate metrics for current and previous period
   const metrics = useMemo((): MetricsData => {
     if (!filteredTransactions.length) {
       return {
@@ -120,28 +149,6 @@ export function useMetricsData({
       filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
       filteredTransactions.length;
 
-    // Calculate previous period metrics for comparison
-    const now = new Date();
-    const daysAgo = parseInt(selectedPeriod);
-    const currentPeriodStart = new Date(
-      now.getTime() - daysAgo * 24 * 60 * 60 * 1000
-    );
-    const previousPeriodStart = new Date(
-      currentPeriodStart.getTime() - daysAgo * 24 * 60 * 60 * 1000
-    );
-
-    const previousPeriodTransactions =
-      allTransactions?.filter((tx: Transaction) => {
-        const txDate = parseDateSafe(tx.transaction_date);
-        const currencyMatch =
-          selectedCurrency === "all" || tx.currency === selectedCurrency;
-        return (
-          txDate >= previousPeriodStart &&
-          txDate < currentPeriodStart &&
-          currencyMatch
-        );
-      }) || [];
-
     let changes = {
       income: null as number | null,
       expense: null as number | null,
@@ -149,18 +156,18 @@ export function useMetricsData({
       averageTransaction: null as number | null,
     };
 
-    if (previousPeriodTransactions.length > 0) {
-      const prevIncome = previousPeriodTransactions
+    if (previousFilteredTransactions.length > 0) {
+      const prevIncome = previousFilteredTransactions
         .filter((tx: Transaction) => tx.transaction_type === "income")
         .reduce((sum, tx) => sum + tx.amount, 0);
 
-      const prevExpense = previousPeriodTransactions
+      const prevExpense = previousFilteredTransactions
         .filter((tx: Transaction) => tx.transaction_type === "expense")
         .reduce((sum, tx) => sum + tx.amount, 0);
 
       const prevAverage =
-        previousPeriodTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
-        previousPeriodTransactions.length;
+        previousFilteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
+        previousFilteredTransactions.length;
 
       changes = {
         income:
@@ -193,14 +200,17 @@ export function useMetricsData({
         : null,
       changes,
     };
-  }, [filteredTransactions, selectedPeriod, selectedCurrency, allTransactions]);
+  }, [filteredTransactions, previousFilteredTransactions]);
 
-  // True until every page has been fetched — prevents rendering partial totals
   const isLoadingAllPages =
-    isLoading || isFetchingNextPage || Boolean(hasNextPage);
+    isLoading ||
+    isFetchingNextPage ||
+    Boolean(hasNextPage) ||
+    (Boolean(previousStartDate && previousEndDate) &&
+      (isFetchingPreviousNextPage || Boolean(hasPreviousNextPage)));
 
   return {
-    transactions: allTransactions,
+    transactions: currentTransactions,
     filteredTransactions,
     availableCurrencies,
     metrics,
