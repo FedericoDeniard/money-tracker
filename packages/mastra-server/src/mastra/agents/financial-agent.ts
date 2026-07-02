@@ -1,6 +1,5 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-import { PromptInjectionDetector } from "@mastra/core/processors";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   FINANCIAL_AGENT_INSTRUCTIONS,
@@ -22,11 +21,11 @@ const openrouter = createOpenRouter({
 
 const FINANCIAL_AGENT_MODEL =
   process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ??
-  "bytedance-seed/seed-2.0-mini";
+  "google/gemini-2.5-flash-lite";
 const THREAD_TITLE_MODEL =
   process.env.OPENROUTER_THREAD_TITLE_MODEL ?? "google/gemini-2.5-flash-lite";
 const GUARDRAIL_MODEL =
-  process.env.OPENROUTER_GUARDRAIL_MODEL ?? "deepseek/deepseek-v4-flash";
+  process.env.OPENROUTER_GUARDRAIL_MODEL ?? "google/gemini-2.5-flash-lite";
 
 export const financialAgent = new Agent({
   id: "financial-agent",
@@ -54,23 +53,13 @@ export const financialAgent = new Agent({
     getCurrentDateTool,
   },
   inputProcessors: [
-    new PromptInjectionDetector({
-      model: openrouter(GUARDRAIL_MODEL),
-      threshold: 0.8,
-      strategy: "block",
-      // Exclude data-exfiltration and tool-exfiltration: this is a financial
-      // agent whose entire job is to access the user's transactions, so the
-      // model legitimately handles sensitive data and uses tools. Those
-      // categories only catch legitimate use cases as false positives.
-      // Keep injection, jailbreak, system-override, and role-manipulation
-      // to defend against real prompt-injection attacks.
-      detectionTypes: [
-        "injection",
-        "jailbreak",
-        "system-override",
-        "role-manipulation",
-      ],
-    }),
+    // Single guardrail: TopicGuardrailProcessor classifies every message
+    // on-topic vs off-topic. Was previously preceded by PromptInjectionDetector
+    // but it added ~3-7s of latency per request (full LLM call before the
+    // main agent) and produced false positives on legitimate financial
+    // queries like "edit my last transaction". TopicGuardrail's strict
+    // instructions and threshold already block real prompt injection
+    // attempts when combined with the model's own safety training.
     new TopicGuardrailProcessor(),
   ],
 });
