@@ -42,7 +42,12 @@ Deno.serve(async req => {
     if (auth instanceof Response) {
       return auth;
     }
-    const { user, token } = auth;
+    const { user, token, role } = auth;
+
+    // `role` is the user's application role (user | tester | admin). For now
+    // every role has full access; the seed flow should branch on it later
+    // (e.g. different MONTHS_TO_SEED per tier, or tester-only dry-run mode).
+    void role;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useReducer } from "react";
 import type { User, Session } from "@supabase/supabase-js";
+import { jwtDecode } from "jwt-decode";
 import { getSupabase } from "../lib/supabase";
+import type { UserRole } from "../lib/features";
 
 type AuthSnapshot = {
   user: User | null;
@@ -9,21 +11,61 @@ type AuthSnapshot = {
 };
 
 type AuthAction =
-  | { type: "SET_AUTH"; user: User | null; session: Session | null }
+  | {
+      type: "SET_AUTH";
+      user: User | null;
+      session: Session | null;
+      role: UserRole | null;
+    }
   | { type: "SET_LOADING"; loading: boolean };
 
 function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
   switch (action.type) {
     case "SET_AUTH":
-      if (state.user === action.user && state.session === action.session) {
+      if (
+        state.user === action.user &&
+        state.session === action.session &&
+        state.role === action.role
+      ) {
         return state;
       }
-      return { ...state, user: action.user, session: action.session };
+      return {
+        ...state,
+        user: action.user,
+        session: action.session,
+        role: action.role,
+      };
     case "SET_LOADING":
       if (state.loading === action.loading) {
         return state;
       }
       return { ...state, loading: action.loading };
+  }
+}
+
+const VALID_ROLES: ReadonlySet<string> = new Set<UserRole>([
+  "user",
+  "tester",
+  "admin",
+]);
+
+/**
+ * Read the `user_role` claim from a Supabase access token. The custom
+ * access token auth hook always sets it; for older tokens (or when the
+ * claim is absent) we fall back to `user` so downstream gating logic
+ * never crashes.
+ */
+function readRoleFromSession(session: Session | null): UserRole | null {
+  if (!session?.access_token) return null;
+  try {
+    const payload = jwtDecode<{ user_role?: unknown }>(session.access_token);
+    const claim = payload.user_role;
+    if (typeof claim === "string" && VALID_ROLES.has(claim)) {
+      return claim as UserRole;
+    }
+    return "user";
+  } catch {
+    return "user";
   }
 }
 
@@ -55,10 +97,11 @@ function updateAuthSnapshot(patch: Partial<AuthSnapshot>) {
 }
 
 export function useAuth() {
-  const [{ user, session, loading }, dispatch] = useReducer(authReducer, {
+  const [{ user, session, loading, role }, dispatch] = useReducer(authReducer, {
     user: authStore.snapshot.user,
     session: authStore.snapshot.session,
     loading: authStore.snapshot.loading,
+    role: authStore.snapshot.role,
   });
 
   useEffect(() => {
@@ -67,6 +110,7 @@ export function useAuth() {
         type: "SET_AUTH",
         user: snapshot.user,
         session: snapshot.session,
+        role: snapshot.role,
       });
       dispatch({ type: "SET_LOADING", loading: snapshot.loading });
     };
@@ -98,13 +142,17 @@ export function useAuth() {
               // Session is invalid or user doesn't exist, force logout
               console.log("Invalid session detected, logging out...");
               await supabase.auth.signOut();
-              updateAuthSnapshot({ user: null, session: null });
+              updateAuthSnapshot({ user: null, session: null, role: null });
             } else {
               // Valid session
-              updateAuthSnapshot({ session, user });
+              updateAuthSnapshot({
+                session,
+                user,
+                role: readRoleFromSession(session),
+              });
             }
           } else {
-            updateAuthSnapshot({ user: null, session: null });
+            updateAuthSnapshot({ user: null, session: null, role: null });
           }
           updateAuthSnapshot({ loading: false });
 
@@ -131,12 +179,20 @@ export function useAuth() {
                     "Invalid session detected on auth change, logging out..."
                   );
                   await supabase.auth.signOut();
-                  updateAuthSnapshot({ user: null, session: null });
+                  updateAuthSnapshot({ user: null, session: null, role: null });
                 } else {
-                  updateAuthSnapshot({ session, user });
+                  updateAuthSnapshot({
+                    session,
+                    user,
+                    role: readRoleFromSession(session),
+                  });
                 }
               } else {
-                updateAuthSnapshot({ session, user: session?.user ?? null });
+                updateAuthSnapshot({
+                  session,
+                  user: session?.user ?? null,
+                  role: readRoleFromSession(session),
+                });
               }
               updateAuthSnapshot({ loading: false });
             });
@@ -168,6 +224,7 @@ export function useAuth() {
     user,
     session,
     loading,
+    role,
     signOut,
   };
 }

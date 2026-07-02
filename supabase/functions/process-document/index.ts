@@ -34,7 +34,8 @@ Deno.serve(async req => {
     if (auth instanceof Response) {
       return auth;
     }
-    const { user } = auth;
+    const { user, role } = auth;
+    void role;
 
     const contentType = req.headers.get("content-type") || "";
     const fileName = req.headers.get("x-file-name") || "unknown";
