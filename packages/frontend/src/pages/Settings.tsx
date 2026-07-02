@@ -17,6 +17,7 @@ import {
   BookOpen,
   RotateCcw,
   SkipForward,
+  CreditCard,
 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { gmailService } from "../services/gmail.service";
@@ -529,6 +530,41 @@ export function Settings() {
               <strong>{t("common.note")}:</strong>{" "}
               {t("settings.gmailPrivacyNote")}
             </p>
+          </div>
+        </div>
+
+        {/* Account & Billing — renders immediately */}
+        <div
+          data-tour="settings-billing"
+          className="border-t border-[var(--text-secondary)]/30 mt-8 pt-6"
+        >
+          <h2 className="text-lg font-medium text-[var(--text-primary)] mb-4">
+            {t("settings.accountBilling")}
+          </h2>
+          <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-[var(--primary)]/10 rounded-lg shrink-0">
+                  <CreditCard size={20} className="text-[var(--primary)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    {t("settings.accountBillingTitle")}
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    {t("settings.accountBillingDescription")}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<CreditCard size={16} />}
+                onClick={() => navigate("/account/billing")}
+              >
+                {t("settings.accountBillingAction")}
+              </Button>
+            </div>
           </div>
         </div>
 

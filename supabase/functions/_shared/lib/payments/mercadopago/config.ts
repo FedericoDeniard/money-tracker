@@ -8,6 +8,7 @@ export interface MPConfig {
   environment: "test" | "production";
   backUrl: string;
   siteId: string;
+  notificationUrl: string;
 }
 
 let cached: MPConfig | null = null;
@@ -29,6 +30,7 @@ export function getMPConfig(): MPConfig {
     environment: env,
     backUrl: Deno.env.get("MP_BACK_URL") ?? "http://localhost:3000/billing",
     siteId: Deno.env.get("MP_SITE_ID") ?? "MLA",
+    notificationUrl: requireEnv("MP_NOTIFICATION_URL"),
   };
   return cached;
 }

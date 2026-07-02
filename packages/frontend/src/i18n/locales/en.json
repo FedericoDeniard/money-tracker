@@ -371,7 +371,60 @@
     "disconnectedAccountsDescription": "These accounts have no active token, but are kept to preserve history and allow reconnection.",
     "disconnectedNoToken": "Disconnected (no active token)",
     "gmailReconnectWarning": "We detected one or more accounts with an invalid token or webhook subscription. Try reconnecting the account to restore synchronization.",
-    "gmailMissingWatchWarning": "{{count}} connected account(s) currently have no active Gmail watch."
+    "gmailMissingWatchWarning": "{{count}} connected account(s) currently have no active Gmail watch.",
+    "accountBilling": "Account & Billing",
+    "accountBillingTitle": "Manage your subscription",
+    "accountBillingDescription": "View your current plan, switch to a different one, or cancel.",
+    "accountBillingAction": "Manage plan"
+  },
+  "accountBilling": {
+    "title": "Account & Billing",
+    "description": "View your current plan, switch to a different one, or cancel.",
+    "currentPlan": {
+      "title": "Current plan",
+      "empty": "You don't have an active plan right now.",
+      "plan": "Plan: {{name}}",
+      "payerEmail": "Payer: {{email}}",
+      "activeHint": "Your subscription renews automatically. You can cancel anytime."
+    },
+    "availablePlans": {
+      "title": "Available plans",
+      "empty": "No plans available yet.",
+      "subscribe": "Subscribe",
+      "alreadySubscribed": "You're already subscribed",
+      "trialDays": "{{days}}-day free trial"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "paused": "Paused",
+      "cancelled": "Cancelled",
+      "pendingCancellation": "Cancellation pending",
+      "unknown": "Unknown"
+    },
+    "cancel": {
+      "trigger": "Cancel subscription",
+      "cancelling": "Cancelling...",
+      "title": "Cancel subscription?",
+      "description": "Your subscription will remain active until the end of the current billing period. This action cannot be undone.",
+      "confirm": "Yes, cancel"
+    },
+    "toast": {
+      "checkoutOpened": "Redirecting to checkout...",
+      "checkoutStarted": "Subscription created",
+      "subscribeError": "Could not start checkout",
+      "cancelSuccess": "Cancellation requested",
+      "cancelError": "Could not cancel subscription"
+    },
+    "modal": {
+      "description": "You will be charged {{amount}} monthly. Enter your card details to confirm.",
+      "cardHint": "Your card data is tokenized by Mercado Pago and never touches our servers.",
+      "testCardHint": "Test mode: use card 4509 9535 6623 3704, expiry 12/30, security code 123, DNI 12345678."
+    },
+    "brick": {
+      "loading": "Loading payment form…",
+      "error": "Could not load the payment form. Try again later."
+    }
   },
   "notifications": {
     "title": "Notifications",

@@ -15,7 +15,7 @@ headers {
 }
 
 auth:bearer {
-  token: {{internalSecret}}
+  token: {{userJwt}}
 }
 
 body:json {
@@ -41,12 +41,14 @@ tests {
 
 docs {
   plan-based flow. the edge function reads the plan_id from the body
-  (saved by the `create plan in MP` post-response script) and returns that
-  plan's init_point. copy initPoint from the response and open it in
-  a browser logged in as the test_comprador to complete the test
-  payment (test card 4509 9535 6623 3704 / CVV 123 / vto 12/30 / doc
-  12345678).
-  
+  (saved by the `create plan in DB` request) and returns that plan's
+  init_point. the request is auth'd as the test user — run
+  `auth/0-login` first so `userJwt` is populated.
+
+  copy initPoint from the response and open it in a browser logged in
+  as the test_comprador to complete the test payment (test card
+  4509 9535 6623 3704 / CVV 123 / vto 12/30 / doc 12345678).
+
   for the standalone flow (no plan), add payer_email + reason +
   transaction_amount + frequency + frequency_type + currency_id to the
   body. (this hits POST /preapproval and is rejected with 500 on this

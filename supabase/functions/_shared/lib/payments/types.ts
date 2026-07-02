@@ -19,6 +19,17 @@ export interface CreateSubscriptionInput {
   transactionAmount: number;
   currencyId: string;
   externalReference?: string;
+  // when set, mp creates the preapproval associated with this plan
+  // and ignores the recurring config in the body (frequency, amount
+  // and currency come from the plan). the seller pre-creates plans via
+  // POST /preapproval_plan and we just stamp payer_email +
+  // external_reference so the webhook can link the resulting
+  // subscription back to the user.
+  preapprovalPlanId?: string;
+  // tokenized card from checkout bricks client-side. when set
+  // (and preapprovalPlanId is also set), we mark the preapproval
+  // status as "authorized" so mp charges the card immediately.
+  cardTokenId?: string;
 }
 
 export interface CreateSubscriptionResult {

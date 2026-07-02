@@ -35,27 +35,113 @@ export class MercadoPagoProvider implements PaymentProvider {
     input: CreateSubscriptionInput
   ): Promise<CreateSubscriptionResult> {
     const config = getMPConfig();
-    const body = {
-      reason: input.reason,
-      external_reference: input.externalReference,
-      payer_email: input.payerEmail,
-      auto_recurring: {
-        frequency: input.frequency,
-        frequency_type: input.frequencyType,
-        transaction_amount: input.transactionAmount,
-        currency_id: input.currencyId,
-      },
-      back_url: config.backUrl,
-      status: "pending",
-    };
+    return input.cardTokenId && input.preapprovalPlanId
+      ? this.#createWithCardTokenFallback(input, config)
+      : this.#createPending(input, config);
+  }
+
+  // plan-based + card_token_id → try authorized, fall back to
+  // standalone pending (auto_recurring, no plan) when the account
+  // does not support card_token_id for subscriptions.
+  async #createWithCardTokenFallback(
+    input: CreateSubscriptionInput,
+    config: ReturnType<typeof getMPConfig>
+  ): Promise<CreateSubscriptionResult> {
+    const { body: authorizedBody } = this.#buildBody(input);
+
+    authorizedBody.card_token_id = input.cardTokenId;
+    authorizedBody.status = "authorized";
+
+    await this.#logOutboundBody(authorizedBody);
 
     const response = await fetch(`${MP_API_BASE}/preapproval`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.accessToken}`,
-        "Content-Type": "application/json",
-        "X-Idempotency-Key": crypto.randomUUID(),
+      headers: this.#authHeaders(config),
+      body: JSON.stringify(authorizedBody),
+    });
+
+    if (response.ok) {
+      const json = await response.json();
+      const parsed = createPreapprovalResponseSchema.parse(json);
+      return {
+        providerSubscriptionId: parsed.id,
+        initPoint: parsed.init_point ?? parsed.sandbox_init_point ?? "",
+        sandboxInitPoint: parsed.sandbox_init_point ?? null,
+        status: parsed.status,
+      };
+    }
+
+    // authorized failed — fall back to standalone pending (auto_recurring,
+    // no plan, no card_token_id). the user completes payment on mp's site.
+    const { pendingBody, pendingUrl } = this.#buildStandalonePendingBody(
+      input,
+      config
+    );
+
+    await this.#logOutboundBody(pendingBody);
+
+    const retry = await fetch(pendingUrl, {
+      method: "POST",
+      headers: this.#authHeaders(config),
+      body: JSON.stringify(pendingBody),
+    });
+
+    if (retry.ok) {
+      const json = await retry.json();
+      const parsed = createPreapprovalResponseSchema.parse(json);
+      return {
+        providerSubscriptionId: parsed.id,
+        initPoint: parsed.init_point ?? parsed.sandbox_init_point ?? "",
+        sandboxInitPoint: parsed.sandbox_init_point ?? null,
+        status: parsed.status,
+      };
+    }
+
+    const authorizedText = await response.text();
+    const retryText = await retry.text();
+    throw new Error(
+      `MP createSubscription failed (authorized=${response.status}, standalone pending=${retry.status}): authorized=${authorizedText}; standalone=${retryText}`
+    );
+  }
+
+  #buildStandalonePendingBody(
+    input: CreateSubscriptionInput,
+    config: ReturnType<typeof getMPConfig>
+  ): { pendingBody: Record<string, unknown>; pendingUrl: string } {
+    return {
+      pendingBody: {
+        reason: input.reason,
+        external_reference: input.externalReference,
+        payer_email: input.payerEmail,
+        back_url: config.backUrl,
+        notification_url: config.notificationUrl,
+        status: "pending",
+        auto_recurring: {
+          frequency: input.frequency,
+          frequency_type: input.frequencyType,
+          transaction_amount: input.transactionAmount,
+          currency_id: input.currencyId,
+        },
       },
+      pendingUrl: `${MP_API_BASE}/preapproval`,
+    };
+  }
+
+  // pending preapproval — either plan-based (via preapproval_plan_id)
+  // or standalone (via auto_recurring). used both as the primary flow
+  // when no card_token_id and as the fallback when authorized fails.
+  async #createPending(
+    input: CreateSubscriptionInput,
+    config: ReturnType<typeof getMPConfig>
+  ): Promise<CreateSubscriptionResult> {
+    const { body } = this.#buildBody(input);
+    body.status = "pending";
+
+    await this.#logOutboundBody(body);
+
+    const response = await fetch(`${MP_API_BASE}/preapproval`, {
+      method: "POST",
+      headers: this.#authHeaders(config),
       body: JSON.stringify(body),
     });
 
@@ -75,6 +161,64 @@ export class MercadoPagoProvider implements PaymentProvider {
       sandboxInitPoint: parsed.sandbox_init_point ?? null,
       status: parsed.status,
     };
+  }
+
+  #buildBody(input: CreateSubscriptionInput): {
+    body: Record<string, unknown>;
+    autoRecurring: Record<string, unknown> | undefined;
+  } {
+    const body: Record<string, unknown> = {
+      reason: input.reason,
+      external_reference: input.externalReference,
+      payer_email: input.payerEmail,
+      back_url: getMPConfig().backUrl,
+      notification_url: getMPConfig().notificationUrl,
+      status: "pending",
+    };
+    if (input.preapprovalPlanId) {
+      body.preapproval_plan_id = input.preapprovalPlanId;
+    } else {
+      const ar: Record<string, unknown> = {
+        frequency: input.frequency,
+        frequency_type: input.frequencyType,
+        transaction_amount: input.transactionAmount,
+        currency_id: input.currencyId,
+      };
+      body.auto_recurring = ar;
+    }
+    return { body, autoRecurring: undefined };
+  }
+
+  #authHeaders(config: ReturnType<typeof getMPConfig>): Record<string, string> {
+    return {
+      Authorization: `Bearer ${config.accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": crypto.randomUUID(),
+    };
+  }
+
+  async #logOutboundBody(body: Record<string, unknown>): Promise<void> {
+    try {
+      await fetch("http://172.21.0.1:8787/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "debug-flow-correct-body-c18121",
+          msg: "mp client outbound body",
+          data: {
+            url: `${MP_API_BASE}/preapproval`,
+            method: "POST",
+            bodyJson: JSON.stringify(body),
+            bodyHasCardTokenId: "card_token_id" in body,
+            bodyKeys: Object.keys(body),
+            bodyStatus: body.status,
+            bodyHasPreapprovalPlanId: "preapproval_plan_id" in body,
+          },
+        }),
+      });
+    } catch {
+      // never let logging fail the request
+    }
   }
 
   async getSubscription(

@@ -371,7 +371,60 @@
     "disconnectedAccountsDescription": "Estas cuentas no tienen token activo, pero se mantienen para preservar el historial y permitir reconexión.",
     "disconnectedNoToken": "Desconectada (sin token activo)",
     "gmailReconnectWarning": "Detectamos una o más cuentas con token o suscripción de webhook no válida. Probá reconectar la cuenta para restablecer la sincronización.",
-    "gmailMissingWatchWarning": "{{count}} cuenta(s) conectada(s) no tienen watch activo de Gmail en este momento."
+    "gmailMissingWatchWarning": "{{count}} cuenta(s) conectada(s) no tienen watch activo de Gmail en este momento.",
+    "accountBilling": "Cuenta y Facturación",
+    "accountBillingTitle": "Gestioná tu suscripción",
+    "accountBillingDescription": "Mirá tu plan actual, cambiá a otro o cancelá.",
+    "accountBillingAction": "Administrar plan"
+  },
+  "accountBilling": {
+    "title": "Cuenta y Facturación",
+    "description": "Mirá tu plan actual, cambiá a otro o cancelá.",
+    "currentPlan": {
+      "title": "Plan actual",
+      "empty": "No tenés un plan activo en este momento.",
+      "plan": "Plan: {{name}}",
+      "payerEmail": "Pagador: {{email}}",
+      "activeHint": "Tu suscripción se renueva automáticamente. Podés cancelar en cualquier momento."
+    },
+    "availablePlans": {
+      "title": "Planes disponibles",
+      "empty": "Todavía no hay planes disponibles.",
+      "subscribe": "Suscribirme",
+      "alreadySubscribed": "Ya tenés una suscripción",
+      "trialDays": "{{days}} días de prueba gratis"
+    },
+    "status": {
+      "active": "Activa",
+      "pending": "Pendiente",
+      "paused": "Pausada",
+      "cancelled": "Cancelada",
+      "pendingCancellation": "Cancelación pendiente",
+      "unknown": "Desconocido"
+    },
+    "cancel": {
+      "trigger": "Cancelar suscripción",
+      "cancelling": "Cancelando...",
+      "title": "¿Cancelar suscripción?",
+      "description": "Tu suscripción seguirá activa hasta el final del período actual. Esta acción no se puede deshacer.",
+      "confirm": "Sí, cancelar"
+    },
+    "toast": {
+      "checkoutOpened": "Redirigiendo al checkout...",
+      "checkoutStarted": "Suscripción creada",
+      "subscribeError": "No se pudo iniciar el checkout",
+      "cancelSuccess": "Cancelación solicitada",
+      "cancelError": "No se pudo cancelar la suscripción"
+    },
+    "modal": {
+      "description": "Se te cobrará {{amount}} por mes. Ingresá los datos de tu tarjeta para confirmar.",
+      "cardHint": "Los datos de tu tarjeta son tokenizados por Mercado Pago y nunca tocan nuestros servidores.",
+      "testCardHint": "Modo prueba: usá la tarjeta 4509 9535 6623 3704, vencimiento 12/30, código 123, DNI 12345678."
+    },
+    "brick": {
+      "loading": "Cargando formulario de pago…",
+      "error": "No se pudo cargar el formulario de pago. Probá más tarde."
+    }
   },
   "notifications": {
     "title": "Notificaciones",

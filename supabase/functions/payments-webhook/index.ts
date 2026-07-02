@@ -209,6 +209,14 @@ async function processEvent(
   const provider = getProvider(providerName);
   if (!provider) throw new Error(`Provider disappeared: ${providerName}`);
 
+  console.info("[payments-webhook] processing event", {
+    eventId,
+    provider: providerName,
+    topic: event.topic,
+    action: event.action,
+    providerSubscriptionId: event.providerSubscriptionId,
+  });
+
   switch (event.topic) {
     case "subscription.created":
     case "subscription.updated": {
@@ -310,6 +318,16 @@ async function upsertSubscription(
     planId = variant?.plan_id ?? null;
   }
 
+  // resolve user_id from external_reference (flow A — we created the
+  // preapproval and stamped the user's uuid into external_reference)
+  // or payer_email (flow B — mp created the preapproval on their side
+  // and the subscriber's email is the only link back to auth.users).
+  const userId = await resolveUserId(
+    supabase,
+    details.externalReference,
+    details.payerEmail
+  );
+
   const { error } = await supabase.from("subscriptions").upsert(
     {
       provider: providerName,
@@ -324,6 +342,7 @@ async function upsertSubscription(
       external_reference: details.externalReference,
       auto_recurring: details.autoRecurring as Record<string, unknown> | null,
       plan_id: planId,
+      user_id: userId,
       raw: details.raw as Record<string, unknown>,
     },
     { onConflict: "provider,provider_subscription_id" }
@@ -332,4 +351,66 @@ async function upsertSubscription(
   if (error) {
     throw new Error(`Failed to upsert subscription: ${error.message}`);
   }
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveUserId(
+  supabase: ReturnType<typeof createClient>,
+  externalReference: string | null,
+  payerEmail: string | null
+): Promise<string | null> {
+  // we need a separate client pinneado to the auth schema because
+  // the main `supabase` arg is pinneado to payments. service_role
+  // can read auth.users directly.
+  const authClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { db: { schema: "auth" } }
+  );
+
+  // flow A: preapproval was created by us with external_reference
+  // containing the user uuid. try this first since it's exact.
+  if (externalReference && UUID_RE.test(externalReference)) {
+    const { data, error } = await authClient
+      .from("users")
+      .select("id")
+      .eq("id", externalReference)
+      .maybeSingle();
+    if (error) {
+      console.warn(
+        "[payments-webhook] auth.users lookup by external_reference failed; fall back to email",
+        { error: error.message }
+      );
+    } else if (data?.id) {
+      return data.id;
+    }
+  } else if (externalReference) {
+    console.warn(
+      "[payments-webhook] external_reference is not a uuid; falling back to email lookup",
+      { externalReference }
+    );
+  }
+
+  // flow B: mp created the preapproval on their side (user paid via
+  // plan init_point). no external_reference, but the subscriber's
+  // payer_email is available. resolve auth.users.id by email.
+  if (payerEmail) {
+    const { data, error } = await authClient
+      .from("users")
+      .select("id")
+      .eq("email", payerEmail)
+      .maybeSingle();
+    if (error) {
+      console.warn(
+        "[payments-webhook] auth.users lookup by email failed; user_id will be null",
+        { error: error.message }
+      );
+      return null;
+    }
+    if (data?.id) return data.id;
+  }
+
+  return null;
 }

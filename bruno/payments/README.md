@@ -55,8 +55,11 @@ enabled on multiple providers at different prices:
    `cloudflared tunnel --url http://127.0.0.1:54321`
 5. in bruno select the `tunnel` environment and update its `baseUrl` to
    the tunnel address printed by cloudflared.
-6. set the same tunnel address as the webhook url in the MP dashboard
-   (suffixed with `/functions/v1/payments-webhook/mercadopago`).
+6. set `MP_NOTIFICATION_URL` in `supabase/functions/.env` to the tunnel
+   address suffixed with `/functions/v1/payments-webhook/mercadopago`.
+   (MP does not support configuring subscriptions webhooks via the panel;
+   the notification URL must be set at payment creation time via
+   `notification_url` in the POST /preapproval body.)
 
 ## auth
 
