@@ -1,10 +1,12 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
+import { PromptInjectionDetector } from "@mastra/core/processors";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   FINANCIAL_AGENT_INSTRUCTIONS,
   THREAD_TITLE_INSTRUCTIONS,
 } from "./prompts";
+import { TopicGuardrailProcessor } from "../processors/topic-guardrail";
 import { listTransactionsTool } from "../tools/list-transactions";
 import { listSubscriptionsTool } from "../tools/list-subscriptions";
 import { calculateTool } from "../tools/calculate";
@@ -48,4 +50,24 @@ export const financialAgent = new Agent({
     deleteTransactionTool,
     getCurrentDateTool,
   },
+  inputProcessors: [
+    new PromptInjectionDetector({
+      model: openrouter(THREAD_TITLE_MODEL),
+      threshold: 0.8,
+      strategy: "block",
+      // Exclude data-exfiltration and tool-exfiltration: this is a financial
+      // agent whose entire job is to access the user's transactions, so the
+      // model legitimately handles sensitive data and uses tools. Those
+      // categories only catch legitimate use cases as false positives.
+      // Keep injection, jailbreak, system-override, and role-manipulation
+      // to defend against real prompt-injection attacks.
+      detectionTypes: [
+        "injection",
+        "jailbreak",
+        "system-override",
+        "role-manipulation",
+      ],
+    }),
+    new TopicGuardrailProcessor(),
+  ],
 });
