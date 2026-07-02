@@ -886,6 +886,8 @@
     "untitledThread": "Untitled conversation",
     "deleteThread": "Delete conversation",
     "deleteThreadConfirm": "Delete this conversation?",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}}d ago",
     "emptyChatHint": "Send a message to start a new conversation",
     "errorGeneric": "Something went wrong: {{message}}",
     "errorUnknown": "Unknown error",
