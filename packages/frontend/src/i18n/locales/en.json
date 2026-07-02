@@ -191,6 +191,8 @@
     "last30Days": "Last 30 days",
     "last90Days": "Last 90 days",
     "lastYear": "Last year",
+    "specificMonth": "Specific month",
+    "inMonth": "in {{month}}",
     "monthlyTrend": "Monthly Trend",
     "categoryBreakdown": "Expense Breakdown by Category",
     "insights": "Financial Insights",
@@ -750,7 +752,7 @@
     "metrics": {
       "step1": {
         "title": "Metrics filters",
-        "description": "Choose the period (30, 90, or 365 days) and currency. If you have transactions in more than one currency, select 'All' to see a comparison between them."
+        "description": "Choose the period (30, 90, or 365 days), pick a specific month, and select the currency. If you have transactions in more than one currency, select 'All' to see a comparison between them."
       },
       "step2": {
         "title": "Charts and analysis",
