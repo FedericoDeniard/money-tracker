@@ -11,6 +11,7 @@ import {
 } from "kbar";
 import type { Action } from "kbar";
 import { useAuth } from "../../hooks/useAuth";
+import { useConfig } from "../../hooks/useConfig";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +20,8 @@ function KBarInner() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: config } = useConfig();
+  const isChatEnabled = config?.chatEnabled !== false;
 
   const currentLanguage = i18n.language;
   const nextLanguage = currentLanguage === "es" ? "en" : "es";
@@ -92,7 +95,7 @@ function KBarInner() {
       section: t("kbar.navigation"),
       perform: () => navigate("/subscriptions"),
     },
-    ...(process.env.NODE_ENV !== "production"
+    ...(isChatEnabled
       ? [
           {
             id: "assistant",
@@ -129,7 +132,13 @@ function KBarInner() {
     ? [...baseActions, ...authActions]
     : [...baseActions, ...guestActions];
 
-  useRegisterActions(actions, [t, i18n.language, nextLanguageName, user]);
+  useRegisterActions(actions, [
+    t,
+    i18n.language,
+    nextLanguageName,
+    user,
+    isChatEnabled,
+  ]);
 
   return (
     <KBarPortal>

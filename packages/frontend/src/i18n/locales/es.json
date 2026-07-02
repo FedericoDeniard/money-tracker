@@ -886,6 +886,8 @@
     "untitledThread": "Conversación sin título",
     "deleteThread": "Eliminar conversación",
     "deleteThreadConfirm": "¿Eliminar esta conversación?",
+    "yesterday": "Ayer",
+    "daysAgo": "Hace {{count}}d",
     "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
     "errorGeneric": "Algo salió mal: {{message}}",
     "errorUnknown": "Error desconocido",

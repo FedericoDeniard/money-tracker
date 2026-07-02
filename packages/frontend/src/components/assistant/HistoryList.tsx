@@ -10,11 +10,19 @@ interface HistoryListProps {
   className?: string;
 }
 
-function formatRelativeDate(iso: string, locale: string): string {
+function formatRelativeDate(
+  iso: string,
+  locale: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string {
   const date = new Date(iso);
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Compare local calendar days so the bucket is stable across the
+  // day boundary in the user's timezone, not the server's.
+  const startOfDay = (d: Date): number =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.floor((startOfDay(now) - startOfDay(date)) / 86400000);
 
   if (diffDays === 0) {
     return date.toLocaleTimeString(locale, {
@@ -22,8 +30,8 @@ function formatRelativeDate(iso: string, locale: string): string {
       minute: "2-digit",
     });
   }
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays === 1) return t("assistant.yesterday");
+  if (diffDays < 7) return t("assistant.daysAgo", { count: diffDays });
   return date.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
@@ -97,7 +105,7 @@ export function HistoryList({
                     {thread.title ?? t("assistant.untitledThread")}
                   </div>
                   <div className="truncate text-xs text-[var(--text-secondary)]">
-                    {formatRelativeDate(thread.updatedAt, i18n.language)}
+                    {formatRelativeDate(thread.updatedAt, i18n.language, t)}
                   </div>
                 </button>
                 <button
