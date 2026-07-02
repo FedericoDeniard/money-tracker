@@ -7,7 +7,11 @@ export interface ChatThread {
   title: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
+  /** TIMESTAMPTZ mirror column. Use this in the UI instead of `updatedAt`
+   *  (which is TIMESTAMP WITHOUT TIME ZONE) so the browser can convert
+   *  the stored instant into the user's local timezone. */
   updatedAt: string;
+  updatedAtZ: string | null;
 }
 
 export interface ChatMessage {
@@ -80,7 +84,7 @@ class ChatThreadsService {
       .schema("ai")
       .from("mastra_threads" as never)
       .select("*")
-      .order('"updatedAt"', { ascending: false })
+      .order('"updatedAtZ"', { ascending: false, nullsFirst: false })
       .limit(50);
 
     if (error) {

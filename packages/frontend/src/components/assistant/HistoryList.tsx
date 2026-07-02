@@ -105,7 +105,11 @@ export function HistoryList({
                     {thread.title ?? t("assistant.untitledThread")}
                   </div>
                   <div className="truncate text-xs text-[var(--text-secondary)]">
-                    {formatRelativeDate(thread.updatedAt, i18n.language, t)}
+                    {formatRelativeDate(
+                      thread.updatedAtZ ?? thread.updatedAt,
+                      i18n.language,
+                      t
+                    )}
                   </div>
                 </button>
                 <button
