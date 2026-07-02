@@ -84,6 +84,9 @@ function AssistantInputBody({
     <PromptInput
       accept="image/*"
       onSubmit={async message => {
+        if (status !== "ready") {
+          throw new Error("Chat is busy");
+        }
         const trimmed = message.text.trim();
         if (!trimmed && promptFiles.length === 0) return;
 
