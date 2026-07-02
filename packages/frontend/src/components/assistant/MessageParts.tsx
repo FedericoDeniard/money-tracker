@@ -156,6 +156,34 @@ export function MessageParts({
       continue;
     }
 
+    // Render the guardrail tripwire (data-tripwire) emitted by input
+    // processors (e.g. TopicGuardrailProcessor). The @mastra/ai-sdk
+    // adapter converts the server-side `tripwire` chunk to a
+    // `data-tripwire` data part; the AI SDK silently persists it
+    // unless we render it explicitly. We display the `reason` as the
+    // assistant's response so the user sees why their request was
+    // blocked instead of an empty bubble.
+    if (
+      part.type === "data-tripwire" &&
+      !isUser &&
+      typeof (part as { data?: unknown }).data === "object" &&
+      (part as { data?: unknown }).data !== null
+    ) {
+      const tripwireData = (
+        part as { data: { reason?: string; processorId?: string } }
+      ).data;
+      const reason = tripwireData.reason;
+      if (typeof reason === "string" && reason.trim().length > 0) {
+        flushToolBuffer();
+        elements.push(
+          <MessageResponse key={`tripwire-${elements.length}`}>
+            {reason}
+          </MessageResponse>
+        );
+        continue;
+      }
+    }
+
     // Unknown or non-renderable part types (e.g. step-start, step-end)
     // must NOT flush the buffer — otherwise tools separated by these
     // metadata markers would be split into separate collapsible groups.
