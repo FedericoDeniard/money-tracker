@@ -21,7 +21,8 @@ const openrouter = createOpenRouter({
 });
 
 const FINANCIAL_AGENT_MODEL =
-  process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ?? "google/gemma-4-31b-it";
+  process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ??
+  "bytedance-seed/seed-2.0-mini";
 const THREAD_TITLE_MODEL =
   process.env.OPENROUTER_THREAD_TITLE_MODEL ?? "google/gemini-2.5-flash-lite";
 const GUARDRAIL_MODEL =
