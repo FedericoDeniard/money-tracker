@@ -70,7 +70,7 @@ export class TopicGuardrailProcessor implements Processor {
       apiKey: process.env.OPENROUTER_API_KEY ?? "",
     });
     const modelName =
-      process.env.OPENROUTER_GUARDRAIL_MODEL ?? "openai/gpt-5-nano";
+      process.env.OPENROUTER_GUARDRAIL_MODEL ?? "deepseek/deepseek-v4-flash";
     this.model = openrouter(modelName);
   }
 
