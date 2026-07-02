@@ -4,6 +4,10 @@ import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 const BLOCK_THRESHOLD = 0.85;
+const MAX_REASON_LENGTH = 200;
+
+const FALLBACK_REJECTION =
+  "Solo puedo ayudarte con tus finanzas y transacciones en Money Tracker. / I can only help you with your finances and transactions in Money Tracker.";
 
 const SYSTEM_PROMPT = `You are a strict topic classifier for "Money Tracker", a personal finance assistant.
 
@@ -31,11 +35,20 @@ CONFIDENCE:
 - High confidence (>0.85): the latest message is unambiguously off-topic on its own, regardless of context.
 - Low confidence (<0.85): ambiguous, follow-up, or could plausibly be on-topic. When in doubt, lean permissive (isOffTopic=false).
 
+REASON FIELD:
+"reason" is the actual short message the user will see as the rejection. Requirements:
+- Maximum 1-2 short sentences, ≤200 chars.
+- Written in the SAME language the user used (Spanish if user wrote in Spanish, English if in English).
+- Polite tone, not robotic, not jailbreak-style.
+- Briefly state that the assistant can only help with personal finance and the Money Tracker app (transactions, subscriptions, spending, budgets, etc.).
+- Example (Spanish): "Solo puedo ayudarte con tus finanzas y transacciones en Money Tracker."
+- Example (English): "I can only help you with your finances and transactions in Money Tracker."
+
 Respond ONLY with a JSON object:
 {
   "isOffTopic": boolean,
   "confidence": number between 0 and 1,
-  "reason": string (brief explanation in English)
+  "reason": string (the short, polite rejection message in the user's language)
 }`;
 
 function getTextFromMessage(msg: MastraDBMessage): string {
@@ -122,18 +135,24 @@ export class TopicGuardrailProcessor implements Processor {
     }
 
     if (shouldAbort) {
-      // The abort() throws a TripWire error that ends processing. The reason is
+      // Use the classifier's reason directly if it's a valid short message;
+      // otherwise fall back to the bilingual default so the user always sees
+      // a clear explanation regardless of LLM verbosity.
+      const trimmedReason = abortReason.trim();
+      const rejectionMessage =
+        trimmedReason.length > 0 && trimmedReason.length <= MAX_REASON_LENGTH
+          ? trimmedReason
+          : FALLBACK_REJECTION;
+
+      // abort() throws a TripWire error that ends processing. The reason is
       // emitted as a `tripwire` chunk in the stream, which the @mastra/ai-sdk
       // adapter converts to a `data-tripwire` part on the client.
-      abort(
-        "Solo puedo ayudarte con tus finanzas y transacciones en Money Tracker.",
-        {
-          metadata: {
-            reason: abortReason,
-            processorId: "topic-guardrail",
-          },
-        }
-      );
+      abort(rejectionMessage, {
+        metadata: {
+          reason: abortReason,
+          processorId: "topic-guardrail",
+        },
+      });
     }
 
     return messages;
