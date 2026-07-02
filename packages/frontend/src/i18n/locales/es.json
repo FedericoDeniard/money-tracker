@@ -191,6 +191,8 @@
     "last30Days": "Últimos 30 días",
     "last90Days": "Últimos 90 días",
     "lastYear": "Último año",
+    "specificMonth": "Mes específico",
+    "inMonth": "en {{month}}",
     "monthlyTrend": "Tendencia Mensual",
     "categoryBreakdown": "Desglose de Gastos por Categoría",
     "insights": "Insights Financieros",
@@ -803,7 +805,7 @@
     "metrics": {
       "step1": {
         "title": "Filtros de metricas",
-        "description": "Elegis el periodo (30, 90 o 365 dias) y la moneda. Si tenes transacciones en mas de una moneda, selecciona 'Todas' para ver una comparacion entre ellas."
+        "description": "Elegis el periodo (30, 90 o 365 dias), un mes especifico y la moneda. Si tenes transacciones en mas de una moneda, selecciona 'Todas' para ver una comparacion entre ellas."
       },
       "step2": {
         "title": "Graficos y analisis",
@@ -939,6 +941,8 @@
     "untitledThread": "Conversación sin título",
     "deleteThread": "Eliminar conversación",
     "deleteThreadConfirm": "¿Eliminar esta conversación?",
+    "yesterday": "Ayer",
+    "daysAgo": "Hace {{count}}d",
     "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
     "errorGeneric": "Algo salió mal: {{message}}",
     "errorUnknown": "Error desconocido",

@@ -2,6 +2,7 @@ import { useState, useMemo, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import { useMetricsData } from "../hooks/useMetricsData";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { parseDateSafe } from "../hooks/useFormatDate";
 import {
   TrendingUp,
   TrendingDown,
@@ -31,6 +32,11 @@ import { InsightsSection } from "../components/metrics/InsightsSection";
 import { CurrencyComparison } from "../components/metrics/CurrencyComparison";
 import type { MetricCardProps } from "../components/metrics/MetricCard";
 import { getCurrencySymbol } from "../utils/currency";
+import {
+  type MetricPeriod,
+  formatMonthLabel,
+  getDateRange,
+} from "../utils/period";
 
 interface CategoryData {
   category: string;
@@ -47,31 +53,49 @@ interface MonthlyData {
 }
 
 export function Metrics() {
-  const { t } = useTranslation();
-  const [selectedPeriod, setSelectedPeriod] = useState<"30" | "90" | "365">(
-    "30"
-  );
+  const { t, i18n } = useTranslation();
+  const [period, setPeriod] = useState<MetricPeriod>({
+    kind: "rolling",
+    days: 30,
+  });
   const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
   const [breakdownChartType, setBreakdownChartType] = useState<
     "pie" | "treemap"
   >("pie");
   const [trendChartType, setTrendChartType] = useState<"bar" | "area">("bar");
 
-  // useMetricsData uses useAllTransactions (regular useInfiniteQuery, NOT suspense)
-  // so loading is manual here — no Suspense boundary needed
+  const dateRange = useMemo(() => getDateRange(period), [period]);
+
   const {
     availableCurrencies,
     metrics,
     isLoadingAllPages: loading,
     error,
     filteredTransactions,
-  } = useMetricsData({ selectedPeriod, selectedCurrency });
+  } = useMetricsData({
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+    previousStartDate: dateRange.previousStartDate,
+    previousEndDate: dateRange.previousEndDate,
+    selectedCurrency,
+  });
+
+  const periodSubtitle = useMemo(() => {
+    if (period.kind === "rolling") {
+      return t("metrics.inLastPeriod", { days: period.days });
+    }
+    const monthLabel = formatMonthLabel(period.yearMonth, i18n.language);
+    return t("metrics.inMonth", { month: monthLabel });
+  }, [period, t, i18n.language]);
+
+  const periodKey =
+    period.kind === "rolling" ? `r-${period.days}` : `m-${period.yearMonth}`;
 
   const monthlyData = useMemo((): MonthlyData[] => {
     if (!filteredTransactions.length) return [];
     const monthlyMap = new Map<string, { income: number; expense: number }>();
     filteredTransactions.forEach(tx => {
-      const date = new Date(tx.transaction_date);
+      const date = parseDateSafe(tx.transaction_date);
       const monthKey = date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
@@ -168,9 +192,6 @@ export function Metrics() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header — renders immediately (title + period/currency selectors).
-          FilterBar receives availableCurrencies which starts empty then fills in
-          as useAllTransactions pages load — no Suspense needed, controlled by loading. */}
       <section
         data-tour="metrics-header"
         className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm"
@@ -186,38 +207,35 @@ export function Metrics() {
           </div>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 xl:items-center xl:justify-end xl:flex-1 shrink-0">
             <FilterBar
-              selectedPeriod={selectedPeriod}
+              selectedPeriod={period}
               selectedCurrency={selectedCurrency}
               availableCurrencies={availableCurrencies}
-              onPeriodChange={setSelectedPeriod}
+              onPeriodChange={setPeriod}
               onCurrencyChange={setSelectedCurrency}
             />
           </div>
         </div>
       </section>
 
-      {/* Multi-currency selector (shown when > 1 currency detected) */}
       <div data-tour="metrics-content">
         {loading ? (
-          // Data is still loading via useAllTransactions pagination
           <div className="flex items-center justify-center h-48">
             <LoadingSpinner size="lg" />
           </div>
         ) : selectedCurrency === "all" && availableCurrencies.length > 1 ? (
           <div>
             <CurrencyComparison
-              key={selectedPeriod}
+              key={periodKey}
               transactions={filteredTransactions}
-              selectedPeriod={selectedPeriod}
+              selectedPeriod={periodKey}
               getCurrencySymbol={getCurrencySymbol}
               onCurrencySelect={setSelectedCurrency}
             />
           </div>
         ) : (
           <>
-            {/* Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {metricCards.map((card, index) => (
+              {metricCards.map(card => (
                 <MetricCard
                   key={card.title}
                   title={card.title}
@@ -229,7 +247,6 @@ export function Metrics() {
               ))}
             </div>
 
-            {/* Charts */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl flex flex-col relative">
                 <div className="flex items-center justify-between mb-6">
@@ -301,7 +318,6 @@ export function Metrics() {
               </div>
             </div>
 
-            {/* Insights */}
             <InsightsSection
               data={{
                 topCategory: metrics.topCategory,
@@ -309,7 +325,7 @@ export function Metrics() {
                 totalIncome: metrics.totalIncome,
                 totalExpense: metrics.totalExpense,
               }}
-              selectedPeriod={selectedPeriod}
+              periodSubtitle={periodSubtitle}
               getCurrencySymbol={getCurrencySymbol}
               displayCurrency={displayCurrency}
             />

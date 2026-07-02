@@ -5,6 +5,7 @@ import {
   FINANCIAL_AGENT_INSTRUCTIONS,
   THREAD_TITLE_INSTRUCTIONS,
 } from "./prompts";
+import { TopicGuardrailProcessor } from "../processors/topic-guardrail";
 import { listTransactionsTool } from "../tools/list-transactions";
 import { listSubscriptionsTool } from "../tools/list-subscriptions";
 import { calculateTool } from "../tools/calculate";
@@ -19,9 +20,12 @@ const openrouter = createOpenRouter({
 });
 
 const FINANCIAL_AGENT_MODEL =
-  process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ?? "google/gemma-4-31b-it";
+  process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ??
+  "google/gemini-2.5-flash-lite";
 const THREAD_TITLE_MODEL =
   process.env.OPENROUTER_THREAD_TITLE_MODEL ?? "google/gemini-2.5-flash-lite";
+const GUARDRAIL_MODEL =
+  process.env.OPENROUTER_GUARDRAIL_MODEL ?? "google/gemini-2.5-flash-lite";
 
 export const financialAgent = new Agent({
   id: "financial-agent",
@@ -48,4 +52,14 @@ export const financialAgent = new Agent({
     deleteTransactionTool,
     getCurrentDateTool,
   },
+  inputProcessors: [
+    // Single guardrail: TopicGuardrailProcessor classifies every message
+    // on-topic vs off-topic. Was previously preceded by PromptInjectionDetector
+    // but it added ~3-7s of latency per request (full LLM call before the
+    // main agent) and produced false positives on legitimate financial
+    // queries like "edit my last transaction". TopicGuardrail's strict
+    // instructions and threshold already block real prompt injection
+    // attempts when combined with the model's own safety training.
+    new TopicGuardrailProcessor(),
+  ],
 });
