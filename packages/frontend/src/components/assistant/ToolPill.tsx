@@ -1,10 +1,7 @@
 import { useTranslation } from "react-i18next";
 import {
-  AlertCircleIcon,
   CalculatorIcon,
   CheckIcon,
-  ClockIcon,
-  HandIcon,
   ListChecksIcon,
   Loader2Icon,
   WrenchIcon,
@@ -18,62 +15,16 @@ type ToolPart = Extract<
   { type: `tool-${string}` | "dynamic-tool" }
 >;
 
+const ACTIVE_STATES = new Set<ToolPart["state"]>([
+  "input-streaming",
+  "input-available",
+  "approval-requested",
+  "approval-responded",
+]);
+
 interface ToolPillProps {
   part: ToolPart;
 }
-
-interface StateConfig {
-  iconBg: string;
-  badgeBg: string;
-  icon: React.ComponentType<{ className?: string }>;
-  /** English fallback for the state label when the i18n key is missing. */
-  fallbackLabel: string;
-}
-
-const STATE_CONFIG: Record<ToolPart["state"], StateConfig> = {
-  "input-streaming": {
-    iconBg: "bg-amber-300",
-    badgeBg: "bg-amber-200",
-    icon: ClockIcon,
-    fallbackLabel: "Pending",
-  },
-  "input-available": {
-    iconBg: "bg-sky-300",
-    badgeBg: "bg-sky-200",
-    icon: Loader2Icon,
-    fallbackLabel: "Running",
-  },
-  "output-available": {
-    iconBg: "bg-emerald-300",
-    badgeBg: "bg-emerald-200",
-    icon: CheckIcon,
-    fallbackLabel: "Done",
-  },
-  "output-error": {
-    iconBg: "bg-rose-300",
-    badgeBg: "bg-rose-200",
-    icon: AlertCircleIcon,
-    fallbackLabel: "Error",
-  },
-  "output-denied": {
-    iconBg: "bg-orange-300",
-    badgeBg: "bg-orange-200",
-    icon: XIcon,
-    fallbackLabel: "Denied",
-  },
-  "approval-requested": {
-    iconBg: "bg-yellow-300",
-    badgeBg: "bg-yellow-200",
-    icon: HandIcon,
-    fallbackLabel: "Awaiting",
-  },
-  "approval-responded": {
-    iconBg: "bg-violet-300",
-    badgeBg: "bg-violet-200",
-    icon: CheckIcon,
-    fallbackLabel: "Responded",
-  },
-};
 
 function getToolIcon(
   rawName: string
@@ -104,7 +55,6 @@ function formatFallbackName(rawName: string): string {
 
 export function ToolPill({ part }: ToolPillProps) {
   const { t } = useTranslation();
-  const config = STATE_CONFIG[part.state];
   const rawName = getRawName(part);
   const i18nKey = getI18nToolKey(rawName);
 
@@ -112,41 +62,30 @@ export function ToolPill({ part }: ToolPillProps) {
     `assistant.tools.${i18nKey}`,
     formatFallbackName(rawName)
   );
-  const stateLabel = t(
-    `assistant.toolStates.${part.state}`,
-    config.fallbackLabel
-  );
+
+  const isActive = ACTIVE_STATES.has(part.state);
+  const isError =
+    part.state === "output-error" || part.state === "output-denied";
 
   const ToolIcon = getToolIcon(rawName);
-  const StateIcon = config.icon;
+  const StateIcon = isActive ? Loader2Icon : isError ? XIcon : CheckIcon;
 
   return (
-    <div
+    <span
       className={cn(
-        "flex w-fit max-w-full items-center gap-2 my-2 px-2.5 py-1.5",
-        "rounded-2xl border border-[var(--text-secondary)]/20 bg-stone-50"
+        "inline-flex items-center gap-1.5 text-xs leading-none",
+        isError ? "text-rose-600" : "text-stone-500"
       )}
     >
-      <div
+      <ToolIcon className="size-3 shrink-0" />
+      <span>{displayName}</span>
+      <StateIcon
         className={cn(
-          "flex items-center justify-center size-7 rounded-full border border-[var(--text-secondary)]/20 shrink-0",
-          config.iconBg
+          "ml-1 size-3 shrink-0",
+          isActive && "animate-spin",
+          !isError && !isActive && "text-emerald-600"
         )}
-      >
-        <ToolIcon className="size-4 text-stone-900" />
-      </div>
-      <span className="font-black text-sm leading-none text-stone-900">
-        {displayName}
-      </span>
-      <div
-        className={cn(
-          "flex items-center gap-1 px-2 py-0.5 rounded-full border border-[var(--text-secondary)]/20 text-xs font-bold leading-none text-stone-900",
-          config.badgeBg
-        )}
-      >
-        <StateIcon className="size-3" />
-        {stateLabel}
-      </div>
-    </div>
+      />
+    </span>
   );
 }

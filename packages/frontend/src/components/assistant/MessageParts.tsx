@@ -6,7 +6,7 @@ import {
   Attachments,
 } from "@/components/ai-elements/attachments";
 import { MessageResponse } from "@/components/ai-elements/message";
-import { ToolCallGroup } from "./ToolCallGroup";
+import { ToolPill } from "./ToolPill";
 import { CreateTransactionConfirmation } from "./CreateTransactionConfirmation";
 import { DeleteTransactionConfirmation } from "./DeleteTransactionConfirmation";
 import { UpdateTransactionConfirmation } from "./UpdateTransactionConfirmation";
@@ -23,8 +23,8 @@ function isToolPart(part: UIMessage["parts"][number]): part is ToolPart {
 
 /**
  * Tools that require user approval and render a dedicated confirmation
- * card. These must stay outside the ToolCallGroup collapsible so the
- * Approve/Reject buttons are always visible.
+ * card. These render outside the per-tool status line so the Approve/Reject
+ * buttons stay visible.
  */
 const APPROVAL_TOOL_TYPES = new Set([
   "tool-createTransactionTool",
@@ -63,21 +63,9 @@ export function MessageParts({
 }: MessagePartsProps) {
   const hasApproval = Boolean(onApproveTool && onRejectTool);
   const elements: ReactNode[] = [];
-  let toolBuffer: ToolPart[] = [];
-  let groupIndex = 0;
-
-  const flushToolBuffer = () => {
-    if (toolBuffer.length === 0) return;
-    const buffered = toolBuffer;
-    elements.push(
-      <ToolCallGroup key={`tool-group-${groupIndex++}`} parts={buffered} />
-    );
-    toolBuffer = [];
-  };
 
   for (const part of parts) {
     if (part.type === "text") {
-      flushToolBuffer();
       elements.push(
         <MessageResponse key={`text-${elements.length}`}>
           {part.text}
@@ -87,7 +75,6 @@ export function MessageParts({
     }
 
     if (part.type === "file" && isUser) {
-      flushToolBuffer();
       elements.push(
         <Attachments
           key={`file-${part.url}`}
@@ -107,12 +94,15 @@ export function MessageParts({
         console.error(`[tool:${part.toolName ?? part.type}]`, part.errorText);
       }
       if (isRegularToolPart(part, hasApproval)) {
-        toolBuffer.push(part);
+        elements.push(
+          <ToolPill
+            key={`${part.type}-${part.toolCallId}-${elements.length}`}
+            part={part}
+          />
+        );
         continue;
       }
-      // Approval-required tools render their own confirmation card
-      // outside the collapsible group.
-      flushToolBuffer();
+      // Approval-required tools render their own confirmation card.
       if (part.type === "tool-deleteTransactionTool") {
         elements.push(
           <DeleteTransactionConfirmation
@@ -174,7 +164,6 @@ export function MessageParts({
       ).data;
       const reason = tripwireData.reason;
       if (typeof reason === "string" && reason.trim().length > 0) {
-        flushToolBuffer();
         elements.push(
           <MessageResponse key={`tripwire-${elements.length}`}>
             {reason}
@@ -185,11 +174,8 @@ export function MessageParts({
     }
 
     // Unknown or non-renderable part types (e.g. step-start, step-end)
-    // must NOT flush the buffer — otherwise tools separated by these
-    // metadata markers would be split into separate collapsible groups.
+    // are intentionally skipped.
   }
-
-  flushToolBuffer();
 
   return <>{elements}</>;
 }
