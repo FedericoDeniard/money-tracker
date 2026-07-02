@@ -25,7 +25,7 @@ const FINANCIAL_AGENT_MODEL =
 const THREAD_TITLE_MODEL =
   process.env.OPENROUTER_THREAD_TITLE_MODEL ?? "google/gemini-2.5-flash-lite";
 const GUARDRAIL_MODEL =
-  process.env.OPENROUTER_GUARDRAIL_MODEL ?? "openai/gpt-5-nano";
+  process.env.OPENROUTER_GUARDRAIL_MODEL ?? "deepseek/deepseek-v4-flash";
 
 export const financialAgent = new Agent({
   id: "financial-agent",
