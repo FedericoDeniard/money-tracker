@@ -4,19 +4,15 @@
 // interface (../types.ts) so swapping providers is a one-line change in
 // ../index.ts.
 //
-// scope (post simplification): hosted-checkout flow only. the seller
-// pre-creates a preapproval_plan via POST /preapproval_plan; create-subscription
-// reads it via getPlan() and hands back its `init_point` so the user pays on
-// mp's own site. mp dispatches the subscription_preapproval webhook to
-// payments-webhook, which writes payments.subscriptions.
-//
-// createSubscription() is kept on the interface for backwards compat but
-// throws — server-side preapproval creation returned 500/404 in every env we
-// have. see commit history before the rewrite.
+// scope: hosted-checkout flow only. the seller pre-creates a
+// preapproval_plan via POST /preapproval_plan; create-subscription
+// stamps our user.id into the plan's external_reference via PUT, then
+// reads it via getPlan() and hands back its `init_point` so the user
+// pays on mp's own site. mp propagates external_reference to the
+// resulting preapproval and dispatches the subscription_preapproval
+// webhook to payments-webhook, which writes payments.subscriptions.
 
 import type {
-  CreateSubscriptionInput,
-  CreateSubscriptionResult,
   NormalizedWebhookEvent,
   PaymentProvider,
   PlanDetails,
@@ -39,97 +35,6 @@ const MP_API_BASE = "https://api.mercadopago.com";
 
 export class MercadoPagoProvider implements PaymentProvider {
   readonly name = "mercadopago" as const;
-
-  // server-side POST /preapproval with `external_reference = user.id`. the
-  // user.id is then echoed back in the subscription_preapproval webhook
-  // and stamped on payments.subscriptions via resolveUserId. this is the
-  // only way to link a subscription back to our auth user when MP's
-  // hosted checkout ignores query params.
-  //
-  // fallback chain — we try both shapes because per-region docs and the
-  // seller's MP tier restrict some combinations:
-  //
-  //   1. standalone (`auto_recurring`) + `status: pending`
-  //      — the link-the-preapproval-by-external-reference shape.
-  //   2. standalone + `status: authorized` (requires `card_token_id`,
-  //      omitted here for the no-Bricks path).
-  //
-  // any non-2xx is rethrown with the raw body so the edge function can
-  // surface the exact MP error to the frontend (curl from a terminal
-  // sometimes differs from a browser-shaped request — debug logs confirm).
-  async createSubscription(
-    input: CreateSubscriptionInput
-  ): Promise<CreateSubscriptionResult> {
-    const config = getMPConfig();
-    const body = this.#buildBody(input);
-
-    // standalone pending — does NOT require card_token_id, requires
-    // payer_email. the user gets redirected to mp's site to complete
-    // payment; external_reference survives the round trip.
-    body.status = "pending";
-
-    await this.#logOutbound(body);
-
-    const response = await fetch(`${MP_API_BASE}/preapproval`, {
-      method: "POST",
-      headers: this.#authHeaders(config),
-      body: JSON.stringify(body),
-    });
-
-    const text = await response.text();
-    if (!response.ok) {
-      throw new Error(
-        `POST /preapproval failed (${response.status} ${response.statusText}): ${text}`
-      );
-    }
-
-    const json = JSON.parse(text);
-    return {
-      providerSubscriptionId: json.id,
-      initPoint: json.init_point ?? json.sandbox_init_point ?? "",
-      sandboxInitPoint: json.sandbox_init_point ?? null,
-      status: json.status,
-    };
-  }
-
-  #buildBody(input: CreateSubscriptionInput): Record<string, unknown> {
-    const body: Record<string, unknown> = {
-      reason: input.reason,
-      external_reference: input.externalReference,
-      payer_email: input.payerEmail,
-      back_url: getMPConfig().backUrl,
-      notification_url: getMPConfig().notificationUrl,
-      status: "pending",
-      auto_recurring: {
-        frequency: input.frequency,
-        frequency_type: input.frequencyType,
-        transaction_amount: input.transactionAmount,
-        currency_id: input.currencyId,
-      },
-    };
-    if (input.preapprovalPlanId) {
-      body.preapproval_plan_id = input.preapprovalPlanId;
-    }
-    return body;
-  }
-
-  #authHeaders(config: ReturnType<typeof getMPConfig>): Record<string, string> {
-    return {
-      Authorization: `Bearer ${config.accessToken}`,
-      "Content-Type": "application/json",
-      "X-Idempotency-Key": crypto.randomUUID(),
-    };
-  }
-
-  async #logOutbound(body: Record<string, unknown>): Promise<void> {
-    console.info("[mercadopago] outbound POST /preapproval body", {
-      keys: Object.keys(body),
-      external_reference: body.external_reference,
-      payer_email: body.payer_email,
-      status: body.status,
-      has_preapproval_plan_id: "preapproval_plan_id" in body,
-    });
-  }
 
   // returns the init_point of an existing preapproval plan. used by
   // create-subscription in the hosted-checkout flow: the seller

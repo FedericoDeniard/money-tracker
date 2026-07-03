@@ -11,34 +11,6 @@
 
 export type ProviderName = "mercadopago";
 
-export interface CreateSubscriptionInput {
-  payerEmail: string;
-  reason: string;
-  frequency: number;
-  frequencyType: "months" | "days";
-  transactionAmount: number;
-  currencyId: string;
-  externalReference?: string;
-  // when set, mp creates the preapproval associated with this plan
-  // and ignores the recurring config in the body (frequency, amount
-  // and currency come from the plan). the seller pre-creates plans via
-  // POST /preapproval_plan and we just stamp payer_email +
-  // external_reference so the webhook can link the resulting
-  // subscription back to the user.
-  preapprovalPlanId?: string;
-  // tokenized card from checkout bricks client-side. when set
-  // (and preapprovalPlanId is also set), we mark the preapproval
-  // status as "authorized" so mp charges the card immediately.
-  cardTokenId?: string;
-}
-
-export interface CreateSubscriptionResult {
-  providerSubscriptionId: string;
-  initPoint: string;
-  sandboxInitPoint: string | null;
-  status: string;
-}
-
 // partial update of a plan. every field is optional; the provider applies
 // a partial-update semantics where omitted fields are left untouched. the
 // caller is responsible for keeping any local mirror (e.g.
@@ -132,9 +104,6 @@ export interface NormalizedWebhookEvent {
 
 export interface PaymentProvider {
   readonly name: ProviderName;
-  createSubscription(
-    input: CreateSubscriptionInput
-  ): Promise<CreateSubscriptionResult>;
   getSubscription(
     providerSubscriptionId: string
   ): Promise<SubscriptionDetails | null>;
