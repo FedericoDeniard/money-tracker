@@ -69,6 +69,10 @@ export function AccountBilling() {
 
     setPendingPlanId(plan.id);
     try {
+      // server-side creates the preapproval with external_reference =
+      // user.id, returns the plan's init_point for the user to complete
+      // payment on mp's site. the webhook carries external_reference
+      // back and stamps user_id via resolveUserId.
       const result = await createCheckoutLink.mutateAsync({
         planId: plan.id,
         provider: variant.provider,
@@ -76,9 +80,11 @@ export function AccountBilling() {
       toast.info(t("accountBilling.toast.checkoutOpened"));
       window.location.href = result.initPoint;
     } catch (error) {
+      // surface the raw mp response so we can see exactly what the api
+      // said — different from a curl invocation sometimes.
       const message =
         error instanceof Error ? error.message : t("common.error");
-      console.error("[billing] checkout link failed", error);
+      console.error("[billing] checkout link failed", { error, message });
       toast.error(t("accountBilling.toast.subscribeError"), message);
       setPendingPlanId(null);
     }

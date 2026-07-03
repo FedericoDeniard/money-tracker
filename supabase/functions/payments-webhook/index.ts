@@ -318,12 +318,14 @@ async function upsertSubscription(
     planId = variant?.plan_id ?? null;
   }
 
-  // resolve user_id by payer_email: when mp dispatches the webhook, the
-  // subscriber's email is the only stable link back to auth.users. if the
-  // user paid with the same email they signed up with, we link them
-  // automatically; otherwise user_id stays null and a manual merge can be
-  // run later.
-  const userId = await resolveUserId(supabase, details.payerEmail);
+  // resolve user_id from external_reference (uuid of auth.users when
+  // the frontend stamped it on the hosted-checkout url) and fall back to
+  // payer_email lookup when external_reference is absent.
+  const userId = await resolveUserId(
+    supabase,
+    details.externalReference,
+    details.payerEmail
+  );
 
   const { error } = await supabase.from("subscriptions").upsert(
     {
@@ -350,12 +352,14 @@ async function upsertSubscription(
   }
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function resolveUserId(
   supabase: ReturnType<typeof createClient>,
+  externalReference: string | null,
   payerEmail: string | null
 ): Promise<string | null> {
-  if (!payerEmail) return null;
-
   // we need a separate client pinneado to the auth schema because
   // the main `supabase` arg is pinneado to payments. service_role
   // can read auth.users directly.
@@ -365,17 +369,41 @@ async function resolveUserId(
     { db: { schema: "auth" } }
   );
 
-  const { data, error } = await authClient
-    .from("users")
-    .select("id")
-    .eq("email", payerEmail)
-    .maybeSingle();
-  if (error) {
-    console.warn(
-      "[payments-webhook] auth.users lookup by email failed; user_id will be null",
-      { error: error.message }
-    );
-    return null;
+  // flow A: mp dispatch included external_reference. if it's a uuid we
+  // trust it as an exact lookup against auth.users.id (no ambiguity).
+  if (externalReference && UUID_RE.test(externalReference)) {
+    const { data, error } = await authClient
+      .from("users")
+      .select("id")
+      .eq("id", externalReference)
+      .maybeSingle();
+    if (!error && data?.id) return data.id;
+    if (error) {
+      console.warn(
+        "[payments-webhook] auth.users lookup by external_reference failed",
+        { error: error.message }
+      );
+    }
   }
-  return data?.id ?? null;
+
+  // flow B: fall back to payer_email. if the user paid with the same
+  // email they signed up with, we still link them; otherwise user_id
+  // stays null and a manual merge can run later.
+  if (payerEmail) {
+    const { data, error } = await authClient
+      .from("users")
+      .select("id")
+      .eq("email", payerEmail)
+      .maybeSingle();
+    if (error) {
+      console.warn(
+        "[payments-webhook] auth.users lookup by email failed; user_id will be null",
+        { error: error.message }
+      );
+      return null;
+    }
+    return data?.id ?? null;
+  }
+
+  return null;
 }

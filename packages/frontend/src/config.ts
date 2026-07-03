@@ -1,5 +1,13 @@
 // Configuration fetched from server API endpoint
 // Server reads from .env and exposes public config
+//
+// NB: previously this kept a module-level `configCache` so we only fetched
+// once per page load. that cache became stale during dev whenever the
+// tunnel host was rotated (every fresh `bun docker:down && bun docker:up`
+// gives you a new trycloudflare subdomain) — bun HMR reloaded neighboring
+// modules but not config.ts's module-level state. each call now refetches;
+// the cost is one tiny JSON request per consumer and we always see fresh
+// values.
 
 export interface AppConfig {
   supabase: { url: string; anonKey: string };
@@ -18,23 +26,17 @@ export interface AppConfig {
   appUrl: string;
 }
 
-let configCache: AppConfig | null = null;
-
 export async function getConfig(): Promise<AppConfig> {
-  if (configCache) {
-    return configCache;
-  }
-
   const response = await fetch("/api/config");
   if (!response.ok) {
     throw new Error("Failed to fetch configuration from server");
   }
 
-  configCache = await response.json();
+  const config = (await response.json()) as AppConfig;
 
-  if (!configCache?.supabase?.url || !configCache?.supabase?.anonKey) {
+  if (!config?.supabase?.url || !config?.supabase?.anonKey) {
     throw new Error("Invalid configuration received from server");
   }
 
-  return configCache;
+  return config;
 }

@@ -72,6 +72,19 @@ export const preapprovalResponseSchema = z.object({
 
 export type PreapprovalResponse = z.infer<typeof preapprovalResponseSchema>;
 
+// ─── create preapproval response ─────────────────────────────────────────────
+
+export const createPreapprovalResponseSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  init_point: z.string().optional(),
+  sandbox_init_point: z.string().optional().nullable(),
+});
+
+export type CreatePreapprovalResponse = z.infer<
+  typeof createPreapprovalResponseSchema
+>;
+
 // ─── /authorized_payments/{id} response ──────────────────────────────────────
 
 export const authorizedPaymentResponseSchema = z.object({
