@@ -223,6 +223,9 @@ async function processEvent(
       if (!event.providerSubscriptionId) {
         throw new Error("subscription event without providerSubscriptionId");
       }
+      console.info("[payments-webhook] MP returned subscription id", {
+        providerSubscriptionId: event.providerSubscriptionId,
+      });
       const details = await provider.getSubscription(
         event.providerSubscriptionId
       );
@@ -231,6 +234,15 @@ async function processEvent(
           `MP /preapproval/${event.providerSubscriptionId} returned 404`
         );
       }
+      // the payload mp returned to us. external_reference is what we
+      // stamped on the plan in create-subscription (= auth.users.id).
+      console.info("[payments-webhook] MP preapproval details", {
+        providerSubscriptionId: details.providerSubscriptionId,
+        status: details.status,
+        payerEmail: details.payerEmail,
+        externalReference: details.externalReference,
+        reason: details.reason,
+      });
       await upsertSubscription(
         supabase,
         providerName,
