@@ -13,7 +13,6 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import postgres from "npm:postgres@3.4.5";
 import { handleCorsPreflightRequest, getCorsHeaders } from "../_shared/cors.ts";
 import { getProvider } from "../_shared/lib/payments/index.ts";
 import type {
@@ -319,14 +318,10 @@ async function upsertSubscription(
     planId = variant?.plan_id ?? null;
   }
 
-  // resolve user_id from external_reference (uuid of auth.users when
-  // the frontend stamped it on the hosted-checkout url) and fall back to
-  // payer_email lookup when external_reference is absent.
-  const userId = await resolveUserId(
-    supabase,
-    details.externalReference,
-    details.payerEmail
-  );
+  // resolve user_id from external_reference. we stamped our user.id
+  // into the plan's external_reference in create-subscription, so the
+  // webhook carries our user_id back to us as a uuid. no auth lookup.
+  const userId = resolveUserId(details.externalReference);
 
   const { error } = await supabase.from("subscriptions").upsert(
     {
@@ -356,70 +351,16 @@ async function upsertSubscription(
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// auth.users lives in the `auth` schema. PostgREST + Accept-Profile
-// auth works for direct DB role access, but service_role JWT through
-// PostgREST still hits RLS on auth.users. Bypassing postgrest
-// entirely and going direct to postgres via the connection string
-// (SUPABASE_DB_URL) is the path of least resistance — `postgres` has
-// BYPASSRLS by default in supabase local.
-let _pgClient: ReturnType<typeof postgres> | null = null;
-async function getPg() {
-  if (_pgClient) return _pgClient;
-  // SUPABASE_DB_URL points at the docker service name
-  // (`supabase_db_money-tracker`) which the postgres.js client inside
-  // Deno workers can't always resolve. we hardcode the docker bridge IP
-  // (172.21.0.2) instead — both edge_runtime and supabase_db are on the
-  // same compose network so the IP is stable. if the IP changes (e.g.
-  // compose network renamed), update this constant.
-  const connectionString =
-    "postgresql://postgres:postgres@172.21.0.2:5432/postgres";
-  _pgClient = postgres(connectionString, { max: 1 });
-  return _pgClient;
-}
-
-async function lookupAuthUser(
-  filter: Record<string, string>
-): Promise<string | null> {
-  try {
-    const pg = await getPg();
-    const keys = Object.keys(filter);
-    if (keys.length === 0) return null;
-    const where = keys.map((k, i) => `${k} = $${i + 1}`).join(" AND ");
-    const values = keys.map(k => filter[k]);
-    const rows = await pg.unsafe<Array<{ id: string }>>(
-      `select id from auth.users where ${where} limit 1`,
-      values
-    );
-    return rows[0]?.id ?? null;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn("[payments-webhook] auth.users lookup failed", {
-      error: message,
-      filter,
-    });
-    return null;
-  }
-}
-
-async function resolveUserId(
-  _supabase: ReturnType<typeof createClient>,
-  externalReference: string | null,
-  payerEmail: string | null
-): Promise<string | null> {
-  // flow A: mp dispatch included external_reference. if it's a uuid we
-  // trust it as an exact lookup against auth.users.id (no ambiguity).
-  if (externalReference && UUID_RE.test(externalReference)) {
-    const id = await lookupAuthUser({ id: externalReference });
-    if (id) return id;
-  }
-
-  // flow B: fall back to payer_email. if the user paid with the same
-  // email they signed up with, we still link them; otherwise user_id
-  // stays null and a manual merge can run later.
-  if (payerEmail) {
-    const id = await lookupAuthUser({ email: payerEmail });
-    return id;
-  }
-
-  return null;
+// we stamp our user.id into the plan's external_reference right before
+// redirecting the user to mp's hosted checkout (see create-subscription).
+// mp propagates that value to the resulting preapproval and the
+// subscription_preapproval webhook carries it back. so the webhook's
+// external_reference IS our user_id — no lookup needed.
+//
+// payer_email is kept as a column on payments.subscriptions (for
+// reconciliation / debugging) but it is not used to resolve user_id.
+function resolveUserId(externalReference: string | null): string | null {
+  if (!externalReference) return null;
+  if (!UUID_RE.test(externalReference)) return null;
+  return externalReference;
 }
