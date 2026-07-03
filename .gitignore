@@ -25,6 +25,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.production.local
 .env.local
 
+# Bruno API test collections contain hardcoded mp/supabase dev secrets.
+# keep them out of the repo. regenerate credentials if they leak.
+bruno/
+
 # caches
 .eslintcache
 .cache
