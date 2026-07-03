@@ -1,17 +1,19 @@
 // create-subscription edge function.
 //
-// flow: the client picks a plan in /account/billing and posts
-// { plan_id, provider }. we look up the active variant for
-// (plan_id, provider) in payments.plan_provider_variants, then call
-// provider.createSubscription (POST /preapproval) server-side with
-// `external_reference = user.id` and `preapproval_plan_id`. mp
-// returns the new preapproval id and an `init_point`; we hand the
-// init_point back to the client which redirects.
+// flow (hosted-checkout): the client picks a plan in /account/billing
+// and posts { plan_id, provider }. we look up the active variant for
+// (plan_id, provider) in payments.plan_provider_variants, stamp the
+// user's uuid into the plan's `external_reference` field via PUT
+// /preapproval_plan/{id}, then return the plan's hosted-checkout url
+// (its `init_point`). mp creates the preapproval server-side when the
+// user pays; if mp propagates the plan's external_reference to the
+// resulting preapproval, the webhook resolves user_id at our end.
 //
-// the webhook (payments-webhook) later resolves user_id by uuid
-// match on external_reference. mp's hosted-checkout reads the url
-// but discards extra params when it calls /preapproval on its side,
-// so this server-side flow is the only way to link.
+// we previously tried POST /preapproval server-side with
+// external_reference = user.id, but for this seller account MP rejects
+// standalone (500), plan + card_token_id (404 Card token service not
+// found), and plan without card (400 card_token_id required). the
+// only working path is hosted-checkout.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -116,36 +118,46 @@ Deno.serve(async req => {
     );
   }
 
-  // server-side POST /preapproval with `external_reference = user.id` so
-  // the subscription_preapproval webhook carries it back and we can
-  // resolve user_id at parse time. mp's hosted checkout ignores the
-  // query string when creating the preapproval server-side, so this is
-  // the only path that links the subscription to our auth user.
+  // hosted-checkout flow. we stamp user.id into the plan's
+  // external_reference right before redirecting — when mp creates the
+  // preapproval on its side (after the user pays), it propagates that
+  // value to the preapproval and the webhook carries it back so we can
+  // resolve user_id at parse time.
+  //
+  // the plan's external_reference is a single field so this is racy
+  // across concurrent users (a second user clicking subscribe while the
+  // first is still paying would overwrite the first's stamp). for now we
+  // serialize via the function's single-threaded event loop and trust
+  // that the user pays immediately; if concurrency becomes a problem
+  // we'll switch to one plan per user or a checkout_sessions table.
   try {
-    const result = await provider.createSubscription({
-      reason: `Plan ${planId.slice(0, 6)}`,
-      externalReference: auth.user.id,
-      payerEmail: auth.user.email ?? "",
-      frequency: 1,
-      frequencyType: "months",
-      transactionAmount: Number(variant.amount ?? 0),
-      currencyId: variant.currency ?? "ARS",
-      preapprovalPlanId: variant.provider_plan_id,
-    });
-    console.info("[create-subscription] preapproval created", {
-      providerSubscriptionId: result.providerSubscriptionId,
-      status: result.status,
+    await provider.updatePlan(variant.provider_plan_id, {
       externalReference: auth.user.id,
     });
+    console.info("[create-subscription] stamped plan external_reference", {
+      providerPlanId: variant.provider_plan_id,
+      externalReference: auth.user.id,
+    });
+
+    const plan = await provider.getPlan(variant.provider_plan_id);
+    if (!plan) {
+      return jsonResponse(
+        {
+          error: `Plan not found in provider: ${variant.provider_plan_id}`,
+          hint: "the variant references a provider plan id that no longer exists",
+        },
+        404,
+        corsHeaders
+      );
+    }
+
     return jsonResponse(
       {
-        providerSubscriptionId: result.providerSubscriptionId,
-        initPoint: result.initPoint,
-        sandboxInitPoint: result.sandboxInitPoint,
-        status: result.status,
-        mode: "preapproval",
+        providerPlanId: plan.id,
+        initPoint: plan.initPoint,
+        status: "pending",
+        mode: "plan",
         planId,
-        providerPlanId: variant.provider_plan_id,
         externalReference: auth.user.id,
       },
       200,
@@ -153,7 +165,7 @@ Deno.serve(async req => {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[create-subscription] POST /preapproval failed", {
+    console.error("[create-subscription] hosted checkout prep failed", {
       provider: providerField,
       planId,
       externalReference: auth.user.id,

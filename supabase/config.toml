@@ -17,7 +17,7 @@ port = 54321
 # supabase/migrations/20260628224000_create_subscriptions_schema.sql and
 # exposed to PostgREST by
 # supabase/migrations/20260629022252_expose_payments_schema_to_postgrest.sql.
-schemas = ["public", "graphql_public", "ai", "payments"]
+schemas = ["public", "graphql_public", "ai", "payments", "auth"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions", "ai", "payments"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size

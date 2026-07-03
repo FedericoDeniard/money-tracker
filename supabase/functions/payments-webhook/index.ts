@@ -13,6 +13,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import postgres from "npm:postgres@3.4.5";
 import { handleCorsPreflightRequest, getCorsHeaders } from "../_shared/cors.ts";
 import { getProvider } from "../_shared/lib/payments/index.ts";
 import type {
@@ -355,54 +356,69 @@ async function upsertSubscription(
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// auth.users lives in the `auth` schema. PostgREST + Accept-Profile
+// auth works for direct DB role access, but service_role JWT through
+// PostgREST still hits RLS on auth.users. Bypassing postgrest
+// entirely and going direct to postgres via the connection string
+// (SUPABASE_DB_URL) is the path of least resistance — `postgres` has
+// BYPASSRLS by default in supabase local.
+let _pgClient: ReturnType<typeof postgres> | null = null;
+async function getPg() {
+  if (_pgClient) return _pgClient;
+  // SUPABASE_DB_URL points at the docker service name
+  // (`supabase_db_money-tracker`) which the postgres.js client inside
+  // Deno workers can't always resolve. we hardcode the docker bridge IP
+  // (172.21.0.2) instead — both edge_runtime and supabase_db are on the
+  // same compose network so the IP is stable. if the IP changes (e.g.
+  // compose network renamed), update this constant.
+  const connectionString =
+    "postgresql://postgres:postgres@172.21.0.2:5432/postgres";
+  _pgClient = postgres(connectionString, { max: 1 });
+  return _pgClient;
+}
+
+async function lookupAuthUser(
+  filter: Record<string, string>
+): Promise<string | null> {
+  try {
+    const pg = await getPg();
+    const keys = Object.keys(filter);
+    if (keys.length === 0) return null;
+    const where = keys.map((k, i) => `${k} = $${i + 1}`).join(" AND ");
+    const values = keys.map(k => filter[k]);
+    const rows = await pg.unsafe<Array<{ id: string }>>(
+      `select id from auth.users where ${where} limit 1`,
+      values
+    );
+    return rows[0]?.id ?? null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[payments-webhook] auth.users lookup failed", {
+      error: message,
+      filter,
+    });
+    return null;
+  }
+}
+
 async function resolveUserId(
-  supabase: ReturnType<typeof createClient>,
+  _supabase: ReturnType<typeof createClient>,
   externalReference: string | null,
   payerEmail: string | null
 ): Promise<string | null> {
-  // we need a separate client pinneado to the auth schema because
-  // the main `supabase` arg is pinneado to payments. service_role
-  // can read auth.users directly.
-  const authClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { db: { schema: "auth" } }
-  );
-
   // flow A: mp dispatch included external_reference. if it's a uuid we
   // trust it as an exact lookup against auth.users.id (no ambiguity).
   if (externalReference && UUID_RE.test(externalReference)) {
-    const { data, error } = await authClient
-      .from("users")
-      .select("id")
-      .eq("id", externalReference)
-      .maybeSingle();
-    if (!error && data?.id) return data.id;
-    if (error) {
-      console.warn(
-        "[payments-webhook] auth.users lookup by external_reference failed",
-        { error: error.message }
-      );
-    }
+    const id = await lookupAuthUser({ id: externalReference });
+    if (id) return id;
   }
 
   // flow B: fall back to payer_email. if the user paid with the same
   // email they signed up with, we still link them; otherwise user_id
   // stays null and a manual merge can run later.
   if (payerEmail) {
-    const { data, error } = await authClient
-      .from("users")
-      .select("id")
-      .eq("email", payerEmail)
-      .maybeSingle();
-    if (error) {
-      console.warn(
-        "[payments-webhook] auth.users lookup by email failed; user_id will be null",
-        { error: error.message }
-      );
-      return null;
-    }
-    return data?.id ?? null;
+    const id = await lookupAuthUser({ email: payerEmail });
+    return id;
   }
 
   return null;

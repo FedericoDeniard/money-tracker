@@ -214,6 +214,9 @@ export class MercadoPagoProvider implements PaymentProvider {
     const body: Record<string, unknown> = {};
     if (input.reason !== undefined) body.reason = input.reason;
     if (input.backUrl !== undefined) body.back_url = input.backUrl;
+    if (input.externalReference !== undefined) {
+      body.external_reference = input.externalReference;
+    }
 
     const hasAutoRecurringField =
       input.transactionAmount !== undefined ||
