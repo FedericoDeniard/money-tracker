@@ -1,7 +1,10 @@
 import { CreditCard, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMySubscription } from "../../hooks/useMySubscription";
-import type { MySubscription } from "../../services/payments.service";
+import {
+  FREE_PLAN,
+  type MySubscription,
+} from "../../services/payments.service";
 
 interface CurrentPlanCardProps {
   userId: string | undefined;
@@ -54,44 +57,53 @@ function statusBadgeClasses(status: string) {
   return "bg-zinc-100 text-zinc-500";
 }
 
-export function CurrentPlanCard({
-  userId,
-  onCancel,
-  isCancelling,
-}: CurrentPlanCardProps) {
+// the free plan card is always rendered, regardless of whether the
+// user has a paid subscription. it's the baseline account tier —
+// always present, always free, never cancellable.
+function FreePlanCard() {
   const { t } = useTranslation();
-  const { data: subscription, isLoading } = useMySubscription(userId);
-
-  if (isLoading) {
-    return (
-      <div className="border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] rounded-2xl p-4 sm:p-6 shadow-sm">
-        <p className="text-sm text-[var(--text-secondary)]">
-          {t("common.loading")}
-        </p>
-      </div>
-    );
-  }
-
-  if (!subscription) {
-    return (
-      <div className="border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] rounded-2xl p-4 sm:p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-[var(--primary)]/10 rounded-lg shrink-0">
-            <CreditCard className="text-[var(--primary)]" size={24} />
-          </div>
-          <div>
+  return (
+    <div className="border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] rounded-2xl p-4 sm:p-6 shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="p-3 bg-[var(--primary)]/10 rounded-lg shrink-0">
+          <CreditCard className="text-[var(--primary)]" size={24} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-medium text-[var(--text-primary)]">
               {t("accountBilling.currentPlan.title")}
             </h3>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {t("accountBilling.currentPlan.empty")}
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700">
+              {t("accountBilling.status.active")}
+            </span>
+          </div>
+          <div className="mt-3 space-y-1">
+            <p className="text-2xl font-semibold text-[var(--text-primary)]">
+              {FREE_PLAN.display_name}
+            </p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              {t("accountBilling.currentPlan.freeHint")}
             </p>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
+// the paid subscription card is only rendered when the user actually
+// has a row in payments.subscriptions. sits below the free card so
+// the page shows "your baseline (free) + your upgrade (lite)".
+function PaidSubscriptionCard({
+  subscription,
+  onCancel,
+  isCancelling,
+}: {
+  subscription: MySubscription;
+  onCancel: (s: MySubscription) => void;
+  isCancelling: boolean;
+}) {
+  const { t } = useTranslation();
   const amount = formatCurrency(
     subscription.transaction_amount,
     subscription.currency_id
@@ -111,7 +123,7 @@ export function CurrentPlanCard({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-medium text-[var(--text-primary)]">
-              {t("accountBilling.currentPlan.title")}
+              {t("accountBilling.currentPlan.paidTitle")}
             </h3>
             <span
               className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadgeClasses(subscription.status)}`}
@@ -169,6 +181,38 @@ export function CurrentPlanCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+export function CurrentPlanCard({
+  userId,
+  onCancel,
+  isCancelling,
+}: CurrentPlanCardProps) {
+  const { t } = useTranslation();
+  const { data: subscription, isLoading } = useMySubscription(userId);
+
+  if (isLoading) {
+    return (
+      <div className="border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] rounded-2xl p-4 sm:p-6 shadow-sm">
+        <p className="text-sm text-[var(--text-secondary)]">
+          {t("common.loading")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <FreePlanCard />
+      {subscription && (
+        <PaidSubscriptionCard
+          subscription={subscription}
+          onCancel={onCancel}
+          isCancelling={isCancelling}
+        />
+      )}
     </div>
   );
 }

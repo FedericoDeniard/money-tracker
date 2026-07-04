@@ -384,7 +384,9 @@
     "description": "Mirá tu plan actual, cambiá a otro o cancelá.",
     "currentPlan": {
       "title": "Plan actual",
+      "paidTitle": "Plan pago",
       "empty": "No tenés un plan activo en este momento.",
+      "freeHint": "Estás en el plan gratuito. Elegí un plan pago abajo para desbloquear más funciones.",
       "plan": "Plan: {{name}}",
       "payerEmail": "Pagador: {{email}}",
       "activeHint": "Tu suscripción se renueva automáticamente. Podés cancelar en cualquier momento."

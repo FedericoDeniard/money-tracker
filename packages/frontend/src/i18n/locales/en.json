@@ -384,7 +384,9 @@
     "description": "View your current plan, switch to a different one, or cancel.",
     "currentPlan": {
       "title": "Current plan",
+      "paidTitle": "Paid plan",
       "empty": "You don't have an active plan right now.",
+      "freeHint": "You're on the free plan. Pick a paid plan below to unlock more features.",
       "plan": "Plan: {{name}}",
       "payerEmail": "Payer: {{email}}",
       "activeHint": "Your subscription renews automatically. You can cancel anytime."
