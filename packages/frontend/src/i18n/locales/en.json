@@ -381,7 +381,7 @@
   },
   "accountBilling": {
     "title": "Account & Billing",
-    "description": "View your current plan, switch to a different one, or cancel.",
+    "description": "Choose the perfect plan for your needs and start optimizing your workflow today.",
     "currentPlan": {
       "title": "Current plan",
       "paidTitle": "Paid plan",
@@ -390,6 +390,32 @@
       "plan": "Plan: {{name}}",
       "payerEmail": "Payer: {{email}}",
       "activeHint": "Your subscription renews automatically. You can cancel anytime."
+    },
+    "pricing": {
+      "title": "Pricing that scales with your business",
+      "subtitle": "Choose the perfect plan for your needs and start optimizing your workflow today",
+      "perEditor": "Per user",
+      "perMonth": "/ mo",
+      "getStarted": "Get Started",
+      "currentPlan": "Current plan",
+      "currentBadge": "Current",
+      "processing": "Processing…",
+      "free": {
+        "features": {
+          "manualTransactions": "Unlimited manual transactions",
+          "dashboard": "Dashboard with metrics and charts",
+          "searchAndFilters": "Search, filters and reports"
+        }
+      },
+      "dbPlanFeatures": {
+        "lite": {
+          "everythingInFree": "Everything in Free",
+          "gmailSync": "Automatic Gmail sync",
+          "aiAssistant": "AI financial assistant",
+          "pushNotifications": "Push notifications",
+          "advancedReports": "Advanced reports"
+        }
+      }
     },
     "availablePlans": {
       "title": "Available plans",
@@ -511,6 +537,10 @@
       "new_transaction": {
         "label": "New transaction",
         "description": "Notifies when a new transaction is detected from a Gmail email (outside of bulk imports)."
+      },
+      "system": {
+        "label": "System notification",
+        "description": "General system notifications (updates, alerts, system events)."
       }
     },
     "templates": {

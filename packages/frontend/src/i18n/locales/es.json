@@ -381,7 +381,7 @@
   },
   "accountBilling": {
     "title": "Cuenta y Facturación",
-    "description": "Mirá tu plan actual, cambiá a otro o cancelá.",
+    "description": "Elegí el plan perfecto para tus necesidades y empezá a optimizar tu trabajo hoy.",
     "currentPlan": {
       "title": "Plan actual",
       "paidTitle": "Plan pago",
@@ -390,6 +390,32 @@
       "plan": "Plan: {{name}}",
       "payerEmail": "Pagador: {{email}}",
       "activeHint": "Tu suscripción se renueva automáticamente. Podés cancelar en cualquier momento."
+    },
+    "pricing": {
+      "title": "Precios que escalan con tu negocio",
+      "subtitle": "Elegí el plan perfecto para tus necesidades y empezá a optimizar tu trabajo hoy",
+      "perEditor": "Por usuario",
+      "perMonth": "/ mes",
+      "getStarted": "Empezar",
+      "currentPlan": "Plan actual",
+      "currentBadge": "Actual",
+      "processing": "Procesando…",
+      "free": {
+        "features": {
+          "manualTransactions": "Transacciones manuales ilimitadas",
+          "dashboard": "Dashboard con métricas y gráficos",
+          "searchAndFilters": "Búsqueda, filtros y reportes"
+        }
+      },
+      "dbPlanFeatures": {
+        "lite": {
+          "everythingInFree": "Todo lo del plan Free",
+          "gmailSync": "Sincronización automática con Gmail",
+          "aiAssistant": "Asistente financiero con IA",
+          "pushNotifications": "Notificaciones push",
+          "advancedReports": "Reportes avanzados"
+        }
+      }
     },
     "availablePlans": {
       "title": "Planes disponibles",
@@ -510,7 +536,11 @@
       },
       "new_transaction": {
         "label": "Nueva transacción",
-        "description": "Notifica cuando se detecta una nueva transacción desde un correo de Gmail (fuera de importaciones masivas)."
+        "description": "Notifica cuando se detecta una nueva transacción desde un email de Gmail (fuera de importaciones masivas)."
+      },
+      "system": {
+        "label": "Notificación del sistema",
+        "description": "Notificaciones generales del sistema (actualizaciones, alertas, eventos del sistema)."
       }
     },
     "templates": {
