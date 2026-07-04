@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/server.ts",
+    "build": "echo 'no build step — running via bun src/server.ts'",
     "start": "bun src/server.ts",
     "typecheck": "tsc --noEmit",
     "export-schema": "bun ./scripts/export-mastra-schema.ts"
