@@ -2,6 +2,11 @@ import { Mastra } from "@mastra/core";
 import { CompositeAuth, SimpleAuth } from "@mastra/core/server";
 import { PostgresStore } from "@mastra/pg";
 import { MastraAuthSupabase } from "@mastra/auth-supabase";
+import {
+  MastraStorageExporter,
+  Observability,
+  SensitiveDataFilter,
+} from "@mastra/observability";
 import { getAuthenticatedUser } from "@mastra/server/auth";
 import { RequestContext } from "@mastra/core/request-context";
 import { financialAgent } from "./agents/financial-agent";
@@ -41,6 +46,15 @@ const corsOrigins =
 export const mastra = new Mastra({
   agents: { financialAgent },
   storage,
+  observability: new Observability({
+    configs: {
+      default: {
+        serviceName: "mastra",
+        exporters: [new MastraStorageExporter()],
+        spanOutputProcessors: [new SensitiveDataFilter()],
+      },
+    },
+  }),
   server: {
     port: Number(process.env.MASTRA_PORT) || 4111,
     cors: {
