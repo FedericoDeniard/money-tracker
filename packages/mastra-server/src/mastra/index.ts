@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from "@mastra/server/auth";
 import { RequestContext } from "@mastra/core/request-context";
 import { financialAgent } from "./agents/financial-agent";
 import { resilientChatRoute } from "./routes/resilient-chat-route";
+import { seedEmailsRoute } from "./routes/seed-emails-route";
 
 const supabaseDbUrl = process.env.SUPABASE_DB_URL;
 if (supabaseDbUrl) {
@@ -62,11 +63,11 @@ export const mastra = new Mastra({
         anonKey: process.env.SUPABASE_ANON_KEY!,
         authorizeUser: async () => true,
         mapUserToResourceId: user => user.id,
-        protected: ["/chat/*"],
+        protected: ["/chat/*", "/api/seed-emails"],
         public: [["/api/*", "GET"]],
       }),
     ]),
-    apiRoutes: [resilientChatRoute()],
+    apiRoutes: [resilientChatRoute(), seedEmailsRoute()],
     middleware: [
       async (context, next) => {
         // server.middleware runs BEFORE the per-route auth check, so the user

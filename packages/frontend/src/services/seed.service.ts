@@ -2,18 +2,19 @@ import { getSupabase } from "../lib/supabase";
 import { getConfig } from "../config";
 
 export interface StartSeedResponse {
-  seedId: string;
+  seedId?: string;
   status: string;
   message: string;
 }
 
 export const seedService = {
   /**
-   * Start a seed to import historical emails
+   * Start a seed to import historical emails.
+   * Routes to the mastra server, which runs the job as a long-lived
+   * background task (no Supabase edge function CPU/wall-clock limits).
    */
   async startSeed(connectionId: string): Promise<StartSeedResponse> {
     const [supabase, config] = await Promise.all([getSupabase(), getConfig()]);
-    const edgeFunctionsUrl = `${config.supabase.url.replace(/\/+$/, "")}/functions/v1`;
 
     const {
       data: { session },
@@ -22,15 +23,17 @@ export const seedService = {
       throw new Error("No active session");
     }
 
-    const response = await fetch(`${edgeFunctionsUrl}/seed-emails`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-        apikey: config.supabase.anonKey,
-      },
-      body: JSON.stringify({ connectionId }),
-    });
+    const response = await fetch(
+      `${config.mastraServerUrl.replace(/\/+$/, "")}/api/seed-emails`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ connectionId }),
+      }
+    );
 
     const payload = await response.json().catch(() => ({}));
 

@@ -1,5 +1,13 @@
 // Seed Emails Edge Function - Chunked processing with auto-invocation
+//
+// DEPRECATED: This edge function is being phased out in favor of the
+// mastra-server route at /api/seed-emails, which has no per-request
+// CPU/wall-clock limits. Kept as a fallback for 2 weeks. New code
+// should use the mastra route.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+console.warn(
+  "[DEPRECATED] seed-emails edge function invoked. Migrating to mastra /api/seed-emails. This endpoint will be removed in 2 weeks."
+);
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireUserAuth } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
