@@ -1,4 +1,5 @@
 import { Mastra } from "@mastra/core";
+import { CompositeAuth, SimpleAuth } from "@mastra/core/server";
 import { PostgresStore } from "@mastra/pg";
 import { MastraAuthSupabase } from "@mastra/auth-supabase";
 import { getAuthenticatedUser } from "@mastra/server/auth";
@@ -47,14 +48,24 @@ export const mastra = new Mastra({
       credentials: true,
       allowHeaders: ["X-User-Timezone"],
     },
-    auth: new MastraAuthSupabase({
-      url: process.env.SUPABASE_URL!,
-      anonKey: process.env.SUPABASE_ANON_KEY!,
-      authorizeUser: async () => true,
-      mapUserToResourceId: user => user.id,
-      protected: ["/chat/*"],
-      public: [["/api/*", "GET"]],
-    }),
+    auth: new CompositeAuth([
+      new SimpleAuth({
+        tokens: {
+          [process.env.STUDIO_DEV_TOKEN!]: {
+            id: "studio-dev",
+            name: "Studio Dev User",
+          },
+        },
+      }),
+      new MastraAuthSupabase({
+        url: process.env.SUPABASE_URL!,
+        anonKey: process.env.SUPABASE_ANON_KEY!,
+        authorizeUser: async () => true,
+        mapUserToResourceId: user => user.id,
+        protected: ["/chat/*"],
+        public: [["/api/*", "GET"]],
+      }),
+    ]),
     apiRoutes: [resilientChatRoute()],
     middleware: [
       async (context, next) => {
