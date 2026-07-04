@@ -67,7 +67,7 @@ function PricingCard({
           {data.displayName}
         </h3>
         {isCurrent && (
-          <span className="text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20">
+          <span className="text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20">
             {t("accountBilling.pricing.currentBadge")}
           </span>
         )}
@@ -86,25 +86,27 @@ function PricingCard({
         <div className="my-5 h-px bg-[var(--text-secondary)]/15" />
       )}
 
-      <button
-        type="button"
-        onClick={() => onSelect(data.key)}
-        disabled={ctaDisabled}
-        className={[
-          "w-full rounded-md py-2 text-sm font-medium transition-colors",
-          data.highlight
-            ? ctaDisabled
-              ? "bg-[var(--primary)]/40 text-white cursor-default"
-              : "bg-[var(--primary)] text-white hover:opacity-90"
-            : ctaDisabled
-              ? "bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] cursor-default"
-              : "bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-secondary)]/30 hover:border-[var(--primary)] hover:text-[var(--primary)]",
-        ].join(" ")}
-      >
-        {isLoading && !isCurrent
-          ? t("accountBilling.pricing.processing")
-          : ctaLabel}
-      </button>
+      {data.source !== "free" && (
+        <button
+          type="button"
+          onClick={() => onSelect(data.key)}
+          disabled={ctaDisabled}
+          className={[
+            "w-full rounded-md py-2 text-sm font-medium transition-colors",
+            data.highlight
+              ? ctaDisabled
+                ? "bg-[var(--primary)]/40 text-white cursor-default"
+                : "bg-[var(--primary)] text-white hover:opacity-90"
+              : ctaDisabled
+                ? "bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] cursor-default"
+                : "bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-secondary)]/30 hover:border-[var(--primary)] hover:text-[var(--primary)]",
+          ].join(" ")}
+        >
+          {isLoading && !isCurrent
+            ? t("accountBilling.pricing.processing")
+            : ctaLabel}
+        </button>
+      )}
 
       {data.features.length > 0 && (
         <ul className="mt-6 space-y-3 text-sm flex-1">

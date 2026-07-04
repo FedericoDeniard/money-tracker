@@ -96,6 +96,9 @@ export function PricingGrid({
 
   const freeData: PricingCardData = {
     ...freePlan,
+    key: freePlan.id,
+    source: "free",
+    highlight: false,
     perLabelKey: "accountBilling.pricing.perEditor",
     perLabel: t("accountBilling.pricing.perEditor"),
   };
