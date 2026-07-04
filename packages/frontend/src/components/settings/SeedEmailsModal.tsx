@@ -1,4 +1,4 @@
-import { Mail, Calendar } from "lucide-react";
+import { Mail, Calendar, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTransition } from "react";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -44,6 +44,28 @@ export function SeedEmailsModal({
       isPending={isPending}
     >
       <div className="space-y-4">
+        {isPending && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl"
+          >
+            <Loader2
+              className="size-5 animate-spin text-blue-600 shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-900">
+                {t("settings.seedStarting") || "Iniciando importación..."}
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                {t("settings.seedStartingDescription") ||
+                  "Buscando emails en Gmail. Esto puede tardar unos minutos."}
+              </p>
+            </div>
+          </div>
+        )}
+
         <p className="text-[var(--text-secondary)]">
           {t("settings.seedEmailsDescription") ||
             "Acabas de conectar tu cuenta de Gmail. ¿Quieres que analicemos tus correos de los últimos 3 meses para encontrar facturas y transacciones automáticamente?"}
