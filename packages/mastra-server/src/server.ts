@@ -9,12 +9,12 @@
 //     app, registered explicitly. They don't go through Mastra's
 //     server middleware.
 //
-// IMPORTANT: the .env file is loaded explicitly below. Bun auto-loads
-// .env when invoked directly (`bun src/server.ts`), but pnpm strips
-// the env before spawning Bun, so without this loader the API keys
-// arrive as undefined and OpenRouter/xAI reject the requests with
-// 401. Keep this at the top of the file, before any import that
-// reads process.env at module init time.
+// IMPORTANT: `./env-loader` MUST be the FIRST import. Its top-level
+// code runs before any other module is evaluated, populating
+// process.env so that downstream modules (e.g. financial-agent.ts
+// instantiating an OpenRouter client at module load time) see the
+// correct env vars even under pnpm, which strips env before forking.
+import "./env-loader";
 import { Hono } from "hono";
 import { MastraServer } from "@mastra/hono";
 import { corsMiddleware } from "./middleware/cors";
@@ -22,30 +22,6 @@ import { authMiddleware } from "./middleware/auth";
 import { seedEmailsHandler } from "./mastra/routes/seed-emails-route";
 import { chatHandler } from "./mastra/routes/resilient-chat-route";
 import { mastra } from "./mastra";
-
-// Load .env from the current working directory. Don't override vars
-// already set by the shell (so prod envs can still inject secrets).
-const envFile = Bun.file(".env");
-if (await envFile.exists()) {
-  const text = await envFile.text();
-  for (const rawLine of text.split("\n")) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const eq = line.indexOf("=");
-    if (eq === -1) continue;
-    const key = line.slice(0, eq).trim();
-    let value = line.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
-}
 
 const app = new Hono();
 
