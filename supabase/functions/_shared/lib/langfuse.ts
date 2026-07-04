@@ -29,7 +29,8 @@ function getClient(): Langfuse {
       secretKey: Deno.env.get("LANGFUSE_SECRET_KEY") ?? "",
       baseUrl:
         Deno.env.get("LANGFUSE_BASE_URL") ?? "https://cloud.langfuse.com",
-      flushAt: 1, // Critical for serverless - flush immediately
+      flushAt: 15,
+      flushInterval: 3000,
     });
     logLangfuseEnvOnce();
   }

@@ -116,9 +116,6 @@ Deno.serve(async req => {
       userClarifications,
     });
 
-    const { flushLangfuse } = await import("../_shared/lib/langfuse.ts");
-    await flushLangfuse();
-
     if (aiResult.aiError) {
       console.error(
         "AI processing failed for uploaded document:",
