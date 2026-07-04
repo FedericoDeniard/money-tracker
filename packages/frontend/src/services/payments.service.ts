@@ -18,23 +18,6 @@ export interface MySubscription extends SubscriptionRow {
   plan: PlanRow | null;
 }
 
-// the free plan has no DB row — when the user has no paid subscription
-// in payments.subscriptions, CurrentPlanCard renders this shape so the
-// ui shows a "your current plan: Free" card instead of an empty state.
-// not part of payments.plans (no plan_id, no provider variant) and not
-// part of payments.subscriptions (no row). the layout is intentionally
-// minimal — name + price + a hint pointing at the available plans.
-export const FREE_PLAN: PlanRow = {
-  id: "free",
-  plan_key: "free",
-  display_name: "Free",
-  internal_tier: "free",
-  frequency: null,
-  frequency_type: null,
-  trial_days: 0,
-  is_active: true,
-};
-
 export interface CheckoutLinkResponse {
   providerPlanId: string;
   initPoint: string;

@@ -9,13 +9,22 @@ interface PricingCardProps {
   onSelect: (key: string) => void;
 }
 
+// Intl.NumberFormat construction is expensive (locale data lookup).
+// cache one formatter per currency at module load so repeated renders
+// reuse the same instance.
+const currencyFormatters = new Map<string, Intl.NumberFormat>();
 function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  let formatter = currencyFormatters.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    currencyFormatters.set(currency, formatter);
+  }
+  return formatter.format(amount);
 }
 
 // single pricing card. themed to match the rest of the app (light
@@ -99,8 +108,8 @@ function PricingCard({
 
       {data.features.length > 0 && (
         <ul className="mt-6 space-y-3 text-sm flex-1">
-          {data.features.map((featureKey, idx) => (
-            <li key={idx} className="flex items-start gap-2.5">
+          {data.features.map(featureKey => (
+            <li key={featureKey} className="flex items-start gap-2.5">
               <Check
                 size={16}
                 className="text-[var(--primary)] mt-0.5 shrink-0"
