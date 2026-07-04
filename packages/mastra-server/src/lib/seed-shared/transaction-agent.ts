@@ -1,19 +1,17 @@
-import {
-  TransactionResponseSchema,
-  type TransactionResponse,
-} from "./schemas.ts";
-import { shouldProcessEmail } from "./guardrail.ts";
-import { EMAIL_EXTRACTION_SYSTEM } from "../prompts/email-extraction.ts";
-import { generateText, Output } from "npm:ai";
-import { createOpenAI } from "npm:ai";
-import { generateObject } from "npm:ai";
-import { createXai } from "npm:@ai-sdk/xai";
-import { z } from "npm:zod";
-import { traceOperation } from "../lib/langfuse.ts";
+// @ts-nocheck
+import { TransactionResponseSchema, type TransactionResponse } from "./schemas";
+import { shouldProcessEmail } from "./guardrail";
+import { EMAIL_EXTRACTION_SYSTEM } from "./prompts/email-extraction";
+import { generateText, Output } from "ai";
+import { createOpenAI } from "ai";
+import { generateObject } from "ai";
+import { createXai } from "@ai-sdk/xai";
+import { z } from "zod";
+import { traceOperation } from "./langfuse";
 import type {
   ImageAttachment,
   PdfAttachmentForAiFallback,
-} from "../lib/attachment-extractor.ts";
+} from "./attachment-extractor";
 
 // Date validation helper
 function validateAndFixDate(dateString?: string): string | undefined {

@@ -10,8 +10,11 @@
     "skipLibCheck": true,
     "noEmit": true,
     "ignoreDeprecations": "6.0",
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }

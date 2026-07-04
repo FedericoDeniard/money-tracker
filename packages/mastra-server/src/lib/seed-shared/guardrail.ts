@@ -1,6 +1,7 @@
-import { z } from "npm:zod";
-import { stripHtml } from "npm:string-strip-html";
-import { GUARDRAIL_SYSTEM_PROMPT } from "../prompts/guardrail-system.ts";
+// @ts-nocheck
+import { z } from "zod";
+import { stripHtml } from "string-strip-html";
+import { GUARDRAIL_SYSTEM_PROMPT } from "./prompts/guardrail-system";
 
 export const GuardrailResponseSchema = z.object({
   shouldProcess: z

@@ -1,5 +1,6 @@
-import { registerApiRoute } from "@mastra/core/server";
+import type { Context } from "hono";
 import { handleChatStream } from "@mastra/ai-sdk";
+import { mastra } from "../index";
 
 /**
  * Replacement for the default `chatRoute` from `@mastra/ai-sdk` that
@@ -47,59 +48,64 @@ const UI_MESSAGE_STREAM_HEADERS = {
   "x-accel-buffering": "no",
 } as const;
 
-export const resilientChatRoute = () =>
-  registerApiRoute("/chat/:agentId", {
-    method: "POST",
-    handler: async c => {
-      const params = await c.req.json();
-      const mastra = c.get("mastra");
-      const contextRequestContext = c.get("requestContext");
+export const chatHandler = async (c: Context) => {
+  const userId = c.get("userId");
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
 
-      const agentId = c.req.param("agentId");
-      if (!agentId) {
-        throw new Error("Agent ID is required");
-      }
+  const params = await c.req.json();
+  const contextRequestContext = c.get("requestContext");
 
-      const queryVersionId = c.req.query("versionId");
-      const rawStatus = c.req.query("status");
-      if (queryVersionId && rawStatus) {
-        throw new Error(
-          'Query parameters "versionId" and "status" are mutually exclusive'
-        );
-      }
-      if (rawStatus && rawStatus !== "draft" && rawStatus !== "published") {
-        throw new Error(
-          'Query parameter "status" must be "draft" or "published"'
-        );
-      }
+  const agentId = c.req.param("agentId");
+  if (!agentId) {
+    return c.json({ error: "Agent ID is required" }, 400);
+  }
 
-      const effectiveAgentVersion = queryVersionId
-        ? { versionId: queryVersionId }
-        : rawStatus
-          ? { status: rawStatus as "draft" | "published" }
-          : undefined;
+  const queryVersionId = c.req.query("versionId");
+  const rawStatus = c.req.query("status");
+  if (queryVersionId && rawStatus) {
+    return c.json(
+      {
+        error:
+          'Query parameters "versionId" and "status" are mutually exclusive',
+      },
+      400
+    );
+  }
+  if (rawStatus && rawStatus !== "draft" && rawStatus !== "published") {
+    return c.json(
+      { error: 'Query parameter "status" must be "draft" or "published"' },
+      400
+    );
+  }
 
-      const uiMessageStream = await handleChatStream({
-        mastra,
-        agentId,
-        agentVersion: effectiveAgentVersion,
-        params: {
-          ...params,
-          requestContext: contextRequestContext ?? params.requestContext,
-        },
-        version: "v6",
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: false,
-        sendSources: false,
-      });
+  const effectiveAgentVersion = queryVersionId
+    ? { versionId: queryVersionId }
+    : rawStatus
+      ? { status: rawStatus as "draft" | "published" }
+      : undefined;
 
-      const sseStream = (
-        uiMessageStream as ReadableStream<unknown>
-      ).pipeThrough(new JsonToSseTransformStream());
-
-      return new Response(sseStream.pipeThrough(new TextEncoderStream()), {
-        headers: { ...UI_MESSAGE_STREAM_HEADERS },
-      });
+  const uiMessageStream = await handleChatStream({
+    mastra,
+    agentId,
+    agentVersion: effectiveAgentVersion,
+    params: {
+      ...params,
+      requestContext: contextRequestContext ?? params.requestContext,
     },
+    version: "v6",
+    sendStart: true,
+    sendFinish: true,
+    sendReasoning: false,
+    sendSources: false,
   });
+
+  const sseStream = (uiMessageStream as ReadableStream<unknown>).pipeThrough(
+    new JsonToSseTransformStream()
+  );
+
+  return new Response(sseStream.pipeThrough(new TextEncoderStream()), {
+    headers: { ...UI_MESSAGE_STREAM_HEADERS },
+  });
+};
