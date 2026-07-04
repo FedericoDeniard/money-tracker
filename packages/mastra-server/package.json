@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "mastra dev",
-    "build": "mastra build",
-    "start": "mastra start",
+    "dev": "bun --hot src/server.ts",
+    "start": "bun src/server.ts",
+    "typecheck": "tsc --noEmit",
     "export-schema": "bun ./scripts/export-mastra-schema.ts"
   },
   "dependencies": {
@@ -14,6 +14,7 @@
     "@mastra/ai-sdk": "latest",
     "@mastra/auth-supabase": "latest",
     "@mastra/core": "latest",
+    "@mastra/hono": "^1.5.4",
     "@mastra/memory": "latest",
     "@mastra/pg": "latest",
     "@mastra/server": "latest",
@@ -22,6 +23,7 @@
     "ai": "^6.0.200",
     "expr-eval": "^2.0.2",
     "googleapis": "^173.0.0",
+    "hono": "^4.12.27",
     "langfuse": "^3.38.20",
     "pdf-parse": "^2.4.5",
     "string-strip-html": "^13.5.3",
