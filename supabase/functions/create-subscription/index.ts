@@ -18,7 +18,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleCorsPreflightRequest, getCorsHeaders } from "../_shared/cors.ts";
-import { requireUserAuth } from "../_shared/auth.ts";
+import { requireMinRole, requireUserAuth } from "../_shared/auth.ts";
 import { getProvider, isKnownProvider } from "../_shared/lib/payments/index.ts";
 
 Deno.serve(async req => {
@@ -43,6 +43,9 @@ Deno.serve(async req => {
 
   const auth = await requireUserAuth(req, corsHeaders);
   if (auth instanceof Response) return auth;
+
+  const roleCheck = requireMinRole(auth, "user", corsHeaders);
+  if (roleCheck instanceof Response) return roleCheck;
 
   let body: Record<string, unknown>;
   try {

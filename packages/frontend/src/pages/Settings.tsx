@@ -30,6 +30,7 @@ import {
   AppVersionSection,
 } from "../components/settings/SettingsSections";
 import { toast } from "../utils/toast";
+import { getEdgeFunctionErrorMessage } from "../utils/edge-function-errors";
 
 function formatDate(dateString: string, locale: string): string {
   return new Date(dateString).toLocaleDateString(locale);
@@ -469,7 +470,14 @@ export function Settings() {
       }
     } catch (error) {
       console.error("Error disconnecting Gmail:", error);
-      toast.error(t("settings.gmailDisconnectError"));
+      // Second arg is the toast description; it stays empty for the
+      // generic error and surfaces the premium-feature copy when the
+      // server rejected us with a 403 from requireMinRole or
+      // requireCapability.
+      toast.error(
+        t("settings.gmailDisconnectError"),
+        getEdgeFunctionErrorMessage(error, t)
+      );
     } finally {
       dispatch({ type: "SET_DISCONNECTING", connectionId: null });
     }

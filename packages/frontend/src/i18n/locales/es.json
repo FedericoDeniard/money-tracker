@@ -700,7 +700,8 @@
     "goHome": "Ir al inicio",
     "loadingError": "Error al cargar",
     "networkError": "Error de conexión",
-    "unknownError": "Error desconocido"
+    "unknownError": "Error desconocido",
+    "premiumFeature": "Esta es una función premium. Actualizá tu plan para acceder."
   },
   "landing": {
     "hero": {

@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { uploadDocumentForAnalysis } from "../../services/document-upload.service";
+import { getEdgeFunctionErrorMessage } from "../../utils/edge-function-errors";
 import {
   useClipboardFile,
   type ClipboardReadError,
@@ -514,8 +515,11 @@ export function UploadTransactionModal({
         throw new Error(result.error || "Processing failed");
       }
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : "Unknown error occurred";
+      // Premium-feature substitution: when the server rejected the
+      // upload with a requireMinRole / requireCapability 403, the
+      // error message becomes the localized "This is a premium
+      // feature" copy instead of the raw "Requires capability: X".
+      const errorMsg = getEdgeFunctionErrorMessage(error, t);
       dispatch({ type: "SET_ERROR", message: errorMsg });
       onError(errorMsg);
     }

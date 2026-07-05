@@ -158,9 +158,19 @@ export async function requireUserAuth(
  * when the call requires a minimum role. Returns a 403 Response if the
  * user does not meet the threshold, or the resolved context otherwise.
  *
- * For now no function blocks, but this is the single place future
- * restrictions live. Admin and tester are intended to bypass anything a
- * regular `user` would be denied.
+ * Every user-facing edge function must call this with at least
+ * `required: "user"` to keep the call site uniform — today "user"
+ * matches everyone, so the call is a no-op, but the moment a function
+ * is gated to `"tester"` or higher the middleware rejects without any
+ * other code changes. The error message is the contract that the
+ * frontend `classifyEdgeFunctionError` helper pattern-matches against
+ * to surface a "premium feature" toast instead of a raw error.
+ *
+ * The capability gate (`requireCapability` in _shared/capabilities.ts)
+ * is a separate concept: roles come from `public.user_roles`, capabilities
+ * come from `payments.plan_capabilities`. They are orthogonal — an admin
+ * can have no subscription, a paid user can have no admin role. Both
+ * gates can run in series on the same request.
  */
 export function requireMinRole<T extends { role: UserRole }>(
   ctx: T,
@@ -170,7 +180,7 @@ export function requireMinRole<T extends { role: UserRole }>(
   if (hasMinRole(ctx.role, required)) {
     return ctx;
   }
-  return forbidden(corsHeaders, `Requires role '${required}' or higher`);
+  return forbidden(corsHeaders, `Requires role '${required}'`);
 }
 
 export function requireInternalAuth(

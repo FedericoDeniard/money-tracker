@@ -12,6 +12,7 @@ import { useCancelSubscription } from "../hooks/useCancelSubscription";
 import { PricingGrid } from "../components/account-billing/PricingGrid";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { toast } from "../utils/toast";
+import { getEdgeFunctionErrorMessage } from "../utils/edge-function-errors";
 import type { MySubscription } from "../services/payments.service";
 import { FREE_PLAN } from "../services/pricing";
 
@@ -73,8 +74,11 @@ export function AccountBilling() {
       toast.info(t("accountBilling.toast.checkoutOpened"));
       window.location.href = result.initPoint;
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t("common.error");
+      // getEdgeFunctionErrorMessage substitutes "This is a premium
+      // feature" when the server rejected us with a requireMinRole /
+      // requireCapability 403. For any other error it falls back to the
+      // raw message. See packages/frontend/src/utils/edge-function-errors.ts.
+      const message = getEdgeFunctionErrorMessage(error, t);
       console.error("[billing] checkout link failed", { error, message });
       toast.error(t("accountBilling.toast.subscribeError"), message);
       setPendingKey(null);
@@ -88,8 +92,8 @@ export function AccountBilling() {
       invalidatePayments();
       setCancelTarget(null);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t("common.error");
+      // Same premium-feature substitution as above; see edge-function-errors.
+      const message = getEdgeFunctionErrorMessage(error, t);
       toast.error(t("accountBilling.toast.cancelError"), message);
     }
   };

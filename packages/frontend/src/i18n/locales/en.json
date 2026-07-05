@@ -700,7 +700,8 @@
     "goHome": "Go home",
     "loadingError": "Loading error",
     "networkError": "Network error",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "premiumFeature": "This is a premium feature. Upgrade your plan to access it."
   },
   "landing": {
     "hero": {

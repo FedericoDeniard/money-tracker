@@ -1,7 +1,7 @@
 // Process Document Edge Function - Extract transactions from uploaded files
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { requireUserAuth } from "../_shared/auth.ts";
+import { requireMinRole, requireUserAuth } from "../_shared/auth.ts";
 import { requireCapability } from "../_shared/capabilities.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
@@ -37,6 +37,11 @@ Deno.serve(async req => {
     }
     const { user, role } = auth;
     void role;
+
+    const roleCheck = requireMinRole(auth, "user", corsHeaders);
+    if (roleCheck instanceof Response) {
+      return roleCheck;
+    }
 
     const cap = await requireCapability(auth, "process_documents", corsHeaders);
     if (cap instanceof Response) {
