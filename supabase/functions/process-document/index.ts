@@ -48,6 +48,37 @@ Deno.serve(async req => {
       return cap;
     }
 
+    // Usage cap. admin bypasses (effectively unlimited); everyone
+    // else — including tester — is counted against the per-period
+    // budget in payments.usage_limits. We check-and-increment before
+    // any AI tokens are spent so a 429 reaches the client cleanly.
+    // The body uses the prefix the frontend classifier matches on to
+    // surface the "usage limit" toast via getEdgeFunctionErrorMessage.
+    if (auth.role !== "admin") {
+      const { data: usage, error: usageError } = await supabase
+        .schema("payments")
+        .rpc("check_and_increment_usage", {
+          target_user_id: auth.user.id,
+          cap: "process_documents",
+        });
+      if (usageError) {
+        // fail-open: a counter bug should not break the app for paying
+        // users. log so we notice in observability.
+        console.error(
+          "[process-document] usage check failed; failing open",
+          usageError
+        );
+      } else if (!usage?.[0]?.allowed) {
+        return new Response(
+          JSON.stringify({ error: "Usage limit exceeded: process_documents" }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     const contentType = req.headers.get("content-type") || "";
     const fileName = req.headers.get("x-file-name") || "unknown";
     const userLocale =

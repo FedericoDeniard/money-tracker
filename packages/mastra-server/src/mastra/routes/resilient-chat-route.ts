@@ -77,6 +77,34 @@ export const chatHandler = async (c: Context) => {
     return c.text("Requires capability: ai_assistant", 403);
   }
 
+  // Usage cap. admin bypasses the cap entirely (effectively
+  // unlimited); everyone else — including tester — is counted
+  // against the per-period budget in payments.usage_limits. We
+  // check-and-increment in the same pre-stream window as the
+  // capability gate so a 429 reaches the client before any LLM
+  // tokens are spent. The body matches the prefix the frontend
+  // classifier matches on to surface the "usage limit" toast.
+  if (userRole !== "admin") {
+    const { supabaseFromToken } = await import("../../lib/supabase-from-token");
+    const supabase = supabaseFromToken(supabaseToken);
+    const { data: usage, error: usageError } = await supabase
+      .schema("payments")
+      .rpc("check_and_increment_usage", {
+        target_user_id: userId,
+        cap: "ai_assistant",
+      });
+    if (usageError) {
+      // fail-open: a counter bug should not break the app for paying
+      // users. log so we notice in observability.
+      console.error(
+        "[chatHandler] usage check failed; failing open",
+        usageError
+      );
+    } else if (!usage?.[0]?.allowed) {
+      return c.text("Usage limit exceeded: ai_assistant", 429);
+    }
+  }
+
   const params = await c.req.json();
 
   // Build the Mastra RequestContext from the Hono variables populated

@@ -701,7 +701,8 @@
     "loadingError": "Error al cargar",
     "networkError": "Error de conexión",
     "unknownError": "Error desconocido",
-    "premiumFeature": "Esta es una función premium. Actualizá tu plan para acceder."
+    "premiumFeature": "Esta es una función premium. Actualizá tu plan para acceder.",
+    "usageLimitExceeded": "Llegaste al límite mensual de esta función. Actualizá tu plan para continuar."
   },
   "landing": {
     "hero": {

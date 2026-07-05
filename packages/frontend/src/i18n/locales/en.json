@@ -701,7 +701,8 @@
     "loadingError": "Loading error",
     "networkError": "Network error",
     "unknownError": "Unknown error",
-    "premiumFeature": "This is a premium feature. Upgrade your plan to access it."
+    "premiumFeature": "This is a premium feature. Upgrade your plan to access it.",
+    "usageLimitExceeded": "You've hit the monthly limit for this feature. Upgrade your plan to continue."
   },
   "landing": {
     "hero": {

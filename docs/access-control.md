@@ -198,6 +198,9 @@ rejecting them on that capability. No code change needed.
    supabaseToken, role}, "<key>")` in mastra-server routes).
 4. Add the grant for the demo `lite_monthly` plan in the seed section
    4 of `006_payments_demo.sql`.
+5. If the capability is AI-backed and should be usage-capped, add a
+   row to `payments.usage_limits` (see "Usage limits" below) and a
+   `check_and_increment_usage` call before the AI invocation.
 
 ## Modifying the role bypass
 
@@ -228,6 +231,121 @@ per-capability decision table and document it in
 3. (Phase 2) Wire `useFeatureAccess("<newKey>")` in the consuming
    component for inline banners.
 
+## Usage limits
+
+The capability gate answers "is this user allowed to use this feature
+at all?". Usage limits answer "how many times per period?". The two
+cooperate: capability gate returns 403 when not allowed at all,
+usage cap returns 429 when allowed but rate-limited. So a tester can
+use `ai_assistant` (capability gate passes via role bypass) but
+only 200 times per calendar month (usage cap enforces the budget).
+
+### Data model
+
+- `payments.usage_limits` — configuration. One row per
+  `(capability, scope, period)`. `scope` is one of:
+  - `role:<role>` (e.g. `role:tester`)
+  - `plan:<plan_key>` (e.g. `plan:lite_monthly`)
+  - `default` (fallback)
+  Resolution order: role → plan → default. An absent default row
+  means callers are rejected (count 0) for that capability — fail-
+  closed for unknown capabilities is intentional (a deployment
+  mistake, not a license to spam).
+- `payments.usage_counters` — counter. One row per
+  `(user_id, capability, period_start)`. `period_start` is
+  `date_trunc('month', now())` for `'month'`,
+  `date_trunc('day', now())` for `'day'`. Implicit reset each
+  period boundary — no cron, no manual reset.
+
+### Rpcs
+
+- `payments.resolve_usage_limit(target_user_id uuid, cap text, period text default 'month') returns int`
+  — SECURITY DEFINER. Looks up the role → plan → default chain.
+- `payments.check_and_increment_usage(target_user_id uuid, cap text, period text default 'month') returns table(allowed boolean, remaining int, limit_value int)`
+  — SECURITY DEFINER, volatile. Atomic upsert + check + rollback
+  on over-limit. Both rps live in `payments`; consumers must call
+  them with `supabase.schema('payments').rpc(...)` so postgrest
+  sends the `Accept-Profile` / `Content-Profile` headers that let
+  it resolve the schema (see https://docs.postgrest.org/en/v12/references/api/schemas.html).
+
+### Wire-up (in the mastra-server chat handler and supabase edge
+functions)
+
+After the capability gate, the same call site does:
+
+```ts
+if (userRole !== "admin") {
+  const { data: usage, error: usageError } = await supabase
+    .schema("payments")
+    .rpc("check_and_increment_usage", { target_user_id, cap: "ai_assistant" });
+  if (usageError) {
+    // fail-open: a counter bug should not break paying users
+    console.error("usage check failed; failing open", usageError);
+  } else if (!usage?.[0]?.allowed) {
+    return c.text("Usage limit exceeded: ai_assistant", 429);
+  }
+}
+```
+
+- `admin` skips the cap (effectively unlimited). `tester` is
+  counted — this matches the product decision: testers are dev
+  staff who need to be able to test without hitting a wall, but
+  the cap on `ai_assistant` at 200 messages is the whole point.
+- Failure mode: rpc error → fail-open. We log the error and let
+  the call through. Rationale: a counter bug should not break
+  paying users.
+
+### Frontend
+
+The 429 body uses the prefix `Usage limit exceeded: <capability>`.
+The `edge-function-errors` classifier already matches on that prefix
+and substitutes `t("errors.usageLimitExceeded")` =
+"You've hit the monthly limit for this feature. Upgrade your plan
+to continue." The same 3 callers that surface the capability
+toast (AccountBilling × 2, Settings, UploadTransactionModal) and
+the chat's `getEdgeFunctionErrorMessage` path all surface the usage
+toast without any per-caller change.
+
+### Seeded matrix (from
+`supabase/migrations/20260705163606_add_usage_limits_and_counters.sql`)
+
+| capability | scope | period | max_count |
+| --- | --- | --- | --- |
+| `ai_assistant` | `role:tester` | `month` | 200 |
+| `ai_assistant` | `default` | `month` | 50 |
+| `process_documents` | `role:tester` | `month` | 50 |
+| `process_documents` | `default` | `month` | 5 |
+| `gmail_sync` | `role:tester` | `month` | 1000 |
+| `gmail_sync` | `default` | `month` | 100 |
+
+To add a per-plan override (e.g. `lite_monthly` gets 1000 messages
+on `ai_assistant`):
+
+```sql
+insert into payments.usage_limits (capability, scope, period, max_count)
+values ('ai_assistant', 'plan:lite_monthly', 'month', 1000);
+```
+
+The plan row resolves before the default for users on `lite_monthly`.
+
+### Follow-up: gmail_sync call site
+
+`gmail_sync` is in the matrix but has no per-email counter wire-up
+yet. The `seed-emails` edge function and the
+`packages/mastra-server/src/mastra/routes/seed-emails-route.ts`
+route do the actual AI email analysis; the counter increment
+should go inside the loop that processes each email (per-email, not
+per-batch). This is a follow-up because the seed handler runs in
+chunks with auto-invocation and the per-email call site needs
+care to avoid double-counting on chunk boundaries.
+
+### Follow-up: counter cleanup
+
+`payments.usage_counters` accumulates one row per
+(user, capability, period_start). Rows never get deleted. A cron
+`delete from payments.usage_counters where period_start < now() - interval '3 months'`
+keeps the table bounded. Out of scope for this PR.
+
 ## Related references
 
 - `supabase/functions/_shared/auth.ts` — `requireMinRole`,
@@ -236,6 +354,9 @@ per-capability decision table and document it in
   `FEATURES` map + `FeatureKey` type.
 - `supabase/functions/_shared/capabilities.ts` — `requireCapability`,
   `CAPABILITIES`, `Capability`.
+- `supabase/migrations/20260705163606_add_usage_limits_and_counters.sql`
+  — `usage_limits`, `usage_counters`, `resolve_usage_limit`,
+  `check_and_increment_usage`.
 - `packages/frontend/src/lib/features.ts` — frontend `FEATURES`,
   `FeatureKey`, `canAccess`.
 - `packages/frontend/src/lib/capabilities.ts` — `CAPABILITIES`,

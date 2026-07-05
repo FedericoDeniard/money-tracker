@@ -12,12 +12,13 @@ export type Translator = (key: string) => string;
  * the wire as plain JSON and the service layer surfaces them as
  * `Error.message`.
  *
- * The two "premium" categories (`forbidden-role`, `forbidden-capability`)
- * are detected by matching the prefixes that the server-side helpers
- * emit:
+ * The three "premium" categories (`forbidden-role`,
+ * `forbidden-capability`, `usage-limit`) are detected by matching
+ * the prefixes that the server-side helpers emit:
  *
- *   `requireMinRole`     in _shared/auth.ts        → "Requires role 'X'"
- *   `requireCapability`  in _shared/capabilities.ts → "Requires capability: X"
+ *   `requireMinRole`             in _shared/auth.ts         → "Requires role 'X'"
+ *   `requireCapability`          in _shared/capabilities.ts  → "Requires capability: X"
+ *   `check_and_increment_usage`  in _shared/usage_limits    → "Usage limit exceeded: X"
  *
  * Keep these in sync — the server's literal strings are the contract.
  */
@@ -25,6 +26,7 @@ export type EdgeFunctionErrorType =
   | "auth"
   | "forbidden-role"
   | "forbidden-capability"
+  | "usage-limit"
   | "network"
   | "unknown";
 
@@ -35,6 +37,7 @@ export interface ClassifiedEdgeFunctionError {
 
 const ROLE_FORBIDDEN_PREFIX = "Requires role '";
 const CAPABILITY_FORBIDDEN_PREFIX = "Requires capability: ";
+const USAGE_LIMIT_PREFIX = "Usage limit exceeded: ";
 
 const AUTH_PHRASES = [
   "No active session",
@@ -54,6 +57,9 @@ export function classifyEdgeFunctionError(
   if (message.startsWith(CAPABILITY_FORBIDDEN_PREFIX)) {
     return { type: "forbidden-capability", message };
   }
+  if (message.startsWith(USAGE_LIMIT_PREFIX)) {
+    return { type: "usage-limit", message };
+  }
   if (AUTH_PHRASES.some(phrase => message.includes(phrase))) {
     return { type: "auth", message };
   }
@@ -63,12 +69,13 @@ export function classifyEdgeFunctionError(
 /**
  * Returns the message that should be surfaced to the user via toast
  * (or any other channel). For forbidden-role and forbidden-capability
- * errors we substitute a single i18n string so the user always sees a
- * consistent "this is a premium feature" message regardless of which
- * capability or role was actually missing — the underlying detail is
- * not actionable for them in this phase. Once Phase 2 lands (inline
- * banners per surface), callers can branch on `classification.type` to
- * show feature-specific upsell messaging.
+ * errors we substitute the generic "this is a premium feature" toast;
+ * for usage-limit errors we substitute the dedicated "you've hit the
+ * monthly limit" copy. Both are about paid-feature access but the
+ * distinction is useful for the user: a 429 means "wait a month" or
+ * "upgrade" while a 403 means "this feature is paid". Once Phase 2
+ * lands (inline banners per surface), callers can branch on
+ * `classification.type` to show feature-specific upsell messaging.
  */
 export function getEdgeFunctionErrorMessage(
   err: unknown,
@@ -81,15 +88,23 @@ export function getEdgeFunctionErrorMessage(
   ) {
     return t("errors.premiumFeature");
   }
+  if (classification.type === "usage-limit") {
+    return t("errors.usageLimitExceeded");
+  }
   return classification.message;
 }
 
 /**
  * Convenience: returns true when the error is one that should trigger
- * the premium-feature UX (toast today, banner in Phase 2) rather than
- * a generic error message.
+ * a paid-feature-related UX (premium-feature toast, usage-limit toast,
+ * or the inline banners from Phase 2) rather than a generic error
+ * message.
  */
 export function isPremiumFeatureError(err: unknown): boolean {
   const type = classifyEdgeFunctionError(err).type;
-  return type === "forbidden-role" || type === "forbidden-capability";
+  return (
+    type === "forbidden-role" ||
+    type === "forbidden-capability" ||
+    type === "usage-limit"
+  );
 }
