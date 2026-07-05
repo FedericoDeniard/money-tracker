@@ -28,6 +28,10 @@ const storage = new PostgresStore({
 // lives in src/server.ts. The only `server` config we keep is `auth`,
 // which the @mastra/hono adapter reads to protect its own routes
 // (/api/agents/*). All other middleware/CORS/port is handled by Hono.
+//
+// Note: userId and userRole are populated by the Hono auth middleware
+// (src/middleware/auth.ts). Tools/agents that read them should call
+// `ctx.requestContext.get("userId")` / `ctx.requestContext.get("userRole")`.
 export const mastra = new Mastra({
   agents: { financialAgent },
   storage,
