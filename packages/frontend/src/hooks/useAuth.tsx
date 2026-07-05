@@ -3,11 +3,7 @@ import type { User, Session } from "@supabase/supabase-js";
 import { jwtDecode } from "jwt-decode";
 import { getSupabase } from "../lib/supabase";
 import type { UserRole } from "../lib/features";
-import {
-  CAPABILITIES,
-  isCapability,
-  type Capability,
-} from "../lib/capabilities";
+import { isCapability, type Capability } from "../lib/capabilities";
 
 type AuthSnapshot = {
   user: User | null;
@@ -53,10 +49,12 @@ function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
 }
 
 function sameCapabilities(a: Capability[], b: Capability[]): boolean {
-  if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((value, index) => value === sortedB[index]);
+  const sortedA = a.toSorted();
+  const sortedB = b.toSorted();
+  return (
+    sortedA.length === sortedB.length &&
+    sortedA.every((value, index) => value === sortedB[index])
+  );
 }
 
 const VALID_ROLES: ReadonlySet<string> = new Set<UserRole>([
@@ -115,10 +113,6 @@ function readCapabilitiesFromSession(session: Session | null): Capability[] {
     return [];
   }
 }
-
-// Re-export so consumers can import the vocabulary from a single place
-// (useAuth.tsx already pulls it in for the jwt helper above).
-export { CAPABILITIES };
 
 const authStore: {
   snapshot: AuthSnapshot;

@@ -46,9 +46,7 @@ const AUTH_PHRASES = [
   "Invalid or expired token",
 ];
 
-export function classifyEdgeFunctionError(
-  err: unknown
-): ClassifiedEdgeFunctionError {
+function classifyEdgeFunctionError(err: unknown): ClassifiedEdgeFunctionError {
   const message = err instanceof Error ? err.message : String(err);
 
   if (message.startsWith(ROLE_FORBIDDEN_PREFIX)) {
@@ -92,19 +90,4 @@ export function getEdgeFunctionErrorMessage(
     return t("errors.usageLimitExceeded");
   }
   return classification.message;
-}
-
-/**
- * Convenience: returns true when the error is one that should trigger
- * a paid-feature-related UX (premium-feature toast, usage-limit toast,
- * or the inline banners from Phase 2) rather than a generic error
- * message.
- */
-export function isPremiumFeatureError(err: unknown): boolean {
-  const type = classifyEdgeFunctionError(err).type;
-  return (
-    type === "forbidden-role" ||
-    type === "forbidden-capability" ||
-    type === "usage-limit"
-  );
 }

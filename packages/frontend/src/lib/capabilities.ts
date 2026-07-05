@@ -22,7 +22,7 @@
  *   They share names intentionally (gmail_sync ↔ gmailSync) so product
  *   and engineering stay aligned, but they are separate concerns.
  */
-export const CAPABILITIES = {
+const CAPABILITIES = {
   gmail_sync: "gmail_sync",
   ai_assistant: "ai_assistant",
   push_notifications: "push_notifications",
