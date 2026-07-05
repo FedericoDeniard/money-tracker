@@ -61,16 +61,19 @@ BREAKING CHANGE: old auth tokens are no longer valid
 ## Examples
 
 ### Simple Example
+
 ```
 feat: add user profile page
 ```
 
 ### With Scope
+
 ```
 fix(database): resolve connection timeout
 ```
 
 ### With Body
+
 ```
 feat: implement dark mode
 
@@ -79,6 +82,7 @@ Update all components to support theme switching.
 ```
 
 ### With Footer
+
 ```
 fix: prevent memory leak in video player
 
@@ -88,6 +92,7 @@ Refs: #123
 ```
 
 ### Breaking Change
+
 ```
 feat(api)!: change response format for user endpoints
 
