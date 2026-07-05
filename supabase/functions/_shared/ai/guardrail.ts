@@ -54,7 +54,7 @@ export async function shouldProcessEmail(
     };
   }
 
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY") || "";
+  const apiKey = process.env.OPENROUTER_API_KEY || "";
   if (!apiKey) {
     console.warn("[guardrail] Missing OPENROUTER_API_KEY, allowing through");
     return {
@@ -113,8 +113,8 @@ export async function shouldProcessEmail(
 
     // Call via PostgreSQL http extension, bypassing Deno's TLS fingerprinting.
     // Using direct fetch to REST API to avoid supabase client serialization issues.
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseUrl = process.env.SUPABASE_URL || "";
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
     const rpcResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/http_post`, {
       method: "POST",

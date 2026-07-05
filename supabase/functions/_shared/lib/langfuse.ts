@@ -8,9 +8,9 @@ function logLangfuseEnvOnce() {
   envLogged = true;
 
   try {
-    const hasSecret = Boolean(Deno.env.get("LANGFUSE_SECRET_KEY"));
-    const hasPublic = Boolean(Deno.env.get("LANGFUSE_PUBLIC_KEY"));
-    const baseUrl = Deno.env.get("LANGFUSE_BASE_URL") ?? "missing";
+    const hasSecret = Boolean(process.env.LANGFUSE_SECRET_KEY);
+    const hasPublic = Boolean(process.env.LANGFUSE_PUBLIC_KEY);
+    const baseUrl = process.env.LANGFUSE_BASE_URL ?? "missing";
 
     console.log("[Langfuse]", {
       secretKey: hasSecret ? "✓" : "✗",
@@ -25,10 +25,9 @@ function logLangfuseEnvOnce() {
 function getClient(): Langfuse {
   if (!client) {
     client = new Langfuse({
-      publicKey: Deno.env.get("LANGFUSE_PUBLIC_KEY") ?? "",
-      secretKey: Deno.env.get("LANGFUSE_SECRET_KEY") ?? "",
-      baseUrl:
-        Deno.env.get("LANGFUSE_BASE_URL") ?? "https://cloud.langfuse.com",
+      publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? "",
+      secretKey: process.env.LANGFUSE_SECRET_KEY ?? "",
+      baseUrl: process.env.LANGFUSE_BASE_URL ?? "https://cloud.langfuse.com",
       flushAt: 15,
       flushInterval: 3000,
     });
@@ -104,7 +103,7 @@ export async function traceOperation<T>(
 
     trace.generation({
       name: "ai-completion",
-      model: Deno.env.get("XAI_MODEL") ?? "grok-4.20-non-reasoning-latest",
+      model: process.env.XAI_MODEL ?? "grok-4.20-non-reasoning-latest",
       input: generationInput,
       output: serializedOutput,
       startTime: operationStartTime,

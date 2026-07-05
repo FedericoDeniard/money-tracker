@@ -12,9 +12,14 @@ port = 54321
 # endpoints. `public` and `graphql_public` schemas are included by default.
 # `ai` is the schema that owns the mastra_* tables (PostgresStore from @mastra/pg).
 # See supabase/migrations/20260625022751_move_mastra_tables_to_ai_schema.sql.
-schemas = ["public", "graphql_public", "ai"]
+# `payments` is the schema that owns the billing tables (subscription_plans,
+# subscriptions, subscription_events) created by
+# supabase/migrations/20260628224000_create_subscriptions_schema.sql and
+# exposed to PostgREST by
+# supabase/migrations/20260629022252_expose_payments_schema_to_postgrest.sql.
+schemas = ["public", "graphql_public", "ai", "payments"]
 # Extra schemas to add to the search_path of every request.
-extra_search_path = ["public", "extensions", "ai"]
+extra_search_path = ["public", "extensions", "ai", "payments"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
 # for accidental or malicious requests.
 max_rows = 1000
@@ -259,10 +264,12 @@ max_frequency = "5s"
 # enabled = true
 # uri = "pg-functions://postgres/auth/before-user-created-hook"
 
-# This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
+# This hook runs before a token is issued and injects the user's `user_role`
+# claim into the JWT. Defined in migration
+# 20260625125528_add_user_roles_and_access_token_hook.sql.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
@@ -396,6 +403,15 @@ verify_jwt = false
 [functions.send-push-notification]
 verify_jwt = false
 
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.create-subscription]
+verify_jwt = false
+
+[functions.cancel-subscription]
+verify_jwt = false
+
 [edge_runtime.secrets]
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
@@ -404,6 +420,15 @@ XAI_API_KEY = "env(XAI_API_KEY)"
 GOOGLE_PROJECT_ID = "env(GOOGLE_PROJECT_ID)"
 OAUTH_REDIRECT_URI = "env(OAUTH_REDIRECT_URI)"
 PUBSUB_TOPIC = "env(PUBSUB_TOPIC)"
+
+# Billing providers (provider-agnostic; entries are per-provider)
+# Mercado Pago - Suscripciones
+MP_ACCESS_TOKEN = "env(MP_ACCESS_TOKEN)"
+MP_PUBLIC_KEY = "env(MP_PUBLIC_KEY)"
+MP_WEBHOOK_SECRET = "env(MP_WEBHOOK_SECRET)"
+MP_ENVIRONMENT = "env(MP_ENVIRONMENT)"
+MP_BACK_URL = "env(MP_BACK_URL)"
+MP_SITE_ID = "env(MP_SITE_ID)"
 
 [analytics]
 enabled = true

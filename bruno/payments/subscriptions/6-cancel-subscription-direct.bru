@@ -1,0 +1,38 @@
+meta {
+  name: cancel subscription (direct MP)
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{mpApiUrl}}/preapproval/{{preapprovalId}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+body:json {
+  {
+    "status": "cancelled"
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  cancels a subscription. the var name is `preapprovalId` because
+  that's the MP api field name. replace it with a real id. after this,
+  MP should dispatch a `subscription updated` webhook to payments-webhook
+  (visible in `webhooks/subscription updated` mock).
+}

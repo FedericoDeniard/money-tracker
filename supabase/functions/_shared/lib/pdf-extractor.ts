@@ -1,6 +1,6 @@
-import pdfParse from 'npm:pdf-parse@1.1.1';
-import { google } from 'npm:googleapis@170.1.0';
-import type { Gmail } from 'npm:googleapis@170.1.0';
+import pdfParse from "npm:pdf-parse@2.4.5";
+import { google } from "npm:googleapis@173.0.0";
+import type { Gmail } from "npm:googleapis@173.0.0";
 
 const MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const MAX_PDFS_PER_EMAIL = 3;
@@ -16,10 +16,14 @@ function detectPdfAttachments(payload: any): PdfAttachment[] {
   const attachments: PdfAttachment[] = [];
 
   const processPart = (part: any) => {
-    if (part.mimeType === 'application/pdf' && part.body?.attachmentId) {
-      const filename = part.filename || 'unknown.pdf';
+    if (part.mimeType === "application/pdf" && part.body?.attachmentId) {
+      const filename = part.filename || "unknown.pdf";
       const size = part.body.size || 0;
-      attachments.push({ attachmentId: part.body.attachmentId, filename, size });
+      attachments.push({
+        attachmentId: part.body.attachmentId,
+        filename,
+        size,
+      });
     }
     if (part.parts) {
       for (const subPart of part.parts) {
@@ -32,24 +36,42 @@ function detectPdfAttachments(payload: any): PdfAttachment[] {
   return attachments;
 }
 
-async function extractTextFromPdfBuffer(buffer: Uint8Array, filename: string): Promise<string> {
+async function extractTextFromPdfBuffer(
+  buffer: Uint8Array,
+  filename: string
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`PDF timeout ${EXTRACTION_TIMEOUT_MS}ms`)), EXTRACTION_TIMEOUT_MS);
+    const timeout = setTimeout(
+      () => reject(new Error(`PDF timeout ${EXTRACTION_TIMEOUT_MS}ms`)),
+      EXTRACTION_TIMEOUT_MS
+    );
 
-    pdfParse(buffer).then(({ text }) => {
-      clearTimeout(timeout);
-      resolve(text);
-    }).catch(reject);
+    pdfParse(buffer)
+      .then(({ text }) => {
+        clearTimeout(timeout);
+        resolve(text);
+      })
+      .catch(reject);
   });
 }
 
-export async function extractPdfAttachments(gmail: Gmail, messageId: string): Promise<string[]> {
+export async function extractPdfAttachments(
+  gmail: Gmail,
+  messageId: string
+): Promise<string[]> {
   try {
-    const res = await gmail.users.messages.get({ userId: 'me', id: messageId, format: 'full' });
+    const res = await gmail.users.messages.get({
+      userId: "me",
+      id: messageId,
+      format: "full",
+    });
     const payload = res.data.payload;
     if (!payload) return [];
 
-    const attachments = detectPdfAttachments(payload).slice(0, MAX_PDFS_PER_EMAIL);
+    const attachments = detectPdfAttachments(payload).slice(
+      0,
+      MAX_PDFS_PER_EMAIL
+    );
     const texts: string[] = [];
 
     for (const att of attachments) {
@@ -57,12 +79,14 @@ export async function extractPdfAttachments(gmail: Gmail, messageId: string): Pr
 
       try {
         const attRes = await gmail.users.messages.attachments.get({
-          userId: 'me',
+          userId: "me",
           messageId,
           id: att.attachmentId,
         });
         if (attRes.data.data) {
-          const buffer = Uint8Array.from(atob(attRes.data.data!), c => c.charCodeAt(0));
+          const buffer = Uint8Array.from(atob(attRes.data.data!), c =>
+            c.charCodeAt(0)
+          );
           const text = await extractTextFromPdfBuffer(buffer, att.filename);
           if (text.trim()) texts.push(text);
         }

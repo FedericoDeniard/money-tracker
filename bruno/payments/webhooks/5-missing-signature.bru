@@ -1,0 +1,36 @@
+meta {
+  name: missing signature
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/functions/v1/payments-webhook/mercadopago
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "id": "{{preapprovalId}}",
+    "type": "subscription_preapproval",
+    "action": "preapproval.created",
+    "data": { "id": "{{preapprovalId}}" }
+  }
+}
+
+docs {
+  no x-signature header at all. in test env the event is persisted with
+  processing_status: rejected_signature; in production the response is 401.
+}
+
+tests {
+  test("status is 200 in test env or 401 in production", function() {
+    const status = res.getStatus();
+    expect([200, 401]).to.include(status);
+  });
+}

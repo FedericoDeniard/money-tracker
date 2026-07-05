@@ -1,0 +1,63 @@
+meta {
+  name: cancel subscription (edge)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/functions/v1/cancel-subscription
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userJwt}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+vars:pre-request {
+  userJwt: PLACEHOLDER_USER_JWT
+}
+
+docs {
+  cancels the calling user's subscription. the endpoint looks up the
+  user's row in payments.subscriptions by user_id (from the JWT), and
+  calls the provider's cancelSubscription() (PUT /preapproval/{id} with
+  status=cancelled for MP). auth is the user's JWT, not the internal
+  secret.
+
+  body is empty by default. optional fields:
+    - status: "cancelled" (default) or "paused"
+
+  response on success:
+    {
+      "status": "pending_cancellation",
+      "requestedStatus": "cancelled",
+      "providerSubscriptionId": "...",
+      "cancellationRequestedAt": "2026-..."
+    }
+
+  the response is `pending_cancellation` (not `cancelled`) because the
+  actual database state change is delivered by the provider's webhook
+  (subscription_preapproval.updated) which the existing
+  payments-webhook handler persists. that webhook is the single
+  source of truth for status, not this endpoint. the frontend can poll
+  payments.subscriptions to observe the state change within ~5-10s.
+
+  replace the `userJwt` placeholder in the vars tab with a real user
+  JWT. in local dev, mint one with the supabase admin api:
+    POST /auth/v1/admin/users/{user_id}/sessions
+}
+
+tests {
+  test("status is 200, 401, or 404", function() {
+    expect([200, 401, 404]).to.include(res.getStatus());
+  });
+}

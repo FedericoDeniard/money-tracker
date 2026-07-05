@@ -36,6 +36,11 @@ const Assistant = lazy(() =>
 const NotFound = lazy(() =>
   import("../pages/NotFound").then(m => ({ default: m.NotFound }))
 );
+const AccountBilling = lazy(() =>
+  import("../pages/AccountBilling").then(m => ({
+    default: m.AccountBilling,
+  }))
+);
 const AuthCallback = lazy(() =>
   import("../pages/AuthCallback").then(m => ({ default: m.AuthCallback }))
 );
@@ -239,6 +244,14 @@ export function AppRoutes() {
               ) : (
                 <Navigate to="/dashboard" replace />
               )
+            }
+          />
+          <Route
+            path="/account/billing"
+            element={
+              <Suspense fallback={chunkFallback}>
+                <AccountBilling />
+              </Suspense>
             }
           />
         </Route>

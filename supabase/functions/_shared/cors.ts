@@ -13,12 +13,12 @@ function parseCsv(value: string): string[] {
 }
 
 function getAllowedOrigins(): string[] {
-  const configured = Deno.env.get("CORS_ALLOWED_ORIGINS")?.trim();
+  const configured = process.env.CORS_ALLOWED_ORIGINS?.trim();
   return parseCsv(configured || DEFAULT_ALLOWED_ORIGINS);
 }
 
 function shouldAllowCredentials(): boolean {
-  return Deno.env.get("CORS_ALLOW_CREDENTIALS")?.toLowerCase() === "true";
+  return process.env.CORS_ALLOW_CREDENTIALS?.toLowerCase() === "true";
 }
 
 function isOriginAllowed(origin: string, allowedOrigins: string[]): boolean {

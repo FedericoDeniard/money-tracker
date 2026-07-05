@@ -350,6 +350,8 @@
     "seedSkip": "Not now",
     "seedStart": "Yes, import",
     "seedStartedSuccess": "Import started. We'll notify you when it's done.",
+    "seedStarting": "Starting import...",
+    "seedStartingDescription": "Searching emails in Gmail. This may take a few minutes for accounts with many emails.",
     "seedStartError": "Error starting import. Please try again.",
     "seedAlreadyInProgress": "There is already an import in progress for this account. Please wait for it to finish.",
     "importProgress": "Import Progress",
@@ -373,7 +375,81 @@
     "disconnectedAccountsDescription": "These accounts have no active token, but are kept to preserve history and allow reconnection.",
     "disconnectedNoToken": "Disconnected (no active token)",
     "gmailReconnectWarning": "We detected one or more accounts with an invalid token or webhook subscription. Try reconnecting the account to restore synchronization.",
-    "gmailMissingWatchWarning": "{{count}} connected account(s) currently have no active Gmail watch."
+    "gmailMissingWatchWarning": "{{count}} connected account(s) currently have no active Gmail watch.",
+    "accountBilling": "Account & Billing",
+    "accountBillingTitle": "Manage your subscription",
+    "accountBillingDescription": "View your current plan, switch to a different one, or cancel.",
+    "accountBillingAction": "Manage plan"
+  },
+  "accountBilling": {
+    "title": "Account & Billing",
+    "description": "Choose the perfect plan for your needs and start optimizing your workflow today.",
+    "currentPlan": {
+      "title": "Current plan",
+      "paidTitle": "Paid plan",
+      "empty": "You don't have an active plan right now.",
+      "freeHint": "You're on the free plan. Pick a paid plan below to unlock more features.",
+      "plan": "Plan: {{name}}",
+      "payerEmail": "Payer: {{email}}",
+      "activeHint": "Your subscription renews automatically. You can cancel anytime."
+    },
+    "pricing": {
+      "title": "Pricing that scales with your business",
+      "subtitle": "Choose the perfect plan for your needs and start optimizing your workflow today",
+      "perEditor": "Per user",
+      "perMonth": "/ mo",
+      "getStarted": "Get Started",
+      "currentPlan": "Current plan",
+      "currentBadge": "Current",
+      "processing": "Processing…",
+      "free": {
+        "features": {
+          "manualTransactions": "Unlimited manual transactions",
+          "dashboard": "Dashboard with metrics and charts",
+          "searchAndFilters": "Search, filters and reports"
+        }
+      },
+      "dbPlanFeatures": {
+        "lite": {
+          "everythingInFree": "Everything in Free",
+          "gmailSync": "Automatic Gmail sync",
+          "aiAssistant": "AI financial assistant",
+          "pushNotifications": "Push notifications",
+          "advancedReports": "Advanced reports"
+        }
+      }
+    },
+    "availablePlans": {
+      "title": "Available plans",
+      "empty": "No plans available yet.",
+      "subscribe": "Subscribe",
+      "alreadySubscribed": "You're already subscribed",
+      "trialDays": "{{days}}-day free trial"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "paused": "Paused",
+      "cancelled": "Cancelled",
+      "pendingCancellation": "Cancellation pending",
+      "unknown": "Unknown"
+    },
+    "cancel": {
+      "trigger": "Cancel subscription",
+      "cancelling": "Cancelling...",
+      "title": "Cancel subscription?",
+      "description": "Your subscription will remain active until the end of the current billing period. This action cannot be undone.",
+      "confirm": "Yes, cancel"
+    },
+    "toast": {
+      "checkoutOpened": "Redirecting to Mercado Pago checkout...",
+      "subscribeError": "Could not start checkout",
+      "cancelSuccess": "Cancellation requested",
+      "cancelError": "Could not cancel subscription",
+      "noActiveVariant": "This plan has no active provider. Please contact support.",
+      "subscribed": "Subscription confirmed. Welcome aboard!"
+    },
+    "footerUrl": "Post-payment redirects back to {{url}}."
   },
   "notifications": {
     "title": "Notifications",
@@ -463,6 +539,10 @@
       "new_transaction": {
         "label": "New transaction",
         "description": "Notifies when a new transaction is detected from a Gmail email (outside of bulk imports)."
+      },
+      "system": {
+        "label": "System notification",
+        "description": "General system notifications (updates, alerts, system events)."
       }
     },
     "templates": {
@@ -620,7 +700,9 @@
     "goHome": "Go home",
     "loadingError": "Loading error",
     "networkError": "Network error",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "premiumFeature": "This is a premium feature. Upgrade your plan to access it.",
+    "usageLimitExceeded": "You've hit the monthly limit for this feature. Upgrade your plan to continue."
   },
   "landing": {
     "hero": {

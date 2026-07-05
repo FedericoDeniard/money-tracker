@@ -91,4 +91,10 @@ export const queryKeys = {
     list: (transactionId: string) =>
       [...queryKeys.transactionAttachments.all, "list", transactionId] as const,
   },
+  payments: {
+    all: ["payments"] as const,
+    plans: () => [...queryKeys.payments.all, "plans"] as const,
+    mySubscription: (userId?: string) =>
+      [...queryKeys.payments.all, "my-subscription", userId] as const,
+  },
 } as const;

@@ -1,5 +1,8 @@
-import { registerApiRoute } from "@mastra/core/server";
+import type { Context } from "hono";
 import { handleChatStream } from "@mastra/ai-sdk";
+import { RequestContext } from "@mastra/core/request-context";
+import { requireCapability } from "../../lib/capabilities";
+import { mastra } from "../index";
 
 /**
  * Replacement for the default `chatRoute` from `@mastra/ai-sdk` that
@@ -47,59 +50,137 @@ const UI_MESSAGE_STREAM_HEADERS = {
   "x-accel-buffering": "no",
 } as const;
 
-export const resilientChatRoute = () =>
-  registerApiRoute("/chat/:agentId", {
-    method: "POST",
-    handler: async c => {
-      const params = await c.req.json();
-      const mastra = c.get("mastra");
-      const contextRequestContext = c.get("requestContext");
+export const chatHandler = async (c: Context) => {
+  const userId = c.get("userId");
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
 
-      const agentId = c.req.param("agentId");
-      if (!agentId) {
-        throw new Error("Agent ID is required");
-      }
+  // Capability gate. We check `ai_assistant` before opening the SSE
+  // stream because once a stream starts the client has already begun
+  // reading chunks and we can't change the HTTP status code. Reject
+  // here with a plain-text body so the AI SDK useChat hook sees a
+  // non-streaming error and sets `error.message` to our literal
+  // string — the frontend's `getEdgeFunctionErrorMessage` classifier
+  // pattern-matches the `Requires capability:` prefix and substitutes
+  // the localized "premium feature" toast.
+  const supabaseToken = c.get("supabaseToken");
+  if (!supabaseToken) {
+    return c.text("Missing supabase token", 401);
+  }
+  const userRole = c.get("userRole") ?? "user";
+  const cap = await requireCapability(
+    { userId, supabaseToken, role: userRole },
+    "ai_assistant"
+  );
+  if (!cap.allowed) {
+    return c.text("Requires capability: ai_assistant", 403);
+  }
 
-      const queryVersionId = c.req.query("versionId");
-      const rawStatus = c.req.query("status");
-      if (queryVersionId && rawStatus) {
-        throw new Error(
-          'Query parameters "versionId" and "status" are mutually exclusive'
-        );
-      }
-      if (rawStatus && rawStatus !== "draft" && rawStatus !== "published") {
-        throw new Error(
-          'Query parameter "status" must be "draft" or "published"'
-        );
-      }
-
-      const effectiveAgentVersion = queryVersionId
-        ? { versionId: queryVersionId }
-        : rawStatus
-          ? { status: rawStatus as "draft" | "published" }
-          : undefined;
-
-      const uiMessageStream = await handleChatStream({
-        mastra,
-        agentId,
-        agentVersion: effectiveAgentVersion,
-        params: {
-          ...params,
-          requestContext: contextRequestContext ?? params.requestContext,
-        },
-        version: "v6",
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: false,
-        sendSources: false,
+  // Usage cap. admin bypasses the cap entirely (effectively
+  // unlimited); everyone else — including tester — is counted
+  // against the per-period budget in payments.usage_limits. We
+  // check-and-increment in the same pre-stream window as the
+  // capability gate so a 429 reaches the client before any LLM
+  // tokens are spent. The body matches the prefix the frontend
+  // classifier matches on to surface the "usage limit" toast.
+  if (userRole !== "admin") {
+    const { supabaseFromToken } = await import("../../lib/supabase-from-token");
+    const supabase = supabaseFromToken(supabaseToken);
+    const { data: usage, error: usageError } = await supabase
+      .schema("payments")
+      .rpc("check_and_increment_usage", {
+        target_user_id: userId,
+        cap: "ai_assistant",
       });
+    if (usageError) {
+      // fail-open: a counter bug should not break the app for paying
+      // users. log so we notice in observability.
+      console.error(
+        "[chatHandler] usage check failed; failing open",
+        usageError
+      );
+    } else if (!usage?.[0]?.allowed) {
+      return c.text("Usage limit exceeded: ai_assistant", 429);
+    }
+  }
 
-      const sseStream = (
-        uiMessageStream as ReadableStream<unknown>
-      ).pipeThrough(new JsonToSseTransformStream());
+  const params = await c.req.json();
 
-      return new Response(sseStream.pipeThrough(new TextEncoderStream()), {
-        headers: { ...UI_MESSAGE_STREAM_HEADERS },
-      });
+  // Build the Mastra RequestContext from the Hono variables populated
+  // by `authMiddleware`. Tools declare their expected keys via
+  // `requestContextSchema` and read them via `ctx.requestContext.get(...)`
+  // or `ctx.requestContext!.all.<key>`. Today the keys we propagate are:
+  //   - userId / supabaseToken (consumed by every data tool)
+  //   - userTimezone (consumed by get-current-date)
+  //   - userRole (consumed by tools that branch on tier / staff status)
+  // A client-supplied `requestContext` in the body is merged on top so
+  // callers can still override individual keys when they need to (used
+  // by tests; production paths leave it empty).
+  const serverRequestContext = new RequestContext();
+  const userTimezone = c.get("userTimezone");
+  if (supabaseToken) serverRequestContext.set("supabaseToken", supabaseToken);
+  if (userTimezone) serverRequestContext.set("userTimezone", userTimezone);
+  serverRequestContext.set("userRole", userRole);
+  serverRequestContext.set("userId", userId);
+
+  const clientRequestContext =
+    (params.requestContext as Record<string, unknown> | undefined) ?? undefined;
+  if (clientRequestContext) {
+    for (const [key, value] of Object.entries(clientRequestContext)) {
+      serverRequestContext.set(key, value);
+    }
+  }
+
+  const agentId = c.req.param("agentId");
+  if (!agentId) {
+    return c.json({ error: "Agent ID is required" }, 400);
+  }
+
+  const queryVersionId = c.req.query("versionId");
+  const rawStatus = c.req.query("status");
+  if (queryVersionId && rawStatus) {
+    return c.json(
+      {
+        error:
+          'Query parameters "versionId" and "status" are mutually exclusive',
+      },
+      400
+    );
+  }
+  if (rawStatus && rawStatus !== "draft" && rawStatus !== "published") {
+    return c.json(
+      { error: 'Query parameter "status" must be "draft" or "published"' },
+      400
+    );
+  }
+
+  const effectiveAgentVersion = queryVersionId
+    ? { versionId: queryVersionId }
+    : rawStatus
+      ? { status: rawStatus as "draft" | "published" }
+      : undefined;
+
+  const uiMessageStream = await handleChatStream({
+    mastra,
+    agentId,
+    agentVersion: effectiveAgentVersion,
+    params: {
+      ...params,
+      requestContext: serverRequestContext,
     },
+    version: "v6",
+    sendStart: true,
+    sendFinish: true,
+    sendReasoning: false,
+    sendSources: false,
   });
+
+  const sseStream = (uiMessageStream as ReadableStream<unknown>).pipeThrough(
+    new JsonToSseTransformStream()
+  );
+
+  return new Response(sseStream.pipeThrough(new TextEncoderStream()), {
+    headers: { ...UI_MESSAGE_STREAM_HEADERS },
+  });
+};

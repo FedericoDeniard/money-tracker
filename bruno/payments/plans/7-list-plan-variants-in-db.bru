@@ -1,0 +1,55 @@
+meta {
+  name: list plan variants in DB
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/plan_provider_variants?select=*,plan:plans(*)&plan_id=eq.{{planId}}&order=provider
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{userJwt}}
+  Accept-Profile: payments
+}
+
+vars:pre-request {
+  planId: 00000000-0000-0000-0000-000000000000
+}
+
+docs {
+  lists the price variants of a single plan across all providers it
+  is enabled on. replace {{planId}} with a real plan_id (from
+  `list plans in DB`).
+
+  one row per provider. the `unique (plan_id, provider)` constraint on
+  the table means a plan can have at most one variant per provider.
+
+  each variant has the parent `plan` embedded as `plan` (the postgrest
+  `select=*,plan:plans(*)` syntax — `plan:plans` is the alias of the
+  `plan_id` foreign key). the embedded plan has the `plan_key` and
+  `display_name`, which the variant row alone does not carry — useful
+  for "show me all prices for Plan Pro" style UIs.
+
+  uses `userJwt` for authenticated reads; `Accept-Profile: payments`
+  routes the lookup to the `payments` schema.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("response is an array", function() {
+    expect(res.getBody()).to.be.an("array");
+  });
+  test("each variant has a plan object embedded", function() {
+    const body = res.getBody();
+    for (const variant of body) {
+      expect(variant).to.have.property("plan").that.is.an("object");
+      expect(variant.plan).to.have.property("plan_key");
+    }
+  });
+}

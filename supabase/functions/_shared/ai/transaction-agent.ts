@@ -45,9 +45,9 @@ function validateAndFixDate(dateString?: string): string | undefined {
   }
 }
 
-const MODEL = Deno.env.get("XAI_MODEL") ?? "grok-4.20-non-reasoning-latest";
+const MODEL = process.env.XAI_MODEL ?? "grok-4.20-non-reasoning-latest";
 const FILE_FALLBACK_MODEL =
-  Deno.env.get("XAI_FILE_FALLBACK_MODEL") ?? "grok-4.20-reasoning-latest";
+  process.env.XAI_FILE_FALLBACK_MODEL ?? "grok-4.20-reasoning-latest";
 const TEMPERATURE = 0.1;
 
 function extractJsonObject(text: string): string | null {
@@ -123,7 +123,7 @@ async function extractTransactionFromPdfWithXaiFile(
   userLocale?: string,
   userClarifications?: string
 ): Promise<(TransactionResponse & { usage?: unknown }) | null> {
-  const apiKey = Deno.env.get("XAI_API_KEY") || "";
+  const apiKey = process.env.XAI_API_KEY || "";
   if (!apiKey) {
     console.warn(
       "[xai-file-fallback] Missing XAI_API_KEY, skipping PDF fallback"
@@ -380,7 +380,7 @@ Notice the pattern: the clarification is short and conversational, but the outpu
     async () => {
       try {
         const xai = createXai({
-          apiKey: Deno.env.get("XAI_API_KEY") || "",
+          apiKey: process.env.XAI_API_KEY || "",
         });
 
         // Build generateText options

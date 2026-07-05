@@ -1,0 +1,32 @@
+meta {
+  name: list subscriptions
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{mpApiUrl}}/preapproval/search
+  body: none
+  auth: bearer
+}
+
+params:query {
+  status: authorized
+  limit: 10
+}
+
+auth:bearer {
+  token: {{mpAccessToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  lists recent subscriptions in the test seller's account. useful to
+  confirm that a real subscription ended up in MP before checking the
+  webhook. the url hits MP's `/preapproval/search` endpoint.
+}
