@@ -64,7 +64,7 @@ export const FEATURES = {
   transactions: "user",
   subscriptions: "user",
   settings: "user",
-  processDocument: "user",
+  processDocument: "tester",
   gmailConnect: "user",
 } as const satisfies Record<string, UserRole>;
 
