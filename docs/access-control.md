@@ -27,15 +27,23 @@ Every user-facing edge function calls both helpers right after
 const auth = await requireUserAuth(req, corsHeaders);
 if (auth instanceof Response) return auth;
 
-const roleCheck = requireMinRole(auth, "user", corsHeaders);
+const roleCheck = requireMinRole(auth, "gmailConnect", corsHeaders);
 if (roleCheck instanceof Response) return roleCheck;
 
 const cap = await requireCapability(auth, "gmail_sync", corsHeaders);
 if (cap instanceof Response) return cap;
 ```
 
-`requireMinRole` is synchronous (no DB hit — reads the role from the
-JWT). `requireCapability` is async and re-queries
+`requireMinRole(auth, "<featureKey>", ...)` receives the feature key
+(not the role literal) and looks up the required role from
+`supabase/functions/_shared/features.ts#FEATURES`. That lookup is the
+contract that keeps the backend in sync with the frontend: the
+backend has its own copy of the `FEATURES` map (mirrored from
+`packages/frontend/src/lib/features.ts`), and the helper compares
+`auth.role` (read from the JWT) against the looked-up value. The
+helper is synchronous — no DB hit.
+
+`requireCapability` is async and re-queries
 `payments.subscriptions` + `payments.plan_capabilities` so it reflects
 subscription state changes immediately, without waiting for a JWT
 refresh.
@@ -43,8 +51,9 @@ refresh.
 The 403 error messages are the contract that the frontend classifier
 matches against:
 
-- `requireMinRole` → `"Requires role '<key>'"`
-- `requireCapability` → `"Requires capability: <key>"`
+- `requireMinRole` → `"Requires role '<required>'"` (where `<required>`
+  is the value the helper looked up from `FEATURES`, not the key).
+- `requireCapability` → `"Requires capability: <key>"`.
 
 ### Frontend
 
@@ -81,7 +90,9 @@ caller. The wiring is in place so flipping any value to `tester` or
 
 ### How to flip a value
 
-1. Edit `FEATURES.<key>` in `lib/features.ts`.
+1. Edit `FEATURES.<key>` in **both** `packages/frontend/src/lib/features.ts`
+   and `supabase/functions/_shared/features.ts`. The two copies must
+   stay in sync — there is no compiler-enforced link between them.
 2. Done. The next deploy picks it up.
 
 ### How the gate surfaces to the user
@@ -129,21 +140,25 @@ in `supabase/seeds/006_payments_demo.sql` section 4.
 
 ## Adding a new role-gated feature
 
-1. Add the entry to `FEATURES` in `packages/frontend/src/lib/features.ts`
-   with value `"user"`.
-2. Call `requireMinRole(auth, "user", corsHeaders)` in the relevant
-   edge function.
-3. (Phase 2) Wire `useFeatureAccess("<key>")` in the consuming
+1. Add the entry to `FEATURES` in **both**
+   `packages/frontend/src/lib/features.ts` and
+   `supabase/functions/_shared/features.ts` with value `"user"`.
+2. Call `requireMinRole(auth, "<newKey>", corsHeaders)` in the
+   relevant edge function (pass the feature key, not the role
+   literal).
+3. (Phase 2) Wire `useFeatureAccess("<newKey>")` in the consuming
    component for inline banners.
 
 ## Related references
 
 - `supabase/functions/_shared/auth.ts` — `requireMinRole`,
   `hasMinRole`, `UserRole`.
+- `supabase/functions/_shared/features.ts` — backend mirror of the
+  `FEATURES` map + `FeatureKey` type.
 - `supabase/functions/_shared/capabilities.ts` — `requireCapability`,
   `CAPABILITIES`, `Capability`.
-- `packages/frontend/src/lib/features.ts` — `FEATURES`, `FeatureKey`,
-  `canAccess`.
+- `packages/frontend/src/lib/features.ts` — frontend `FEATURES`,
+  `FeatureKey`, `canAccess`.
 - `packages/frontend/src/lib/capabilities.ts` — `CAPABILITIES`,
   `Capability`.
 - `packages/frontend/src/utils/edge-function-errors.ts` — classifier

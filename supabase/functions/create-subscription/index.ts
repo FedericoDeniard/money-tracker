@@ -44,7 +44,7 @@ Deno.serve(async req => {
   const auth = await requireUserAuth(req, corsHeaders);
   if (auth instanceof Response) return auth;
 
-  const roleCheck = requireMinRole(auth, "user", corsHeaders);
+  const roleCheck = requireMinRole(auth, "subscriptions", corsHeaders);
   if (roleCheck instanceof Response) return roleCheck;
 
   let body: Record<string, unknown>;

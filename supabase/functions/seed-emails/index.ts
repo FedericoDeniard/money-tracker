@@ -52,11 +52,10 @@ Deno.serve(async req => {
     }
     const { user, token, role } = auth;
 
-    // Role middleware. Today "user" matches every caller so this is a
-    // no-op; the moment `seed` is flipped to `"tester"` in
-    // `packages/frontend/src/lib/features.ts`, the middleware starts
-    // rejecting non-tester callers automatically with a 403.
-    const roleCheck = requireMinRole(auth, "user", corsHeaders);
+    // Role middleware. Looks up `FEATURES.seed` from
+    // `_shared/features.ts` and rejects callers below that role with a
+    // 403. Today `FEATURES.seed === "user"` so every caller passes.
+    const roleCheck = requireMinRole(auth, "seed", corsHeaders);
     if (roleCheck instanceof Response) {
       return roleCheck;
     }
