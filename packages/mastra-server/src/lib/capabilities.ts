@@ -46,11 +46,11 @@ const ROLE_BYPASS: ReadonlySet<UserRole> = new Set<UserRole>([
 ]);
 
 /**
- * Server-side capability gate for the mastra-server. Always re-queries
- * `payments.user_capabilities_v` (the union view that combines active
- * subscription grants and default grants) so the gate reflects
- * subscription state changes immediately, without waiting for a JWT
- * refresh — same contract as
+ * Server-side capability gate for the mastra-server. Calls the
+ * `payments.user_capabilities(target_user_id)` RPC (a SECURITY DEFINER
+ * function that wraps the underlying `payments.user_capabilities_v`
+ * view) so the gate reflects subscription state changes immediately,
+ * without waiting for a JWT refresh — same contract as
  * `supabase/functions/_shared/capabilities.ts#requireCapability`.
  *
  * Returns `{ allowed: true }` when the caller has the capability on
@@ -66,7 +66,9 @@ const ROLE_BYPASS: ReadonlySet<UserRole> = new Set<UserRole>([
  * service-role Supabase client; the mastra-server uses a per-request
  * client scoped to the caller's JWT (built from `supabaseToken` in
  * the request context) so RLS still applies and we don't need
- * service-role credentials in this package.
+ * service-role credentials in this package. The RPC is SECURITY
+ * DEFINER so it can read payments.user_capabilities_v (which is
+ * revoked from authenticated) on behalf of the caller's JWT.
  */
 export interface CapabilityCheckOk {
   allowed: true;
@@ -102,15 +104,12 @@ export async function requireCapability(
   const { supabaseFromToken } = await import("./supabase-from-token");
   const supabase = supabaseFromToken(ctx.supabaseToken);
 
-  // Single roundtrip: the view's user_id IS NULL branch contributes
-  // the default capabilities (free tier + paid users alike); the
-  // user_id = <uuid> branch contributes the user's own active
-  // subscription grants. Both branches dedup via the view's union.
-  const { data, error } = await supabase
-    .schema("payments")
-    .from("user_capabilities_v")
-    .select("capability")
-    .or(`user_id.eq.${ctx.userId},user_id.is.null`);
+  // SECURITY DEFINER RPC that wraps the view. Per-user gate lives in
+  // the function body, so even though we pass the user's own user_id
+  // here, the rpc cannot be tricked into leaking other users' caps.
+  const { data, error } = await supabase.rpc("user_capabilities", {
+    target_user_id: ctx.userId,
+  });
 
   if (error) {
     // Treat DB errors as "not allowed" so the caller surfaces the
@@ -123,9 +122,7 @@ export async function requireCapability(
     return { allowed: false, missing: capability };
   }
 
-  const caps = (data ?? [])
-    .map(row => row.capability)
-    .filter(isCapability);
+  const caps = (data ?? []).filter(isCapability);
   if (!caps.includes(capability)) {
     return { allowed: false, missing: capability };
   }

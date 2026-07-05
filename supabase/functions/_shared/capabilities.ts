@@ -77,24 +77,25 @@ function internalError(corsHeaders: JsonHeaders): Response {
  * Returns `{ user }` if the caller has the capability on any active
  * subscription OR as a default grant; returns a 403 Response otherwise.
  *
- * Always re-queries `payments.user_capabilities_v`. We do **not** trust
- * the JWT `user_capabilities` claim here: the claim is a UI hint (so
- * the frontend can hide buttons without a roundtrip) but it is baked
- * into the access token until it expires, so a subscription that cancels
+ * Calls `payments.user_capabilities(target_user_id)` — a SECURITY
+ * DEFINER RPC that wraps the underlying view. We do **not** trust the
+ * JWT `user_capabilities` claim here: the claim is a UI hint (so the
+ * frontend can hide buttons without a roundtrip) but it is baked into
+ * the access token until it expires, so a subscription that cancels
  * would still appear active until the next refresh. By querying the
  * DB on every call, the next gated call after a status change
  * immediately gets the right answer.
  *
- * The view (`payments.user_capabilities_v`) is a UNION of two sources:
- *   - capability grants from the user's active subscriptions, and
- *   - the default capabilities in `payments.default_capabilities`
- *     (rows with `user_id = null`).
- * The query filters with `.or(user_id.eq.<uuid>, user_id.is.null)` so
- * a single roundtrip returns both the user's specific grants and the
- * defaults that apply to everyone.
+ * The RPC is the canonical public API; the underlying
+ * `payments.user_capabilities_v` view is internal (revoked from
+ * authenticated) so a future contributor cannot bypass the RPC's
+ * per-user gate by querying the view from a supabase-js client. The
+ * RPC itself rejects authenticated callers that query another
+ * user's id with a 42501, providing an additional belt-and-suspenders
+ * check on top of the cascading RLS of the underlying tables.
  *
  * Role bypass: callers whose `role` is `admin` or `tester` skip the DB
- * check entirely. Staff and developers can exercise any gated feature
+ * call entirely. Staff and developers can exercise any gated feature
  * without holding a subscription; the bypass is logged at info level
  * so observability can distinguish staff-granted access from
  * subscription-granted access.
@@ -111,11 +112,9 @@ export async function requireCapability(
     return { user: ctx.user };
   }
 
-  const { data, error } = await supabase
-    .schema("payments")
-    .from("user_capabilities_v")
-    .select("capability")
-    .or(`user_id.eq.${ctx.user.id},user_id.is.null`);
+  const { data, error } = await supabase.rpc("user_capabilities", {
+    target_user_id: ctx.user.id,
+  });
 
   if (error) {
     console.error(
@@ -125,7 +124,7 @@ export async function requireCapability(
     return internalError(corsHeaders);
   }
 
-  const caps = (data ?? []).map(row => row.capability).filter(isCapability);
+  const caps = (data ?? []).filter(isCapability);
   if (!caps.includes(capability)) {
     return forbidden(corsHeaders, `Requires capability: ${capability}`);
   }
@@ -137,8 +136,8 @@ export async function requireCapability(
  * Convenience helper for callers that want the set of capabilities
  * (e.g. to branch on multiple capabilities without gating). Returns
  * the deduplicated union of the user's active subscription grants and
- * the default grants, sourced from the same `payments.user_capabilities_v`
- * view as `requireCapability`.
+ * the default grants, sourced from the same
+ * `payments.user_capabilities` RPC as `requireCapability`.
  *
  * Role bypass: callers with `role: admin` or `role: tester` receive
  * the full CAPABILITIES enum (every capability), since they bypass the
@@ -154,24 +153,16 @@ export async function getUserCapabilities(
     return Object.values(CAPABILITIES);
   }
 
-  const { data, error } = await supabase
-    .schema("payments")
-    .from("user_capabilities_v")
-    .select("capability")
-    .or(`user_id.eq.${userId},user_id.is.null`);
+  const { data, error } = await supabase.rpc("user_capabilities", {
+    target_user_id: userId,
+  });
 
   if (error) {
     console.error("[getUserCapabilities] db error:", error);
     return [];
   }
 
-  const caps = new Set<Capability>();
-  for (const row of data ?? []) {
-    if (isCapability(row.capability)) {
-      caps.add(row.capability);
-    }
-  }
-  return [...caps];
+  return (data ?? []).filter(isCapability);
 }
 
 // isCapability is defined in features.ts and re-exported here so callers
