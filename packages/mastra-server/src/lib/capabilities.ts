@@ -1,3 +1,5 @@
+import type { UserRole } from "./roles";
+
 /**
  * Capability vocabulary. Mirrors
  * `supabase/functions/_shared/capabilities.ts` and
@@ -36,6 +38,21 @@ const ACTIVE_SUBSCRIPTION_STATUSES = [
 ] as const;
 
 /**
+ * Roles that bypass capability gates entirely. Staff (`admin`) and
+ * developers running the app as `tester` can exercise any gated feature
+ * without holding an active subscription. The bypass short-circuits
+ * the DB roundtrip; the call site logs the bypass at info level so
+ * observers can tell when a feature was granted via staff role vs.
+ * via subscription.
+ *
+ * Mirror this list in `supabase/functions/_shared/capabilities.ts`.
+ */
+const ROLE_BYPASS: ReadonlySet<UserRole> = new Set<UserRole>([
+  "admin",
+  "tester",
+]);
+
+/**
  * Server-side capability gate for the mastra-server. Always re-queries
  * `payments.subscriptions` joined with `payments.plan_capabilities` so
  * the gate reflects subscription state changes immediately, without
@@ -43,10 +60,11 @@ const ACTIVE_SUBSCRIPTION_STATUSES = [
  * `supabase/functions/_shared/capabilities.ts#requireCapability`.
  *
  * Returns `{ allowed: true }` when the caller has the capability on
- * any active subscription; `{ allowed: false, missing: capability }`
- * otherwise. The caller decides how to surface a denial (the chat
- * handler in `routes/resilient-chat-route.ts` returns a 403 with the
- * same `Requires capability: <key>` prefix the frontend classifier
+ * any active subscription (or when their role is in the bypass set);
+ * `{ allowed: false, missing: capability }` otherwise. The caller
+ * decides how to surface a denial (the chat handler in
+ * `routes/resilient-chat-route.ts` returns a 403 with the same
+ * `Requires capability: <key>` prefix the frontend classifier
  * matches against, so the user sees the localized "premium feature"
  * toast via `getEdgeFunctionErrorMessage`).
  *
@@ -67,16 +85,28 @@ export interface CapabilityCheckDenied {
 
 export type CapabilityCheck = CapabilityCheckOk | CapabilityCheckDenied;
 
+export interface RequireCapabilityContext {
+  userId: string;
+  supabaseToken: string;
+  role: UserRole;
+}
+
 export async function requireCapability(
-  userId: string,
-  supabaseToken: string,
+  ctx: RequireCapabilityContext,
   capability: Capability
 ): Promise<CapabilityCheck> {
+  if (ROLE_BYPASS.has(ctx.role)) {
+    console.info(
+      `[requireCapability] role bypass for ${capability} by ${ctx.role} (user ${ctx.userId})`
+    );
+    return { allowed: true };
+  }
+
   // The supabase client lives in the lib directory and is created
   // from the caller's JWT — same pattern as
   // `lib/supabase-from-token.ts` which the tools already use.
   const { supabaseFromToken } = await import("./supabase-from-token");
-  const supabase = supabaseFromToken(supabaseToken);
+  const supabase = supabaseFromToken(ctx.supabaseToken);
 
   const { data, error } = await supabase
     .schema("payments")
@@ -84,7 +114,7 @@ export async function requireCapability(
     .select(
       "status, plan:plans(plan_capabilities(capability))"
     )
-    .eq("user_id", userId)
+    .eq("user_id", ctx.userId)
     .in("status", [...ACTIVE_SUBSCRIPTION_STATUSES])
     .maybeSingle();
 

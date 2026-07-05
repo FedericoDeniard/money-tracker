@@ -64,7 +64,7 @@ export const FEATURES = {
   transactions: "user",
   subscriptions: "user",
   settings: "user",
-  processDocument: "tester",
+  processDocument: "user",
   gmailConnect: "user",
 } as const satisfies Record<string, UserRole>;
 
@@ -76,4 +76,33 @@ export function requiredRoleFor(featureKey: FeatureKey): UserRole {
 
 export function isFeatureKey(x: unknown): x is FeatureKey {
   return typeof x === "string" && x in FEATURES;
+}
+
+/**
+ * Capability vocabulary used by `payments.plan_capabilities`. Mirrors
+ * `packages/frontend/src/lib/capabilities.ts#CAPABILITIES` and
+ * `packages/mastra-server/src/lib/capabilities.ts#CAPABILITIES`. The
+ * `payments.capability` enum (see
+ * supabase/migrations/20260705031212_add_plan_capabilities.sql) is
+ * the authoritative guard against drift between these copies; adding
+ * a new value requires `alter type payments.capability add value '<name>'`
+ * (must run outside a transaction block in production) plus updating
+ * all three copies here.
+ */
+export const CAPABILITIES = {
+  gmail_sync: "gmail_sync",
+  ai_assistant: "ai_assistant",
+  push_notifications: "push_notifications",
+  advanced_reports: "advanced_reports",
+  process_documents: "process_documents",
+} as const;
+
+export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
+
+/**
+ * Type guard for runtime values (e.g. read from the JWT claim or from
+ * a PostgREST row).
+ */
+export function isCapability(x: unknown): x is Capability {
+  return typeof x === "string" && x in CAPABILITIES;
 }

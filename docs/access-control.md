@@ -55,6 +55,30 @@ matches against:
   is the value the helper looked up from `FEATURES`, not the key).
 - `requireCapability` → `"Requires capability: <key>"`.
 
+### Role bypass for capabilities
+
+`requireCapability` short-circuits when the caller's role is
+`admin` or `tester` (the same `ROLE_BYPASS` set lives in both
+`supabase/functions/_shared/capabilities.ts` and
+`packages/mastra-server/src/lib/capabilities.ts`). The bypass:
+
+- Skips the DB roundtrip entirely.
+- Logs an info-level entry so observers can distinguish
+  subscription-granted access from staff-bypassed access:
+  `[requireCapability] role bypass for <capability> by <role> (user <uuid>)`.
+- Returns `allowed: true` for both `requireCapability` and
+  `getUserCapabilities`. `getUserCapabilities` for a staff user
+  returns the full `CAPABILITIES` enum (every capability), so a tool
+  that branches on `hasCapability("advanced_reports")` keeps
+  working even without a subscription row.
+
+The hierarchy `user(0) < tester(1) < admin(2)` already makes staff
+roles pass any `requireMinRole` minimum — the bypass is the
+capability-side equivalent of the same "staff can do anything"
+intent. Today both layers honor it; the only difference is that
+the role middleware is synchronous (JWT-only) and the capability
+bypass is also synchronous (constant-time set lookup).
+
 ### Frontend
 
 The hook `useFeatureAccess(key)` reads from
@@ -130,13 +154,33 @@ in `supabase/seeds/006_payments_demo.sql` section 4.
 
 1. Add the value to the enum in
    `supabase/migrations/20260705031212_add_plan_capabilities.sql`.
-2. Add it to `CAPABILITIES` in both
-   `packages/frontend/src/lib/capabilities.ts` and
-   `supabase/functions/_shared/capabilities.ts`.
+2. Add it to `CAPABILITIES` in **all three** copies:
+   `packages/frontend/src/lib/capabilities.ts`,
+   `supabase/functions/_shared/capabilities.ts`, and
+   `packages/mastra-server/src/lib/capabilities.ts`.
 3. Call `requireCapability(auth, "<key>", corsHeaders)` in the
-   relevant edge function.
+   relevant edge function (or `requireCapability({userId,
+   supabaseToken, role}, "<key>")` in mastra-server routes).
 4. Add the grant for the demo `lite_monthly` plan in the seed section
    4 of `006_payments_demo.sql`.
+
+## Modifying the role bypass
+
+The bypass set lives as `ROLE_BYPASS` in both
+`supabase/functions/_shared/capabilities.ts` and
+`packages/mastra-server/src/lib/capabilities.ts`. To add or remove
+roles:
+
+1. Edit the `ROLE_BYPASS` set in both files (keep them in sync — the
+   mastra-server can't import from the supabase one because they run
+   in different runtimes).
+2. Update `docs/access-control.md` to reflect the new policy.
+
+The bypass applies to **all** capabilities uniformly; if you need
+per-capability bypass (e.g. only admin bypasses `process_documents`
+but tester doesn't), promote the check from a constant set to a
+per-capability decision table and document it in
+`docs/access-control.md`.
 
 ## Adding a new role-gated feature
 

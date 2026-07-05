@@ -1,5 +1,6 @@
 import type { User } from "jsr:@supabase/supabase-js@2";
 import { supabase } from "./lib/supabase.ts";
+import { isCapability, type UserRole } from "./features.ts";
 
 type JsonHeaders = Record<string, string>;
 
@@ -20,12 +21,9 @@ export const CAPABILITIES = {
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 
-/**
- * Type guard for runtime values (e.g. read from the JWT claim).
- */
-export function isCapability(x: unknown): x is Capability {
-  return typeof x === "string" && x in CAPABILITIES;
-}
+// isCapability is re-exported below so existing imports from this module
+// keep working. The implementation lives in features.ts so all three
+// copies (edge, frontend, mastra) share the same check.
 
 /**
  * Statuses that grant entitlements. A user with a subscription in any of
@@ -41,6 +39,20 @@ const ACTIVE_SUBSCRIPTION_STATUSES = [
   "paused",
   "pending_cancellation",
 ] as const;
+
+/**
+ * Roles that bypass capability gates entirely. Staff (`admin`) and
+ * developers running the app as `tester` can exercise any gated feature
+ * without holding an active subscription. The bypass short-circuits
+ * the DB roundtrip and logs an info-level audit entry so observers can
+ * tell when a feature was granted via staff role vs. via subscription.
+ *
+ * Mirror this list in `packages/mastra-server/src/lib/capabilities.ts`.
+ */
+const ROLE_BYPASS: ReadonlySet<UserRole> = new Set<UserRole>([
+  "admin",
+  "tester",
+]);
 
 function forbidden(corsHeaders: JsonHeaders, error: string): Response {
   return new Response(JSON.stringify({ error }), {
@@ -80,12 +92,25 @@ function internalError(corsHeaders: JsonHeaders): Response {
  * reference `payments.plans` — so we nest through `plan:plans(...)
  * and the `!inner` modifier guarantees a row is only returned if the
  * subscription has an active plan that has any capability grants.
+ *
+ * Role bypass: callers whose `role` is `admin` or `tester` skip the DB
+ * check entirely. Staff and developers can exercise any gated feature
+ * without holding a subscription; the bypass is logged at info level
+ * so observability can distinguish staff-granted access from
+ * subscription-granted access.
  */
 export async function requireCapability(
-  ctx: { user: User },
+  ctx: { user: User; role: UserRole },
   capability: Capability,
   corsHeaders: JsonHeaders
 ): Promise<{ user: User } | Response> {
+  if (ROLE_BYPASS.has(ctx.role)) {
+    console.info(
+      `[requireCapability] role bypass for ${capability} by ${ctx.role} (user ${ctx.user.id})`
+    );
+    return { user: ctx.user };
+  }
+
   const { data, error } = await supabase
     .schema("payments")
     .from("subscriptions")
@@ -131,10 +156,21 @@ export async function requireCapability(
  *
  * Same join path as `requireCapability` (nested through plans) because
  * of the missing direct FK between subscriptions and plan_capabilities.
+ *
+ * Role bypass: callers with `role: admin` or `role: tester` receive
+ * the full CAPABILITIES enum (every capability), since they bypass the
+ * subscription gate in `requireCapability` too. A tool that branches
+ * on `hasCapability("advanced_reports")` keeps working for staff even
+ * without a subscription row.
  */
 export async function getUserCapabilities(
-  userId: string
+  userId: string,
+  role: UserRole
 ): Promise<Capability[]> {
+  if (ROLE_BYPASS.has(role)) {
+    return Object.values(CAPABILITIES);
+  }
+
   const { data, error } = await supabase
     .schema("payments")
     .from("subscriptions")
@@ -161,3 +197,7 @@ export async function getUserCapabilities(
   }
   return [...caps];
 }
+
+// isCapability is defined in features.ts and re-exported here so callers
+// of this module don't need to know about the split.
+export { isCapability };

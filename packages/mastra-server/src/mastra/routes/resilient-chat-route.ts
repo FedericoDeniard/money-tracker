@@ -68,7 +68,11 @@ export const chatHandler = async (c: Context) => {
   if (!supabaseToken) {
     return c.text("Missing supabase token", 401);
   }
-  const cap = await requireCapability(userId, supabaseToken, "ai_assistant");
+  const userRole = c.get("userRole") ?? "user";
+  const cap = await requireCapability(
+    { userId, supabaseToken, role: userRole },
+    "ai_assistant"
+  );
   if (!cap.allowed) {
     return c.text("Requires capability: ai_assistant", 403);
   }
@@ -87,10 +91,9 @@ export const chatHandler = async (c: Context) => {
   // by tests; production paths leave it empty).
   const serverRequestContext = new RequestContext();
   const userTimezone = c.get("userTimezone");
-  const userRole = c.get("userRole");
   if (supabaseToken) serverRequestContext.set("supabaseToken", supabaseToken);
   if (userTimezone) serverRequestContext.set("userTimezone", userTimezone);
-  if (userRole) serverRequestContext.set("userRole", userRole);
+  serverRequestContext.set("userRole", userRole);
   serverRequestContext.set("userId", userId);
 
   const clientRequestContext =
