@@ -50,6 +50,12 @@ const updateFields = z.object({
     .describe(
       "New transaction date in YYYY-MM-DD format. Only the date part is stored."
     ),
+  tag_ids: z
+    .array(z.string().uuid())
+    .optional()
+    .describe(
+      "Optional list of tag UUIDs that REPLACE the current tag set on the transaction. Omit the field to leave tags unchanged. Pass an empty array to remove all tags. Resolve tag UUIDs first by calling listTagsTool."
+    ),
 });
 
 export const updateTransactionTool = createTool({
@@ -79,6 +85,7 @@ export const updateTransactionTool = createTool({
         transactionType: z.enum(TRANSACTION_TYPE_VALUES),
         category: z.enum(CATEGORY_VALUES),
         transactionDescription: z.string(),
+        tagIds: z.array(z.string().uuid()),
       })
       .nullable(),
     message: z.string(),
@@ -88,22 +95,24 @@ export const updateTransactionTool = createTool({
     supabaseToken: z.string(),
   }),
   execute: async (input, ctx) => {
-    const { supabaseToken } = ctx.requestContext!.all;
+    const { supabaseToken, userId } = ctx.requestContext!.all;
     const supabase = supabaseFromToken(supabaseToken);
 
     const updates = input.updates;
-    if (
-      updates.category === undefined &&
-      updates.name === undefined &&
-      updates.merchant === undefined &&
-      updates.amount === undefined &&
-      updates.currency === undefined &&
-      updates.transaction_description === undefined &&
-      updates.transaction_type === undefined &&
-      updates.transaction_date === undefined
-    ) {
+    const hasFieldChange =
+      updates.category !== undefined ||
+      updates.name !== undefined ||
+      updates.merchant !== undefined ||
+      updates.amount !== undefined ||
+      updates.currency !== undefined ||
+      updates.transaction_description !== undefined ||
+      updates.transaction_type !== undefined ||
+      updates.transaction_date !== undefined;
+    const hasTagsChange = updates.tag_ids !== undefined;
+
+    if (!hasFieldChange && !hasTagsChange) {
       throw new Error(
-        "No fields provided to update. At least one field must be supplied."
+        "No fields provided to update. At least one field or tag_ids must be supplied."
       );
     }
 
@@ -125,17 +134,60 @@ export const updateTransactionTool = createTool({
       payload.date = `${updates.transaction_date}T00:00:00Z`;
     }
 
-    const { data, error } = await supabase
-      .from("transactions")
-      .update(payload)
-      .eq("id", input.transactionId)
-      .select(
-        "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description"
-      )
-      .single();
+    let data: Record<string, unknown> | null = null;
+    let updateError: { message: string } | null = null;
 
-    if (error) {
-      throw new Error(`Failed to update transaction: ${error.message}`);
+    if (hasFieldChange) {
+      const result = await supabase
+        .from("transactions")
+        .update(payload)
+        .eq("id", input.transactionId)
+        .select(
+          "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description"
+        )
+        .single();
+
+      data = (result.data as Record<string, unknown> | null) ?? null;
+      updateError = result.error;
+    } else {
+      // Tags-only update: still need to confirm ownership before mutating
+      // junction rows.
+      const { data: owned, error: ownError } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("id", input.transactionId)
+        .single();
+
+      if (ownError) {
+        throw new Error(
+          `Failed to load transaction for tag update: ${ownError.message}`
+        );
+      }
+      if (!owned) {
+        return {
+          success: false,
+          transaction: null,
+          message:
+            "Transaction not found or you do not have permission to update it.",
+        };
+      }
+
+      const { data: full, error: fullError } = await supabase
+        .from("transactions")
+        .select(
+          "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description"
+        )
+        .eq("id", input.transactionId)
+        .single();
+
+      if (fullError) {
+        throw new Error(`Failed to load transaction: ${fullError.message}`);
+      }
+      data = full as Record<string, unknown> | null;
+    }
+
+    if (updateError) {
+      throw new Error(`Failed to update transaction: ${updateError.message}`);
     }
 
     if (!data) {
@@ -145,6 +197,74 @@ export const updateTransactionTool = createTool({
         message:
           "Transaction not found or you do not have permission to update it.",
       };
+    }
+
+    let finalTagIds: string[] = [];
+    if (hasTagsChange) {
+      const requestedTagIds = Array.from(new Set(updates.tag_ids ?? []));
+
+      if (requestedTagIds.length > 0) {
+        const { data: ownedTags, error: ownedTagsError } = await supabase
+          .from("tags")
+          .select("id")
+          .eq("user_id", userId)
+          .in("id", requestedTagIds);
+
+        if (ownedTagsError) {
+          throw new Error(`Failed to validate tags: ${ownedTagsError.message}`);
+        }
+
+        const valid = new Set((ownedTags ?? []).map(t => t.id as string));
+        const missing = requestedTagIds.filter(id => !valid.has(id));
+        if (missing.length > 0) {
+          throw new Error(
+            `One or more tag_ids do not belong to the user: ${missing.join(", ")}`
+          );
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from("transaction_tags")
+        .delete()
+        .eq("transaction_id", input.transactionId);
+
+      if (deleteError) {
+        throw new Error(
+          `Failed to clear transaction tags: ${deleteError.message}`
+        );
+      }
+
+      if (requestedTagIds.length > 0) {
+        const rows = requestedTagIds.map(tagId => ({
+          transaction_id: input.transactionId,
+          tag_id: tagId,
+          user_id: userId,
+        }));
+        const { error: insertError } = await supabase
+          .from("transaction_tags")
+          .insert(rows);
+
+        if (insertError) {
+          throw new Error(
+            `Failed to assign transaction tags: ${insertError.message}`
+          );
+        }
+      }
+
+      finalTagIds = requestedTagIds;
+    } else {
+      const { data: existing, error: existingError } = await supabase
+        .from("transaction_tags")
+        .select("tag_id")
+        .eq("transaction_id", input.transactionId);
+
+      if (existingError) {
+        throw new Error(
+          `Failed to load existing tags: ${existingError.message}`
+        );
+      }
+
+      finalTagIds = (existing ?? []).map(r => r.tag_id as string);
     }
 
     return {
@@ -160,6 +280,7 @@ export const updateTransactionTool = createTool({
           data.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
         category: data.category as (typeof CATEGORY_VALUES)[number],
         transactionDescription: data.transaction_description as string,
+        tagIds: finalTagIds,
       },
       message: "Transaction updated successfully.",
     };

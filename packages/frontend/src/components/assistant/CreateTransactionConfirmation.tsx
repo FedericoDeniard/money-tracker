@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import type { ToolUIPart } from "ai";
 import { Button } from "@/components/ui/Button";
+import { TagBadge } from "../tags/TagBadge";
+import { useTags } from "../../hooks/useTags";
+import type { Tag } from "../../types/tags";
 
 type CreateTransactionTxn = {
   transaction_type?: "income" | "expense";
@@ -22,6 +25,7 @@ type CreateTransactionTxn = {
   category?: string;
   transaction_date?: string;
   transaction_description?: string;
+  tag_ids?: string[];
 };
 
 type CreateTransactionInput = {
@@ -37,6 +41,7 @@ type CreateTransactionOutputTxn = {
   currency: string;
   transactionType: "income" | "expense";
   category: string;
+  tagIds: string[];
 };
 
 type CreateTransactionOutput = {
@@ -96,6 +101,19 @@ export function CreateTransactionConfirmation({
       currency: current.currency ?? "USD",
     }).format(current.amount);
   }, [current, i18n.language]);
+
+  const { data: allTags = [] } = useTags();
+  const tagsById = useMemo(
+    () => new Map(allTags.map(tag => [tag.id, tag])),
+    [allTags]
+  );
+  const currentTags = useMemo(() => {
+    if (!current) return [];
+    const tagIds = current.tag_ids ?? [];
+    return tagIds
+      .map(id => tagsById.get(id))
+      .filter((tag): tag is Tag => !!tag);
+  }, [current, tagsById]);
 
   if (part.state === "input-streaming" || part.state === "input-available") {
     return null;
@@ -240,6 +258,23 @@ export function CreateTransactionConfirmation({
               </dt>
               <dd className="font-medium text-[var(--text-primary)]">
                 {current.transaction_description}
+              </dd>
+            </div>
+          )}
+          {currentTags.length > 0 && (
+            <div className="col-span-2 min-w-0">
+              <dt className="text-xs font-medium text-[var(--text-secondary)]">
+                {t("tags.title", "Tags")}
+              </dt>
+              <dd className="flex flex-wrap gap-1.5 mt-1">
+                {currentTags.map(tag => (
+                  <TagBadge
+                    key={tag.id}
+                    name={tag.name}
+                    color={tag.color}
+                    size="sm"
+                  />
+                ))}
               </dd>
             </div>
           )}

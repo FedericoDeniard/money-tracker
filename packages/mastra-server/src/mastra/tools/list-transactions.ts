@@ -77,6 +77,22 @@ export const listTransactionsTool = createTool({
         category: z.enum(CATEGORY_VALUES).nullable(),
         transactionName: z.string(),
         transactionDescription: z.string().nullable(),
+        tags: z.array(
+          z.object({
+            id: z.string().uuid(),
+            name: z.string(),
+            color: z.enum([
+              "slate",
+              "emerald",
+              "indigo",
+              "coral",
+              "amber",
+              "cerulean",
+              "lavender",
+              "rose",
+            ]),
+          })
+        ),
       })
     ),
     count: z.number().int().nonnegative(),
@@ -103,7 +119,7 @@ export const listTransactionsTool = createTool({
     let q = supabase
       .from("transactions")
       .select(
-        "id, transaction_date, merchant, amount, currency, transaction_type, category, name, transaction_description"
+        "id, transaction_date, merchant, amount, currency, transaction_type, category, name, transaction_description, transaction_tags ( tags ( id, name, color ) )"
       )
       .eq("discarded", false)
       .order("transaction_date", { ascending: false })
@@ -125,18 +141,44 @@ export const listTransactionsTool = createTool({
       throw new Error(`Failed to list transactions: ${error.message}`);
     }
 
-    const transactions = (data ?? []).map(r => ({
-      id: r.id as string,
-      transactionDate: r.transaction_date as string,
-      merchant: r.merchant as string,
-      amount: Number(r.amount),
-      currency: r.currency as string,
-      transactionType:
-        r.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
-      category: (r.category as (typeof CATEGORY_VALUES)[number] | null) ?? null,
-      transactionName: r.name as string,
-      transactionDescription: r.transaction_description as string | null,
-    }));
+    const transactions = (data ?? []).map(r => {
+      const junction = (r.transaction_tags ?? []) as unknown as Array<{
+        tags: { id: string; name: string; color: string } | null;
+      }>;
+      const tags = junction
+        .map(j => j.tags)
+        .filter(
+          (t): t is { id: string; name: string; color: string } => t !== null
+        )
+        .map(t => ({
+          id: t.id,
+          name: t.name,
+          color: t.color as
+            | "slate"
+            | "emerald"
+            | "indigo"
+            | "coral"
+            | "amber"
+            | "cerulean"
+            | "lavender"
+            | "rose",
+        }));
+
+      return {
+        id: r.id as string,
+        transactionDate: r.transaction_date as string,
+        merchant: r.merchant as string,
+        amount: Number(r.amount),
+        currency: r.currency as string,
+        transactionType:
+          r.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
+        category:
+          (r.category as (typeof CATEGORY_VALUES)[number] | null) ?? null,
+        transactionName: r.name as string,
+        transactionDescription: r.transaction_description as string | null,
+        tags,
+      };
+    });
 
     return { transactions, count: transactions.length };
   },

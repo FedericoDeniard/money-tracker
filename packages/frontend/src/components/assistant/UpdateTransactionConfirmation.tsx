@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, CheckIcon, Loader2, XIcon } from "lucide-react";
 import type { ToolUIPart } from "ai";
 import { getSupabase } from "../../lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { ToolApprovalCard } from "./ToolApprovalCard";
+import { TagBadge } from "../tags/TagBadge";
+import { useTags } from "../../hooks/useTags";
+import type { Tag } from "../../types/tags";
 
 type UpdateFields = {
   category?: string;
@@ -15,6 +18,7 @@ type UpdateFields = {
   transaction_description?: string;
   transaction_type?: "income" | "expense";
   transaction_date?: string;
+  tag_ids?: string[];
 };
 
 type UpdateTransactionInput = {
@@ -47,7 +51,13 @@ interface TransactionDetail {
   transaction_description: string | null;
 }
 
-const FIELD_LABELS: Record<keyof UpdateFields, string> = {
+interface TagLookup {
+  id: string;
+  name: string;
+  color: Tag["color"];
+}
+
+const FIELD_LABELS: Partial<Record<keyof UpdateFields, string>> = {
   category: "assistant.createTransaction.category",
   name: "assistant.createTransaction.name",
   merchant: "assistant.createTransaction.merchant",
@@ -80,7 +90,14 @@ export function UpdateTransactionConfirmation({
 }: UpdateTransactionConfirmationProps) {
   const { t, i18n } = useTranslation();
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
+  const [currentTagIds, setCurrentTagIds] = useState<string[]>([]);
   const [fetchLoading, setFetchLoading] = useState(true);
+
+  const { data: allTags = [] } = useTags();
+  const tagsById = useMemo(
+    () => new Map(allTags.map(tag => [tag.id, tag])),
+    [allTags]
+  );
 
   const input = part.input;
   const transactionId = input?.transactionId ?? "";
@@ -100,21 +117,32 @@ export function UpdateTransactionConfirmation({
     let cancelled = false;
     void (async () => {
       const supabase = await getSupabase();
-      const { data, error } = await supabase
-        .from("transactions")
-        .select(
-          "id, name, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
-        )
-        .eq("id", transactionId)
-        .eq("discarded", false)
-        .single();
+      const [detailRes, tagsRes] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select(
+            "id, name, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
+          )
+          .eq("id", transactionId)
+          .eq("discarded", false)
+          .single(),
+        supabase
+          .from("transaction_tags")
+          .select("tag_id")
+          .eq("transaction_id", transactionId),
+      ]);
 
       if (cancelled) return;
-      if (error) {
+      if (detailRes.error) {
         setDetail(null);
       } else {
-        setDetail(data as unknown as TransactionDetail);
+        setDetail(detailRes.data as unknown as TransactionDetail);
       }
+      setCurrentTagIds(
+        ((tagsRes.data ?? []) as unknown as Array<{ tag_id: string }>).map(
+          r => r.tag_id
+        )
+      );
       setFetchLoading(false);
     })();
 
@@ -122,6 +150,24 @@ export function UpdateTransactionConfirmation({
       cancelled = true;
     };
   }, [part.state, transactionId]);
+
+  const tagsChanged = updates.tag_ids !== undefined;
+  const nextTagIds: string[] = updates.tag_ids ?? currentTagIds;
+  const addedTagIds: string[] = tagsChanged
+    ? nextTagIds.filter(id => !currentTagIds.includes(id))
+    : [];
+  const removedTagIds: string[] = tagsChanged
+    ? currentTagIds.filter(id => !nextTagIds.includes(id))
+    : [];
+  const addedTags = addedTagIds
+    .map((id): Tag | undefined => tagsById.get(id))
+    .filter((t): t is Tag => !!t);
+  const removedTags = removedTagIds
+    .map((id): Tag | undefined => tagsById.get(id))
+    .filter((t): t is Tag => !!t);
+  const finalTags = nextTagIds
+    .map((id): Tag | undefined => tagsById.get(id))
+    .filter((t): t is Tag => !!t);
 
   const summary = detail?.name ?? detail?.merchant ?? "";
 
@@ -189,10 +235,10 @@ export function UpdateTransactionConfirmation({
             "transaction_date",
           ] as (keyof UpdateFields)[]
         ).map(field => {
-          const currentValue = (detail as Record<string, unknown>)[
+          const currentValue = (detail as unknown as Record<string, unknown>)[
             field === "transaction_date" ? "transaction_date" : field
           ] as string | number | null;
-          const newValue = updates[field];
+          const newValue = updates[field] as string | number | null | undefined;
           const isChanged = changedFields.includes(field);
 
           const currentDisplay = formatValue(
@@ -209,7 +255,7 @@ export function UpdateTransactionConfirmation({
           return (
             <div key={field} className="min-w-0">
               <dt className="text-xs font-medium text-[var(--text-secondary)]">
-                {t(FIELD_LABELS[field])}
+                {t(FIELD_LABELS[field] ?? field)}
               </dt>
               {isChanged ? (
                 <dd className="truncate">
@@ -232,7 +278,7 @@ export function UpdateTransactionConfirmation({
         {(changedFields.includes("name") || detail.name) && (
           <div className="col-span-2 min-w-0">
             <dt className="text-xs font-medium text-[var(--text-secondary)]">
-              {t(FIELD_LABELS.name)}
+              {t(FIELD_LABELS.name ?? "name")}
             </dt>
             {changedFields.includes("name") ? (
               <dd>
@@ -257,7 +303,7 @@ export function UpdateTransactionConfirmation({
           detail.transaction_description) && (
           <div className="col-span-2 min-w-0">
             <dt className="text-xs font-medium text-[var(--text-secondary)]">
-              {t(FIELD_LABELS.transaction_description)}
+              {t(FIELD_LABELS.transaction_description ?? "description")}
             </dt>
             {changedFields.includes("transaction_description") ? (
               <dd>
@@ -275,6 +321,70 @@ export function UpdateTransactionConfirmation({
                 {detail.transaction_description}
               </dd>
             )}
+          </div>
+        )}
+
+        {tagsChanged && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-xs font-medium text-[var(--text-secondary)]">
+              {t("tags.title", "Tags")}
+            </dt>
+            <dd className="space-y-2">
+              {removedTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    −
+                  </span>
+                  {removedTags.map(tag => (
+                    <TagBadge
+                      key={`r-${tag.id}`}
+                      name={tag.name}
+                      color={tag.color}
+                      size="sm"
+                      className="opacity-60"
+                    />
+                  ))}
+                </div>
+              )}
+              {addedTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    +
+                  </span>
+                  {addedTags.map(tag => (
+                    <TagBadge
+                      key={`a-${tag.id}`}
+                      name={tag.name}
+                      color={tag.color}
+                      size="sm"
+                    />
+                  ))}
+                </div>
+              )}
+              {addedTags.length === 0 && removedTags.length === 0 && (
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {t("assistant.updateTransaction.tagsUnchanged")}
+                </p>
+              )}
+            </dd>
+          </div>
+        )}
+
+        {!tagsChanged && currentTagIds.length > 0 && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-xs font-medium text-[var(--text-secondary)]">
+              {t("tags.title", "Tags")}
+            </dt>
+            <dd className="flex flex-wrap gap-1.5">
+              {finalTags.map(tag => (
+                <TagBadge
+                  key={tag.id}
+                  name={tag.name}
+                  color={tag.color}
+                  size="sm"
+                />
+              ))}
+            </dd>
           </div>
         )}
       </dl>

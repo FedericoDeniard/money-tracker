@@ -10,6 +10,7 @@ import {
   TRANSACTION_CURRENCIES,
 } from "../../constants/transactions";
 import type { Transaction } from "../../services/transactions.service";
+import { TagSelector } from "../tags/TagSelector";
 
 export type TransactionFormData = {
   name: string;
@@ -29,6 +30,8 @@ interface TransactionFormModalProps {
   mode: "create" | "edit";
   transaction?: Transaction;
   initialData?: TransactionFormData;
+  initialTagIds?: string[];
+  onTagsChange?: (ids: string[]) => void;
 }
 
 const FORM_ID = "transaction-form";
@@ -40,6 +43,8 @@ export function TransactionFormModal({
   mode,
   transaction,
   initialData,
+  initialTagIds = [],
+  onTagsChange,
 }: TransactionFormModalProps) {
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
@@ -62,6 +67,13 @@ export function TransactionFormModal({
         (new Date().toISOString().split("T")[0] as string),
     };
   });
+
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
+
+  const handleTagsChange = (ids: string[]) => {
+    setSelectedTagIds(ids);
+    onTagsChange?.(ids);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,6 +296,19 @@ export function TransactionFormModal({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {t("tags.title", "Tags")}
+          </label>
+          <TagSelector
+            mode="assign"
+            value={selectedTagIds}
+            onChange={handleTagsChange}
+            disabled={isPending}
+          />
         </div>
       </form>
     </Modal>

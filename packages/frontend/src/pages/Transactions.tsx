@@ -1,4 +1,11 @@
-import { Suspense, useCallback, useReducer, useEffect, Component } from "react";
+import {
+  Suspense,
+  useCallback,
+  useReducer,
+  useEffect,
+  Component,
+  useState,
+} from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import {
@@ -30,6 +37,7 @@ import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
+import { useTagMutations } from "../hooks/useTagMutations";
 
 const categories = [
   "salary",
@@ -186,13 +194,13 @@ function transactionsReducer(
   }
 }
 
-function initTransactionsState(
-  initialCategory: string | null
-): TransactionsState {
+function initTransactionsState(initial: string | null): TransactionsState {
+  // Support legacy `?category=` and new `?tag=` (single tag id) entry points.
   return {
     selectedTransaction: null,
     filters: {
-      category: initialCategory || undefined,
+      category: initial && !looksLikeUuid(initial) ? initial : undefined,
+      tagIds: initial && looksLikeUuid(initial) ? [initial] : undefined,
       sortBy: "transaction_date",
       sortOrder: "desc",
     },
@@ -200,6 +208,12 @@ function initTransactionsState(
     isUploadModalOpen: false,
     preFilledData: undefined,
   };
+}
+
+function looksLikeUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value
+  );
 }
 
 export function Transactions() {
@@ -244,6 +258,8 @@ export function Transactions() {
 
   const { deleteTransaction, updateTransaction, createTransaction } =
     useTransactionMutations();
+  const { setTransactionTags } = useTagMutations();
+  const [pendingTagIds, setPendingTagIds] = useState<string[]>([]);
 
   const handleDeleteTransaction = async (id: string) => {
     try {
@@ -300,6 +316,16 @@ export function Transactions() {
     const transaction = await createTransaction(
       mapTransactionFormDataToInsert(formData)
     );
+    if (pendingTagIds.length > 0) {
+      try {
+        await setTransactionTags({
+          transactionId: transaction.id,
+          tagIds: pendingTagIds,
+        });
+      } catch (error) {
+        console.error("Error assigning tags to new transaction:", error);
+      }
+    }
     navigate(`/transactions?id=${transaction.id}`);
   };
 
@@ -385,10 +411,13 @@ export function Transactions() {
           onClose={() => {
             dispatch({ type: "SET_FORM_MODAL_OPEN", isOpen: false });
             dispatch({ type: "SET_PRE_FILLED_DATA", data: undefined });
+            setPendingTagIds([]);
           }}
           onSave={handleCreateTransaction}
           mode="create"
           initialData={preFilledData}
+          initialTagIds={pendingTagIds}
+          onTagsChange={setPendingTagIds}
         />
 
         <UploadTransactionModal

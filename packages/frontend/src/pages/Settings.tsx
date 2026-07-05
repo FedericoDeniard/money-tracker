@@ -25,6 +25,7 @@ import {
   AccountBillingSection,
   LanguageSection,
   NotificationsSection,
+  TagsSection,
   TutorialSection,
   AccountInfoSection,
   AppVersionSection,
@@ -534,6 +535,7 @@ export function Settings() {
 
         <AccountBillingSection />
         <LanguageSection />
+        <TagsSection />
         <NotificationsSection />
         <TutorialSection />
         <AccountInfoSection />
