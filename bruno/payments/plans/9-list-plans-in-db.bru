@@ -1,0 +1,60 @@
+meta {
+  name: list plans in DB
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/plans?select=*,plan_provider_variants(*)&order=plan_key
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{userJwt}}
+  Accept-Profile: payments
+}
+
+docs {
+  reads the `payments.plans` table via postgrest, with each plan's
+  variants embedded as `plan_provider_variants` (an array of rows).
+  this is the postgrest `select=*,plan_provider_variants(*)` syntax —
+  one round-trip returns the plan + its full pricing across all
+  providers, which is the common "show me the catalog" read for an
+  admin UI.
+
+  uses the `userJwt` token captured by `0. login` so the request is
+  authenticated. the `Accept-Profile: payments` header tells postgrest
+  to look up the table in the `payments` schema instead of the
+  default `public`.
+
+  the response shape:
+    [
+      {
+        id, plan_key, display_name, internal_tier, frequency,
+        frequency_type, trial_days, is_active, created_at, updated_at,
+        plan_provider_variants: [
+          { id, plan_id, provider, provider_plan_id, amount, currency,
+            is_active, created_at, updated_at },
+          ...
+        ]
+      },
+      ...
+    ]
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("response is an array", function() {
+    expect(res.getBody()).to.be.an("array");
+  });
+  test("each plan has a plan_provider_variants array", function() {
+    const body = res.getBody();
+    for (const plan of body) {
+      expect(plan).to.have.property("plan_provider_variants").that.is.an("array");
+    }
+  });
+}

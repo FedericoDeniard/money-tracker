@@ -9,13 +9,6 @@ export interface DateRange {
   previousEndDate: string;
 }
 
-export function toIsoDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 export function currentYearMonth(): string {
   const now = new Date();
   const y = now.getFullYear();
@@ -27,7 +20,17 @@ export function isValidYearMonth(value: string): boolean {
   return /^\d{4}-\d{2}$/.test(value);
 }
 
-export function parseYearMonth(value: string): { year: number; month: number } {
+// toIsoDate + parseYearMonth are only used internally (inside
+// getDateRange / formatMonthLabel) — keep them module-private so the
+// public API of this file matches what consumers actually use.
+function toIsoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseYearMonth(value: string): { year: number; month: number } {
   const [year, month] = value.split("-").map(Number);
   return { year, month };
 }

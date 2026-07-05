@@ -375,7 +375,81 @@
     "disconnectedAccountsDescription": "Estas cuentas no tienen token activo, pero se mantienen para preservar el historial y permitir reconexión.",
     "disconnectedNoToken": "Desconectada (sin token activo)",
     "gmailReconnectWarning": "Detectamos una o más cuentas con token o suscripción de webhook no válida. Probá reconectar la cuenta para restablecer la sincronización.",
-    "gmailMissingWatchWarning": "{{count}} cuenta(s) conectada(s) no tienen watch activo de Gmail en este momento."
+    "gmailMissingWatchWarning": "{{count}} cuenta(s) conectada(s) no tienen watch activo de Gmail en este momento.",
+    "accountBilling": "Cuenta y Facturación",
+    "accountBillingTitle": "Gestioná tu suscripción",
+    "accountBillingDescription": "Mirá tu plan actual, cambiá a otro o cancelá.",
+    "accountBillingAction": "Administrar plan"
+  },
+  "accountBilling": {
+    "title": "Cuenta y Facturación",
+    "description": "Elegí el plan perfecto para tus necesidades y empezá a optimizar tu trabajo hoy.",
+    "currentPlan": {
+      "title": "Plan actual",
+      "paidTitle": "Plan pago",
+      "empty": "No tenés un plan activo en este momento.",
+      "freeHint": "Estás en el plan gratuito. Elegí un plan pago abajo para desbloquear más funciones.",
+      "plan": "Plan: {{name}}",
+      "payerEmail": "Pagador: {{email}}",
+      "activeHint": "Tu suscripción se renueva automáticamente. Podés cancelar en cualquier momento."
+    },
+    "pricing": {
+      "title": "Precios que escalan con tu negocio",
+      "subtitle": "Elegí el plan perfecto para tus necesidades y empezá a optimizar tu trabajo hoy",
+      "perEditor": "Por usuario",
+      "perMonth": "/ mes",
+      "getStarted": "Empezar",
+      "currentPlan": "Plan actual",
+      "currentBadge": "Actual",
+      "processing": "Procesando…",
+      "free": {
+        "features": {
+          "manualTransactions": "Transacciones manuales ilimitadas",
+          "dashboard": "Dashboard con métricas y gráficos",
+          "searchAndFilters": "Búsqueda, filtros y reportes"
+        }
+      },
+      "dbPlanFeatures": {
+        "lite": {
+          "everythingInFree": "Todo lo del plan Free",
+          "gmailSync": "Sincronización automática con Gmail",
+          "aiAssistant": "Asistente financiero con IA",
+          "pushNotifications": "Notificaciones push",
+          "advancedReports": "Reportes avanzados"
+        }
+      }
+    },
+    "availablePlans": {
+      "title": "Planes disponibles",
+      "empty": "Todavía no hay planes disponibles.",
+      "subscribe": "Suscribirme",
+      "alreadySubscribed": "Ya tenés una suscripción",
+      "trialDays": "{{days}} días de prueba gratis"
+    },
+    "status": {
+      "active": "Activa",
+      "pending": "Pendiente",
+      "paused": "Pausada",
+      "cancelled": "Cancelada",
+      "pendingCancellation": "Cancelación pendiente",
+      "unknown": "Desconocido"
+    },
+    "cancel": {
+      "trigger": "Cancelar suscripción",
+      "cancelling": "Cancelando...",
+      "title": "¿Cancelar suscripción?",
+      "description": "Tu suscripción seguirá activa hasta el final del período actual. Esta acción no se puede deshacer.",
+      "confirm": "Sí, cancelar"
+    },
+    "toast": {
+      "checkoutOpened": "Redirigiendo al checkout de Mercado Pago...",
+      "subscribeError": "No se pudo iniciar el checkout",
+      "cancelSuccess": "Cancelación solicitada",
+      "cancelError": "No se pudo cancelar la suscripción",
+      "noActiveVariant": "Este plan no tiene un proveedor activo. Contactá a soporte.",
+      "subscribed": "Suscripción confirmada. ¡Bienvenido!"
+    },
+    "footerUrl": "Después del pago volverás a {{url}}."
   },
   "notifications": {
     "title": "Notificaciones",
@@ -464,7 +538,11 @@
       },
       "new_transaction": {
         "label": "Nueva transacción",
-        "description": "Notifica cuando se detecta una nueva transacción desde un correo de Gmail (fuera de importaciones masivas)."
+        "description": "Notifica cuando se detecta una nueva transacción desde un email de Gmail (fuera de importaciones masivas)."
+      },
+      "system": {
+        "label": "Notificación del sistema",
+        "description": "Notificaciones generales del sistema (actualizaciones, alertas, eventos del sistema)."
       }
     },
     "templates": {
@@ -622,7 +700,9 @@
     "goHome": "Ir al inicio",
     "loadingError": "Error al cargar",
     "networkError": "Error de conexión",
-    "unknownError": "Error desconocido"
+    "unknownError": "Error desconocido",
+    "premiumFeature": "Esta es una función premium. Actualizá tu plan para acceder.",
+    "usageLimitExceeded": "Llegaste al límite mensual de esta función. Actualizá tu plan para continuar."
   },
   "landing": {
     "hero": {

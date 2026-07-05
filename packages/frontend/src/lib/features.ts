@@ -29,13 +29,26 @@ export function hasMinRole(actual: UserRole, required: UserRole): boolean {
 }
 
 /**
- * The set of features that are gated by role. Add a new entry to lock a
- * feature behind a minimum role; remove or lower the value to open it up.
+ * The set of features that are gated by role. THIS MAP IS THE SINGLE
+ * SWITCH for role-based gating. Add a new entry to lock a feature
+ * behind a minimum role; remove or lower the value to open it up.
  *
- * Today every feature is set to `user` so the access middleware reports
- * `allowed: true` for everyone. The single place to start restricting is
- * this map — components consuming `useFeatureAccess(key)` will start
- * showing banners automatically once a value is raised.
+ * Today every value is `"user"` so the middleware (requireMinRole in
+ * edge functions, useFeatureAccess in components) accepts everyone.
+ * The moment a value is raised to `"tester"` or `"admin"`:
+ *
+ *   - every edge function that calls `requireMinRole(auth, key, ...)`
+ *     starts returning 403 for callers below that role, with the
+ *     error message "Requires role '<key>'".
+ *   - every frontend consumer of `useFeatureAccess(key)` flips its
+ *     `allowed` boolean, which is the source for Phase 2 banners.
+ *
+ * No other code changes are needed to gate a feature — flip the
+ * value, commit, deploy. The companion capability gate (see
+ * `packages/frontend/src/lib/capabilities.ts` and
+ * `supabase/functions/_shared/capabilities.ts`) is a separate
+ * orthogonal concept: roles gate staff, capabilities gate product
+ * features by subscription tier.
  */
 export const FEATURES = {
   seed: "user",

@@ -1,4 +1,3 @@
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -1960,6 +1959,289 @@ export type Database = {
       [_ in never]: never
     }
   }
+  payments: {
+    Tables: {
+      default_capabilities: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"]
+          created_at: string
+        }
+        Insert: {
+          capability: Database["payments"]["Enums"]["capability"]
+          created_at?: string
+        }
+        Update: {
+          capability?: Database["payments"]["Enums"]["capability"]
+          created_at?: string
+        }
+        Relationships: []
+      }
+      plan_capabilities: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"]
+          created_at: string
+          plan_id: string
+        }
+        Insert: {
+          capability: Database["payments"]["Enums"]["capability"]
+          created_at?: string
+          plan_id: string
+        }
+        Update: {
+          capability?: Database["payments"]["Enums"]["capability"]
+          created_at?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_capabilities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_provider_variants: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          plan_id: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          id?: string
+          is_active?: boolean
+          plan_id: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          plan_id?: string
+          provider?: Database["payments"]["Enums"]["provider_name"]
+          provider_plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_provider_variants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          display_name: string
+          feature_keys: Json
+          frequency: number
+          frequency_type: string
+          id: string
+          internal_tier: string
+          is_active: boolean
+          plan_key: string
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          feature_keys?: Json
+          frequency: number
+          frequency_type: string
+          id?: string
+          internal_tier: string
+          is_active?: boolean
+          plan_key: string
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          feature_keys?: Json
+          frequency?: number
+          frequency_type?: string
+          id?: string
+          internal_tier?: string
+          is_active?: boolean
+          plan_key?: string
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_events: {
+        Row: {
+          action: string | null
+          body: Json
+          id: number
+          payment_id: number | null
+          processing_error: string | null
+          processing_status: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_event_id: string | null
+          provider_subscription_id: string | null
+          received_at: string | null
+          signature_valid: boolean | null
+          topic: string
+          x_request_id: string | null
+          x_signature_hash: string | null
+          x_signature_ts: number | null
+        }
+        Insert: {
+          action?: string | null
+          body: Json
+          id?: number
+          payment_id?: number | null
+          processing_error?: string | null
+          processing_status?: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_event_id?: string | null
+          provider_subscription_id?: string | null
+          received_at?: string | null
+          signature_valid?: boolean | null
+          topic: string
+          x_request_id?: string | null
+          x_signature_hash?: string | null
+          x_signature_ts?: number | null
+        }
+        Update: {
+          action?: string | null
+          body?: Json
+          id?: number
+          payment_id?: number | null
+          processing_error?: string | null
+          processing_status?: string
+          provider?: Database["payments"]["Enums"]["provider_name"]
+          provider_event_id?: string | null
+          provider_subscription_id?: string | null
+          received_at?: string | null
+          signature_valid?: boolean | null
+          topic?: string
+          x_request_id?: string | null
+          x_signature_hash?: string | null
+          x_signature_ts?: number | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          auto_recurring: Json | null
+          back_url: string | null
+          currency_id: string | null
+          external_reference: string | null
+          first_seen_at: string | null
+          frequency: number | null
+          frequency_type: string | null
+          id: string
+          payer_email: string | null
+          plan_id: string | null
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_specific: Json | null
+          provider_subscription_id: string
+          raw: Json | null
+          reason: string | null
+          status: string
+          transaction_amount: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auto_recurring?: Json | null
+          back_url?: string | null
+          currency_id?: string | null
+          external_reference?: string | null
+          first_seen_at?: string | null
+          frequency?: number | null
+          frequency_type?: string | null
+          id?: string
+          payer_email?: string | null
+          plan_id?: string | null
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_specific?: Json | null
+          provider_subscription_id: string
+          raw?: Json | null
+          reason?: string | null
+          status: string
+          transaction_amount?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auto_recurring?: Json | null
+          back_url?: string | null
+          currency_id?: string | null
+          external_reference?: string | null
+          first_seen_at?: string | null
+          frequency?: number | null
+          frequency_type?: string | null
+          id?: string
+          payer_email?: string | null
+          plan_id?: string | null
+          provider?: Database["payments"]["Enums"]["provider_name"]
+          provider_specific?: Json | null
+          provider_subscription_id?: string
+          raw?: Json | null
+          reason?: string | null
+          status?: string
+          transaction_amount?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      user_capabilities_v: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      capability:
+        | "gmail_sync"
+        | "ai_assistant"
+        | "push_notifications"
+        | "advanced_reports"
+        | "process_documents"
+      provider_name: "mercadopago"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       chat_attachments: {
@@ -2911,6 +3193,18 @@ export const Constants = {
   },
   graphql_public: {
     Enums: {},
+  },
+  payments: {
+    Enums: {
+      capability: [
+        "gmail_sync",
+        "ai_assistant",
+        "push_notifications",
+        "advanced_reports",
+        "process_documents",
+      ],
+      provider_name: ["mercadopago"],
+    },
   },
   public: {
     Enums: {

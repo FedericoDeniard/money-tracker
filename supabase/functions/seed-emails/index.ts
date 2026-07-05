@@ -9,7 +9,7 @@ console.warn(
   "[DEPRECATED] seed-emails edge function invoked. Migrating to mastra /api/seed-emails. This endpoint will be removed in 2 weeks."
 );
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { requireUserAuth } from "../_shared/auth.ts";
+import { requireMinRole, requireUserAuth } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
 import { createSupabaseClient } from "../_shared/lib/supabase.ts";
@@ -52,6 +52,13 @@ Deno.serve(async req => {
     }
     const { user, token, role } = auth;
 
+    // Role middleware. Looks up `FEATURES.seed` from
+    // `_shared/features.ts` and rejects callers below that role with a
+    // 403. Today `FEATURES.seed === "user"` so every caller passes.
+    const roleCheck = requireMinRole(auth, "seed", corsHeaders);
+    if (roleCheck instanceof Response) {
+      return roleCheck;
+    }
     // `role` is the user's application role (user | tester | admin). For now
     // every role has full access; the seed flow should branch on it later
     // (e.g. different MONTHS_TO_SEED per tier, or tester-only dry-run mode).

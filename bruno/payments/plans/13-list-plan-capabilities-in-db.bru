@@ -1,0 +1,46 @@
+meta {
+  name: list plan capabilities in DB
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/plan_capabilities?select=*&plan_id=eq.{{planId}}&order=capability
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{userJwt}}
+  Accept-Profile: payments
+}
+
+vars:pre-request {
+  planId: 00000000-0000-0000-0000-000000000000
+}
+
+docs {
+  lists every capability granted to a single plan. with the placeholder
+  uuid the response is an empty array (200) rather than a 404, which is
+  postgrest's default behaviour for list-style endpoints with filters.
+
+  uses `userJwt` for authenticated reads; the plan_capabilities rls
+  policy allows any authenticated user to select (the vocabulary is not
+  sensitive and is needed by the frontend to render upgrade prompts).
+  `Accept-Profile: payments` routes the lookup to the `payments`
+  schema.
+
+  companion to `add plan capability in DB`. use this to verify a grant
+  landed and to audit the full capability set of a plan before rolling
+  out a new feature gate.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("response is an array", function() {
+    expect(res.getBody()).to.be.an("array");
+  });
+}

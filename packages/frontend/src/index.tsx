@@ -47,7 +47,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000" +
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.trycloudflare.com https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000" +
       (mastraOrigin ? ` ${mastraOrigin}` : ""),
     "frame-src 'none'",
     "object-src 'none'",
@@ -104,6 +104,11 @@ const server = serve({
         vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? null,
         // Chat/assistant feature flag — defaults to enabled
         chatEnabled: process.env.CHAT_ENABLED !== "false",
+        // Public URL of this app (no trailing slash). Used to build
+        // absolute redirect targets (e.g. the post-payment back_url for
+        // MercadoPago). Falls back to the request origin when unset so
+        // local dev works out of the box.
+        appUrl: (process.env.APP_URL || "").replace(/\/+$/, "") || null,
       };
 
       if (!config.supabase.url || !config.supabase.anonKey) {

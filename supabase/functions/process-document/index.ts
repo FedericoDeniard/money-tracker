@@ -1,7 +1,8 @@
 // Process Document Edge Function - Extract transactions from uploaded files
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { requireUserAuth } from "../_shared/auth.ts";
+import { requireMinRole, requireUserAuth } from "../_shared/auth.ts";
+import { requireCapability } from "../_shared/capabilities.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
 import { saveTransactionAttachments } from "../_shared/lib/transaction-attachments.ts";
@@ -36,6 +37,47 @@ Deno.serve(async req => {
     }
     const { user, role } = auth;
     void role;
+
+    const roleCheck = requireMinRole(auth, "processDocument", corsHeaders);
+    if (roleCheck instanceof Response) {
+      return roleCheck;
+    }
+
+    const cap = await requireCapability(auth, "process_documents", corsHeaders);
+    if (cap instanceof Response) {
+      return cap;
+    }
+
+    // Usage cap. admin bypasses (effectively unlimited); everyone
+    // else — including tester — is counted against the per-period
+    // budget in payments.usage_limits. We check-and-increment before
+    // any AI tokens are spent so a 429 reaches the client cleanly.
+    // The body uses the prefix the frontend classifier matches on to
+    // surface the "usage limit" toast via getEdgeFunctionErrorMessage.
+    if (auth.role !== "admin") {
+      const { data: usage, error: usageError } = await supabase
+        .schema("payments")
+        .rpc("check_and_increment_usage", {
+          target_user_id: auth.user.id,
+          cap: "process_documents",
+        });
+      if (usageError) {
+        // fail-open: a counter bug should not break the app for paying
+        // users. log so we notice in observability.
+        console.error(
+          "[process-document] usage check failed; failing open",
+          usageError
+        );
+      } else if (!usage?.[0]?.allowed) {
+        return new Response(
+          JSON.stringify({ error: "Usage limit exceeded: process_documents" }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
 
     const contentType = req.headers.get("content-type") || "";
     const fileName = req.headers.get("x-file-name") || "unknown";

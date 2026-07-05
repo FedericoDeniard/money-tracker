@@ -3,11 +3,17 @@ import type { User, Session } from "@supabase/supabase-js";
 import { jwtDecode } from "jwt-decode";
 import { getSupabase } from "../lib/supabase";
 import type { UserRole } from "../lib/features";
+import {
+  CAPABILITIES,
+  isCapability,
+  type Capability,
+} from "../lib/capabilities";
 
 type AuthSnapshot = {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  capabilities: Capability[];
 };
 
 type AuthAction =
@@ -16,6 +22,7 @@ type AuthAction =
       user: User | null;
       session: Session | null;
       role: UserRole | null;
+      capabilities: Capability[];
     }
   | { type: "SET_LOADING"; loading: boolean };
 
@@ -25,7 +32,8 @@ function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
       if (
         state.user === action.user &&
         state.session === action.session &&
-        state.role === action.role
+        state.role === action.role &&
+        sameCapabilities(state.capabilities, action.capabilities)
       ) {
         return state;
       }
@@ -34,6 +42,7 @@ function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
         user: action.user,
         session: action.session,
         role: action.role,
+        capabilities: action.capabilities,
       };
     case "SET_LOADING":
       if (state.loading === action.loading) {
@@ -41,6 +50,13 @@ function authReducer(state: AuthSnapshot, action: AuthAction): AuthSnapshot {
       }
       return { ...state, loading: action.loading };
   }
+}
+
+function sameCapabilities(a: Capability[], b: Capability[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((value, index) => value === sortedB[index]);
 }
 
 const VALID_ROLES: ReadonlySet<string> = new Set<UserRole>([
@@ -69,6 +85,41 @@ function readRoleFromSession(session: Session | null): UserRole | null {
   }
 }
 
+/**
+ * Read the `user_capabilities` claim from a Supabase access token. The
+ * custom access token hook (see
+ * supabase/migrations/20260705031217_add_user_capabilities_to_jwt.sql)
+ * always injects this as a string array. Tokens issued before the hook
+ * was deployed won't have the claim; we treat that as "no capabilities"
+ * so the security boundary (requireCapability in edge functions) and
+ * the JWT hint stay consistent: the absence of a claim must never
+ * silently grant access.
+ *
+ * The set is also validated against CAPABILITIES so a stale or
+ * hand-crafted token claiming an unknown capability is filtered out
+ * before it reaches `useCapability`.
+ */
+function readCapabilitiesFromSession(session: Session | null): Capability[] {
+  if (!session?.access_token) return [];
+  try {
+    const payload = jwtDecode<{ user_capabilities?: unknown }>(
+      session.access_token
+    );
+    const claim = payload.user_capabilities;
+    if (!Array.isArray(claim)) return [];
+    const valid = claim.filter(isCapability);
+    return valid.length === claim.length
+      ? (valid as Capability[])
+      : (valid as Capability[]);
+  } catch {
+    return [];
+  }
+}
+
+// Re-export so consumers can import the vocabulary from a single place
+// (useAuth.tsx already pulls it in for the jwt helper above).
+export { CAPABILITIES };
+
 const authStore: {
   snapshot: AuthSnapshot;
   listeners: Set<(snapshot: AuthSnapshot) => void>;
@@ -79,6 +130,7 @@ const authStore: {
     user: null,
     session: null,
     loading: true,
+    capabilities: [],
   },
   listeners: new Set(),
   initPromise: null,
@@ -97,12 +149,16 @@ function updateAuthSnapshot(patch: Partial<AuthSnapshot>) {
 }
 
 export function useAuth() {
-  const [{ user, session, loading, role }, dispatch] = useReducer(authReducer, {
-    user: authStore.snapshot.user,
-    session: authStore.snapshot.session,
-    loading: authStore.snapshot.loading,
-    role: authStore.snapshot.role,
-  });
+  const [{ user, session, loading, role, capabilities }, dispatch] = useReducer(
+    authReducer,
+    {
+      user: authStore.snapshot.user,
+      session: authStore.snapshot.session,
+      loading: authStore.snapshot.loading,
+      role: authStore.snapshot.role,
+      capabilities: authStore.snapshot.capabilities,
+    }
+  );
 
   useEffect(() => {
     const listener = (snapshot: AuthSnapshot) => {
@@ -111,6 +167,7 @@ export function useAuth() {
         user: snapshot.user,
         session: snapshot.session,
         role: snapshot.role,
+        capabilities: snapshot.capabilities,
       });
       dispatch({ type: "SET_LOADING", loading: snapshot.loading });
     };
@@ -142,17 +199,28 @@ export function useAuth() {
               // Session is invalid or user doesn't exist, force logout
               console.log("Invalid session detected, logging out...");
               await supabase.auth.signOut();
-              updateAuthSnapshot({ user: null, session: null, role: null });
+              updateAuthSnapshot({
+                user: null,
+                session: null,
+                role: null,
+                capabilities: [],
+              });
             } else {
               // Valid session
               updateAuthSnapshot({
                 session,
                 user,
                 role: readRoleFromSession(session),
+                capabilities: readCapabilitiesFromSession(session),
               });
             }
           } else {
-            updateAuthSnapshot({ user: null, session: null, role: null });
+            updateAuthSnapshot({
+              user: null,
+              session: null,
+              role: null,
+              capabilities: [],
+            });
           }
           updateAuthSnapshot({ loading: false });
 
@@ -179,12 +247,18 @@ export function useAuth() {
                     "Invalid session detected on auth change, logging out..."
                   );
                   await supabase.auth.signOut();
-                  updateAuthSnapshot({ user: null, session: null, role: null });
+                  updateAuthSnapshot({
+                    user: null,
+                    session: null,
+                    role: null,
+                    capabilities: [],
+                  });
                 } else {
                   updateAuthSnapshot({
                     session,
                     user,
                     role: readRoleFromSession(session),
+                    capabilities: readCapabilitiesFromSession(session),
                   });
                 }
               } else {
@@ -192,6 +266,7 @@ export function useAuth() {
                   session,
                   user: session?.user ?? null,
                   role: readRoleFromSession(session),
+                  capabilities: readCapabilitiesFromSession(session),
                 });
               }
               updateAuthSnapshot({ loading: false });
@@ -225,6 +300,7 @@ export function useAuth() {
     session,
     loading,
     role,
+    capabilities,
     signOut,
   };
 }

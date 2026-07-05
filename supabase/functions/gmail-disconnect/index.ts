@@ -1,7 +1,8 @@
 // Gmail Disconnect Edge Function - Handles Gmail disconnection
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { requireUserAuth } from "../_shared/auth.ts";
+import { requireMinRole, requireUserAuth } from "../_shared/auth.ts";
+import { requireCapability } from "../_shared/capabilities.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 
 const corsHeaderOverrides = {
@@ -45,6 +46,16 @@ Deno.serve(async req => {
     }
     const { user, role } = auth;
     void role;
+
+    const roleCheck = requireMinRole(auth, "gmailConnect", corsHeaders);
+    if (roleCheck instanceof Response) {
+      return roleCheck;
+    }
+
+    const cap = await requireCapability(auth, "gmail_sync", corsHeaders);
+    if (cap instanceof Response) {
+      return cap;
+    }
 
     // Use service role for DB operations
     const supabase = createClient(

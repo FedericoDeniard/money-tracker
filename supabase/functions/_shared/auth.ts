@@ -1,4 +1,11 @@
 import { createClient, type User } from "jsr:@supabase/supabase-js@2";
+import {
+  FEATURES,
+  VALID_ROLES,
+  hasMinRole,
+  type FeatureKey,
+  type UserRole,
+} from "./features.ts";
 
 type JsonHeaders = Record<string, string>;
 
@@ -6,36 +13,10 @@ export type AuthContext =
   | { mode: "user"; user: User; token: string; role: UserRole }
   | { mode: "internal"; token: string };
 
-/**
- * Application role for a user. Mirrors the `public.app_role` enum
- * defined in supabase/migrations/20260625125528_add_user_roles_and_access_token_hook.sql.
- *
- * Hierarchy: user(0) < tester(1) < admin(2). `hasMinRole(actual, required)`
- * returns true when `actual >= required`, so a `tester` minimum also admits
- * `admin`. To promote a user you must write to `public.user_roles` via a
- * service-role-backed context (the user cannot change their own role).
- */
-export type UserRole = "user" | "tester" | "admin";
-
-const ROLE_LEVEL: Readonly<Record<UserRole, number>> = Object.freeze({
-  user: 0,
-  tester: 1,
-  admin: 2,
-});
-
-export function roleLevel(role: UserRole): number {
-  return ROLE_LEVEL[role];
-}
-
-export function hasMinRole(actual: UserRole, required: UserRole): boolean {
-  return roleLevel(actual) >= roleLevel(required);
-}
-
-const VALID_ROLES: ReadonlySet<string> = new Set<UserRole>([
-  "user",
-  "tester",
-  "admin",
-]);
+// re-export from the canonical location so existing imports keep working.
+// callers should prefer importing directly from "./features.ts" in new code.
+export type { FeatureKey, UserRole } from "./features.ts";
+export { FEATURES, hasMinRole, roleLevel, VALID_ROLES } from "./features.ts";
 
 function getBearerToken(req: Request): string | null {
   const authHeader = req.headers.get("authorization");
@@ -155,22 +136,41 @@ export async function requireUserAuth(
 
 /**
  * Convenience helper: run after `requireUserAuth` (or `requireUserToken`)
- * when the call requires a minimum role. Returns a 403 Response if the
- * user does not meet the threshold, or the resolved context otherwise.
+ * to enforce role-based gating. The caller passes the feature key (one of
+ * the FEATURES map entries); the helper looks up the required role from
+ * `_shared/features.ts#FEATURES` and checks `auth.role` against it.
  *
- * For now no function blocks, but this is the single place future
- * restrictions live. Admin and tester are intended to bypass anything a
- * regular `user` would be denied.
+ * Today every FEATURES value is `"user"` so the helper accepts everyone,
+ * which means every call site is effectively a no-op. The moment any
+ * FEATURES value is raised to `"tester"` or `"admin"`, the corresponding
+ * edge functions start rejecting non-qualifying callers with a 403 and
+ * the error message `"Requires role '<required>'"`. The frontend
+ * classifier (`packages/frontend/src/utils/edge-function-errors.ts`)
+ * pattern-matches that prefix to surface a "premium feature" toast
+ * instead of the raw message.
+ *
+ * The capability gate (`requireCapability` in _shared/capabilities.ts)
+ * is a separate orthogonal concept: roles come from `public.user_roles`,
+ * capabilities come from `payments.plan_capabilities`. Both gates can
+ * run in series on the same request without interfering.
+ *
+ * Why pass `featureKey` instead of the role literal: the role is the
+ * server-enforced outcome, but the frontend already maps each feature
+ * to a required role via the FEATURES map. Passing the key (and having
+ * the helper do the lookup) keeps the backend in sync with the
+ * frontend — flipping `FEATURES.seed` to `"tester"` in BOTH copies
+ * activates the gate end-to-end with no other changes.
  */
 export function requireMinRole<T extends { role: UserRole }>(
   ctx: T,
-  required: UserRole,
+  featureKey: FeatureKey,
   corsHeaders: JsonHeaders
 ): T | Response {
+  const required = FEATURES[featureKey];
   if (hasMinRole(ctx.role, required)) {
     return ctx;
   }
-  return forbidden(corsHeaders, `Requires role '${required}' or higher`);
+  return forbidden(corsHeaders, `Requires role '${required}'`);
 }
 
 export function requireInternalAuth(

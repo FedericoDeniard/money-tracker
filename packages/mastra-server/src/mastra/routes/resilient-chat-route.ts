@@ -1,5 +1,7 @@
 import type { Context } from "hono";
 import { handleChatStream } from "@mastra/ai-sdk";
+import { RequestContext } from "@mastra/core/request-context";
+import { requireCapability } from "../../lib/capabilities";
 import { mastra } from "../index";
 
 /**
@@ -54,8 +56,81 @@ export const chatHandler = async (c: Context) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  // Capability gate. We check `ai_assistant` before opening the SSE
+  // stream because once a stream starts the client has already begun
+  // reading chunks and we can't change the HTTP status code. Reject
+  // here with a plain-text body so the AI SDK useChat hook sees a
+  // non-streaming error and sets `error.message` to our literal
+  // string — the frontend's `getEdgeFunctionErrorMessage` classifier
+  // pattern-matches the `Requires capability:` prefix and substitutes
+  // the localized "premium feature" toast.
+  const supabaseToken = c.get("supabaseToken");
+  if (!supabaseToken) {
+    return c.text("Missing supabase token", 401);
+  }
+  const userRole = c.get("userRole") ?? "user";
+  const cap = await requireCapability(
+    { userId, supabaseToken, role: userRole },
+    "ai_assistant"
+  );
+  if (!cap.allowed) {
+    return c.text("Requires capability: ai_assistant", 403);
+  }
+
+  // Usage cap. admin bypasses the cap entirely (effectively
+  // unlimited); everyone else — including tester — is counted
+  // against the per-period budget in payments.usage_limits. We
+  // check-and-increment in the same pre-stream window as the
+  // capability gate so a 429 reaches the client before any LLM
+  // tokens are spent. The body matches the prefix the frontend
+  // classifier matches on to surface the "usage limit" toast.
+  if (userRole !== "admin") {
+    const { supabaseFromToken } = await import("../../lib/supabase-from-token");
+    const supabase = supabaseFromToken(supabaseToken);
+    const { data: usage, error: usageError } = await supabase
+      .schema("payments")
+      .rpc("check_and_increment_usage", {
+        target_user_id: userId,
+        cap: "ai_assistant",
+      });
+    if (usageError) {
+      // fail-open: a counter bug should not break the app for paying
+      // users. log so we notice in observability.
+      console.error(
+        "[chatHandler] usage check failed; failing open",
+        usageError
+      );
+    } else if (!usage?.[0]?.allowed) {
+      return c.text("Usage limit exceeded: ai_assistant", 429);
+    }
+  }
+
   const params = await c.req.json();
-  const contextRequestContext = c.get("requestContext");
+
+  // Build the Mastra RequestContext from the Hono variables populated
+  // by `authMiddleware`. Tools declare their expected keys via
+  // `requestContextSchema` and read them via `ctx.requestContext.get(...)`
+  // or `ctx.requestContext!.all.<key>`. Today the keys we propagate are:
+  //   - userId / supabaseToken (consumed by every data tool)
+  //   - userTimezone (consumed by get-current-date)
+  //   - userRole (consumed by tools that branch on tier / staff status)
+  // A client-supplied `requestContext` in the body is merged on top so
+  // callers can still override individual keys when they need to (used
+  // by tests; production paths leave it empty).
+  const serverRequestContext = new RequestContext();
+  const userTimezone = c.get("userTimezone");
+  if (supabaseToken) serverRequestContext.set("supabaseToken", supabaseToken);
+  if (userTimezone) serverRequestContext.set("userTimezone", userTimezone);
+  serverRequestContext.set("userRole", userRole);
+  serverRequestContext.set("userId", userId);
+
+  const clientRequestContext =
+    (params.requestContext as Record<string, unknown> | undefined) ?? undefined;
+  if (clientRequestContext) {
+    for (const [key, value] of Object.entries(clientRequestContext)) {
+      serverRequestContext.set(key, value);
+    }
+  }
 
   const agentId = c.req.param("agentId");
   if (!agentId) {
@@ -92,7 +167,7 @@ export const chatHandler = async (c: Context) => {
     agentVersion: effectiveAgentVersion,
     params: {
       ...params,
-      requestContext: contextRequestContext ?? params.requestContext,
+      requestContext: serverRequestContext,
     },
     version: "v6",
     sendStart: true,
