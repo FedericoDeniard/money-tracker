@@ -30,13 +30,6 @@ export function isCapability(x: unknown): x is Capability {
   return typeof x === "string" && x in CAPABILITIES;
 }
 
-const ACTIVE_SUBSCRIPTION_STATUSES = [
-  "authorized",
-  "pending",
-  "paused",
-  "pending_cancellation",
-] as const;
-
 /**
  * Roles that bypass capability gates entirely. Staff (`admin`) and
  * developers running the app as `tester` can exercise any gated feature
@@ -54,17 +47,18 @@ const ROLE_BYPASS: ReadonlySet<UserRole> = new Set<UserRole>([
 
 /**
  * Server-side capability gate for the mastra-server. Always re-queries
- * `payments.subscriptions` joined with `payments.plan_capabilities` so
- * the gate reflects subscription state changes immediately, without
- * waiting for a JWT refresh — same contract as
+ * `payments.user_capabilities_v` (the union view that combines active
+ * subscription grants and default grants) so the gate reflects
+ * subscription state changes immediately, without waiting for a JWT
+ * refresh — same contract as
  * `supabase/functions/_shared/capabilities.ts#requireCapability`.
  *
  * Returns `{ allowed: true }` when the caller has the capability on
- * any active subscription (or when their role is in the bypass set);
- * `{ allowed: false, missing: capability }` otherwise. The caller
- * decides how to surface a denial (the chat handler in
- * `routes/resilient-chat-route.ts` returns a 403 with the same
- * `Requires capability: <key>` prefix the frontend classifier
+ * any active subscription (or as a default grant, or when their role
+ * is in the bypass set); `{ allowed: false, missing: capability }`
+ * otherwise. The caller decides how to surface a denial (the chat
+ * handler in `routes/resilient-chat-route.ts` returns a 403 with the
+ * same `Requires capability: <key>` prefix the frontend classifier
  * matches against, so the user sees the localized "premium feature"
  * toast via `getEdgeFunctionErrorMessage`).
  *
@@ -108,15 +102,15 @@ export async function requireCapability(
   const { supabaseFromToken } = await import("./supabase-from-token");
   const supabase = supabaseFromToken(ctx.supabaseToken);
 
+  // Single roundtrip: the view's user_id IS NULL branch contributes
+  // the default capabilities (free tier + paid users alike); the
+  // user_id = <uuid> branch contributes the user's own active
+  // subscription grants. Both branches dedup via the view's union.
   const { data, error } = await supabase
     .schema("payments")
-    .from("subscriptions")
-    .select(
-      "status, plan:plans(plan_capabilities(capability))"
-    )
-    .eq("user_id", ctx.userId)
-    .in("status", [...ACTIVE_SUBSCRIPTION_STATUSES])
-    .maybeSingle();
+    .from("user_capabilities_v")
+    .select("capability")
+    .or(`user_id.eq.${ctx.userId},user_id.is.null`);
 
   if (error) {
     // Treat DB errors as "not allowed" so the caller surfaces the
@@ -129,20 +123,10 @@ export async function requireCapability(
     return { allowed: false, missing: capability };
   }
 
-  // PostgREST can only infer joins from foreign keys; there is no
-  // direct FK between `subscriptions` and `plan_capabilities` so we
-  // nest through `plans`. The supabase-js generated type for the
-  // response shape is finicky for this kind of double-nested select
-  // (it inferred `data.plan` as an array), so we cast to the shape
-  // we actually expect.
-  type Nested = {
-    status: string;
-    plan: { plan_capabilities: Array<{ capability: string }> } | null;
-  };
-  const nested = data as unknown as Nested | null;
-  const nestedCaps =
-    nested?.plan?.plan_capabilities.map((row) => row.capability) ?? [];
-  if (!nestedCaps.includes(capability)) {
+  const caps = (data ?? [])
+    .map(row => row.capability)
+    .filter(isCapability);
+  if (!caps.includes(capability)) {
     return { allowed: false, missing: capability };
   }
 

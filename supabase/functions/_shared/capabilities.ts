@@ -75,23 +75,23 @@ function internalError(corsHeaders: JsonHeaders): Response {
  * Security boundary for capability-gated edge functions.
  *
  * Returns `{ user }` if the caller has the capability on any active
- * subscription; returns a 403 Response otherwise.
+ * subscription OR as a default grant; returns a 403 Response otherwise.
  *
- * Always re-queries `payments.subscriptions` joined with
- * `payments.plan_capabilities`. We do **not** trust the JWT
- * `user_capabilities` claim here: the claim is a UI hint (so the
- * frontend can hide buttons without a roundtrip) but it is baked into
- * the access token until it expires, so a subscription that cancels
+ * Always re-queries `payments.user_capabilities_v`. We do **not** trust
+ * the JWT `user_capabilities` claim here: the claim is a UI hint (so
+ * the frontend can hide buttons without a roundtrip) but it is baked
+ * into the access token until it expires, so a subscription that cancels
  * would still appear active until the next refresh. By querying the
  * DB on every call, the next gated call after a status change
  * immediately gets the right answer.
  *
- * The join path is explicit because PostgREST can only infer
- * relationships from foreign keys. There is no direct FK between
- * `payments.subscriptions` and `payments.plan_capabilities` — both
- * reference `payments.plans` — so we nest through `plan:plans(...)
- * and the `!inner` modifier guarantees a row is only returned if the
- * subscription has an active plan that has any capability grants.
+ * The view (`payments.user_capabilities_v`) is a UNION of two sources:
+ *   - capability grants from the user's active subscriptions, and
+ *   - the default capabilities in `payments.default_capabilities`
+ *     (rows with `user_id = null`).
+ * The query filters with `.or(user_id.eq.<uuid>, user_id.is.null)` so
+ * a single roundtrip returns both the user's specific grants and the
+ * defaults that apply to everyone.
  *
  * Role bypass: callers whose `role` is `admin` or `tester` skip the DB
  * check entirely. Staff and developers can exercise any gated feature
@@ -113,13 +113,9 @@ export async function requireCapability(
 
   const { data, error } = await supabase
     .schema("payments")
-    .from("subscriptions")
-    .select(
-      "status, plan:plans(plan_capabilities!inner(capability))"
-    )
-    .eq("user_id", ctx.user.id)
-    .in("status", [...ACTIVE_SUBSCRIPTION_STATUSES])
-    .maybeSingle();
+    .from("user_capabilities_v")
+    .select("capability")
+    .or(`user_id.eq.${ctx.user.id},user_id.is.null`);
 
   if (error) {
     console.error(
@@ -129,20 +125,8 @@ export async function requireCapability(
     return internalError(corsHeaders);
   }
 
-  // Nested response: data.plan is null when no active subscription
-  // matched; otherwise data.plan.plan_capabilities is the array of
-  // grants for that plan. The supabase-js generated type for the
-  // response shape is finicky for this kind of double-nested select
-  // (it inferred `data.plan` as an array), so we cast to the shape
-  // we actually expect.
-  type Nested = {
-    status: string;
-    plan: { plan_capabilities: Array<{ capability: string }> } | null;
-  };
-  const nested = data as unknown as Nested | null;
-  const nestedCaps =
-    nested?.plan?.plan_capabilities.map(row => row.capability) ?? [];
-  if (!nestedCaps.includes(capability)) {
+  const caps = (data ?? []).map(row => row.capability).filter(isCapability);
+  if (!caps.includes(capability)) {
     return forbidden(corsHeaders, `Requires capability: ${capability}`);
   }
 
@@ -151,17 +135,16 @@ export async function requireCapability(
 
 /**
  * Convenience helper for callers that want the set of capabilities
- * (e.g. to branch on multiple capabilities without gating). Returns a
- * deduplicated union across all active subscriptions.
- *
- * Same join path as `requireCapability` (nested through plans) because
- * of the missing direct FK between subscriptions and plan_capabilities.
+ * (e.g. to branch on multiple capabilities without gating). Returns
+ * the deduplicated union of the user's active subscription grants and
+ * the default grants, sourced from the same `payments.user_capabilities_v`
+ * view as `requireCapability`.
  *
  * Role bypass: callers with `role: admin` or `role: tester` receive
  * the full CAPABILITIES enum (every capability), since they bypass the
- * subscription gate in `requireCapability` too. A tool that branches
- * on `hasCapability("advanced_reports")` keeps working for staff even
- * without a subscription row.
+ * subscription + default gate in `requireCapability` too. A tool that
+ * branches on `hasCapability("advanced_reports")` keeps working for
+ * staff even without a subscription row.
  */
 export async function getUserCapabilities(
   userId: string,
@@ -173,26 +156,19 @@ export async function getUserCapabilities(
 
   const { data, error } = await supabase
     .schema("payments")
-    .from("subscriptions")
-    .select("plan:plans(plan_capabilities!inner(capability))")
-    .eq("user_id", userId)
-    .in("status", [...ACTIVE_SUBSCRIPTION_STATUSES]);
+    .from("user_capabilities_v")
+    .select("capability")
+    .or(`user_id.eq.${userId},user_id.is.null`);
 
   if (error) {
     console.error("[getUserCapabilities] db error:", error);
     return [];
   }
 
-  type NestedRow = {
-    plan: { plan_capabilities: Array<{ capability: string }> } | null;
-  };
-  const nested = (data ?? []) as unknown as NestedRow[];
   const caps = new Set<Capability>();
-  for (const row of nested) {
-    for (const pc of row.plan?.plan_capabilities ?? []) {
-      if (isCapability(pc.capability)) {
-        caps.add(pc.capability);
-      }
+  for (const row of data ?? []) {
+    if (isCapability(row.capability)) {
+      caps.add(row.capability);
     }
   }
   return [...caps];

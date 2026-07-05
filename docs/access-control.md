@@ -138,17 +138,52 @@ Phase 2 (follow-up):
 
 ## Capabilities matrix
 
-`payments.capability` enum is the vocabulary. Each plan has zero or
-more capabilities in `payments.plan_capabilities`. The seed grants are
-in `supabase/seeds/006_payments_demo.sql` section 4.
+The capability grant has three layers. Each is a separate source
+that contributes to the final set; the union is what `requireCapability`
+sees and what `custom_access_token_hook` writes into the
+`user_capabilities` JWT claim.
 
-| Capability | Gated by | Today |
-| --- | --- | --- |
-| `gmail_sync` | `gmail-disconnect` | Granted to `lite_monthly` in seed. |
-| `ai_assistant` | (route guard on `/assistant`) | Granted to `lite_monthly` in seed. |
-| `push_notifications` | (none yet — backend hook to be added) | Granted to `lite_monthly` in seed. |
-| `advanced_reports` | (none yet — `/metrics` route guard to be added) | Granted to `lite_monthly` in seed. |
-| `process_documents` | `process-document` | Granted to `lite_monthly` in seed. |
+1. **Default grants** (`payments.default_capabilities`) — every
+   authenticated user. The table starts empty; rows are inserted
+   manually (e.g. `INSERT INTO payments.default_capabilities VALUES
+   ('ai_assistant')`) to give a capability to all users without a
+   subscription. Used for the free-tier surface.
+2. **Plan grants** (`payments.plan_capabilities`) — each row ties a
+   `plan_id` to a capability. Granted per plan in the seed
+   (`supabase/seeds/006_payments_demo.sql` section 4) or via the
+   bruno collection.
+3. **Role bypass** (`ROLE_BYPASS = {admin, tester}`) — staff and
+   developers get every capability regardless of subscription. See
+   the "Role bypass for capabilities" subsection above.
+
+The two data sources are combined by `payments.user_capabilities_v`
+(a SQL `UNION` view). `null` `user_id` rows from the default branch
+match every user; the active-subscription branch contributes
+per-user grants. The view deduplicates. `requireCapability` queries
+the view with `.or(user_id.eq.<uuid>, user_id.is.null)` so a single
+roundtrip returns the union.
+
+`payments.capability` enum is the vocabulary. The five values today:
+
+| Capability | Gated by | Default (free)? | Paid plans (lite_monthly)? |
+| --- | --- | --- | --- |
+| `gmail_sync` | `gmail-disconnect` | — | ✓ |
+| `ai_assistant` | (mastra-server chat handler) | — | ✓ |
+| `push_notifications` | (none yet — backend hook to be added) | — | ✓ |
+| `advanced_reports` | (none yet — `/metrics` route guard to be added) | — | ✓ |
+| `process_documents` | `process-document` | — | ✓ |
+
+The "Default" column is empty by default. To grant a capability to
+all free users, insert it into `payments.default_capabilities`:
+
+```sql
+INSERT INTO payments.default_capabilities VALUES ('ai_assistant');
+```
+
+That single statement makes every authenticated user (with or
+without a subscription) get `ai_assistant` in their JWT claim, and
+the `process-document` / `gmail-disconnect` / chat endpoints stop
+rejecting them on that capability. No code change needed.
 
 ## Adding a new capability
 

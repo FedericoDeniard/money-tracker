@@ -1961,6 +1961,21 @@ export type Database = {
   }
   payments: {
     Tables: {
+      default_capabilities: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"]
+          created_at: string
+        }
+        Insert: {
+          capability: Database["payments"]["Enums"]["capability"]
+          created_at?: string
+        }
+        Update: {
+          capability?: Database["payments"]["Enums"]["capability"]
+          created_at?: string
+        }
+        Relationships: []
+      }
       plan_capabilities: {
         Row: {
           capability: Database["payments"]["Enums"]["capability"]
@@ -2203,7 +2218,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_capabilities_v: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
