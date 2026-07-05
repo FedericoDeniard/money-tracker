@@ -2862,6 +2862,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: number
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null
@@ -2891,6 +2912,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       decrypt_text: {
         Args: { encrypted_data: string; encryption_key: string }
         Returns: string
@@ -2982,6 +3004,7 @@ export type Database = {
       stop_all_watches_for_user: { Args: never; Returns: undefined }
     }
     Enums: {
+      app_role: "user" | "tester" | "admin"
       notification_importance: "low" | "normal" | "high" | "critical"
       seed_status: "pending" | "completed" | "failed" | "processing"
     }
@@ -3656,6 +3679,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      app_role: ["user", "tester", "admin"],
       notification_importance: ["low", "normal", "high", "critical"],
       seed_status: ["pending", "completed", "failed", "processing"],
     },

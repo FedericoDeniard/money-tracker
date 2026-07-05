@@ -350,6 +350,8 @@
     "seedSkip": "Not now",
     "seedStart": "Yes, import",
     "seedStartedSuccess": "Import started. We'll notify you when it's done.",
+    "seedStarting": "Starting import...",
+    "seedStartingDescription": "Searching emails in Gmail. This may take a few minutes for accounts with many emails.",
     "seedStartError": "Error starting import. Please try again.",
     "seedAlreadyInProgress": "There is already an import in progress for this account. Please wait for it to finish.",
     "importProgress": "Import Progress",

@@ -1,4 +1,5 @@
-import { Langfuse } from "npm:langfuse";
+// @ts-nocheck
+import { Langfuse } from "langfuse";
 
 let client: Langfuse | null = null;
 let envLogged = false;
