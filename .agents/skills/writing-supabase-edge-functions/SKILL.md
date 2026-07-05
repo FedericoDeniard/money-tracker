@@ -32,74 +32,74 @@ You're an expert in writing TypeScript and Deno JavaScript runtime. Generate **h
 
 ```tsx
 interface reqPayload {
-  name: string
+  name: string;
 }
 
-console.info('server started')
+console.info("server started");
 
 Deno.serve(async (req: Request) => {
-  const { name }: reqPayload = await req.json()
+  const { name }: reqPayload = await req.json();
   const data = {
     message: `Hello ${name} from foo!`,
-  }
+  };
 
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json', Connection: 'keep-alive' },
-  })
-})
+    headers: { "Content-Type": "application/json", Connection: "keep-alive" },
+  });
+});
 ```
 
 ### Example Function using Node built-in API
 
 ```tsx
-import { randomBytes } from 'node:crypto'
-import { createServer } from 'node:http'
-import process from 'node:process'
+import { randomBytes } from "node:crypto";
+import { createServer } from "node:http";
+import process from "node:process";
 
-const generateRandomString = (length) => {
-  const buffer = randomBytes(length)
-  return buffer.toString('hex')
-}
+const generateRandomString = length => {
+  const buffer = randomBytes(length);
+  return buffer.toString("hex");
+};
 
-const randomString = generateRandomString(10)
-console.log(randomString)
+const randomString = generateRandomString(10);
+console.log(randomString);
 
 const server = createServer((req, res) => {
-  const message = `Hello`
-  res.end(message)
-})
+  const message = `Hello`;
+  res.end(message);
+});
 
-server.listen(9999)
+server.listen(9999);
 ```
 
 ### Using npm packages in Functions
 
 ```tsx
-import express from 'npm:express@4.18.2'
+import express from "npm:express@4.18.2";
 
-const app = express()
+const app = express();
 
 app.get(/(.*)/, (req, res) => {
-  res.send('Welcome to Supabase')
-})
+  res.send("Welcome to Supabase");
+});
 
-app.listen(8000)
+app.listen(8000);
 ```
 
 ### Generate embeddings using built-in @Supabase.ai API
 
 ```tsx
-const model = new Supabase.ai.Session('gte-small')
+const model = new Supabase.ai.Session("gte-small");
 
 Deno.serve(async (req: Request) => {
-  const params = new URL(req.url).searchParams
-  const input = params.get('text')
-  const output = await model.run(input, { mean_pool: true, normalize: true })
+  const params = new URL(req.url).searchParams;
+  const input = params.get("text");
+  const output = await model.run(input, { mean_pool: true, normalize: true });
   return new Response(JSON.stringify(output), {
     headers: {
-      'Content-Type': 'application/json',
-      Connection: 'keep-alive',
+      "Content-Type": "application/json",
+      Connection: "keep-alive",
     },
-  })
-})
+  });
+});
 ```
