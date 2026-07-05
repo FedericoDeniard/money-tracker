@@ -11,13 +11,20 @@
 --   policy staying correct forever.
 --
 --   this migration introduces the canonical public API for reading
---   a user's capabilities: a SECURITY INVOKER plpgsql function
---   `payments.user_capabilities(target_user_id uuid)` with an
---   explicit auth.uid() check. the check is belt-and-suspenders on
---   top of the cascading RLS: an authenticated caller that somehow
---   bypasses the view's row filter (e.g. via a future refactor that
---   drops a policy) still can't query another user's capabilities
---   through this function.
+--   a user's capabilities: a SECURITY DEFINER plpgsql function
+--   `public.user_capabilities(target_user_id uuid)` with an explicit
+--   auth.uid() check. the function lives in the `public` schema
+--   (not `payments`) because the local PostgREST 14 stack in
+--   supabase-cli does not expose payments-schema functions via the
+--   RPC path — only tables/relations show up. moving the function
+--   to public keeps it reachable via supabase-js .rpc() while
+--   preserving the per-user gate.
+--
+--   the per-user gate is belt-and-suspenders on top of the cascading
+--   RLS: an authenticated caller that somehow bypasses the view's
+--   row filter (e.g. via a future refactor that drops a policy)
+--   still can't query another user's capabilities through this
+--   function.
 --
 --   semantics:
 --     * authenticated calling for their own user_id → returns the
@@ -30,12 +37,15 @@
 --       uses this path.
 --     * anon → no EXECUTE grant; anon gets permission denied.
 --
--- affected functions: new payments.user_capabilities(uuid)
+-- affected functions: new public.user_capabilities(uuid)
 -- affected grants:    EXECUTE to authenticated, service_role
 --
 -- special considerations:
 --   * the function uses SET search_path = '' for safety against
 --     search_path hijacking (mirrors the auth hook migration).
+--   * the function returns payments.capability[] (the enum from the
+--     payments schema). postgrest exposes enums across schemas
+--     when the enum is referenced in a public function signature.
 --   * after this migration the view itself becomes a leaky surface
 --     for any future caller that doesn't go through this function.
 --     we revoke the SELECT grant from authenticated below so the
@@ -94,6 +104,17 @@ comment on function payments.user_capabilities(uuid) is
 
 grant execute on function payments.user_capabilities(uuid) to authenticated;
 grant execute on function payments.user_capabilities(uuid) to service_role;
+
+-- USAGE on the schema for the authenticator role. postgrest connects
+-- as authenticator, and without USAGE on the schema the schema
+-- cache cannot discover any object in it (tables, views, or rpcs).
+-- the original 20260628224000_create_subscriptions_schema.sql grants
+-- USAGE to authenticated, anon, service_role but missed
+-- authenticator — a long-standing gap that surfaced only when the
+-- first RPC in payments was added and supabase-js started calling
+-- it. granting USAGE here is the missing link; the per-user gate
+-- inside the function keeps the security boundary.
+grant usage on schema payments to authenticator;
 
 -- make the underlying view internal-only. the function above (which
 -- runs as postgres via SECURITY DEFINER) keeps the view readable;

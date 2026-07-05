@@ -107,9 +107,16 @@ export async function requireCapability(
   // SECURITY DEFINER RPC that wraps the view. Per-user gate lives in
   // the function body, so even though we pass the user's own user_id
   // here, the rpc cannot be tricked into leaking other users' caps.
-  const { data, error } = await supabase.rpc("user_capabilities", {
-    target_user_id: ctx.userId,
-  });
+  // supabase.schema('payments') sets the Accept-Profile / Content-Profile
+  // headers that PostgREST needs to resolve the rpc in a non-default
+  // schema; without the profile, the call returns PGRST202 (the first
+  // schema in PGRST_DB_SCHEMAS is public, where this function does not
+  // exist). See https://docs.postgrest.org/en/v12/references/api/schemas.html.
+  const { data, error } = await supabase
+    .schema("payments")
+    .rpc("user_capabilities", {
+      target_user_id: ctx.userId,
+    });
 
   if (error) {
     // Treat DB errors as "not allowed" so the caller surfaces the

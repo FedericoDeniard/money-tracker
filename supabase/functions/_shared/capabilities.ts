@@ -112,9 +112,18 @@ export async function requireCapability(
     return { user: ctx.user };
   }
 
-  const { data, error } = await supabase.rpc("user_capabilities", {
-    target_user_id: ctx.user.id,
-  });
+  // supabase.schema('payments') sets the Accept-Profile / Content-Profile
+  // headers that PostgREST needs to discover the rpc in a non-default
+  // schema. Without the profile, PostgREST only resolves the function
+  // when it lives in the FIRST schema listed in PGRST_DB_SCHEMAS (which
+  // is `public` in this stack); the rpc in `payments` returns PGRST202
+  // and the consumer reports a confusing 500. See
+  // https://docs.postgrest.org/en/v12/references/api/schemas.html.
+  const { data, error } = await supabase
+    .schema("payments")
+    .rpc("user_capabilities", {
+      target_user_id: ctx.user.id,
+    });
 
   if (error) {
     console.error(
@@ -153,9 +162,11 @@ export async function getUserCapabilities(
     return Object.values(CAPABILITIES);
   }
 
-  const { data, error } = await supabase.rpc("user_capabilities", {
-    target_user_id: userId,
-  });
+  const { data, error } = await supabase
+    .schema("payments")
+    .rpc("user_capabilities", {
+      target_user_id: userId,
+    });
 
   if (error) {
     console.error("[getUserCapabilities] db error:", error);
