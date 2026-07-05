@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,6 +24,8 @@ import { useTagMutations } from "../../hooks/useTagMutations";
 import { TagBadge } from "./TagBadge";
 import type { Tag } from "../../types/tags";
 
+const EMPTY_IDS: string[] = [];
+
 interface TagSelectorProps {
   mode: "assign" | "manage";
   value?: string[];
@@ -35,7 +37,7 @@ interface TagSelectorProps {
 
 export function TagSelector({
   mode,
-  value = [],
+  value = EMPTY_IDS,
   onChange,
   disabled,
   className,
@@ -240,40 +242,47 @@ function CreateTagInline({
   onCancel: () => void;
   t: TFunction;
 }) {
-  const [name, setName] = useState("");
   const [color, setColor] = useState<TagColor>(DEFAULT_TAG_COLOR);
   const [submitting, setSubmitting] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  const handleSubmit = async () => {
+    const name = nameRef.current?.value.trim() ?? "";
+    if (!name || submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit({ name, color });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <form
-      className="space-y-2 p-1"
-      onSubmit={async e => {
-        e.preventDefault();
-        if (!name.trim() || submitting) return;
-        setSubmitting(true);
-        try {
-          await onSubmit({ name: name.trim(), color });
-        } finally {
-          setSubmitting(false);
-        }
-      }}
-    >
+    <div className="space-y-2 p-1">
       <input
-        autoFocus
+        ref={nameRef}
         type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
         placeholder={t("tags.namePlaceholder", "Tag name")}
+        aria-label={t("tags.namePlaceholder", "Tag name")}
         maxLength={50}
+        onKeyDown={e => {
+          if (e.key === "Enter") handleSubmit();
+        }}
         className="w-full px-3 py-2 rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] text-sm focus:outline-none focus:border-[var(--primary)]"
       />
-      <div className="flex flex-wrap gap-1.5">
+      <div
+        className="flex flex-wrap gap-1.5"
+        role="radiogroup"
+        aria-label={t("tags.color", "Color")}
+      >
         {TAG_COLORS.map(c => (
           <button
             key={c}
             type="button"
-            onClick={() => setColor(c)}
+            role="radio"
+            aria-checked={color === c}
             aria-label={`Color ${c}`}
+            onClick={() => setColor(c)}
             className={cn(
               "size-6 rounded-full border",
               TAG_COLOR_CLASSES[c].bg,
@@ -288,16 +297,17 @@ function CreateTagInline({
           {t("common.cancel")}
         </Button>
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="sm"
-          disabled={!name.trim() || submitting}
+          disabled={submitting}
           loading={submitting}
+          onClick={handleSubmit}
         >
           {t("common.save")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -417,9 +427,27 @@ function CreateTagRow({
   t: TFunction;
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
   const [color, setColor] = useState<TagColor>(DEFAULT_TAG_COLOR);
   const [submitting, setSubmitting] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  const reset = () => {
+    if (nameRef.current) nameRef.current.value = "";
+    setColor(DEFAULT_TAG_COLOR);
+  };
+
+  const handleSubmit = async () => {
+    const name = nameRef.current?.value.trim() ?? "";
+    if (!name || submitting) return;
+    setSubmitting(true);
+    try {
+      await onCreate({ name, color });
+      reset();
+      setOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!open) {
     return (
@@ -436,31 +464,18 @@ function CreateTagRow({
   }
 
   return (
-    <form
-      className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3"
-      onSubmit={async e => {
-        e.preventDefault();
-        if (!name.trim() || submitting) return;
-        setSubmitting(true);
-        try {
-          await onCreate({ name: name.trim(), color });
-          setName("");
-          setColor(DEFAULT_TAG_COLOR);
-          setOpen(false);
-        } finally {
-          setSubmitting(false);
-        }
-      }}
-    >
+    <div className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3">
       <div className="flex items-center gap-2">
         <TagIcon size={14} className="text-[var(--text-secondary)] shrink-0" />
         <input
-          autoFocus
+          ref={nameRef}
           type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
           placeholder={t("tags.namePlaceholder", "Tag name")}
+          aria-label={t("tags.namePlaceholder", "Tag name")}
           maxLength={50}
+          onKeyDown={e => {
+            if (e.key === "Enter") handleSubmit();
+          }}
           className="flex-1 px-3 py-2 rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] text-sm focus:outline-none focus:border-[var(--primary)]"
         />
       </div>
@@ -468,13 +483,19 @@ function CreateTagRow({
         <span className="text-xs text-[var(--text-secondary)] shrink-0">
           {t("tags.color", "Color")}
         </span>
-        <div className="flex flex-wrap gap-1.5">
+        <div
+          role="radiogroup"
+          aria-label={t("tags.color", "Color")}
+          className="flex flex-wrap gap-1.5"
+        >
           {TAG_COLORS.map(c => (
             <button
               key={c}
               type="button"
-              onClick={() => setColor(c)}
+              role="radio"
+              aria-checked={color === c}
               aria-label={`Color ${c}`}
+              onClick={() => setColor(c)}
               className={cn(
                 "size-6 rounded-full border",
                 TAG_COLOR_CLASSES[c].bg,
@@ -493,23 +514,22 @@ function CreateTagRow({
           size="sm"
           onClick={() => {
             setOpen(false);
-            setName("");
-            setColor(DEFAULT_TAG_COLOR);
+            reset();
           }}
         >
           {t("common.cancel")}
         </Button>
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="sm"
-          disabled={!name.trim() || submitting}
           loading={submitting}
+          onClick={handleSubmit}
         >
           {t("common.save")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -524,54 +544,86 @@ function EditTagRow({
   onCancel: () => void;
   t: TFunction;
 }) {
-  const [name, setName] = useState(tag.name);
-  const [color, setColor] = useState<TagColor>(tag.color);
+  // Parent renders this with `key={tag.id}`, so the form remounts when the
+  // user clicks Edit on a different row. `defaultValue` + `defaultChecked`
+  // therefore always reflect the right tag, no useState copy needed.
+  // The color selection uses real native radios so the value flows back
+  // through the element's `value` getter instead of being mirrored into
+  // component state.
   const [submitting, setSubmitting] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    const name = nameRef.current?.value.trim() ?? "";
+    const selected = containerRef.current?.querySelector<HTMLInputElement>(
+      'input[name="color"]:checked'
+    );
+    const color = selected?.value as TagColor | undefined;
+    const nameOk = !!name && name === tag.name ? tag.name : name;
+    const colorOk = color && color === tag.color ? tag.color : color;
+
+    setSubmitting(true);
+    try {
+      const updates: { name?: string; color?: TagColor } = {};
+      if (nameOk && nameOk !== tag.name) updates.name = nameOk;
+      if (colorOk && colorOk !== tag.color) updates.color = colorOk;
+      if (Object.keys(updates).length > 0) await onSave(updates);
+      else onCancel();
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <form
+    <div
+      ref={containerRef}
       className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3"
-      onSubmit={async e => {
-        e.preventDefault();
-        if (submitting) return;
-        setSubmitting(true);
-        try {
-          const updates: { name?: string; color?: TagColor } = {};
-          if (name.trim() !== tag.name) updates.name = name.trim();
-          if (color !== tag.color) updates.color = color;
-          await onSave(updates);
-        } finally {
-          setSubmitting(false);
-        }
-      }}
     >
       <input
-        autoFocus
+        ref={nameRef}
         type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
+        defaultValue={tag.name}
+        aria-label={t("tags.name", "Name")}
         maxLength={50}
+        onKeyDown={e => {
+          if (e.key === "Enter") handleSubmit();
+        }}
         className="w-full px-3 py-2 rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] text-sm focus:outline-none focus:border-[var(--primary)]"
       />
       <div className="flex items-center gap-3">
         <span className="text-xs text-[var(--text-secondary)] shrink-0">
           {t("tags.color", "Color")}
         </span>
-        <div className="flex flex-wrap gap-1.5">
+        <div
+          role="radiogroup"
+          aria-label={t("tags.color", "Color")}
+          className="flex flex-wrap gap-1.5"
+        >
           {TAG_COLORS.map(c => (
-            <button
+            <label
               key={c}
-              type="button"
-              onClick={() => setColor(c)}
               aria-label={`Color ${c}`}
-              className={cn(
-                "size-6 rounded-full border",
-                TAG_COLOR_CLASSES[c].bg,
-                TAG_COLOR_CLASSES[c].border,
-                color === c &&
-                  `ring-2 ring-offset-1 ${TAG_COLOR_CLASSES[c].ring}`
-              )}
-            />
+              className="inline-block cursor-pointer"
+            >
+              <input
+                type="radio"
+                name="color"
+                value={c}
+                defaultChecked={c === tag.color}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden
+                className={cn(
+                  "block size-6 rounded-full border transition-shadow",
+                  TAG_COLOR_CLASSES[c].bg,
+                  TAG_COLOR_CLASSES[c].border,
+                  `peer-checked:ring-2 peer-checked:ring-offset-1 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-1 ${TAG_COLOR_CLASSES[c].ring}`
+                )}
+              />
+            </label>
           ))}
         </div>
       </div>
@@ -580,15 +632,15 @@ function EditTagRow({
           {t("common.cancel")}
         </Button>
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="sm"
-          disabled={!name.trim() || submitting}
           loading={submitting}
+          onClick={handleSubmit}
         >
           {t("common.save")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }

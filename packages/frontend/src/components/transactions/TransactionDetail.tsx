@@ -2,18 +2,15 @@ import { Check, Copy, Edit, Trash2, ArrowDown, ArrowUp, X } from "lucide-react";
 import { Button } from "../ui/Button";
 import type { Transaction } from "../../services/transactions.service";
 import { getTransactionType } from "../../utils/transactionUtils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { useFormatDate } from "../../hooks/useFormatDate";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { TransactionAttachments } from "./TransactionAttachments";
-import { TagBadge } from "../tags/TagBadge";
 import { TagSelector } from "../tags/TagSelector";
 import { useTagMutations } from "../../hooks/useTagMutations";
-import { useTags } from "../../hooks/useTags";
-import type { TransactionTagLite, Tag } from "../../types/tags";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -40,45 +37,22 @@ export function TransactionDetail({
   const { translateCategory } = useTranslateCategory();
   const { formatDateTime } = useFormatDate();
 
-  // Local optimistic copy of tags so inline add/remove feels instant.
-  // Re-sync whenever the underlying transaction's tags change (e.g. refetch).
-  const [localTags, setLocalTags] = useState<TransactionTagLite[]>(
-    transaction.tags ?? []
-  );
-  useEffect(() => {
-    setLocalTags(transaction.tags ?? []);
-  }, [transaction.id, transaction.tags]);
-
+  // Tags are read from the React Query cache (transaction.tags). The
+  // `useTagMutations` mutation optimistically writes the new tag list back
+  // into the same cache via `queryKeys.transactions.all`, so add/remove
+  // re-renders happen there without us mirroring the value in local state.
   const { setTransactionTags, isSettingTransactionTags } = useTagMutations();
-  const { data: allTags = [] } = useTags();
-
-  const persistTags = async (next: TransactionTagLite[]) => {
-    setLocalTags(next);
-    try {
-      await setTransactionTags({
-        transactionId: transaction.id,
-        tagIds: next.map(t => t.id),
-      });
-    } catch (error) {
-      console.error("Error updating transaction tags:", error);
-      setLocalTags(transaction.tags ?? []);
-    }
-  };
 
   const handleChangeTags = (ids: string[]) => {
     // The TagSelector's `onChange` passes the full new selected list
-    // (toggle semantics), so we resolve those ids against the user's tag
-    // catalog and replace `localTags` entirely — never merge.
-    const existingById = new Map<string, Tag>(allTags.map(t => [t.id, t]));
-    const next: TransactionTagLite[] = ids
-      .map(id => {
-        const full = existingById.get(id);
-        return full
-          ? { id: full.id, name: full.name, color: full.color }
-          : { id, name: "", color: "slate" as const };
-      })
-      .filter((t): t is TransactionTagLite => t !== null);
-    persistTags(next);
+    // (toggle semantics). The mutation's onMutate writes the optimistic
+    // list straight into the transactions cache; no local mirror needed.
+    void setTransactionTags({
+      transactionId: transaction.id,
+      tagIds: ids,
+    }).catch(error => {
+      console.error("Error updating transaction tags:", error);
+    });
   };
 
   const handleCopyId = () => {
@@ -249,7 +223,7 @@ export function TransactionDetail({
             </span>
             <TagSelector
               mode="assign"
-              value={localTags.map(t => t.id)}
+              value={(transaction.tags ?? []).map(t => t.id)}
               onChange={handleChangeTags}
               disabled={isSettingTransactionTags}
               iconOnly
