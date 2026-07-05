@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { handleChatStream } from "@mastra/ai-sdk";
+import { RequestContext } from "@mastra/core/request-context";
 import { mastra } from "../index";
 
 /**
@@ -55,7 +56,33 @@ export const chatHandler = async (c: Context) => {
   }
 
   const params = await c.req.json();
-  const contextRequestContext = c.get("requestContext");
+
+  // Build the Mastra RequestContext from the Hono variables populated
+  // by `authMiddleware`. Tools declare their expected keys via
+  // `requestContextSchema` and read them via `ctx.requestContext.get(...)`
+  // or `ctx.requestContext!.all.<key>`. Today the keys we propagate are:
+  //   - userId / supabaseToken (consumed by every data tool)
+  //   - userTimezone (consumed by get-current-date)
+  //   - userRole (consumed by tools that branch on tier / staff status)
+  // A client-supplied `requestContext` in the body is merged on top so
+  // callers can still override individual keys when they need to (used
+  // by tests; production paths leave it empty).
+  const serverRequestContext = new RequestContext();
+  const supabaseToken = c.get("supabaseToken");
+  const userTimezone = c.get("userTimezone");
+  const userRole = c.get("userRole");
+  if (supabaseToken) serverRequestContext.set("supabaseToken", supabaseToken);
+  if (userTimezone) serverRequestContext.set("userTimezone", userTimezone);
+  if (userRole) serverRequestContext.set("userRole", userRole);
+  serverRequestContext.set("userId", userId);
+
+  const clientRequestContext =
+    (params.requestContext as Record<string, unknown> | undefined) ?? undefined;
+  if (clientRequestContext) {
+    for (const [key, value] of Object.entries(clientRequestContext)) {
+      serverRequestContext.set(key, value);
+    }
+  }
 
   const agentId = c.req.param("agentId");
   if (!agentId) {
@@ -92,7 +119,7 @@ export const chatHandler = async (c: Context) => {
     agentVersion: effectiveAgentVersion,
     params: {
       ...params,
-      requestContext: contextRequestContext ?? params.requestContext,
+      requestContext: serverRequestContext,
     },
     version: "v6",
     sendStart: true,
