@@ -11,14 +11,14 @@ interface InsightsData {
 
 interface InsightsSectionProps {
   data: InsightsData;
-  selectedPeriod: string;
+  periodSubtitle: string;
   getCurrencySymbol: (currency: string) => string;
   displayCurrency: string;
 }
 
 export function InsightsSection({
   data,
-  selectedPeriod,
+  periodSubtitle,
   getCurrencySymbol,
   displayCurrency,
 }: InsightsSectionProps) {
@@ -45,7 +45,7 @@ export function InsightsSection({
     {
       title: t("metrics.totalTransactions"),
       value: data.transactionCount.toString(),
-      subtitle: t("metrics.inLastPeriod", { days: selectedPeriod }),
+      subtitle: periodSubtitle,
     },
     {
       title: t("metrics.savingsRate"),

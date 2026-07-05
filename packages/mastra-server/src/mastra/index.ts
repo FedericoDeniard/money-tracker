@@ -1,11 +1,8 @@
 import { Mastra } from "@mastra/core";
+import { CompositeAuth, SimpleAuth } from "@mastra/core/server";
 import { PostgresStore } from "@mastra/pg";
 import { MastraAuthSupabase } from "@mastra/auth-supabase";
-import { getAuthenticatedUser } from "@mastra/server/auth";
-import { RequestContext } from "@mastra/core/request-context";
 import { financialAgent } from "./agents/financial-agent";
-import { resilientChatRoute } from "./routes/resilient-chat-route";
-import { getRoleFromToken } from "../lib/roles";
 
 const supabaseDbUrl = process.env.SUPABASE_DB_URL;
 if (supabaseDbUrl) {
@@ -27,79 +24,36 @@ const storage = new PostgresStore({
   connectionString: supabaseDbUrl!,
 });
 
-const defaultOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://0.0.0.0:3000",
-];
-
-const corsOrigins =
-  process.env.MASTRA_CORS_ORIGIN?.split(",")
-    .map(s => s.trim())
-    .filter(Boolean) ?? defaultOrigins;
-
+// Mastra is now used purely as an AI provider. The HTTP server (Hono)
+// lives in src/server.ts. The only `server` config we keep is `auth`,
+// which the @mastra/hono adapter reads to protect its own routes
+// (/api/agents/*). All other middleware/CORS/port is handled by Hono.
+//
+// Note: userId and userRole are populated by the Hono auth middleware
+// (src/middleware/auth.ts). Tools/agents that read them should call
+// `ctx.requestContext.get("userId")` / `ctx.requestContext.get("userRole")`.
 export const mastra = new Mastra({
   agents: { financialAgent },
   storage,
   server: {
-    port: Number(process.env.MASTRA_PORT) || 4111,
-    cors: {
-      origin: corsOrigins,
-      credentials: true,
-      allowHeaders: ["X-User-Timezone"],
-    },
-    auth: new MastraAuthSupabase({
-      url: process.env.SUPABASE_URL!,
-      anonKey: process.env.SUPABASE_ANON_KEY!,
-      authorizeUser: async () => true,
-      mapUserToResourceId: user => user.id,
-      protected: ["/chat/*"],
-      public: [["/api/*", "GET"]],
-    }),
-    apiRoutes: [resilientChatRoute()],
-    middleware: [
-      async (context, next) => {
-        // server.middleware runs BEFORE the per-route auth check, so the user
-        // is not yet in requestContext. Resolve it here via the configured
-        // auth provider. The per-route check that follows re-validates and
-        // also populates requestContext (and MASTRA_RESOURCE_ID_KEY via
-        // mapUserToResourceId), so this is purely additive.
-        const authHeader = context.req.header("authorization");
-        const token = authHeader?.replace(/^Bearer\s+/i, "");
-
-        if (token) {
-          const user = await getAuthenticatedUser<{ id: string }>({
-            mastra: context.get("mastra"),
-            token,
-            request: context.req.raw,
-          });
-
-          const requestContext = context.get(
-            "requestContext"
-          ) as RequestContext;
-          if (user?.id) {
-            requestContext.set("userId", user.id);
-          }
-          requestContext.set("supabaseToken", token);
-
-          // Propagate the role injected by the custom access token hook so
-          // tools/agents can branch on it (e.g. per-role rate limits, tier
-          // specific tool restrictions, or different system prompts).
-          requestContext.set("userRole", getRoleFromToken(token));
-
-          // Forward the client's IANA timezone so date-sensitive tools
-          // (getCurrentDateTool, getSpendingSummaryTool) resolve relative
-          // ranges in the user's local time instead of UTC. The header is
-          // optional; tools fall back to UTC when it is absent.
-          const timezone = context.req.header("x-user-timezone");
-          if (timezone) {
-            requestContext.set("userTimezone", timezone);
-          }
-        }
-
-        await next();
-      },
-    ],
+    auth: new CompositeAuth([
+      new SimpleAuth({
+        tokens: {
+          [process.env.STUDIO_DEV_TOKEN!]: {
+            id: "studio-dev",
+            name: "Studio Dev User",
+          },
+        },
+      }),
+      new MastraAuthSupabase({
+        url: process.env.SUPABASE_URL!,
+        anonKey: process.env.SUPABASE_ANON_KEY!,
+        authorizeUser: async () => true,
+        mapUserToResourceId: user => user.id,
+        protected: ["/api/agents/*", "/chat/*"],
+        public: [["/api/*", "GET"]],
+      }),
+    ]),
   },
 });
 

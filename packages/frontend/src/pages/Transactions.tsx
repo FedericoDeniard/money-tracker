@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useReducer, Component } from "react";
+import { Suspense, useCallback, useReducer, useEffect, Component } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import {
@@ -23,7 +23,9 @@ import {
 } from "../hooks/useTransactions";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { getSupabase } from "../lib/supabase";
+import { createTransactionsService } from "../services/transactions.service";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
@@ -189,7 +191,11 @@ function initTransactionsState(
 ): TransactionsState {
   return {
     selectedTransaction: null,
-    filters: { category: initialCategory || undefined },
+    filters: {
+      category: initialCategory || undefined,
+      sortBy: "transaction_date",
+      sortOrder: "desc",
+    },
     isFormModalOpen: false,
     isUploadModalOpen: false,
     preFilledData: undefined,
@@ -200,6 +206,7 @@ export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [state, dispatch] = useReducer(
     transactionsReducer,
@@ -213,6 +220,27 @@ export function Transactions() {
     isUploadModalOpen,
     preFilledData,
   } = state;
+
+  const [, setSearchParams] = useSearchParams();
+
+  // When navigated from a realtime notification (?id=xxx), select that transaction
+  useEffect(() => {
+    const transactionId = searchParams.get("id");
+    if (!transactionId) return;
+
+    getSupabase().then(async supabase => {
+      const service = createTransactionsService(supabase);
+      const transaction = await service.getTransactionById(transactionId);
+      if (transaction) {
+        dispatch({ type: "SELECT_TRANSACTION", transaction });
+      }
+    });
+
+    setSearchParams(prev => {
+      prev.delete("id");
+      return prev;
+    });
+  }, [searchParams, setSearchParams]);
 
   const { deleteTransaction, updateTransaction, createTransaction } =
     useTransactionMutations();
@@ -253,9 +281,13 @@ export function Transactions() {
     }
   };
 
-  const handleUploadSuccess = useCallback(() => {
-    toast.success(t("upload.success", "Document processed successfully!"));
-  }, [t]);
+  const handleUploadSuccess = useCallback(
+    (transactionId: string) => {
+      toast.success(t("upload.success", "Document processed successfully!"));
+      navigate(`/transactions?id=${transactionId}`);
+    },
+    [t, navigate]
+  );
 
   const handleUploadError = useCallback(
     (error: string) => {
@@ -265,7 +297,10 @@ export function Transactions() {
   );
 
   const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction(mapTransactionFormDataToInsert(formData));
+    const transaction = await createTransaction(
+      mapTransactionFormDataToInsert(formData)
+    );
+    navigate(`/transactions?id=${transaction.id}`);
   };
 
   return (

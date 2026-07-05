@@ -173,6 +173,12 @@
       "clipboardEmpty": "No supported file found in clipboard.",
       "clipboardPermissionDenied": "Clipboard access was denied. Please allow paste access and try again.",
       "clipboardReadFailed": "Could not read clipboard content."
+    },
+    "clarifications": {
+      "label": "Clarifications (optional)",
+      "placeholder": "Provide extra context for the AI (e.g. installment plan, refund, currency hint, etc.)",
+      "help": "Optional context that helps the AI infer the name, merchant, description, and category. Not copied verbatim.",
+      "counter": "{{count}} / {{max}}"
     }
   },
   "metrics": {
@@ -185,6 +191,8 @@
     "last30Days": "Last 30 days",
     "last90Days": "Last 90 days",
     "lastYear": "Last year",
+    "specificMonth": "Specific month",
+    "inMonth": "in {{month}}",
     "monthlyTrend": "Monthly Trend",
     "categoryBreakdown": "Expense Breakdown by Category",
     "insights": "Financial Insights",
@@ -342,6 +350,8 @@
     "seedSkip": "Not now",
     "seedStart": "Yes, import",
     "seedStartedSuccess": "Import started. We'll notify you when it's done.",
+    "seedStarting": "Starting import...",
+    "seedStartingDescription": "Searching emails in Gmail. This may take a few minutes for accounts with many emails.",
     "seedStartError": "Error starting import. Please try again.",
     "seedAlreadyInProgress": "There is already an import in progress for this account. Please wait for it to finish.",
     "importProgress": "Import Progress",
@@ -744,7 +754,7 @@
     "metrics": {
       "step1": {
         "title": "Metrics filters",
-        "description": "Choose the period (30, 90, or 365 days) and currency. If you have transactions in more than one currency, select 'All' to see a comparison between them."
+        "description": "Choose the period (30, 90, or 365 days), pick a specific month, and select the currency. If you have transactions in more than one currency, select 'All' to see a comparison between them."
       },
       "step2": {
         "title": "Charts and analysis",
@@ -880,6 +890,8 @@
     "untitledThread": "Untitled conversation",
     "deleteThread": "Delete conversation",
     "deleteThreadConfirm": "Delete this conversation?",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}}d ago",
     "emptyChatHint": "Send a message to start a new conversation",
     "errorGeneric": "Something went wrong: {{message}}",
     "errorUnknown": "Unknown error",

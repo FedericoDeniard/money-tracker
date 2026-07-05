@@ -43,7 +43,7 @@ type TransactionFormData = {
 interface UploadTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (transactionId: string) => void;
   onError: (error: string) => void;
 }
 
@@ -63,12 +63,15 @@ const SUPPORTED_TYPES = [
 
 type UploadState = "idle" | "uploading" | "processing" | "success" | "error";
 
+const MAX_CLARIFICATIONS_LENGTH = 250;
+
 interface UploadFormState {
   selectedFile: File | null;
   dragActive: boolean;
   errorMessage: string;
   uploadState: UploadState;
   pasteSuccessMessage: string;
+  userClarifications: string;
 }
 
 type UploadFormAction =
@@ -77,6 +80,7 @@ type UploadFormAction =
   | { type: "SET_UPLOAD_STATE"; state: UploadState }
   | { type: "SET_ERROR"; message: string }
   | { type: "CLEAR_SELECTED_FILE" }
+  | { type: "SET_CLARIFICATIONS"; value: string }
   | { type: "RESET" };
 
 function uploadFormReducer(
@@ -105,6 +109,11 @@ function uploadFormReducer(
       };
     case "CLEAR_SELECTED_FILE":
       return { ...state, selectedFile: null, pasteSuccessMessage: "" };
+    case "SET_CLARIFICATIONS":
+      return {
+        ...state,
+        userClarifications: action.value.slice(0, MAX_CLARIFICATIONS_LENGTH),
+      };
     case "RESET":
       return initialState;
   }
@@ -116,6 +125,7 @@ const initialState: UploadFormState = {
   errorMessage: "",
   uploadState: "idle",
   pasteSuccessMessage: "",
+  userClarifications: "",
 };
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -283,6 +293,61 @@ function StatusBanner({
   return null;
 }
 
+function ClarificationsField({
+  value,
+  isProcessing,
+  maxLength,
+  onChange,
+}: {
+  value: string;
+  isProcessing: boolean;
+  maxLength: number;
+  onChange: (value: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div>
+      <label
+        htmlFor="upload-clarifications"
+        className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+      >
+        {t("upload.clarifications.label", "Clarifications (optional)")}
+      </label>
+      <textarea
+        id="upload-clarifications"
+        aria-label={t(
+          "upload.clarifications.label",
+          "Clarifications (optional)"
+        )}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        rows={3}
+        maxLength={maxLength}
+        disabled={isProcessing}
+        placeholder={t(
+          "upload.clarifications.placeholder",
+          "Provide extra context for the AI (e.g. installment plan, refund, currency hint, etc.)"
+        )}
+        className="w-full px-4 py-3 rounded-2xl border border-zinc-200 placeholder:text-[var(--text-secondary)] focus:border-[var(--primary)] focus:outline-none transition-colors resize-none"
+      />
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="text-xs text-[var(--text-secondary)]">
+          {t(
+            "upload.clarifications.help",
+            "Optional notes that help the AI understand ambiguous details."
+          )}
+        </p>
+        <p className="text-xs text-[var(--text-secondary)] tabular-nums">
+          {t("upload.clarifications.counter", "{{count}} / {{max}}", {
+            count: value.length,
+            max: maxLength,
+          })}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export function UploadTransactionModal({
@@ -299,6 +364,7 @@ export function UploadTransactionModal({
     errorMessage,
     uploadState,
     pasteSuccessMessage,
+    userClarifications,
   } = state;
 
   const isProcessing =
@@ -434,11 +500,12 @@ export function UploadTransactionModal({
         fileData,
         selectedFile.name,
         selectedFile.type,
-        i18n.language
+        i18n.language,
+        userClarifications.trim() || undefined
       );
       if (result.success && result.transaction) {
         dispatch({ type: "SET_UPLOAD_STATE", state: "success" });
-        onSuccess();
+        onSuccess(result.transaction.id as string);
         setTimeout(() => {
           onClose();
           dispatch({ type: "RESET" });
@@ -509,6 +576,13 @@ export function UploadTransactionModal({
             onClear={() => dispatch({ type: "CLEAR_SELECTED_FILE" })}
           />
         )}
+
+        <ClarificationsField
+          value={userClarifications}
+          isProcessing={isProcessing}
+          maxLength={MAX_CLARIFICATIONS_LENGTH}
+          onChange={value => dispatch({ type: "SET_CLARIFICATIONS", value })}
+        />
 
         <StatusBanner
           uploadState={uploadState}

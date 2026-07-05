@@ -63,8 +63,11 @@ function forbidden(corsHeaders: JsonHeaders, error: string): Response {
 
 async function getUserFromToken(token: string): Promise<User | null> {
   const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    // Use process.env (Node/Bun compat) instead of Deno.env so the same
+    // shared module works in Supabase Edge Functions (Deno) and the
+    // mastr-server (Bun). Deno supports process.env via Node compat.
+    process.env.SUPABASE_URL ?? "",
+    process.env.SUPABASE_ANON_KEY ?? ""
   );
 
   const {
@@ -179,7 +182,7 @@ export function requireInternalAuth(
     return unauthorized(corsHeaders, "Missing or invalid authorization header");
   }
 
-  const internalSecret = Deno.env.get("INTERNAL_FUNCTIONS_SECRET");
+  const internalSecret = process.env.INTERNAL_FUNCTIONS_SECRET;
   if (!internalSecret || token !== internalSecret) {
     return unauthorized(corsHeaders, "Invalid internal authorization token");
   }
@@ -196,7 +199,7 @@ export async function resolveAuthContext(
     return unauthorized(corsHeaders, "Missing or invalid authorization header");
   }
 
-  const internalSecret = Deno.env.get("INTERNAL_FUNCTIONS_SECRET");
+  const internalSecret = process.env.INTERNAL_FUNCTIONS_SECRET;
   if (internalSecret && token === internalSecret) {
     return { mode: "internal", token };
   }

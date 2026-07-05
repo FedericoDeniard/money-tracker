@@ -1,6 +1,6 @@
 const DEFAULT_ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000";
 const DEFAULT_ALLOW_HEADERS =
-  "authorization, x-client-info, apikey, content-type, x-file-name, x-user-locale";
+  "authorization, x-client-info, apikey, content-type, x-file-name, x-user-locale, x-user-clarifications";
 const DEFAULT_ALLOW_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 
 type CorsHeaders = Record<string, string>;
@@ -13,12 +13,12 @@ function parseCsv(value: string): string[] {
 }
 
 function getAllowedOrigins(): string[] {
-  const configured = Deno.env.get("CORS_ALLOWED_ORIGINS")?.trim();
+  const configured = process.env.CORS_ALLOWED_ORIGINS?.trim();
   return parseCsv(configured || DEFAULT_ALLOWED_ORIGINS);
 }
 
 function shouldAllowCredentials(): boolean {
-  return Deno.env.get("CORS_ALLOW_CREDENTIALS")?.toLowerCase() === "true";
+  return process.env.CORS_ALLOW_CREDENTIALS?.toLowerCase() === "true";
 }
 
 function isOriginAllowed(origin: string, allowedOrigins: string[]): boolean {

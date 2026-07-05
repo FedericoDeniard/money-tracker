@@ -173,6 +173,12 @@
       "clipboardEmpty": "No se encontró ningún archivo compatible en el portapapeles.",
       "clipboardPermissionDenied": "Se denegó el acceso al portapapeles. Permite pegar e inténtalo nuevamente.",
       "clipboardReadFailed": "No se pudo leer el contenido del portapapeles."
+    },
+    "clarifications": {
+      "label": "Aclaraciones (opcional)",
+      "placeholder": "Agrega contexto para la IA (ej. compra en cuotas, reintegro, pista de moneda, etc.)",
+      "help": "Contexto opcional que ayuda a la IA a inferir el título, comercio, descripción y categoría. No se copia tal cual.",
+      "counter": "{{count}} / {{max}}"
     }
   },
   "metrics": {
@@ -185,6 +191,8 @@
     "last30Days": "Últimos 30 días",
     "last90Days": "Últimos 90 días",
     "lastYear": "Último año",
+    "specificMonth": "Mes específico",
+    "inMonth": "en {{month}}",
     "monthlyTrend": "Tendencia Mensual",
     "categoryBreakdown": "Desglose de Gastos por Categoría",
     "insights": "Insights Financieros",
@@ -342,6 +350,8 @@
     "seedSkip": "Ahora no",
     "seedStart": "Sí, importar",
     "seedStartedSuccess": "Importación iniciada. Te notificaremos cuando termine.",
+    "seedStarting": "Iniciando importación...",
+    "seedStartingDescription": "Buscando emails en Gmail. Esto puede tardar unos minutos para cuentas con muchos correos.",
     "seedStartError": "Error al iniciar la importación. Intenta de nuevo.",
     "seedAlreadyInProgress": "Ya hay una importación en progreso para esta cuenta. Por favor espera a que termine.",
     "importProgress": "Progreso de Importación",
@@ -744,7 +754,7 @@
     "metrics": {
       "step1": {
         "title": "Filtros de metricas",
-        "description": "Elegis el periodo (30, 90 o 365 dias) y la moneda. Si tenes transacciones en mas de una moneda, selecciona 'Todas' para ver una comparacion entre ellas."
+        "description": "Elegis el periodo (30, 90 o 365 dias), un mes especifico y la moneda. Si tenes transacciones en mas de una moneda, selecciona 'Todas' para ver una comparacion entre ellas."
       },
       "step2": {
         "title": "Graficos y analisis",
@@ -880,6 +890,8 @@
     "untitledThread": "Conversación sin título",
     "deleteThread": "Eliminar conversación",
     "deleteThreadConfirm": "¿Eliminar esta conversación?",
+    "yesterday": "Ayer",
+    "daysAgo": "Hace {{count}}d",
     "emptyChatHint": "Enviá un mensaje para iniciar una nueva conversación",
     "errorGeneric": "Algo salió mal: {{message}}",
     "errorUnknown": "Error desconocido",

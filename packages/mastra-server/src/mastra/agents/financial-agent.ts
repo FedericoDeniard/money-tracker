@@ -5,6 +5,7 @@ import {
   FINANCIAL_AGENT_INSTRUCTIONS,
   THREAD_TITLE_INSTRUCTIONS,
 } from "./prompts";
+import { TopicGuardrailProcessor } from "../processors/topic-guardrail";
 import { listTransactionsTool } from "../tools/list-transactions";
 import { listSubscriptionsTool } from "../tools/list-subscriptions";
 import { calculateTool } from "../tools/calculate";
@@ -18,17 +19,25 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+const FINANCIAL_AGENT_MODEL =
+  process.env.OPENROUTER_FINANCIAL_AGENT_MODEL ??
+  "google/gemini-2.5-flash-lite";
+const THREAD_TITLE_MODEL =
+  process.env.OPENROUTER_THREAD_TITLE_MODEL ?? "google/gemini-2.5-flash-lite";
+const GUARDRAIL_MODEL =
+  process.env.OPENROUTER_GUARDRAIL_MODEL ?? "google/gemini-2.5-flash-lite";
+
 export const financialAgent = new Agent({
   id: "financial-agent",
   name: "Financial Assistant",
   instructions: FINANCIAL_AGENT_INSTRUCTIONS,
-  model: openrouter("google/gemma-4-31b-it"),
+  model: openrouter(FINANCIAL_AGENT_MODEL),
   memory: new Memory({
     options: {
       lastMessages: 50,
       workingMemory: { enabled: true },
       generateTitle: {
-        model: openrouter("google/gemini-2.5-flash-lite"),
+        model: openrouter(THREAD_TITLE_MODEL),
         instructions: THREAD_TITLE_INSTRUCTIONS,
       },
     },
@@ -43,4 +52,14 @@ export const financialAgent = new Agent({
     deleteTransactionTool,
     getCurrentDateTool,
   },
+  inputProcessors: [
+    // Single guardrail: TopicGuardrailProcessor classifies every message
+    // on-topic vs off-topic. Was previously preceded by PromptInjectionDetector
+    // but it added ~3-7s of latency per request (full LLM call before the
+    // main agent) and produced false positives on legitimate financial
+    // queries like "edit my last transaction". TopicGuardrail's strict
+    // instructions and threshold already block real prompt injection
+    // attempts when combined with the model's own safety training.
+    new TopicGuardrailProcessor(),
+  ],
 });
