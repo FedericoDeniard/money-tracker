@@ -1,10 +1,12 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useCapability } from "../hooks/useCapability";
 import { useConfig } from "../hooks/useConfig";
 import { ErrorBoundary } from "../components/ui/ErrorBoundary";
 import { SuspenseFallbackPage } from "../components/ui/SuspenseFallback";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
+import type { Capability } from "../lib/capabilities";
 
 // Lazy-loaded pages — each page is a separate JS chunk
 // Suspense here is only for the brief JS chunk download (happens once).
@@ -90,6 +92,37 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * Route guard for capability-gated pages. Reads the capability from the
+ * JWT via useCapability (UI hint); the corresponding edge function still
+ * re-verifies server-side via requireCapability — so this guard is for
+ * UX, not security. A user who bypasses this guard and calls a gated
+ * edge function directly will still receive a 403.
+ */
+function RequireCapability({
+  capability,
+  children,
+}: {
+  capability: Capability;
+  children: React.ReactNode;
+}) {
+  const { allowed, loading } = useCapability(capability);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return <Navigate to="/account/billing" replace />;
   }
 
   return <>{children}</>;
@@ -226,9 +259,11 @@ export function AppRoutes() {
             path="/assistant"
             element={
               isChatEnabled ? (
-                <Suspense fallback={chunkFallback}>
-                  <Assistant />
-                </Suspense>
+                <RequireCapability capability="ai_assistant">
+                  <Suspense fallback={chunkFallback}>
+                    <Assistant />
+                  </Suspense>
+                </RequireCapability>
               ) : (
                 <Navigate to="/dashboard" replace />
               )
@@ -238,9 +273,11 @@ export function AppRoutes() {
             path="/assistant/:threadId"
             element={
               isChatEnabled ? (
-                <Suspense fallback={chunkFallback}>
-                  <Assistant />
-                </Suspense>
+                <RequireCapability capability="ai_assistant">
+                  <Suspense fallback={chunkFallback}>
+                    <Assistant />
+                  </Suspense>
+                </RequireCapability>
               ) : (
                 <Navigate to="/dashboard" replace />
               )

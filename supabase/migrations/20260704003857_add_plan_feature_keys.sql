@@ -15,22 +15,15 @@
 --     in the frontend with its own i18n keys (services/pricing.ts).
 --   * rls on payments.plans is unchanged: authenticated can read
 --     is_active = true rows; writes are service_role only.
+--   * the actual feature list for lite_monthly is seeded by
+--     supabase/seeds/006_payments_demo.sql (section 3), not here:
+--     this migration runs before the seed inserts the plan row, so any
+--     UPDATE against plan_key = 'lite_monthly' would be a no-op. the
+--     seed runs after this migration and applies the values at the
+--     right time.
 
 alter table payments.plans
   add column feature_keys jsonb not null default '[]'::jsonb;
 
 comment on column payments.plans.feature_keys is
   'ordered list of i18n keys rendered as the feature list on the pricing card. empty array hides the list.';
-
--- seed the existing lite plan with its feature set. every entry is an
--- i18n key whose value lives in packages/frontend/src/i18n/locales/{en,es}.json
--- under accountBilling.pricing.dbPlanFeatures.lite.<key>.
-update payments.plans
-set feature_keys = '[
-  "accountBilling.pricing.dbPlanFeatures.lite.everythingInFree",
-  "accountBilling.pricing.dbPlanFeatures.lite.gmailSync",
-  "accountBilling.pricing.dbPlanFeatures.lite.aiAssistant",
-  "accountBilling.pricing.dbPlanFeatures.lite.pushNotifications",
-  "accountBilling.pricing.dbPlanFeatures.lite.advancedReports"
-]'::jsonb
-where plan_key = 'lite_monthly';

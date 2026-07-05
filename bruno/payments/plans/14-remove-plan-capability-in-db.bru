@@ -1,0 +1,46 @@
+meta {
+  name: remove plan capability in DB
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/rest/v1/plan_capabilities?plan_id=eq.{{planId}}&capability=eq.{{capability}}
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseServiceRoleKey}}
+  Authorization: Bearer {{supabaseServiceRoleKey}}
+  Content-Profile: payments
+  Prefer: return=representation
+}
+
+vars:pre-request {
+  planId: 00000000-0000-0000-0000-000000000000
+  capability: gmail_sync
+}
+
+docs {
+  revokes a capability from a plan. the next gated edge-function call
+  from a user on this plan will start returning 403 — no token refresh
+  needed, because `requireCapability` reads directly from the database
+  on every invocation (see supabase/functions/_shared/capabilities.ts).
+
+  the deletion is idempotent: deleting a non-existent pair returns 204
+  with an empty body. `Prefer: return=representation` surfaces the
+  pre-delete rows in the response so the test can confirm the row that
+  was removed (or that nothing matched if the pair didn't exist).
+
+  replace the placeholders in the vars tab with the real plan_id and
+  capability to revoke. uses the service_role key (bypasses rls)
+  because capability revocation is an admin operation, not a user-facing
+  action.
+}
+
+tests {
+  test("status is 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

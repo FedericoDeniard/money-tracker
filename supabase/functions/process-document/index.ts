@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireUserAuth } from "../_shared/auth.ts";
+import { requireCapability } from "../_shared/capabilities.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 import { analyzeDocumentForTransaction } from "../_shared/lib/document-analysis.ts";
 import { saveTransactionAttachments } from "../_shared/lib/transaction-attachments.ts";
@@ -36,6 +37,11 @@ Deno.serve(async req => {
     }
     const { user, role } = auth;
     void role;
+
+    const cap = await requireCapability(auth, "process_documents", corsHeaders);
+    if (cap instanceof Response) {
+      return cap;
+    }
 
     const contentType = req.headers.get("content-type") || "";
     const fileName = req.headers.get("x-file-name") || "unknown";
