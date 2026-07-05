@@ -82,21 +82,17 @@
 
 -- ============================================================================
 -- 1) usage_limits: the configuration table
+--    capability is payments.capability (the enum) — the type IS the
+--    vocabulary, no need for a parallel CHECK constraint. adding a
+--    value to the enum is enough; this table picks it up
+--    automatically.
 -- ============================================================================
 create table payments.usage_limits (
-  capability text not null,
+  capability payments.capability not null,
   scope      text not null,
   period     text not null,
   max_count  int  not null,
   primary key (capability, scope, period),
-  constraint usage_limits_capability_check
-    check (capability in (
-      'gmail_sync',
-      'ai_assistant',
-      'push_notifications',
-      'advanced_reports',
-      'process_documents'
-    )),
   constraint usage_limits_scope_check
     check (
       scope like 'role:%' or
@@ -132,19 +128,11 @@ create policy "usage_limits_select_authenticated"
 -- 2) usage_counters: the per-(user, capability, period_start) counter
 -- ============================================================================
 create table payments.usage_counters (
-  user_id      uuid        not null,
-  capability   text        not null,
-  period_start timestamptz not null,
-  count        int         not null default 0,
+  user_id      uuid                  not null,
+  capability   payments.capability   not null,
+  period_start timestamptz           not null,
+  count        int                   not null default 0,
   primary key (user_id, capability, period_start),
-  constraint usage_counters_capability_check
-    check (capability in (
-      'gmail_sync',
-      'ai_assistant',
-      'push_notifications',
-      'advanced_reports',
-      'process_documents'
-    )),
   constraint usage_counters_count_check
     check (count >= 0)
 );
