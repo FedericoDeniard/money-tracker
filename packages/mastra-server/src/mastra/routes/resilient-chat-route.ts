@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
+import { requireCapability } from "../../lib/capabilities";
 import { mastra } from "../index";
 
 /**
@@ -55,6 +56,23 @@ export const chatHandler = async (c: Context) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  // Capability gate. We check `ai_assistant` before opening the SSE
+  // stream because once a stream starts the client has already begun
+  // reading chunks and we can't change the HTTP status code. Reject
+  // here with a plain-text body so the AI SDK useChat hook sees a
+  // non-streaming error and sets `error.message` to our literal
+  // string — the frontend's `getEdgeFunctionErrorMessage` classifier
+  // pattern-matches the `Requires capability:` prefix and substitutes
+  // the localized "premium feature" toast.
+  const supabaseToken = c.get("supabaseToken");
+  if (!supabaseToken) {
+    return c.text("Missing supabase token", 401);
+  }
+  const cap = await requireCapability(userId, supabaseToken, "ai_assistant");
+  if (!cap.allowed) {
+    return c.text("Requires capability: ai_assistant", 403);
+  }
+
   const params = await c.req.json();
 
   // Build the Mastra RequestContext from the Hono variables populated
@@ -68,7 +86,6 @@ export const chatHandler = async (c: Context) => {
   // callers can still override individual keys when they need to (used
   // by tests; production paths leave it empty).
   const serverRequestContext = new RequestContext();
-  const supabaseToken = c.get("supabaseToken");
   const userTimezone = c.get("userTimezone");
   const userRole = c.get("userRole");
   if (supabaseToken) serverRequestContext.set("supabaseToken", supabaseToken);

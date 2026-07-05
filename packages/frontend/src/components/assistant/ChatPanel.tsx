@@ -15,6 +15,7 @@ import { MessageParts } from "./MessageParts";
 import { TypingIndicator } from "./TypingIndicator";
 import { useDeleteChatAttachments } from "../../hooks/useChatAttachments";
 import { toast } from "../../utils/toast";
+import { getEdgeFunctionErrorMessage } from "../../utils/edge-function-errors";
 import { getSupabase } from "../../lib/supabase";
 import { queryKeys } from "../../lib/query-client";
 import {
@@ -245,12 +246,7 @@ export function ChatPanel({
       return;
     }
 
-    toast.error(
-      t("assistant.errorGeneric", {
-        message:
-          err instanceof Error ? err.message : t("assistant.errorUnknown"),
-      })
-    );
+    toast.error(getEdgeFunctionErrorMessage(err, t));
     onHardError();
   }, [
     error,

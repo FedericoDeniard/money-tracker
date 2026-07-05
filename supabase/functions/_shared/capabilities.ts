@@ -74,8 +74,12 @@ function internalError(corsHeaders: JsonHeaders): Response {
  * DB on every call, the next gated call after a status change
  * immediately gets the right answer.
  *
- * The relationship name `plan_capabilities` resolves through PostgREST's
- * foreign-key detection (capabilities.plan_id → plans.id → subscriptions.plan_id).
+ * The join path is explicit because PostgREST can only infer
+ * relationships from foreign keys. There is no direct FK between
+ * `payments.subscriptions` and `payments.plan_capabilities` — both
+ * reference `payments.plans` — so we nest through `plan:plans(...)
+ * and the `!inner` modifier guarantees a row is only returned if the
+ * subscription has an active plan that has any capability grants.
  */
 export async function requireCapability(
   ctx: { user: User },
@@ -85,7 +89,9 @@ export async function requireCapability(
   const { data, error } = await supabase
     .schema("payments")
     .from("subscriptions")
-    .select("status, plan_capabilities!inner(capability)")
+    .select(
+      "status, plan:plans(plan_capabilities!inner(capability))"
+    )
     .eq("user_id", ctx.user.id)
     .in("status", [...ACTIVE_SUBSCRIPTION_STATUSES])
     .maybeSingle();
@@ -98,8 +104,20 @@ export async function requireCapability(
     return internalError(corsHeaders);
   }
 
-  const caps = (data?.plan_capabilities ?? []).map(row => row.capability) ?? [];
-  if (!caps.includes(capability)) {
+  // Nested response: data.plan is null when no active subscription
+  // matched; otherwise data.plan.plan_capabilities is the array of
+  // grants for that plan. The supabase-js generated type for the
+  // response shape is finicky for this kind of double-nested select
+  // (it inferred `data.plan` as an array), so we cast to the shape
+  // we actually expect.
+  type Nested = {
+    status: string;
+    plan: { plan_capabilities: Array<{ capability: string }> } | null;
+  };
+  const nested = data as unknown as Nested | null;
+  const nestedCaps =
+    nested?.plan?.plan_capabilities.map(row => row.capability) ?? [];
+  if (!nestedCaps.includes(capability)) {
     return forbidden(corsHeaders, `Requires capability: ${capability}`);
   }
 
@@ -110,6 +128,9 @@ export async function requireCapability(
  * Convenience helper for callers that want the set of capabilities
  * (e.g. to branch on multiple capabilities without gating). Returns a
  * deduplicated union across all active subscriptions.
+ *
+ * Same join path as `requireCapability` (nested through plans) because
+ * of the missing direct FK between subscriptions and plan_capabilities.
  */
 export async function getUserCapabilities(
   userId: string
@@ -117,7 +138,7 @@ export async function getUserCapabilities(
   const { data, error } = await supabase
     .schema("payments")
     .from("subscriptions")
-    .select("plan_capabilities!inner(capability)")
+    .select("plan:plans(plan_capabilities!inner(capability))")
     .eq("user_id", userId)
     .in("status", [...ACTIVE_SUBSCRIPTION_STATUSES]);
 
@@ -126,9 +147,13 @@ export async function getUserCapabilities(
     return [];
   }
 
+  type NestedRow = {
+    plan: { plan_capabilities: Array<{ capability: string }> } | null;
+  };
+  const nested = (data ?? []) as unknown as NestedRow[];
   const caps = new Set<Capability>();
-  for (const row of data ?? []) {
-    for (const pc of row.plan_capabilities ?? []) {
+  for (const row of nested) {
+    for (const pc of row.plan?.plan_capabilities ?? []) {
       if (isCapability(pc.capability)) {
         caps.add(pc.capability);
       }
