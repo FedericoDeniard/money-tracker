@@ -42,7 +42,15 @@ export async function uploadDocumentForAnalysis(
   });
 
   if (!response.ok) {
-    throw new Error(`Upload failed: ${response.statusText}`);
+    // Parse the JSON body so the error message comes from the server's
+    // structured `error` field (e.g. "Requires capability: process_documents")
+    // rather than the generic HTTP statusText "Forbidden". The classifier
+    // in utils/edge-function-errors.ts pattern-matches the body and
+    // substitutes the localized "premium feature" toast.
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(
+      errorBody?.error || `Upload failed: ${response.statusText}`
+    );
   }
 
   const result = await response.json();
