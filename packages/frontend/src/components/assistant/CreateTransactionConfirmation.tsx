@@ -1,17 +1,22 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  ArrowDown,
+  ArrowUp,
+  CheckIcon,
+  ChevronLeft,
+  ChevronRight,
+  CircleAlert,
+  Loader2,
+  XIcon,
+} from "lucide-react";
 import type { ToolUIPart } from "ai";
+import { Button } from "@/components/ui/Button";
+import { TagBadge } from "../tags/TagBadge";
 import { useTags } from "../../hooks/useTags";
 import type { Tag } from "../../types/tags";
-import { CreateTransactionApprovalCard } from "./CreateTransactionApprovalCard";
-import {
-  ProcessingStatus,
-  DeniedStatus,
-  ErrorStatus,
-  ApprovedStatus,
-} from "./ToolConfirmationStatuses";
 
-type CreateTransactionTxn = {
+type Txn = {
   transaction_type?: "income" | "expense";
   name?: string;
   merchant?: string;
@@ -24,7 +29,7 @@ type CreateTransactionTxn = {
 };
 
 type CreateTransactionInput = {
-  transactions: CreateTransactionTxn[];
+  transactions: Txn[];
 };
 
 type CreateTransactionOutputTxn = {
@@ -79,41 +84,24 @@ function isExecutionDeniedOutput(output: unknown): boolean {
   return false;
 }
 
-function summarizeTxns(transactions: CreateTransactionTxn[]): string {
-  return transactions
-    .flatMap(t => [t.name, t.merchant].filter((v): v is string => !!v))
-    .join(", ");
-}
+const ARTICLE_SHELL =
+  "my-3 max-w-md rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm";
+const ROW_SHELL =
+  "my-3 flex w-full max-w-md items-center gap-3 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4";
 
 export function CreateTransactionConfirmation({
   part,
   onApprove,
   onReject,
 }: CreateTransactionConfirmationProps) {
-  const { t } = useTranslation();
-  const [currentIndex, setCurrentIndex] = useState(0);
-
   const transactions = part.input?.transactions ?? [];
+  const [currentIndex, setCurrentIndex] = useState(0);
   const current = transactions[currentIndex] ?? transactions[0];
-
-  const { data: allTags = [] } = useTags();
-  const tagsById = useMemo(
-    () => new Map(allTags.map(tag => [tag.id, tag])),
-    [allTags]
-  );
-  const currentTags = useMemo(() => {
-    if (!current) return [];
-    const tagIds = current.tag_ids ?? [];
-    return tagIds
-      .map(id => tagsById.get(id))
-      .filter((tag): tag is Tag => !!tag);
-  }, [current, tagsById]);
 
   if (part.state === "input-streaming" || part.state === "input-available") {
     return null;
   }
-
-  if (!transactions || transactions.length === 0) {
+  if (!part.input?.transactions || part.input.transactions.length === 0) {
     return null;
   }
 
@@ -121,39 +109,377 @@ export function CreateTransactionConfirmation({
     part.state === "output-denied" ||
     (part.state === "output-available" && isExecutionDeniedOutput(part.output));
   const total = transactions.length;
-  const showCarousel = total > 1;
-  const summary = summarizeTxns(transactions);
 
   if (part.state === "approval-requested" && current) {
-    const approvalId = part.approval.id;
     return (
       <CreateTransactionApprovalCard
+        part={part}
         current={current}
-        total={total}
-        showCarousel={showCarousel}
         currentIndex={currentIndex}
-        resolvedTags={currentTags}
-        approvalId={approvalId}
+        total={total}
+        showCarousel={total > 1}
         onPrev={() => setCurrentIndex(i => Math.max(0, i - 1))}
         onNext={() => setCurrentIndex(i => Math.min(total - 1, i + 1))}
-        onApprove={onApprove}
-        onReject={onReject}
+        onApprove={() => onApprove(part.approval.id)}
+        onReject={() => onReject(part.approval.id)}
       />
     );
   }
 
   if (part.state === "approval-responded") {
-    const wasApproved = part.approval.approved !== false;
-    return <ProcessingStatus approved={wasApproved} count={total} t={t} />;
+    return (
+      <CreateTransactionProcessingRow
+        wasApproved={part.approval.approved !== false}
+        total={total}
+      />
+    );
   }
 
   if (isDenied) {
-    return <DeniedStatus count={total} summary={summary} t={t} />;
+    return (
+      <CreateTransactionDeniedRow
+        total={total}
+        summary={summarizeTransactions(transactions)}
+      />
+    );
   }
 
   if (part.state === "output-error") {
-    return <ErrorStatus errorText={part.errorText} t={t} />;
+    return <CreateTransactionErrorRow errorText={part.errorText} />;
   }
 
-  return <ApprovedStatus count={total} summary={summary} />;
+  if (part.state === "output-available") {
+    return (
+      <CreateTransactionSuccessRow
+        total={total}
+        summary={summarizeOutputTransactions(part.output.transactions)}
+      />
+    );
+  }
+
+  return null;
+}
+
+function summarizeTransactions(transactions: Txn[]): string {
+  return transactions
+    .flatMap(t => [t.name, t.merchant].filter((v): v is string => !!v))
+    .join(", ");
+}
+
+function summarizeOutputTransactions(
+  transactions: CreateTransactionOutputTxn[]
+): string {
+  return transactions
+    .flatMap(t => [t.name, t.merchant].filter((v): v is string => !!v))
+    .join(", ");
+}
+
+interface CreateTransactionApprovalCardProps {
+  part: CreateTransactionToolUIPart;
+  current: Txn;
+  currentIndex: number;
+  total: number;
+  showCarousel: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+}
+
+function CreateTransactionApprovalCard({
+  current,
+  currentIndex,
+  total,
+  showCarousel,
+  onPrev,
+  onNext,
+  onApprove,
+  onReject,
+}: CreateTransactionApprovalCardProps) {
+  const { t } = useTranslation();
+  const { data: allTags = [] } = useTags();
+  const tagsById = useMemo(
+    () => new Map(allTags.map(tag => [tag.id, tag])),
+    [allTags]
+  );
+  const currentTags = useMemo(() => {
+    const ids = current.tag_ids ?? [];
+    return ids.map(id => tagsById.get(id)).filter((tag): tag is Tag => !!tag);
+  }, [current, tagsById]);
+
+  const type = current.transaction_type;
+  const isIncome = type === "income";
+  const isExpense = type === "expense";
+  const currency = current.currency ?? "USD";
+  const amountDisplay =
+    current.amount != null ? current.amount.toLocaleString() : "—";
+  const amountValue = `${isIncome ? "+" : isExpense ? "-" : ""}${currency} ${amountDisplay}`;
+
+  return (
+    <article
+      className={ARTICLE_SHELL}
+      aria-label={t("assistant.createTransaction.title", { count: total })}
+    >
+      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
+        {t("assistant.createTransaction.title", { count: total })}
+      </h3>
+      <p className="text-sm text-[var(--text-secondary)] mb-5">
+        {t("assistant.createTransaction.subtitle", { count: total })}
+      </p>
+
+      {showCarousel && (
+        <div className="flex items-center justify-center gap-1 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onPrev}
+            disabled={currentIndex === 0}
+            aria-label={t("assistant.createTransaction.previous")}
+            icon={<ChevronLeft size={16} />}
+          />
+          <span className="min-w-12 text-center text-sm tabular-nums text-[var(--text-secondary)]">
+            {t("assistant.createTransaction.counter", {
+              current: currentIndex + 1,
+              total,
+            })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNext}
+            disabled={currentIndex === total - 1}
+            aria-label={t("assistant.createTransaction.next")}
+            icon={<ChevronRight size={16} />}
+          />
+        </div>
+      )}
+
+      <div className="flex justify-center mb-4">
+        <div
+          className={`p-4 rounded-2xl ${
+            isIncome
+              ? "bg-green-100 text-green-600"
+              : isExpense
+                ? "bg-red-100 text-red-600"
+                : "bg-zinc-100 text-zinc-600"
+          }`}
+        >
+          {isIncome ? (
+            <ArrowDown strokeWidth={3} size={32} />
+          ) : (
+            <ArrowUp strokeWidth={3} size={32} />
+          )}
+        </div>
+      </div>
+
+      <div className="text-center mb-5">
+        <p className="text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+          {amountValue}
+        </p>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <DetailField
+          label={t("assistant.createTransaction.amount")}
+          value={amountValue}
+        />
+        <DetailField
+          label={t("assistant.createTransaction.merchant")}
+          value={current.merchant ?? "—"}
+        />
+        <DetailField
+          label={t("assistant.createTransaction.category")}
+          value={current.category ?? "—"}
+        />
+        <DetailField
+          label={t("assistant.createTransaction.date")}
+          value={current.transaction_date ?? "—"}
+        />
+        {current.name && (
+          <DetailField
+            label={t("assistant.createTransaction.name")}
+            value={current.name}
+            wide
+          />
+        )}
+        {current.transaction_description && (
+          <DetailField
+            label={t("assistant.createTransaction.description")}
+            value={current.transaction_description}
+            wide
+          />
+        )}
+        {currentTags.length > 0 && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-xs font-medium text-[var(--text-secondary)]">
+              {t("tags.title", "Tags")}
+            </dt>
+            <dd className="flex flex-wrap gap-1.5 mt-1">
+              {currentTags.map(tag => (
+                <TagBadge
+                  key={tag.id}
+                  name={tag.name}
+                  color={tag.color}
+                  size="sm"
+                />
+              ))}
+            </dd>
+          </div>
+        )}
+      </dl>
+
+      <footer className="mt-5 flex items-center justify-end gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<XIcon size={16} />}
+          onClick={onReject}
+        >
+          {t("common.cancel")}
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<CheckIcon size={16} />}
+          onClick={onApprove}
+        >
+          {t("common.confirm")}
+        </Button>
+      </footer>
+    </article>
+  );
+}
+
+function DetailField({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "col-span-2 min-w-0" : "min-w-0"}>
+      <dt className="text-xs font-medium text-[var(--text-secondary)]">
+        {label}
+      </dt>
+      <dd className="truncate font-medium text-[var(--text-primary)]">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function CreateTransactionProcessingRow({
+  wasApproved,
+  total,
+}: {
+  wasApproved: boolean;
+  total: number;
+}) {
+  const { t } = useTranslation();
+  const processingKey = wasApproved
+    ? "assistant.createTransaction.processing"
+    : "assistant.createTransaction.canceling";
+  return (
+    <div className={ROW_SHELL} aria-label={t(processingKey, { count: total })}>
+      <Loader2
+        className={`size-4 shrink-0 animate-spin ${
+          wasApproved ? "text-[var(--text-secondary)]" : "text-rose-600"
+        }`}
+      />
+      <span className="text-sm font-medium text-[var(--text-primary)]">
+        {t(processingKey, { count: total })}
+      </span>
+    </div>
+  );
+}
+
+function CreateTransactionDeniedRow({
+  total,
+  summary,
+}: {
+  total: number;
+  summary: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={ROW_SHELL}
+      aria-label={t("assistant.createTransaction.rejected", { count: total })}
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700">
+        <XIcon className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
+          {t("assistant.createTransaction.rejected", { count: total })}
+        </p>
+        {summary && (
+          <p className="truncate text-xs text-[var(--text-secondary)]">
+            {summary}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreateTransactionErrorRow({
+  errorText,
+}: {
+  errorText: string | undefined;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={ROW_SHELL}
+      aria-label={t("assistant.createTransaction.error")}
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+        <CircleAlert className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
+          {t("assistant.createTransaction.error")}
+        </p>
+        {errorText && (
+          <p className="truncate text-xs text-[var(--text-secondary)]">
+            {errorText}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreateTransactionSuccessRow({
+  total,
+  summary,
+}: {
+  total: number;
+  summary: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={ROW_SHELL}
+      aria-label={t("assistant.createTransaction.approved", { count: total })}
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+        <CheckIcon className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
+          {t("assistant.createTransaction.approved", { count: total })}
+        </p>
+        {summary && (
+          <p className="line-clamp-2 text-xs text-[var(--text-secondary)]">
+            {summary}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }

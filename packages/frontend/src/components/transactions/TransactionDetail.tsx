@@ -1,18 +1,18 @@
+import { Check, Copy, Edit, Trash2, ArrowDown, ArrowUp, X } from "lucide-react";
+import { Button } from "../ui/Button";
+import type { Transaction } from "../../services/transactions.service";
+import { getTransactionType } from "../../utils/transactionUtils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Edit, Trash2, X } from "lucide-react";
-import { Button } from "../ui/Button";
+import { useTranslateCategory } from "../../hooks/useTranslateCategory";
+import { useFormatDate } from "../../hooks/useFormatDate";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { TransactionAttachments } from "./TransactionAttachments";
 import { ReportSelector } from "../reports/ReportSelector";
-import { TransactionDetailHeader } from "./TransactionDetailHeader";
-import { TransactionDetailMetadata } from "./TransactionDetailMetadata";
-import { TransactionDetailTags } from "./TransactionDetailTags";
+import { TagSelector } from "../tags/TagSelector";
 import { useTagMutations } from "../../hooks/useTagMutations";
-import { useTags } from "../../hooks/useTags";
 import { useReportMutations } from "../../hooks/useReportMutations";
-import type { Transaction } from "../../services/transactions.service";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -28,23 +28,34 @@ export function TransactionDetail({
   onClose,
 }: TransactionDetailProps) {
   const { t } = useTranslation();
+  const { isIncome } = getTransactionType(
+    transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
+  );
+
+  const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { translateCategory } = useTranslateCategory();
+  const { formatDateTime } = useFormatDate();
 
+  // Tags are read from the React Query cache (transaction.tags). The
+  // `useTagMutations` mutation optimistically writes the new tag list back
+  // into the same cache via `queryKeys.transactions.all`, so add/remove
+  // re-renders happen there without us mirroring the value in local state.
   const { setTransactionTags, isSettingTransactionTags } = useTagMutations();
-  const { data: allTags = [] } = useTags();
   const { assignTransactionToReport, isAssigning } = useReportMutations();
 
-  const handleChangeTags = async (ids: string[]) => {
-    try {
-      await setTransactionTags({
-        transactionId: transaction.id,
-        tagIds: ids,
-      });
-    } catch (error) {
+  const handleChangeTags = (ids: string[]) => {
+    // The TagSelector's `onChange` passes the full new selected list
+    // (toggle semantics). The mutation's onMutate writes the optimistic
+    // list straight into the transactions cache; no local mirror needed.
+    void setTransactionTags({
+      transactionId: transaction.id,
+      tagIds: ids,
+    }).catch(error => {
       console.error("Error updating transaction tags:", error);
-    }
+    });
   };
 
   const handleAssignReport = async (reportId: string | null) => {
@@ -58,8 +69,17 @@ export function TransactionDetail({
     }
   };
 
+  const handleCopyId = () => {
+    if (typeof window !== "undefined" && window.navigator?.clipboard) {
+      window.navigator.clipboard.writeText(transaction.source_message_id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const handleDelete = async () => {
     if (!onDelete) return;
+
     setIsDeleting(true);
     try {
       await onDelete(transaction.id);
@@ -77,42 +97,155 @@ export function TransactionDetail({
     await onUpdate(transaction.id, updates);
   };
 
-  // The selected tag ids are derived from the transaction prop. The mutation's
-  // onMutate already pushes optimistic updates into the transactions cache,
-  // so the prop is the source of truth — no local mirror needed.
-  const selectedTagIds = transaction.tags?.map(tag => tag.id) ?? [];
+  const amountColor = "text-[var(--text-primary)]";
+
+  // Format date and time
+  let dateTimeStr: string;
+  try {
+    dateTimeStr = formatDateTime(
+      transaction.transaction_date || transaction.date
+    );
+  } catch {
+    dateTimeStr = "Invalid date";
+  }
+
+  let amountDisplay: string;
+  try {
+    amountDisplay = transaction.amount.toLocaleString();
+  } catch {
+    amountDisplay = "error";
+  }
 
   return (
     <div className="h-full flex flex-col bg-white lg:rounded-3xl relative lg:shadow-sm lg:border border-zinc-100">
+      {/* Mobile Close Button */}
       {onClose && (
         <Button
-          type="button"
           onClick={onClose}
           variant="ghost"
           size="sm"
           icon={<X size={20} />}
           className="lg:hidden absolute top-4 right-4 z-10"
-          aria-label={t("common.close")}
         />
       )}
 
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6">
-        <TransactionDetailHeader transaction={transaction} />
-
-        <div className="space-y-6 px-1 mt-4">
-          <TransactionDetailMetadata transaction={transaction} />
+        {/* Header with Icon */}
+        <div className="flex justify-center mb-6 mt-2">
+          <div
+            className={`p-4 rounded-2xl ${
+              isIncome
+                ? "bg-green-100 text-green-600"
+                : "bg-red-100 text-red-600"
+            }`}
+          >
+            {isIncome ? (
+              <ArrowDown strokeWidth={3} size={32} />
+            ) : (
+              <ArrowUp strokeWidth={3} size={32} />
+            )}
+          </div>
         </div>
 
-        <div className="mt-6 px-1">
-          <TransactionDetailTags
-            label={t("tags.title", "Tags")}
-            selectedIds={selectedTagIds}
-            allTags={allTags}
-            disabled={isSettingTransactionTags}
-            onChange={handleChangeTags}
+        {/* Amount */}
+        <div className="text-center mb-3">
+          <h1
+            className={`text-3xl font-semibold ${amountColor} tracking-tight`}
+          >
+            {isIncome ? "+" : "-"}
+            {transaction.currency} {amountDisplay}
+          </h1>
+        </div>
+
+        {/* Context Pill */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
+            <div
+              className={`size-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
+            />
+            <span className="font-medium text-[var(--text-primary)]">
+              {transaction.merchant || t("transactions.unknown")}
+            </span>
+            <span className="text-zinc-300 text-xs">•</span>
+            <span className="capitalize">
+              {translateCategory(transaction.category)}
+            </span>
+          </div>
+        </div>
+
+        {/* Details List */}
+        <div className="space-y-6 px-1">
+          <DetailRow label={t("transactions.dateTime")} value={dateTimeStr} />
+
+          <DetailRow
+            label={t("transactions.type")}
+            value={
+              isIncome ? t("transactions.income") : t("transactions.expense")
+            }
           />
+
+          <DetailRow
+            label={
+              isIncome
+                ? t("transactions.receivedFrom")
+                : t("transactions.merchant")
+            }
+            value={transaction.merchant || t("transactions.unknown")}
+          />
+
+          <DetailRow
+            label={t("transactions.description")}
+            value={transaction.transaction_description}
+          />
+
+          <DetailRow
+            label={t("transactions.amount")}
+            value={`${transaction.currency} ${amountDisplay}`}
+          />
+
+          <div className="flex items-center justify-between py-1">
+            <span className="text-[var(--text-secondary)] text-sm">
+              {t("transactions.reference")}
+            </span>
+            <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium text-sm text-right overflow-hidden pl-4">
+              <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
+                {transaction.source_message_id}
+              </span>
+              <Button
+                onClick={handleCopyId}
+                variant="ghost"
+                size="sm"
+                icon={
+                  copied ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <Copy size={14} />
+                  )
+                }
+                title={t("common.copy")}
+              />
+            </div>
+          </div>
         </div>
 
+        {/* Tags */}
+        <div className="mt-6 px-1">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[var(--text-secondary)] text-sm font-medium">
+              {t("tags.title", "Tags")}
+            </span>
+            <TagSelector
+              mode="assign"
+              value={(transaction.tags ?? []).map(t => t.id)}
+              onChange={handleChangeTags}
+              disabled={isSettingTransactionTags}
+              iconOnly
+            />
+          </div>
+        </div>
+
+        {/* Report */}
         <div className="mt-4 px-1">
           <ReportSelector
             label={t("reports.title", "Report")}
@@ -122,13 +255,14 @@ export function TransactionDetail({
           />
         </div>
 
+        {/* Attachments */}
         <TransactionAttachments transactionId={transaction.id} />
       </div>
 
+      {/* Footer Actions — always visible at the bottom */}
       <div className="shrink-0 p-6 pt-4 border-t border-zinc-100">
         <div className="flex gap-3">
           <Button
-            type="button"
             onClick={() => setShowDeleteModal(true)}
             variant="danger"
             size="md"
@@ -138,7 +272,6 @@ export function TransactionDetail({
             {t("transactions.delete")}
           </Button>
           <Button
-            type="button"
             onClick={() => setShowEditModal(true)}
             variant="secondary"
             size="md"
@@ -150,6 +283,7 @@ export function TransactionDetail({
         </div>
       </div>
 
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -157,10 +291,11 @@ export function TransactionDetail({
         title={t("transactions.deleteTransaction")}
         message={t("transactions.deleteConfirmation")}
         confirmText={t("transactions.delete")}
-        isDestructive
+        isDestructive={true}
         isLoading={isDeleting}
       />
 
+      {/* Edit Modal */}
       <EditTransactionModal
         key={transaction.id}
         isOpen={showEditModal}
@@ -168,6 +303,23 @@ export function TransactionDetail({
         onSave={handleUpdate}
         transaction={transaction}
       />
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-[var(--text-secondary)] text-sm">{label}</span>
+      <span className="text-[var(--text-primary)] font-medium text-sm text-right">
+        {value}
+      </span>
     </div>
   );
 }

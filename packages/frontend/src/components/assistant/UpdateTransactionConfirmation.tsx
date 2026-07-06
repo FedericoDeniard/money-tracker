@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import type { ToolUIPart } from "ai";
 import { getSupabase } from "../../lib/supabase";
+import { TagBadge } from "../tags/TagBadge";
 import { ToolApprovalCard } from "./ToolApprovalCard";
 import { useTags } from "../../hooks/useTags";
 import type { Tag } from "../../types/tags";
-import {
-  UpdateTransactionApprovalContent,
-  type UpdateFieldValue,
-  type TransactionDetailShape,
-} from "./UpdateTransactionApprovalBody";
 
-type UpdateFields = UpdateFieldValue;
+type UpdateFields = {
+  category?: string;
+  name?: string;
+  merchant?: string;
+  amount?: number;
+  currency?: string;
+  transaction_description?: string;
+  transaction_type?: "income" | "expense";
+  transaction_date?: string;
+  tag_ids?: string[];
+};
 
 type UpdateTransactionInput = {
   transactionId: string;
@@ -30,37 +39,106 @@ interface UpdateTransactionConfirmationProps {
   onReject: (id: string) => void;
 }
 
-export function UpdateTransactionConfirmation({
-  part,
-  onApprove,
-  onReject,
-}: UpdateTransactionConfirmationProps) {
-  const [detail, setDetail] = useState<TransactionDetailShape | null>(null);
+interface TransactionDetail {
+  id: string;
+  name: string | null;
+  merchant: string | null;
+  amount: number | null;
+  currency: string | null;
+  transaction_date: string | null;
+  transaction_type: string | null;
+  category: string | null;
+  transaction_description: string | null;
+}
+
+const FIELD_LABELS: Partial<Record<keyof UpdateFields, string>> = {
+  category: "assistant.createTransaction.category",
+  name: "assistant.createTransaction.name",
+  merchant: "assistant.createTransaction.merchant",
+  amount: "assistant.createTransaction.amount",
+  currency: "assistant.updateTransaction.fields.currency",
+  transaction_description: "assistant.createTransaction.description",
+  transaction_type: "assistant.createTransaction.type",
+  transaction_date: "assistant.createTransaction.date",
+};
+
+function formatValue(
+  field: keyof UpdateFields,
+  value: string | number | null | undefined
+): string {
+  if (value === undefined || value === null || value === "") return "—";
+  if (field === "amount" && typeof value === "number") {
+    return value.toLocaleString();
+  }
+  if (field === "transaction_type" && typeof value === "string") {
+    return value;
+  }
+  return String(value);
+}
+
+/** Single-pass resolution of tag ids against the user's tag catalog. */
+function resolveTagIds(ids: string[], lookup: Map<string, Tag>): Tag[] {
+  const out: Tag[] = [];
+  for (const id of ids) {
+    const tag = lookup.get(id);
+    if (tag) out.push(tag);
+  }
+  return out;
+}
+
+/**
+ * Single-pass diff of two tag-id lists against the catalog. Returns tags
+ * that were added (in `after` but not `before`) and removed (vice versa).
+ */
+function diffTagLists(
+  before: string[],
+  after: string[],
+  lookup: Map<string, Tag>
+): { addedTags: Tag[]; removedTags: Tag[] } {
+  const beforeSet = new Set(before);
+  const afterSet = new Set(after);
+  const addedTags: Tag[] = [];
+  const removedTags: Tag[] = [];
+
+  for (const id of after) {
+    if (!beforeSet.has(id)) {
+      const tag = lookup.get(id);
+      if (tag) addedTags.push(tag);
+    }
+  }
+  for (const id of before) {
+    if (!afterSet.has(id)) {
+      const tag = lookup.get(id);
+      if (tag) removedTags.push(tag);
+    }
+  }
+  return { addedTags, removedTags };
+}
+
+interface DetailFetchResult {
+  detail: TransactionDetail | null;
+  currentTagIds: string[];
+  loading: boolean;
+  notFound: boolean;
+}
+
+/** Loads the current transaction row + its tag associations on demand. */
+function useTransactionDetail(
+  transactionId: string,
+  enabled: boolean
+): DetailFetchResult {
+  const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [currentTagIds, setCurrentTagIds] = useState<string[]>([]);
-  const [fetchLoading, setFetchLoading] = useState(true);
-
-  const { data: allTags = [] } = useTags();
-  const tagsById = useMemo(
-    () => new Map(allTags.map(tag => [tag.id, tag])),
-    [allTags]
-  );
-
-  const input = part.input;
-  const transactionId = input?.transactionId ?? "";
-  const updates = input?.updates ?? {};
-  const loading = transactionId !== "" && fetchLoading;
-
-  const changedFields = Object.keys(updates).filter(
-    (k): k is keyof UpdateFields =>
-      updates[k as keyof UpdateFields] !== undefined &&
-      updates[k as keyof UpdateFields] !== null
-  );
+  const [loading, setLoading] = useState(enabled);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (part.state !== "approval-requested") return;
-    if (!transactionId) return;
+    if (!enabled || !transactionId) return;
 
     let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+
     void (async () => {
       const supabase = await getSupabase();
       const [detailRes, tagsRes] = await Promise.all([
@@ -81,55 +159,83 @@ export function UpdateTransactionConfirmation({
       if (cancelled) return;
       if (detailRes.error) {
         setDetail(null);
+        setNotFound(true);
       } else {
-        setDetail(detailRes.data as unknown as TransactionDetailShape);
+        setDetail(detailRes.data as unknown as TransactionDetail);
       }
       setCurrentTagIds(
         ((tagsRes.data ?? []) as unknown as Array<{ tag_id: string }>).map(
           r => r.tag_id
         )
       );
-      setFetchLoading(false);
+      setLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [part.state, transactionId]);
+  }, [transactionId, enabled]);
 
-  const tagsChanged = updates.tag_ids !== undefined;
-  const nextTagIds: string[] = updates.tag_ids ?? currentTagIds;
-  const addedTagIds: string[] = tagsChanged
-    ? nextTagIds.filter(id => !currentTagIds.includes(id))
-    : [];
-  const removedTagIds: string[] = tagsChanged
-    ? currentTagIds.filter(id => !nextTagIds.includes(id))
-    : [];
-  const addedTags = addedTagIds
-    .map((id): Tag | undefined => tagsById.get(id))
-    .filter((t): t is Tag => !!t);
-  const removedTags = removedTagIds
-    .map((id): Tag | undefined => tagsById.get(id))
-    .filter((t): t is Tag => !!t);
-  const finalTags = nextTagIds
-    .map((id): Tag | undefined => tagsById.get(id))
-    .filter((t): t is Tag => !!t);
+  return { detail, currentTagIds, loading, notFound };
+}
+
+export function UpdateTransactionConfirmation({
+  part,
+  onApprove,
+  onReject,
+}: UpdateTransactionConfirmationProps) {
+  const input = part.input;
+  const transactionId = input?.transactionId ?? "";
+  const updates = input?.updates ?? {};
+  const enabled = part.state === "approval-requested";
+
+  const { detail, currentTagIds, loading, notFound } = useTransactionDetail(
+    transactionId,
+    enabled
+  );
 
   const summary = detail?.name ?? detail?.merchant ?? "";
 
-  const isIncome =
-    updates.transaction_type === "income" ||
-    (!updates.transaction_type && detail?.transaction_type === "income");
-  const isExpense =
-    updates.transaction_type === "expense" ||
-    (!updates.transaction_type && detail?.transaction_type === "expense");
+  let content: React.ReactNode;
+  if (loading) {
+    content = <UpdateApprovalLoading />;
+  } else if (notFound || !detail) {
+    content = <UpdateApprovalNotFound />;
+  } else {
+    content = (
+      <UpdateApprovalContent
+        detail={detail}
+        updates={updates}
+        currentTagIds={currentTagIds}
+      />
+    );
+  }
 
-  const effectiveCurrency = updates.currency ?? detail?.currency ?? "USD";
-  const effectiveAmount = updates.amount ?? detail?.amount ?? null;
-  const amountDisplay =
-    effectiveAmount != null ? effectiveAmount.toLocaleString() : "—";
-  const amountValue = `${isIncome ? "+" : isExpense ? "-" : ""}${effectiveCurrency} ${amountDisplay}`;
+  return (
+    <ApprovalCardShell
+      part={part}
+      onApprove={onApprove}
+      onReject={onReject}
+      summary={summary}
+    >
+      {content}
+    </ApprovalCardShell>
+  );
+}
 
+function ApprovalCardShell({
+  part,
+  onApprove,
+  onReject,
+  summary,
+  children,
+}: {
+  part: UpdateTransactionToolUIPart;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  summary: string;
+  children: React.ReactNode;
+}) {
   return (
     <ToolApprovalCard
       part={part}
@@ -139,20 +245,333 @@ export function UpdateTransactionConfirmation({
       count={1}
       summary={summary}
     >
-      <UpdateTransactionApprovalContent
-        loading={loading}
-        detail={detail}
-        updates={updates}
-        changedFields={changedFields}
+      {children}
+    </ToolApprovalCard>
+  );
+}
+
+function UpdateApprovalLoading() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2 py-8 text-sm text-[var(--text-secondary)]">
+      <Loader2 className="size-4 animate-spin" />
+      {t("assistant.deleteTransaction.loadingDetails")}
+    </div>
+  );
+}
+
+function UpdateApprovalNotFound() {
+  const { t } = useTranslation();
+  return (
+    <p className="py-4 text-sm text-[var(--text-secondary)]">
+      {t("assistant.updateTransaction.notFound")}
+    </p>
+  );
+}
+
+function UpdateApprovalContent({
+  detail,
+  updates,
+  currentTagIds,
+}: {
+  detail: TransactionDetail;
+  updates: UpdateFields;
+  currentTagIds: string[];
+}) {
+  const { t } = useTranslation();
+  const { data: allTags = [] } = useTags();
+  const tagsById = useMemo(
+    () => new Map(allTags.map(tag => [tag.id, tag])),
+    [allTags]
+  );
+
+  const changedFields = Object.keys(updates).filter(
+    (k): k is keyof UpdateFields =>
+      updates[k as keyof UpdateFields] !== undefined &&
+      updates[k as keyof UpdateFields] !== null
+  );
+
+  const isIncome =
+    updates.transaction_type === "income" ||
+    (!updates.transaction_type && detail.transaction_type === "income");
+  const isExpense =
+    updates.transaction_type === "expense" ||
+    (!updates.transaction_type && detail.transaction_type === "expense");
+
+  const effectiveCurrency = updates.currency ?? detail.currency ?? "USD";
+  const effectiveAmount = updates.amount ?? detail.amount ?? null;
+  const amountDisplay =
+    effectiveAmount != null ? effectiveAmount.toLocaleString() : "—";
+  const amountValue = `${isIncome ? "+" : isExpense ? "-" : ""}${effectiveCurrency} ${amountDisplay}`;
+
+  return (
+    <>
+      <UpdateHeader
         isIncome={isIncome}
         isExpense={isExpense}
         amountValue={amountValue}
-        tagsChanged={tagsChanged}
-        currentTagIds={currentTagIds}
-        addedTags={addedTags}
-        removedTags={removedTags}
-        finalTags={finalTags}
       />
-    </ToolApprovalCard>
+      <UpdateFieldsList
+        detail={detail}
+        updates={updates}
+        changedFields={changedFields}
+        t={t}
+      />
+      <UpdateTagsSection
+        updates={updates}
+        currentTagIds={currentTagIds}
+        tagsById={tagsById}
+        t={t}
+      />
+    </>
+  );
+}
+
+function UpdateHeader({
+  isIncome,
+  isExpense,
+  amountValue,
+}: {
+  isIncome: boolean;
+  isExpense: boolean;
+  amountValue: string;
+}) {
+  return (
+    <>
+      <div className="mb-4 flex justify-center">
+        <div
+          className={`p-4 rounded-2xl ${
+            isIncome
+              ? "bg-green-100 text-green-600"
+              : isExpense
+                ? "bg-red-100 text-red-600"
+                : "bg-zinc-100 text-zinc-600"
+          }`}
+        >
+          {isIncome ? (
+            <ArrowDown strokeWidth={3} size={32} />
+          ) : (
+            <ArrowUp strokeWidth={3} size={32} />
+          )}
+        </div>
+      </div>
+      <div className="mb-5 text-center">
+        <p className="text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+          {amountValue}
+        </p>
+      </div>
+    </>
+  );
+}
+
+function UpdateFieldsList({
+  detail,
+  updates,
+  changedFields,
+  t,
+}: {
+  detail: TransactionDetail;
+  updates: UpdateFields;
+  changedFields: (keyof UpdateFields)[];
+  t: TFunction;
+}) {
+  return (
+    <dl className="mb-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+      {(
+        [
+          "amount",
+          "merchant",
+          "category",
+          "transaction_date",
+        ] as (keyof UpdateFields)[]
+      ).map(field => (
+        <UpdateDiffField
+          key={field}
+          field={field}
+          currentValue={
+            (detail as unknown as Record<string, unknown>)[
+              field === "transaction_date" ? "transaction_date" : field
+            ] as string | number | null
+          }
+          newValue={updates[field] as string | number | null | undefined}
+          isChanged={changedFields.includes(field)}
+          t={t}
+        />
+      ))}
+      {(changedFields.includes("name") || detail.name) && (
+        <UpdateWideDiffField
+          labelKey="name"
+          wide
+          label={t(FIELD_LABELS.name ?? "name")}
+          currentDisplay={detail.name ?? "—"}
+          newDisplay={updates.name}
+          isChanged={changedFields.includes("name")}
+        />
+      )}
+      {(changedFields.includes("transaction_description") ||
+        detail.transaction_description) && (
+        <UpdateWideDiffField
+          labelKey="description"
+          wide
+          label={t(FIELD_LABELS.transaction_description ?? "description")}
+          currentDisplay={detail.transaction_description ?? "—"}
+          newDisplay={updates.transaction_description}
+          isChanged={changedFields.includes("transaction_description")}
+        />
+      )}
+    </dl>
+  );
+}
+
+function UpdateDiffField({
+  field,
+  currentValue,
+  newValue,
+  isChanged,
+  t,
+}: {
+  field: keyof UpdateFields;
+  currentValue: string | number | null;
+  newValue: string | number | null | undefined;
+  isChanged: boolean;
+  t: TFunction;
+}) {
+  const currentDisplay = formatValue(field, currentValue);
+  const newDisplay = formatValue(field, newValue);
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs font-medium text-[var(--text-secondary)]">
+        {t(FIELD_LABELS[field] ?? field)}
+      </dt>
+      {isChanged ? (
+        <dd className="truncate">
+          <span className="font-medium text-[var(--text-secondary)] line-through">
+            {currentDisplay}
+          </span>{" "}
+          <span className="font-semibold text-[var(--text-primary)]">
+            {newDisplay}
+          </span>
+        </dd>
+      ) : (
+        <dd className="truncate font-medium text-[var(--text-primary)]">
+          {currentDisplay}
+        </dd>
+      )}
+    </div>
+  );
+}
+
+function UpdateWideDiffField({
+  labelKey: _labelKey,
+  wide: _wide,
+  label,
+  currentDisplay,
+  newDisplay,
+  isChanged,
+}: {
+  labelKey: string;
+  wide: boolean;
+  label: string;
+  currentDisplay: string;
+  newDisplay: string | undefined;
+  isChanged: boolean;
+}) {
+  return (
+    <div className="col-span-2 min-w-0">
+      <dt className="text-xs font-medium text-[var(--text-secondary)]">
+        {label}
+      </dt>
+      {isChanged ? (
+        <dd>
+          {currentDisplay !== "—" && (
+            <span className="font-medium text-[var(--text-secondary)] line-through">
+              {currentDisplay}
+            </span>
+          )}{" "}
+          <span className="font-semibold text-[var(--text-primary)]">
+            {newDisplay ?? "—"}
+          </span>
+        </dd>
+      ) : (
+        <dd className="font-medium text-[var(--text-primary)]">
+          {currentDisplay}
+        </dd>
+      )}
+    </div>
+  );
+}
+
+function UpdateTagsSection({
+  updates,
+  currentTagIds,
+  tagsById,
+  t,
+}: {
+  updates: UpdateFields;
+  currentTagIds: string[];
+  tagsById: Map<string, Tag>;
+  t: TFunction;
+}) {
+  const tagsChanged = updates.tag_ids !== undefined;
+  const nextTagIds: string[] = updates.tag_ids ?? currentTagIds;
+
+  const { addedTags, removedTags } = tagsChanged
+    ? diffTagLists(currentTagIds, nextTagIds, tagsById)
+    : { addedTags: [], removedTags: [] };
+  const finalTags = resolveTagIds(nextTagIds, tagsById);
+
+  return (
+    <div className="col-span-2 min-w-0">
+      <dt className="text-xs font-medium text-[var(--text-secondary)]">
+        {t("tags.title", "Tags")}
+      </dt>
+      {tagsChanged ? (
+        <dd className="space-y-2">
+          {removedTags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-[var(--text-secondary)]">−</span>
+              {removedTags.map(tag => (
+                <TagBadge
+                  key={`r-${tag.id}`}
+                  name={tag.name}
+                  color={tag.color}
+                  size="sm"
+                  className="opacity-60"
+                />
+              ))}
+            </div>
+          )}
+          {addedTags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-[var(--text-secondary)]">+</span>
+              {addedTags.map(tag => (
+                <TagBadge
+                  key={`a-${tag.id}`}
+                  name={tag.name}
+                  color={tag.color}
+                  size="sm"
+                />
+              ))}
+            </div>
+          )}
+          {addedTags.length === 0 && removedTags.length === 0 && (
+            <p className="text-xs text-[var(--text-secondary)]">
+              {t("assistant.updateTransaction.tagsUnchanged")}
+            </p>
+          )}
+        </dd>
+      ) : currentTagIds.length > 0 ? (
+        <dd className="flex flex-wrap gap-1.5">
+          {finalTags.map(tag => (
+            <TagBadge
+              key={tag.id}
+              name={tag.name}
+              color={tag.color}
+              size="sm"
+            />
+          ))}
+        </dd>
+      ) : null}
+    </div>
   );
 }
