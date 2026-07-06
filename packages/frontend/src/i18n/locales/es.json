@@ -221,6 +221,14 @@
       "toOnly": "→ {{to}}",
       "none": "Sin rango de fechas"
     },
+    "export": {
+      "button": "Descargar PDF",
+      "loading": "Generando PDF…",
+      "success": "PDF descargado",
+      "error": "No se pudo generar el PDF",
+      "premiumRequired": "La exportación a PDF es una función premium",
+      "usageLimit": "Alcanzaste el límite mensual de exportación a PDF"
+    },
     "header": {
       "open": "Abrir",
       "actions": "Acciones",

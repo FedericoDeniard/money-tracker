@@ -9,11 +9,12 @@ import { ReportFormModal } from "../components/reports/ReportFormModal";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 import { useReport, useReportTransactions } from "../hooks/useReports";
 import { useReportMutations } from "../hooks/useReportMutations";
+import { useExportReportPdf } from "../hooks/useExportReportPdf";
 
 const PAGE_SIZE = 25;
 
 export function ReportDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { reportId } = useParams();
   const navigate = useNavigate();
 
@@ -31,6 +32,7 @@ export function ReportDetail() {
     isArchiving,
     isDeleting,
   } = useReportMutations();
+  const { exportPdf, isExporting } = useExportReportPdf();
 
   const [editOpen, setEditOpen] = useState(false);
 
@@ -101,13 +103,23 @@ export function ReportDetail() {
     <div className="space-y-6">
       <ReportDetailHeader
         report={report}
-        isUpdating={isUpdating}
-        isArchiving={isArchiving}
-        isDeleting={isDeleting}
+        status={{
+          updating: isUpdating,
+          deleting: isDeleting,
+          archiving: isArchiving,
+          exporting: isExporting,
+        }}
         onEdit={() => setEditOpen(true)}
         onArchive={handleArchive}
         onUnarchive={handleUnarchive}
         onDelete={handleDelete}
+        onExport={() =>
+          void exportPdf({
+            reportId: report.id,
+            title: report.title,
+            locale: i18n.language.startsWith("es") ? "es" : "en",
+          })
+        }
       />
 
       <ReportSummaryStats perCurrency={report.perCurrency} />

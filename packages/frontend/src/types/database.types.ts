@@ -1,4 +1,3 @@
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -2351,6 +2350,7 @@ export type Database = {
         | "push_notifications"
         | "advanced_reports"
         | "process_documents"
+        | "report_pdf_export"
       provider_name: "mercadopago"
     }
     CompositeTypes: {
@@ -3449,6 +3449,7 @@ export const Constants = {
         "push_notifications",
         "advanced_reports",
         "process_documents",
+        "report_pdf_export",
       ],
       provider_name: ["mercadopago"],
     },

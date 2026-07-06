@@ -4,6 +4,7 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  Download,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -13,26 +14,31 @@ import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import type { Report } from "../../types/reports";
 
+export interface ReportDetailStatus {
+  updating: boolean;
+  deleting: boolean;
+  archiving: boolean;
+  exporting: boolean;
+}
+
 interface ReportDetailHeaderProps {
   report: Report;
-  isUpdating: boolean;
-  isDeleting: boolean;
-  isArchiving: boolean;
+  status: ReportDetailStatus;
   onEdit: () => void;
   onArchive: () => Promise<void>;
   onUnarchive: () => Promise<void>;
   onDelete: () => Promise<void>;
+  onExport: () => void;
 }
 
 export function ReportDetailHeader({
   report,
-  isUpdating,
-  isDeleting,
-  isArchiving,
+  status,
   onEdit,
   onArchive,
   onUnarchive,
   onDelete,
+  onExport,
 }: ReportDetailHeaderProps) {
   const { t } = useTranslation();
   const [archivePromptOpen, setArchivePromptOpen] = useState(false);
@@ -42,7 +48,8 @@ export function ReportDetailHeader({
   >(null);
 
   const archived = report.status === "archived";
-  const busy = isUpdating || isDeleting || isArchiving;
+  const busy =
+    status.updating || status.deleting || status.archiving || status.exporting;
 
   const handleArchiveToggle = async () => {
     setPendingAction(archived ? "unarchive" : "archive");
@@ -100,6 +107,18 @@ export function ReportDetailHeader({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             type="button"
+            variant="primary"
+            size="sm"
+            icon={<Download size={14} />}
+            onClick={onExport}
+            disabled={busy || status.exporting}
+            loading={status.exporting}
+            aria-label={t("reports.export.button")}
+          >
+            {t("reports.export.button", "Download PDF")}
+          </Button>
+          <Button
+            type="button"
             variant="outline"
             size="sm"
             icon={<Pencil size={14} />}
@@ -136,7 +155,7 @@ export function ReportDetailHeader({
             icon={<Trash2 size={14} />}
             onClick={() => setDeletePromptOpen(true)}
             disabled={busy}
-            loading={isDeleting}
+            loading={status.deleting}
             className="text-rose-600 hover:bg-rose-50"
             aria-label={t("reports.delete", "Delete report")}
           >
@@ -178,7 +197,7 @@ export function ReportDetailHeader({
         })}
         confirmText={t("common.delete")}
         isDestructive
-        closeDisabled={isDeleting}
+        closeDisabled={status.deleting}
       />
     </section>
   );

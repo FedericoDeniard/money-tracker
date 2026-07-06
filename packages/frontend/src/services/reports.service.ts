@@ -281,6 +281,38 @@ class ReportsService {
       );
     }
   }
+
+  /**
+   * Triggers a server-side PDF render of a report. The Edge Function
+   * enforces the `report_pdf_export` capability and a per-period
+   * usage counter; errors propagate as `Error.message` so the hook's
+   * `classifyEdgeFunctionError` can route 403/429 to the right toast.
+   *
+   * `responseType: "blob"` is the supabase-js 2.45+ way of asking for
+   * a raw binary response (the default is JSON parsing). The Edge
+   * Function responds with `Content-Type: application/pdf` and the
+   * hook uses this Blob to trigger a download.
+   */
+  async exportReportPdf(reportId: string, locale: "en" | "es"): Promise<Blob> {
+    const { data, error } = await this.supabase.functions.invoke<Blob>(
+      `export-report-pdf?reportId=${encodeURIComponent(
+        reportId
+      )}&lang=${locale}`,
+      { method: "GET", responseType: "blob" }
+    );
+    if (error) {
+      // Error messages follow the same "Requires capability: X" /
+      // "Usage limit exceeded: X" prefixes the frontend classifier
+      // already understands.
+      throw error;
+    }
+    if (!(data instanceof Blob)) {
+      throw new Error(
+        "Failed to export PDF: edge function did not return a Blob"
+      );
+    }
+    return data;
+  }
 }
 
 export function createReportsService(supabase: SupabaseClient<Database>) {

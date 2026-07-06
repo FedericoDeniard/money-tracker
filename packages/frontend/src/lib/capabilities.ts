@@ -28,6 +28,7 @@ const CAPABILITIES = {
   push_notifications: "push_notifications",
   advanced_reports: "advanced_reports",
   process_documents: "process_documents",
+  report_pdf_export: "report_pdf_export",
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
