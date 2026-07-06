@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowLeft,
   Archive,
   ArchiveRestore,
-  Trash2,
+  ArrowLeft,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/utils";
@@ -59,26 +59,24 @@ export function ReportDetailHeader({
   };
 
   return (
-    <header className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <Link
-          to="/reports"
-          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-        >
-          <ArrowLeft size={14} />
-          {t("reports.back", "Back to reports")}
-        </Link>
-      </div>
+    <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm">
+      <Link
+        to="/reports"
+        className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2"
+      >
+        <ArrowLeft size={12} />
+        {t("reports.back", "Back to reports")}
+      </Link>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-[var(--text-primary)] truncate">
+      <div className="flex flex-row items-start justify-between gap-3 md:gap-4 md:items-center">
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl md:text-2xl font-semibold text-[var(--text-primary)] truncate">
               {report.title}
             </h1>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs shrink-0",
                 archived
                   ? "bg-zinc-100 text-zinc-700"
                   : "bg-emerald-100 text-emerald-700"
@@ -90,7 +88,7 @@ export function ReportDetailHeader({
             </span>
           </div>
           {report.description && (
-            <p className="text-sm text-[var(--text-secondary)] whitespace-pre-line">
+            <p className="text-xs md:text-sm text-[var(--text-secondary)] line-clamp-2 whitespace-pre-line">
               {report.description}
             </p>
           )}
@@ -99,7 +97,7 @@ export function ReportDetailHeader({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -182,7 +180,7 @@ export function ReportDetailHeader({
         isDestructive
         closeDisabled={isDeleting}
       />
-    </header>
+    </section>
   );
 }
 
