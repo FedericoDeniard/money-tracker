@@ -152,7 +152,7 @@ export function CreateTransactionConfirmation({
     return (
       <CreateTransactionSuccessRow
         total={total}
-        summary={summarizeOutputTransactions(part.output.transactions)}
+        summary={summarizeOutputTransactions(part.output?.transactions)}
       />
     );
   }
@@ -167,8 +167,9 @@ function summarizeTransactions(transactions: Txn[]): string {
 }
 
 function summarizeOutputTransactions(
-  transactions: CreateTransactionOutputTxn[]
+  transactions: CreateTransactionOutputTxn[] | undefined
 ): string {
+  if (!Array.isArray(transactions)) return "";
   return transactions
     .flatMap(t => [t.name, t.merchant].filter((v): v is string => !!v))
     .join(", ");
