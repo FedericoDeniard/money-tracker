@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import type { ToolUIPart } from "ai";
 import { getSupabase } from "../../lib/supabase";
 import { TagBadge } from "../tags/TagBadge";
+import { ToolApprovalCard } from "./ToolApprovalCard";
 import { useTags } from "../../hooks/useTags";
 import type { Tag } from "../../types/tags";
 
@@ -220,9 +222,6 @@ export function UpdateTransactionConfirmation({
     </ApprovalCardShell>
   );
 }
-
-import { TFunction } from "i18next";
-import { ToolApprovalCard } from "./ToolApprovalCard";
 
 function ApprovalCardShell({
   part,

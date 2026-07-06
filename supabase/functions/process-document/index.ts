@@ -48,6 +48,11 @@ Deno.serve(async req => {
       return cap;
     }
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // Usage cap. admin bypasses (effectively unlimited); everyone
     // else — including tester — is counted against the per-period
     // budget in payments.usage_limits. We check-and-increment before
@@ -137,11 +142,6 @@ Deno.serve(async req => {
         }
       );
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     let userFullName: string | undefined;
     const { data: userData } = await supabase.auth.admin.getUserById(user.id);
