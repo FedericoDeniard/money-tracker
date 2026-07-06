@@ -134,7 +134,7 @@ function TransactionsList({
 
       {/* Transaction List */}
       <div
-        className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransaction ? "hidden" : "block"}`}
+        className={`w-full lg:w-1/3 bg-[var(--bg-secondary)] rounded-lg overflow-hidden flex flex-col ${isMobile && selectedTransactionId ? "hidden" : "block"}`}
       >
         <div className="p-4 border-b border-[var(--text-secondary)]/20">
           <div className="flex items-center justify-between">
