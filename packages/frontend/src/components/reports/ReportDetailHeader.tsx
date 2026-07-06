@@ -24,6 +24,7 @@ export interface ReportDetailStatus {
 interface ReportDetailHeaderProps {
   report: Report;
   status: ReportDetailStatus;
+  transactionCount: number;
   onEdit: () => void;
   onArchive: () => Promise<void>;
   onUnarchive: () => Promise<void>;
@@ -34,6 +35,7 @@ interface ReportDetailHeaderProps {
 export function ReportDetailHeader({
   report,
   status,
+  transactionCount,
   onEdit,
   onArchive,
   onUnarchive,
@@ -111,9 +113,14 @@ export function ReportDetailHeader({
             size="sm"
             icon={<Download size={14} />}
             onClick={onExport}
-            disabled={busy || status.exporting}
+            disabled={busy || status.exporting || transactionCount === 0}
             loading={status.exporting}
             aria-label={t("reports.export.button")}
+            title={
+              transactionCount === 0
+                ? t("reports.export.disabledHint", "Add transactions first")
+                : undefined
+            }
           >
             {t("reports.export.button", "Download PDF")}
           </Button>

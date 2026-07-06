@@ -227,7 +227,8 @@
       "success": "PDF downloaded",
       "error": "Could not generate PDF",
       "premiumRequired": "PDF export is a premium feature",
-      "usageLimit": "You've reached your monthly PDF export limit"
+      "usageLimit": "You've reached your monthly PDF export limit",
+      "disabledHint": "Add transactions first"
     },
     "header": {
       "open": "Open",
