@@ -151,6 +151,22 @@
     "filter": "Filter",
     "filterPlaceholder": "Filter..."
   },
+  "tags": {
+    "title": "Tags",
+    "selectTags": "Add tags",
+    "noTags": "No tags yet",
+    "addNewTag": "Create new tag",
+    "name": "Name",
+    "namePlaceholder": "Tag name",
+    "color": "Color",
+    "nameRequired": "Tag name is required",
+    "createTag": "New tag",
+    "editTag": "Edit tag",
+    "deleteTag": "Delete tag",
+    "confirmDelete": "Delete tag \"{{name}}\"? It will be removed from all transactions.",
+    "filterByTag": "Tags",
+    "clearAll": "Clear all"
+  },
   "upload": {
     "title": "Upload Document",
     "dragDrop": "Drag and drop your document here",
@@ -379,7 +395,10 @@
     "accountBilling": "Account & Billing",
     "accountBillingTitle": "Manage your subscription",
     "accountBillingDescription": "View your current plan, switch to a different one, or cancel.",
-    "accountBillingAction": "Manage plan"
+    "accountBillingAction": "Manage plan",
+    "tags": "Tags",
+    "tagsTitle": "Transaction tags",
+    "tagsDescription": "Create custom labels to organize your transactions. Tags are complementary to categories and can be assigned from any transaction."
   },
   "accountBilling": {
     "title": "Account & Billing",
@@ -1073,7 +1092,8 @@
       "rejected": "Update cancelled",
       "processing": "Updating transaction…",
       "canceling": "Cancelling update…",
-      "error": "Could not update the transaction"
+      "error": "Could not update the transaction",
+      "tagsUnchanged": "No tag changes"
     }
   }
 }

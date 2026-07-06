@@ -1,7 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
-import { ArrowDownUp, ArrowUpDown, Check, ListFilter, X } from "lucide-react";
+import {
+  ArrowDownUp,
+  ArrowUpDown,
+  Check,
+  ListFilter,
+  Tag as TagIcon,
+  X,
+} from "lucide-react";
 import { nanoid } from "nanoid";
 import {
   DropdownMenu,
@@ -35,6 +42,9 @@ import type { Filter, FilterOption } from "../ui/filters-types";
 
 import type { TransactionFilters } from "../../services/transactions.service";
 import { useTransactionFilters } from "../../hooks/useTransactionFilters";
+import { useTags } from "../../hooks/useTags";
+import { TagBadge } from "../tags/TagBadge";
+import type { TagColor } from "../../constants/tags";
 
 interface TransactionFiltersProps {
   filters: TransactionFilters;
@@ -304,6 +314,136 @@ function FilterPopover({
   );
 }
 
+function TagFilterButton({
+  filters,
+  onFiltersChange,
+  availableTags,
+}: {
+  filters: TransactionFilters;
+  onFiltersChange: (filters: TransactionFilters) => void;
+  availableTags: { id: string; name: string; color: TagColor }[];
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const selectedTagIds = filters.tagIds ?? [];
+
+  const toggle = (id: string) => {
+    const next = selectedTagIds.includes(id)
+      ? selectedTagIds.filter(x => x !== id)
+      : [...selectedTagIds, id];
+    onFiltersChange({
+      ...filters,
+      tagIds: next.length > 0 ? next : undefined,
+    });
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          selected={selectedTagIds.length > 0}
+          size="sm"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "h-8 text-xs rounded-lg flex gap-1.5 items-center",
+            selectedTagIds.length > 0 ? "w-8 px-0 justify-center" : "px-3"
+          )}
+        >
+          <TagIcon className="size-4 shrink-0" />
+          {!selectedTagIds.length && t("tags.filterByTag", "Tags")}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-2">
+        {availableTags.length === 0 ? (
+          <p className="text-xs text-[var(--text-secondary)] py-3 text-center">
+            {t("tags.noTags", "No tags yet")}
+          </p>
+        ) : (
+          <div className="max-h-64 overflow-y-auto space-y-0.5">
+            {availableTags.map(tag => {
+              const isSelected = selectedTagIds.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggle(tag.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-sm hover:bg-[var(--bg-secondary)]"
+                >
+                  <Check
+                    size={14}
+                    className={cn(
+                      "shrink-0",
+                      isSelected ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <TagBadge name={tag.name} color={tag.color} />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function TagFilterChips({
+  filters,
+  onFiltersChange,
+  availableTags,
+}: {
+  filters: TransactionFilters;
+  onFiltersChange: (filters: TransactionFilters) => void;
+  availableTags: { id: string; name: string; color: TagColor }[];
+}) {
+  const { t } = useTranslation();
+  const selectedTagIds = filters.tagIds ?? [];
+  if (selectedTagIds.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {selectedTagIds.map(id => {
+        const tag = availableTags.find(tg => tg.id === id);
+        if (!tag) return null;
+        return (
+          <TagBadge
+            key={id}
+            name={tag.name}
+            color={tag.color}
+            size="sm"
+            onRemove={() =>
+              onFiltersChange({
+                ...filters,
+                tagIds:
+                  selectedTagIds.length > 1
+                    ? selectedTagIds.filter(x => x !== id)
+                    : undefined,
+              })
+            }
+          />
+        );
+      })}
+      {selectedTagIds.length > 1 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            onFiltersChange({
+              ...filters,
+              tagIds: undefined,
+            })
+          }
+          className="text-rose-600 hover:bg-rose-50 h-6 px-2 text-xs rounded-lg"
+        >
+          {t("tags.clearAll", "Clear all")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export function TransactionFiltersComponent({
@@ -317,6 +457,8 @@ export function TransactionFiltersComponent({
   // Dynamic filter lists from hooks
   const { currencies: availableCurrencies, emails: availableEmails } =
     useTransactionFilters();
+
+  const { data: availableTags = [] } = useTags();
 
   // Mapping domain-specific data to generic Filters Array format
   const filtersArray = useMemo(() => {
@@ -547,6 +689,12 @@ export function TransactionFiltersComponent({
             setFilters={updateFiltersArray}
           />
 
+          <TagFilterButton
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            availableTags={availableTags}
+          />
+
           <SortDropdown filters={filters} onFiltersChange={onFiltersChange} />
 
           <FilterPopover
@@ -556,7 +704,7 @@ export function TransactionFiltersComponent({
             filterViewOptions={filterViewOptions}
           />
 
-          {filtersArray.length > 0 && (
+          {(filtersArray.length > 0 || (filters.tagIds?.length ?? 0) > 0) && (
             <Button
               variant="ghost"
               size="sm"
@@ -574,6 +722,16 @@ export function TransactionFiltersComponent({
           )}
         </div>
       </div>
+
+      {(filters.tagIds?.length ?? 0) > 0 && (
+        <div className="mt-3">
+          <TagFilterChips
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            availableTags={availableTags}
+          />
+        </div>
+      )}
     </section>
   );
 }

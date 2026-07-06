@@ -444,8 +444,11 @@ export type Database = {
           input: Json
           isDeleted: boolean
           metadata: Json | null
+          organizationId: string | null
+          projectId: string | null
           requestContext: Json | null
           source: Json | null
+          toolMocks: Json | null
           updatedAt: string
           updatedAtZ: string | null
           validTo: number | null
@@ -461,8 +464,11 @@ export type Database = {
           input: Json
           isDeleted: boolean
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           requestContext?: Json | null
           source?: Json | null
+          toolMocks?: Json | null
           updatedAt: string
           updatedAtZ?: string | null
           validTo?: number | null
@@ -478,8 +484,11 @@ export type Database = {
           input?: Json
           isDeleted?: boolean
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           requestContext?: Json | null
           source?: Json | null
+          toolMocks?: Json | null
           updatedAt?: string
           updatedAtZ?: string | null
           validTo?: number | null
@@ -512,6 +521,8 @@ export type Database = {
       }
       mastra_datasets: {
         Row: {
+          candidateId: string | null
+          candidateKey: string | null
           createdAt: string
           createdAtZ: string | null
           description: string | null
@@ -520,6 +531,8 @@ export type Database = {
           inputSchema: Json | null
           metadata: Json | null
           name: string
+          organizationId: string | null
+          projectId: string | null
           requestContextSchema: Json | null
           scorerIds: Json | null
           tags: Json | null
@@ -530,6 +543,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          candidateId?: string | null
+          candidateKey?: string | null
           createdAt: string
           createdAtZ?: string | null
           description?: string | null
@@ -538,6 +553,8 @@ export type Database = {
           inputSchema?: Json | null
           metadata?: Json | null
           name: string
+          organizationId?: string | null
+          projectId?: string | null
           requestContextSchema?: Json | null
           scorerIds?: Json | null
           tags?: Json | null
@@ -548,6 +565,8 @@ export type Database = {
           version: number
         }
         Update: {
+          candidateId?: string | null
+          candidateKey?: string | null
           createdAt?: string
           createdAtZ?: string | null
           description?: string | null
@@ -556,6 +575,8 @@ export type Database = {
           inputSchema?: Json | null
           metadata?: Json | null
           name?: string
+          organizationId?: string | null
+          projectId?: string | null
           requestContextSchema?: Json | null
           scorerIds?: Json | null
           tags?: Json | null
@@ -580,12 +601,15 @@ export type Database = {
           input: Json
           itemDatasetVersion: number | null
           itemId: string
+          organizationId: string | null
           output: Json | null
+          projectId: string | null
           retryCount: number
           startedAt: string
           startedAtZ: string | null
           status: string | null
           tags: Json | null
+          toolMockReport: Json | null
           traceId: string | null
         }
         Insert: {
@@ -600,12 +624,15 @@ export type Database = {
           input: Json
           itemDatasetVersion?: number | null
           itemId: string
+          organizationId?: string | null
           output?: Json | null
+          projectId?: string | null
           retryCount: number
           startedAt: string
           startedAtZ?: string | null
           status?: string | null
           tags?: Json | null
+          toolMockReport?: Json | null
           traceId?: string | null
         }
         Update: {
@@ -620,12 +647,15 @@ export type Database = {
           input?: Json
           itemDatasetVersion?: number | null
           itemId?: string
+          organizationId?: string | null
           output?: Json | null
+          projectId?: string | null
           retryCount?: number
           startedAt?: string
           startedAtZ?: string | null
           status?: string | null
           tags?: Json | null
+          toolMockReport?: Json | null
           traceId?: string | null
         }
         Relationships: []
@@ -644,6 +674,8 @@ export type Database = {
           id: string
           metadata: Json | null
           name: string | null
+          organizationId: string | null
+          projectId: string | null
           skippedCount: number
           startedAt: string | null
           startedAtZ: string | null
@@ -668,6 +700,8 @@ export type Database = {
           id: string
           metadata?: Json | null
           name?: string | null
+          organizationId?: string | null
+          projectId?: string | null
           skippedCount: number
           startedAt?: string | null
           startedAtZ?: string | null
@@ -692,6 +726,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           name?: string | null
+          organizationId?: string | null
+          projectId?: string | null
           skippedCount?: number
           startedAt?: string | null
           startedAtZ?: string | null
@@ -1454,6 +1490,8 @@ export type Database = {
           createdAtZ: string | null
           id: string
           metadata: Json | null
+          organizationId: string | null
+          projectId: string | null
           status: string
           updatedAt: string
           updatedAtZ: string | null
@@ -1465,6 +1503,8 @@ export type Database = {
           createdAtZ?: string | null
           id: string
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           status: string
           updatedAt: string
           updatedAtZ?: string | null
@@ -1476,6 +1516,8 @@ export type Database = {
           createdAtZ?: string | null
           id?: string
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           status?: string
           updatedAt?: string
           updatedAtZ?: string | null
@@ -1487,8 +1529,11 @@ export type Database = {
           additionalContext: Json | null
           analyzePrompt: string | null
           analyzeStepResult: Json | null
+          batchId: string | null
           createdAt: string
           createdAtZ: string | null
+          datasetId: string | null
+          datasetItemId: string | null
           entity: Json | null
           entityId: string | null
           entityType: string | null
@@ -1499,9 +1544,11 @@ export type Database = {
           id: string
           input: Json
           metadata: Json | null
+          organizationId: string | null
           output: Json
           preprocessPrompt: string | null
           preprocessStepResult: Json | null
+          projectId: string | null
           reason: string | null
           reasonPrompt: string | null
           requestContext: Json | null
@@ -1521,8 +1568,11 @@ export type Database = {
           additionalContext?: Json | null
           analyzePrompt?: string | null
           analyzeStepResult?: Json | null
+          batchId?: string | null
           createdAt: string
           createdAtZ?: string | null
+          datasetId?: string | null
+          datasetItemId?: string | null
           entity?: Json | null
           entityId?: string | null
           entityType?: string | null
@@ -1533,9 +1583,11 @@ export type Database = {
           id: string
           input: Json
           metadata?: Json | null
+          organizationId?: string | null
           output: Json
           preprocessPrompt?: string | null
           preprocessStepResult?: Json | null
+          projectId?: string | null
           reason?: string | null
           reasonPrompt?: string | null
           requestContext?: Json | null
@@ -1555,8 +1607,11 @@ export type Database = {
           additionalContext?: Json | null
           analyzePrompt?: string | null
           analyzeStepResult?: Json | null
+          batchId?: string | null
           createdAt?: string
           createdAtZ?: string | null
+          datasetId?: string | null
+          datasetItemId?: string | null
           entity?: Json | null
           entityId?: string | null
           entityType?: string | null
@@ -1567,9 +1622,11 @@ export type Database = {
           id?: string
           input?: Json
           metadata?: Json | null
+          organizationId?: string | null
           output?: Json
           preprocessPrompt?: string | null
           preprocessStepResult?: Json | null
+          projectId?: string | null
           reason?: string | null
           reasonPrompt?: string | null
           requestContext?: Json | null
@@ -2216,6 +2273,48 @@ export type Database = {
           },
         ]
       }
+      usage_counters: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"]
+          count: number
+          period_start: string
+          user_id: string
+        }
+        Insert: {
+          capability: Database["payments"]["Enums"]["capability"]
+          count?: number
+          period_start: string
+          user_id: string
+        }
+        Update: {
+          capability?: Database["payments"]["Enums"]["capability"]
+          count?: number
+          period_start?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_limits: {
+        Row: {
+          capability: Database["payments"]["Enums"]["capability"]
+          max_count: number
+          period: string
+          scope: string
+        }
+        Insert: {
+          capability: Database["payments"]["Enums"]["capability"]
+          max_count: number
+          period: string
+          scope: string
+        }
+        Update: {
+          capability?: Database["payments"]["Enums"]["capability"]
+          max_count?: number
+          period?: string
+          scope?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       user_capabilities_v: {
@@ -2227,7 +2326,22 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      check_and_increment_usage: {
+        Args: { cap: string; period_kind?: string; target_user_id: string }
+        Returns: {
+          allowed: boolean
+          limit_value: number
+          remaining: number
+        }[]
+      }
+      resolve_usage_limit: {
+        Args: { cap: string; period_kind?: string; target_user_id: string }
+        Returns: number
+      }
+      user_capabilities: {
+        Args: { target_user_id: string }
+        Returns: Database["payments"]["Enums"]["capability"][]
+      }
     }
     Enums: {
       capability:
@@ -2663,6 +2777,33 @@ export type Database = {
           },
         ]
       }
+      tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       token_deactivation_log: {
         Row: {
           created_at: string
@@ -2727,6 +2868,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "transaction_attachments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_tags: {
+        Row: {
+          created_at: string
+          tag_id: string
+          transaction_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          tag_id: string
+          transaction_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          tag_id?: string
+          transaction_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_tags_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"

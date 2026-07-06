@@ -8,6 +8,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { gmailService } from "../../services/gmail.service";
 import { getCurrencySymbol } from "../../utils/currency";
 import { useEffect, useState } from "react";
+import { TagBadge } from "../tags/TagBadge";
+
+const MAX_VISIBLE_TAGS = 3;
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -20,7 +23,9 @@ export function TransactionCard({
   isSelected,
   onClick,
 }: TransactionCardProps) {
-  const { sign, colorClass } = getTransactionType(transaction.transaction_type);
+  const { sign, colorClass } = getTransactionType(
+    transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
+  );
   const { translateCategory } = useTranslateCategory();
   const { formatShortDate } = useFormatDate();
   const { t } = useTranslation();
@@ -72,6 +77,27 @@ export function TransactionCard({
               {translateCategory(transaction.category)} •{" "}
               {transaction.merchant || t("transactions.unknown")}
             </p>
+            {transaction.tags && transaction.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 mt-1">
+                {transaction.tags.slice(0, MAX_VISIBLE_TAGS).map(tag => (
+                  <TagBadge
+                    key={tag.id}
+                    name={tag.name}
+                    color={tag.color}
+                    size="sm"
+                  />
+                ))}
+                {transaction.tags.length > MAX_VISIBLE_TAGS && (
+                  <span
+                    className={`text-xs font-medium ${
+                      isSelected ? "text-zinc-300" : "text-zinc-400"
+                    }`}
+                  >
+                    +{transaction.tags.length - MAX_VISIBLE_TAGS}
+                  </span>
+                )}
+              </div>
+            )}
             <p
               className={`text-xs mt-0.5 ${
                 isSelected ? "text-zinc-300" : "text-zinc-400"
