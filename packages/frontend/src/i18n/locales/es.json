@@ -227,7 +227,8 @@
       "success": "PDF descargado",
       "error": "No se pudo generar el PDF",
       "premiumRequired": "La exportación a PDF es una función premium",
-      "usageLimit": "Alcanzaste el límite mensual de exportación a PDF"
+      "usageLimit": "Alcanzaste el límite mensual de exportación a PDF",
+      "disabledHint": "Agregá transacciones primero"
     },
     "header": {
       "open": "Abrir",

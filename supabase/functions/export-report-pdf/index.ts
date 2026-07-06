@@ -193,21 +193,17 @@ Deno.serve(async req => {
         ? "es"
         : "en";
 
-    // 4. usage cap (admin bypass, same pattern as process-document)
+    // 4. usage cap — check limit only (don't increment yet). We
+    // increment AFTER a successful PDF build so that errors (bad PNG,
+    // encoding, etc.) don't burn the user's quota.
     if (role !== "admin") {
-      const { data: usage, error: usageError } = await serviceRoleSupabase
+      const { data: limitRows, error: limitError } = await serviceRoleSupabase
         .schema("payments")
-        .rpc("check_and_increment_usage", {
+        .rpc("resolve_usage_limit", {
           target_user_id: auth.user.id,
           cap: USAGE_CAPABILITY,
         });
-      if (usageError) {
-        // Fail-open: a counter bug should not block paying users.
-        console.error(
-          "[export-report-pdf] usage check failed; failing open",
-          usageError
-        );
-      } else if (!(usage as Array<{ allowed: boolean }> | null)?.[0]?.allowed) {
+      if (!limitError && limitRows && (limitRows as number) <= 0) {
         return new Response(
           JSON.stringify({
             error: `Usage limit exceeded: ${USAGE_CAPABILITY}`,
@@ -266,32 +262,37 @@ Deno.serve(async req => {
       );
     }
 
-    // 7. fetch per-currency summary via the existing RPC. Soft-fail
-    // with an empty array if the RPC errors — we'd rather render a
-    // PDF with no summary than a 500.
-    type RpcSummary = {
-      currency: string;
-      transaction_count: number;
-      total_income: number;
-      total_expenses: number;
-    };
-    const { data: rpcRows } = await serviceRoleSupabase.rpc(
-      "get_report_summaries",
-      { p_status: report.status }
+    // 7. compute per-currency summary from the already-fetched
+    // transactions. Avoids the get_report_summaries RPC which depends
+    // on auth.uid() — our service-role client doesn't set that.
+    const perCurrencyMap = new Map<
+      string,
+      { count: number; income: number; expenses: number }
+    >();
+    for (const t of txs ?? []) {
+      const c = t.currency ?? "USD";
+      const entry = perCurrencyMap.get(c) ?? {
+        count: 0,
+        income: 0,
+        expenses: 0,
+      };
+      entry.count += 1;
+      if (t.transaction_type === "income" || t.transaction_type === "ingreso") {
+        entry.income += Number(t.amount ?? 0);
+      } else {
+        entry.expenses += Number(t.amount ?? 0);
+      }
+      perCurrencyMap.set(c, entry);
+    }
+    const perCurrency = Array.from(perCurrencyMap.entries()).map(
+      ([currency, v]) => ({
+        currency,
+        transactionCount: v.count,
+        totalIncome: v.income,
+        totalExpenses: v.expenses,
+        net: v.income - v.expenses,
+      })
     );
-    const allSummaries = (rpcRows ?? []) as unknown as Array<
-      RpcSummary & { id: string }
-    >;
-    const perCurrency = allSummaries
-      .filter(r => r.id === reportId)
-      .map(r => ({
-        currency: r.currency ?? "",
-        transactionCount: Number(r.transaction_count ?? 0),
-        totalIncome: Number(r.total_income ?? 0),
-        totalExpenses: Number(r.total_expenses ?? 0),
-        net: Number(r.total_income ?? 0) - Number(r.total_expenses ?? 0),
-      }))
-      .filter(b => b.currency !== "");
 
     // 8. build the PDF
     const labels = PDF_LABELS[locale];
@@ -322,7 +323,17 @@ Deno.serve(async req => {
       formatDate: makeFormatDate(locale),
     });
 
-    // 10. respond with PDF binary. The Content-Disposition makes the
+    // 10. increment usage counter — only AFTER a successful build.
+    if (role !== "admin") {
+      await serviceRoleSupabase
+        .schema("payments")
+        .rpc("check_and_increment_usage", {
+          target_user_id: auth.user.id,
+          cap: USAGE_CAPABILITY,
+        });
+    }
+
+    // 11. respond with PDF binary. The Content-Disposition makes the
     // browser trigger a download with our filename.
     const filename = slugifyFilename(report.title);
     const headers = {
