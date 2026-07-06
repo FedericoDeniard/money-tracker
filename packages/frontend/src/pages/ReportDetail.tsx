@@ -103,6 +103,7 @@ export function ReportDetail() {
     <div className="space-y-6">
       <ReportDetailHeader
         report={report}
+        transactionCount={total}
         status={{
           updating: isUpdating,
           deleting: isDeleting,
@@ -118,6 +119,7 @@ export function ReportDetail() {
             reportId: report.id,
             title: report.title,
             locale: i18n.language.startsWith("es") ? "es" : "en",
+            transactionCount: total,
           })
         }
       />

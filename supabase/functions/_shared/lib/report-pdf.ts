@@ -35,9 +35,8 @@ const COLOR_TEXT_SECONDARY = rgb(0.42, 0.45, 0.5); //           #6b7280
 const COLOR_BORDER = rgb(0.85, 0.86, 0.87); //                 text-secondary/20
 const COLOR_BG_SECONDARY = rgb(0.976, 0.98, 0.984); //         #f9fafb
 const COLOR_HEADER_RULE = rgb(0.239, 0.353, 0.502); //         #3d5a80 button-primary
+const COLOR_SEPARATOR = rgb(0.56, 0.82, 0.42); //              #acfa84 accent darkened
 const COLOR_HEADER_BG = rgb(0.953, 0.965, 0.98); //           #3d5a80 at ~5% alpha
-const COLOR_ACCENT = rgb(0.675, 0.98, 0.518); //              #acfa84 accent
-const COLOR_ACCENT_BORDER = rgb(0.56, 0.82, 0.42); //          #acfa84 darkened for border
 const COLOR_INCOME = rgb(0.027, 0.471, 0.341); //              emerald-700
 const COLOR_EXPENSE = rgb(0.745, 0.071, 0.235); //             rose-700
 
@@ -136,7 +135,7 @@ export async function buildReportPdf(
 
   drawWatermark(ctx);
   drawHeaderBand(ctx);
-  let cursorY = PAGE_HEIGHT - MARGIN_Y - 80;
+  let cursorY = PAGE_HEIGHT - MARGIN_Y - 22;
   cursorY = drawTitleBlock(ctx, report, cursorY);
   cursorY = drawSummary(ctx, perCurrency, cursorY);
   cursorY = drawTransactionsTable(ctx, transactions, cursorY);
@@ -160,17 +159,17 @@ function drawWatermark(ctx: PdfContext): void {
 
 function drawHeaderBand(ctx: PdfContext): void {
   const y = PAGE_HEIGHT - MARGIN_Y;
-  // Light blue tint behind the header + title block
+  // Light blue tint behind the header — taller to fully contain the text
   ctx.page.drawRectangle({
     x: MARGIN_X - 10,
-    y: y - 98,
+    y: y - 8,
     width: PAGE_WIDTH - 2 * MARGIN_X + 20,
-    height: 124,
+    height: 40,
     color: COLOR_HEADER_BG,
   });
   ctx.page.drawLine({
-    start: { x: MARGIN_X, y },
-    end: { x: PAGE_WIDTH - MARGIN_X, y },
+    start: { x: MARGIN_X, y: y - 8 },
+    end: { x: PAGE_WIDTH - MARGIN_X, y: y - 8 },
     thickness: 1,
     color: COLOR_HEADER_RULE,
   });
@@ -237,7 +236,6 @@ function drawTitleBlock(
   }
   return y - 8;
 }
-
 function drawSummary(
   ctx: PdfContext,
   perCurrency: BuildReportPdfInput["perCurrency"],
@@ -261,84 +259,69 @@ function drawSummary(
     font: helvetica,
     color: COLOR_TEXT_SECONDARY,
   });
-  let y = cursorY - 18;
+  let y = cursorY - 28;
 
   for (const bucket of perCurrency) {
-    const bh = 56;
-    if (y - bh < MARGIN_Y + 60) {
+    if (y - 44 < MARGIN_Y + 50) {
       ctx.page = ctx.pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
       ctx.pageNumber += 1;
       drawWatermark(ctx);
       drawHeaderBand(ctx);
-      y = PAGE_HEIGHT - MARGIN_Y - 90;
+      y = PAGE_HEIGHT - MARGIN_Y - 22;
     }
-    const cardX = MARGIN_X;
-    const cardY = y - bh;
-    const cardW = PAGE_WIDTH - 2 * MARGIN_X;
-    page.drawRectangle({
-      x: cardX,
-      y: cardY,
-      width: cardW,
-      height: bh,
-      borderColor: COLOR_BORDER,
-      borderWidth: 1,
-      color: rgb(1, 1, 1),
-    });
-    // Green left accent bar
-    page.drawRectangle({
-      x: cardX,
-      y: cardY,
-      width: 3,
-      height: bh,
-      color: COLOR_ACCENT_BORDER,
-    });
+    // Currency label + count, right-aligned
     page.drawText(bucket.currency, {
-      x: cardX + 12,
-      y: cardY + bh - 16,
+      x: MARGIN_X,
+      y: y - 8,
       size: 10,
       font: helveticaBold,
-      color: COLOR_TEXT_SECONDARY,
+      color: COLOR_TEXT_PRIMARY,
     });
     const ct = `${bucket.transactionCount} ${labels.countSuffix}`;
     page.drawText(ct, {
-      x: cardX + cardW - 12 - helvetica.widthOfTextAtSize(ct, 9),
-      y: cardY + bh - 16,
+      x: PAGE_WIDTH - MARGIN_X - helvetica.widthOfTextAtSize(ct, 9),
+      y: y - 8,
       size: 9,
       font: helvetica,
       color: COLOR_TEXT_SECONDARY,
     });
+    y -= 14;
+    // Income row
     page.drawText(labels.income, {
-      x: cardX + 12,
-      y: cardY + bh - 32,
-      size: 11,
+      x: MARGIN_X,
+      y: y - 8,
+      size: 10,
       font: helvetica,
       color: COLOR_TEXT_SECONDARY,
     });
     const inc = formatCurrency(bucket.totalIncome, bucket.currency);
     page.drawText(inc, {
-      x: cardX + cardW - 12 - helveticaBold.widthOfTextAtSize(inc, 11),
-      y: cardY + bh - 32,
-      size: 11,
+      x: PAGE_WIDTH - MARGIN_X - helveticaBold.widthOfTextAtSize(inc, 10),
+      y: y - 8,
+      size: 10,
       font: helveticaBold,
       color: COLOR_INCOME,
     });
+    y -= 14;
+    // Expenses row
     page.drawText(labels.expenses, {
-      x: cardX + 12,
-      y: cardY + bh - 46,
-      size: 11,
+      x: MARGIN_X,
+      y: y - 8,
+      size: 10,
       font: helvetica,
       color: COLOR_TEXT_SECONDARY,
     });
     const exp = formatCurrency(bucket.totalExpenses, bucket.currency);
     page.drawText(exp, {
-      x: cardX + cardW - 12 - helveticaBold.widthOfTextAtSize(exp, 11),
-      y: cardY + bh - 46,
-      size: 11,
+      x: PAGE_WIDTH - MARGIN_X - helveticaBold.widthOfTextAtSize(exp, 10),
+      y: y - 8,
+      size: 10,
       font: helveticaBold,
       color: COLOR_EXPENSE,
     });
-    y -= bh + 8;
+    y -= 22;
   }
+
   return y;
 }
 
@@ -350,9 +333,16 @@ function drawTransactionsTable(
   const { page, helveticaBold, helvetica, formatCurrency, labels } = ctx;
   if (transactions.length === 0) return cursorY;
   let y = startNewPageIfNeeded(ctx, cursorY, 40);
+  // Separator above the table
+  page.drawLine({
+    start: { x: MARGIN_X, y: y - 4 },
+    end: { x: PAGE_WIDTH - MARGIN_X, y: y - 4 },
+    thickness: 1,
+    color: COLOR_HEADER_RULE,
+  });
   page.drawText(`${labels.transactions} (${transactions.length})`, {
     x: MARGIN_X,
-    y: y - 12,
+    y: y - 16,
     size: 9,
     font: helveticaBold,
     color: COLOR_TEXT_SECONDARY,

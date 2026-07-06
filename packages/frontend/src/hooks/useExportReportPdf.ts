@@ -9,6 +9,7 @@ export interface ExportReportPdfInput {
   reportId: string;
   title: string;
   locale: "en" | "es";
+  transactionCount: number;
 }
 
 interface UseExportReportPdfReturn {
@@ -21,6 +22,10 @@ export function useExportReportPdf(): UseExportReportPdfReturn {
 
   const mutation = useMutation({
     mutationFn: async (input: ExportReportPdfInput) => {
+      if (input.transactionCount === 0) {
+        toast.error(t("reports.export.error", "Could not generate PDF"));
+        return;
+      }
       const supabase = await getSupabase();
       const service = createReportsService(supabase);
       const blob = await service.exportReportPdf(input.reportId, input.locale);
