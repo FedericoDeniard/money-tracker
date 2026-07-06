@@ -136,7 +136,7 @@ export async function buildReportPdf(
 
   drawWatermark(ctx);
   drawHeaderBand(ctx);
-  let cursorY = PAGE_HEIGHT - MARGIN_Y - 90;
+  let cursorY = PAGE_HEIGHT - MARGIN_Y - 80;
   cursorY = drawTitleBlock(ctx, report, cursorY);
   cursorY = drawSummary(ctx, perCurrency, cursorY);
   cursorY = drawTransactionsTable(ctx, transactions, cursorY);
@@ -160,13 +160,12 @@ function drawWatermark(ctx: PdfContext): void {
 
 function drawHeaderBand(ctx: PdfContext): void {
   const y = PAGE_HEIGHT - MARGIN_Y;
-  // Light blue tint behind the header + title block area
-  const rectHeight = 200;
+  // Light blue tint behind the header + title block
   ctx.page.drawRectangle({
     x: MARGIN_X - 10,
-    y: y - rectHeight + 26,
+    y: y - 98,
     width: PAGE_WIDTH - 2 * MARGIN_X + 20,
-    height: rectHeight,
+    height: 124,
     color: COLOR_HEADER_BG,
   });
   ctx.page.drawLine({
