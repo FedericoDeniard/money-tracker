@@ -52,8 +52,6 @@ function getWatermarkRaw(): Uint8Array | null {
 export interface PdfLabel {
   brand: string;
   reportLabel: string;
-  statusActive: string;
-  statusArchived: string;
   summaryHeader: string;
   income: string;
   expenses: string;
@@ -198,16 +196,6 @@ function drawTitleBlock(
     color: COLOR_TEXT_PRIMARY,
   });
   let y = cursorY - 22;
-  const status = report.status === "archived" ? "archived" : "active";
-  drawPill(
-    page,
-    helvetica,
-    status === "active" ? ctx.labels.statusActive : ctx.labels.statusArchived,
-    MARGIN_X,
-    y - 4,
-    status
-  );
-  y -= 26;
   if (report.description) {
     for (const line of wrapText(
       helvetica,
@@ -504,28 +492,6 @@ interface PdfContext {
   formatDate: BuildReportPdfInput["formatDate"];
   page: ReturnType<PDFDocument["addPage"]>;
   pageNumber: number;
-}
-
-function drawPill(
-  page: ReturnType<PDFDocument["addPage"]>,
-  helvetica: PDFFont,
-  text: string,
-  x: number,
-  y: number,
-  tone: "active" | "archived"
-): void {
-  const width = helvetica.widthOfTextAtSize(text, 9) + 14;
-  const height = 16;
-  const bg = tone === "active" ? rgb(0.86, 0.94, 0.86) : rgb(0.91, 0.91, 0.93);
-  const fg = tone === "active" ? COLOR_INCOME : rgb(0.42, 0.45, 0.5);
-  page.drawRectangle({ x, y, width, height, color: bg });
-  page.drawText(text, {
-    x: x + 7,
-    y: y + 4,
-    size: 9,
-    font: helvetica,
-    color: fg,
-  });
 }
 
 function formatDateRange(

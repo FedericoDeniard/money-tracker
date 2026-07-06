@@ -44,8 +44,6 @@ const USAGE_CAPABILITY = "report_pdf_export";
 interface PdfLabels {
   brand: string;
   reportLabel: string;
-  statusActive: string;
-  statusArchived: string;
   summaryHeader: string;
   income: string;
   expenses: string;
@@ -67,8 +65,6 @@ const PDF_LABELS: Record<"en" | "es", PdfLabels> = {
   en: {
     brand: "Money Tracker",
     reportLabel: "Report",
-    statusActive: "Active",
-    statusArchived: "Archived",
     summaryHeader: "SUMMARY",
     income: "Income",
     expenses: "Expenses",
@@ -88,8 +84,6 @@ const PDF_LABELS: Record<"en" | "es", PdfLabels> = {
   es: {
     brand: "Money Tracker",
     reportLabel: "Reporte",
-    statusActive: "Activo",
-    statusArchived: "Archivado",
     summaryHeader: "RESUMEN",
     income: "Ingresos",
     expenses: "Gastos",
