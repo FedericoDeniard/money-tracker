@@ -9,6 +9,8 @@ import { useFormatDate } from "../../hooks/useFormatDate";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { TransactionAttachments } from "./TransactionAttachments";
+import { TagSelector } from "../tags/TagSelector";
+import { useTagMutations } from "../../hooks/useTagMutations";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -34,6 +36,24 @@ export function TransactionDetail({
   const [isDeleting, setIsDeleting] = useState(false);
   const { translateCategory } = useTranslateCategory();
   const { formatDateTime } = useFormatDate();
+
+  // Tags are read from the React Query cache (transaction.tags). The
+  // `useTagMutations` mutation optimistically writes the new tag list back
+  // into the same cache via `queryKeys.transactions.all`, so add/remove
+  // re-renders happen there without us mirroring the value in local state.
+  const { setTransactionTags, isSettingTransactionTags } = useTagMutations();
+
+  const handleChangeTags = (ids: string[]) => {
+    // The TagSelector's `onChange` passes the full new selected list
+    // (toggle semantics). The mutation's onMutate writes the optimistic
+    // list straight into the transactions cache; no local mirror needed.
+    void setTransactionTags({
+      transactionId: transaction.id,
+      tagIds: ids,
+    }).catch(error => {
+      console.error("Error updating transaction tags:", error);
+    });
+  };
 
   const handleCopyId = () => {
     if (typeof window !== "undefined" && window.navigator?.clipboard) {
@@ -192,6 +212,22 @@ export function TransactionDetail({
                 title={t("common.copy")}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="mt-6 px-1">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[var(--text-secondary)] text-sm font-medium">
+              {t("tags.title", "Tags")}
+            </span>
+            <TagSelector
+              mode="assign"
+              value={(transaction.tags ?? []).map(t => t.id)}
+              onChange={handleChangeTags}
+              disabled={isSettingTransactionTags}
+              iconOnly
+            />
           </div>
         </div>
 

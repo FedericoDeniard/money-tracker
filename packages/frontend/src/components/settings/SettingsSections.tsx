@@ -7,12 +7,14 @@ import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { NotificationPreferencesChecklist } from "../notifications/NotificationPreferencesChecklist";
 import { PushNotificationToggle } from "../notifications/PushNotificationToggle";
 import { APP_VERSION, BUILD_TIMESTAMP } from "../../lib/version";
+import { TagSelector } from "../tags/TagSelector";
 import {
   BookOpen,
   CreditCard,
   Info,
   RotateCcw,
   SkipForward,
+  Tag as TagIcon,
 } from "lucide-react";
 
 // settings page is broken into a thin orchestrator (`Settings` in
@@ -234,5 +236,29 @@ export function AppVersionSection() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function TagsSection() {
+  const { t } = useTranslation();
+  return (
+    <SectionShell titleKey="settings.tags" tourAttr="settings-tags">
+      <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="p-2 bg-[var(--primary)]/10 rounded-lg shrink-0">
+            <TagIcon size={20} className="text-[var(--primary)]" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              {t("settings.tagsTitle")}
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {t("settings.tagsDescription")}
+            </p>
+          </div>
+        </div>
+        <TagSelector mode="manage" />
+      </div>
+    </SectionShell>
   );
 }

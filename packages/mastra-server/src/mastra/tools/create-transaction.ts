@@ -47,6 +47,12 @@ export const createTransactionTool = createTool({
             .min(1)
             .max(500)
             .describe("Longer description of what the transaction is for."),
+          tag_ids: z
+            .array(z.string().uuid())
+            .optional()
+            .describe(
+              "Optional UUIDs of existing custom tags to assign to the new transaction. Resolve tag UUIDs first by calling listTagsTool. Tags are not created or deleted here — only assigned."
+            ),
         })
       )
       .min(1)
@@ -67,6 +73,7 @@ export const createTransactionTool = createTool({
         currency: z.string().length(3),
         transactionType: z.enum(TRANSACTION_TYPE_VALUES),
         category: z.enum(CATEGORY_VALUES),
+        tagIds: z.array(z.string().uuid()),
       })
     ),
     totalCount: z.number().int().nonnegative(),
@@ -80,6 +87,36 @@ export const createTransactionTool = createTool({
     const { supabaseToken, userId } = ctx.requestContext!.all;
     const supabase = supabaseFromToken(supabaseToken);
     const results = [];
+
+    // Collect every distinct tag_id across all transactions in this batch
+    // and verify they all belong to the user. We do this once up front so
+    // a single invalid tag aborts the whole batch instead of leaving a
+    // half-created state.
+    const requestedTagIds = Array.from(
+      new Set(input.transactions.flatMap(t => t.tag_ids ?? []))
+    );
+
+    const validTagIds = new Set<string>();
+    if (requestedTagIds.length > 0) {
+      const { data: ownedTags, error: tagsError } = await supabase
+        .from("tags")
+        .select("id")
+        .eq("user_id", userId)
+        .in("id", requestedTagIds);
+
+      if (tagsError) {
+        throw new Error(`Failed to validate tags: ${tagsError.message}`);
+      }
+
+      for (const t of ownedTags ?? []) validTagIds.add(t.id as string);
+
+      const missing = requestedTagIds.filter(id => !validTagIds.has(id));
+      if (missing.length > 0) {
+        throw new Error(
+          `One or more tag_ids do not belong to the user: ${missing.join(", ")}`
+        );
+      }
+    }
 
     for (const txn of input.transactions) {
       const { data, error } = await supabase
@@ -107,6 +144,24 @@ export const createTransactionTool = createTool({
         throw new Error(`Failed to create transaction: ${error.message}`);
       }
 
+      const tagIds = Array.from(new Set(txn.tag_ids ?? []));
+      if (tagIds.length > 0) {
+        const rows = tagIds.map(tagId => ({
+          transaction_id: data.id as string,
+          tag_id: tagId,
+          user_id: userId,
+        }));
+        const { error: tagsInsertError } = await supabase
+          .from("transaction_tags")
+          .insert(rows);
+
+        if (tagsInsertError) {
+          throw new Error(
+            `Failed to assign tags to new transaction: ${tagsInsertError.message}`
+          );
+        }
+      }
+
       results.push({
         id: data.id as string,
         transactionDate: data.transaction_date as string,
@@ -117,6 +172,7 @@ export const createTransactionTool = createTool({
         transactionType:
           data.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
         category: data.category as (typeof CATEGORY_VALUES)[number],
+        tagIds: tagIds,
       });
     }
 

@@ -151,6 +151,22 @@
     "filter": "Filtrar",
     "filterPlaceholder": "Filtrar..."
   },
+  "tags": {
+    "title": "Etiquetas",
+    "selectTags": "Agregar etiquetas",
+    "noTags": "Todavía no hay etiquetas",
+    "addNewTag": "Crear nueva etiqueta",
+    "name": "Nombre",
+    "namePlaceholder": "Nombre de la etiqueta",
+    "color": "Color",
+    "nameRequired": "El nombre de la etiqueta es obligatorio",
+    "createTag": "Nueva etiqueta",
+    "editTag": "Editar etiqueta",
+    "deleteTag": "Eliminar etiqueta",
+    "confirmDelete": "¿Eliminar la etiqueta \"{{name}}\"? Se quitará de todas las transacciones.",
+    "filterByTag": "Etiquetas",
+    "clearAll": "Limpiar todas"
+  },
   "upload": {
     "title": "Subir Documento",
     "dragDrop": "Arrastra y suelta tu documento aquí",
@@ -379,7 +395,10 @@
     "accountBilling": "Cuenta y Facturación",
     "accountBillingTitle": "Gestioná tu suscripción",
     "accountBillingDescription": "Mirá tu plan actual, cambiá a otro o cancelá.",
-    "accountBillingAction": "Administrar plan"
+    "accountBillingAction": "Administrar plan",
+    "tags": "Etiquetas",
+    "tagsTitle": "Etiquetas de transacciones",
+    "tagsDescription": "Creá etiquetas personalizadas para organizar tus transacciones. Las etiquetas son complementarias a las categorías y se pueden asignar desde cualquier transacción."
   },
   "accountBilling": {
     "title": "Cuenta y Facturación",
@@ -1073,7 +1092,8 @@
       "rejected": "Actualización cancelada",
       "processing": "Actualizando transacción…",
       "canceling": "Cancelando actualización…",
-      "error": "No se pudo actualizar la transacción"
+      "error": "No se pudo actualizar la transacción",
+      "tagsUnchanged": "Sin cambios en etiquetas"
     }
   }
 }

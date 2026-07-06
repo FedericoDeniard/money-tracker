@@ -1,17 +1,44 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "../types/database.types";
+import type { TransactionTagLite } from "../types/tags";
+import { TAG_COLORS, type TagColor } from "../constants/tags";
 
 // DB row type from generated types
 type TransactionRow = Tables<"transactions">;
 
-// Joined query result (select * with user_oauth_tokens relation)
+// Joined query result (select * with user_oauth_tokens + transaction_tags relations)
 interface JoinedTransactionRow extends TransactionRow {
   user_oauth_tokens: { gmail_email: string } | null;
+  transaction_tags: Array<{
+    tags: { id: string; name: string; color: string } | null;
+  }> | null;
+}
+
+function toTagColor(color: string): TagColor {
+  if ((TAG_COLORS as readonly string[]).includes(color)) {
+    return color as TagColor;
+  }
+  return "slate";
+}
+
+function mapJoinedTags(
+  rows: JoinedTransactionRow["transaction_tags"]
+): TransactionTagLite[] {
+  if (!rows) return [];
+  return rows
+    .map(r => r.tags)
+    .filter((t): t is { id: string; name: string; color: string } => t !== null)
+    .map(t => ({
+      id: t.id,
+      name: t.name,
+      color: toTagColor(t.color),
+    }));
 }
 
 // Application-level transaction type with resolved recipient_email
 export interface Transaction extends TransactionRow {
   recipient_email?: string;
+  tags?: TransactionTagLite[];
 }
 
 export type TransactionCreateInput = Pick<
@@ -33,10 +60,11 @@ export type TransactionCreateInput = Pick<
 
 // Maps a joined query row to the application Transaction type
 function mapJoinedTransaction(item: JoinedTransactionRow): Transaction {
-  const { user_oauth_tokens, ...transaction } = item;
+  const { user_oauth_tokens, transaction_tags, ...transaction } = item;
   return {
     ...transaction,
     recipient_email: user_oauth_tokens?.gmail_email || undefined,
+    tags: mapJoinedTags(transaction_tags),
   };
 }
 
@@ -79,6 +107,7 @@ export interface TransactionFilters {
   emailOperator?: "is" | "is not";
   startDate?: string;
   endDate?: string;
+  tagIds?: string[];
   sortBy?: "created_at" | "transaction_date";
   sortOrder?: "asc" | "desc";
 }
@@ -137,11 +166,35 @@ export class TransactionsService {
       tokenId = tokenData.id;
     }
 
+    // Resolve tagIds filter separately: with a junction table, Supabase JS
+    // can't `.in('transaction_tags.tag_id', ...)` cleanly. Fetch the matching
+    // transaction_ids first, then scope the main query by `.in('id', ...)`.
+    let tagFilteredIds: string[] | null = null;
+    if (filters?.tagIds && filters.tagIds.length > 0) {
+      const { data: tagRows, error: tagError } = await this.supabase
+        .from("transaction_tags")
+        .select("transaction_id")
+        .in("tag_id", filters.tagIds);
+
+      if (tagError) throw tagError;
+
+      tagFilteredIds = Array.from(
+        new Set((tagRows ?? []).map(r => r.transaction_id))
+      );
+
+      if (tagFilteredIds.length === 0) {
+        return { transactions: [], hasMore: false, total: 0 };
+      }
+    }
+
     let query = this.supabase.from("transactions").select(
       `
         *,
         user_oauth_tokens!user_oauth_token_id (
           gmail_email
+        ),
+        transaction_tags (
+          tags ( id, name, color )
         )
       `,
       { count: "exact" }
@@ -198,6 +251,9 @@ export class TransactionsService {
     if (filters?.endDate) {
       query = query.lte("transaction_date", filters.endDate);
     }
+    if (tagFilteredIds) {
+      query = query.in("id", tagFilteredIds);
+    }
 
     // Apply pagination
     if (pagination) {
@@ -224,10 +280,29 @@ export class TransactionsService {
   }
 
   async getTransactions(filters?: TransactionFilters): Promise<Transaction[]> {
+    let tagFilteredIds: string[] | null = null;
+    if (filters?.tagIds && filters.tagIds.length > 0) {
+      const { data: tagRows, error: tagError } = await this.supabase
+        .from("transaction_tags")
+        .select("transaction_id")
+        .in("tag_id", filters.tagIds);
+
+      if (tagError) throw tagError;
+
+      tagFilteredIds = Array.from(
+        new Set((tagRows ?? []).map(r => r.transaction_id))
+      );
+
+      if (tagFilteredIds.length === 0) return [];
+    }
+
     let query = this.supabase.from("transactions").select(`
         *,
         user_oauth_tokens!user_oauth_token_id (
           gmail_email
+        ),
+        transaction_tags (
+          tags ( id, name, color )
         )
       `);
     query = query.eq("discarded", false);
@@ -300,6 +375,10 @@ export class TransactionsService {
       query = query.lte("transaction_date", filters.endDate);
     }
 
+    if (tagFilteredIds) {
+      query = query.in("id", tagFilteredIds);
+    }
+
     const { data, error } = await query.order("transaction_date", {
       ascending: false,
     });
@@ -317,6 +396,9 @@ export class TransactionsService {
         *,
         user_oauth_tokens!user_oauth_token_id (
           gmail_email
+        ),
+        transaction_tags (
+          tags ( id, name, color )
         )
       `)
       .eq("id", id)
@@ -411,6 +493,9 @@ export class TransactionsService {
         *,
         user_oauth_tokens!user_oauth_token_id (
           gmail_email
+        ),
+        transaction_tags (
+          tags ( id, name, color )
         )
       `);
 
