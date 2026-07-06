@@ -30,13 +30,16 @@ const PAGE_WIDTH = 612;
 const PAGE_HEIGHT = 792;
 const MARGIN_X = 50;
 const MARGIN_Y = 50;
-const COLOR_TEXT_PRIMARY = rgb(0.067, 0.094, 0.153);
-const COLOR_TEXT_SECONDARY = rgb(0.42, 0.45, 0.5);
-const COLOR_BORDER = rgb(0.85, 0.86, 0.87);
-const COLOR_BG_SECONDARY = rgb(0.976, 0.98, 0.984);
-const COLOR_HEADER_RULE = rgb(0.82, 0.84, 0.86);
-const COLOR_INCOME = rgb(0.027, 0.471, 0.341);
-const COLOR_EXPENSE = rgb(0.745, 0.071, 0.235);
+const COLOR_TEXT_PRIMARY = rgb(0.067, 0.094, 0.153); //        #111827
+const COLOR_TEXT_SECONDARY = rgb(0.42, 0.45, 0.5); //           #6b7280
+const COLOR_BORDER = rgb(0.85, 0.86, 0.87); //                 text-secondary/20
+const COLOR_BG_SECONDARY = rgb(0.976, 0.98, 0.984); //         #f9fafb
+const COLOR_HEADER_RULE = rgb(0.239, 0.353, 0.502); //         #3d5a80 button-primary
+const COLOR_HEADER_BG = rgb(0.953, 0.965, 0.98); //           #3d5a80 at ~5% alpha
+const COLOR_ACCENT = rgb(0.675, 0.98, 0.518); //              #acfa84 accent
+const COLOR_ACCENT_BORDER = rgb(0.56, 0.82, 0.42); //          #acfa84 darkened for border
+const COLOR_INCOME = rgb(0.027, 0.471, 0.341); //              emerald-700
+const COLOR_EXPENSE = rgb(0.745, 0.071, 0.235); //             rose-700
 
 let _watermarkRaw: Uint8Array | null = null;
 function getWatermarkRaw(): Uint8Array | null {
@@ -157,11 +160,19 @@ function drawWatermark(ctx: PdfContext): void {
 
 function drawHeaderBand(ctx: PdfContext): void {
   const y = PAGE_HEIGHT - MARGIN_Y;
+  // Light blue tint behind the header
+  ctx.page.drawRectangle({
+    x: MARGIN_X - 10,
+    y: y - 2,
+    width: PAGE_WIDTH - 2 * MARGIN_X + 20,
+    height: 28,
+    color: COLOR_HEADER_BG,
+  });
   ctx.page.drawLine({
     start: { x: MARGIN_X, y },
     end: { x: PAGE_WIDTH - MARGIN_X, y },
     thickness: 1,
-    color: COLOR_BORDER,
+    color: COLOR_HEADER_RULE,
   });
   ctx.page.drawText("Money Tracker", {
     x: MARGIN_X,
@@ -272,6 +283,14 @@ function drawSummary(
       borderColor: COLOR_BORDER,
       borderWidth: 1,
       color: rgb(1, 1, 1),
+    });
+    // Green left accent bar
+    page.drawRectangle({
+      x: cardX,
+      y: cardY,
+      width: 3,
+      height: bh,
+      color: COLOR_ACCENT_BORDER,
     });
     page.drawText(bucket.currency, {
       x: cardX + 12,
