@@ -160,12 +160,13 @@ function drawWatermark(ctx: PdfContext): void {
 
 function drawHeaderBand(ctx: PdfContext): void {
   const y = PAGE_HEIGHT - MARGIN_Y;
-  // Light blue tint behind the header
+  // Light blue tint behind the header + title block area
+  const rectHeight = 200;
   ctx.page.drawRectangle({
     x: MARGIN_X - 10,
-    y: y - 2,
+    y: y - rectHeight + 26,
     width: PAGE_WIDTH - 2 * MARGIN_X + 20,
-    height: 28,
+    height: rectHeight,
     color: COLOR_HEADER_BG,
   });
   ctx.page.drawLine({
