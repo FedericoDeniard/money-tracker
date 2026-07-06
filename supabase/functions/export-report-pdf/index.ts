@@ -19,10 +19,9 @@
 //      toast on the client via getEdgeFunctionErrorMessage.
 //   4. fetch report + transactions from public.transactions / public.reports
 //   5. fetch perCurrency summary via the get_report_summaries rpc
-//   6. load the watermark PNG from _shared/assets at request time
-//      (Deno.cwd is the function's dir, so the relative path works)
-//   7. buildReportPdf() from _shared/lib/report-pdf → Uint8Array
-//   8. respond with application/pdf + Content-Disposition: attachment
+//   6. buildReportPdf() from _shared/lib/report-pdf → Uint8Array
+//      (watermark PNG is embedded as a base64 constant — no fs deps)
+//   7. respond with application/pdf + Content-Disposition: attachment
 //
 // Locale: the frontend sends `?lang=es|en` (default `en`); the labels
 // object passed to buildReportPdf is one of two hardcoded maps. We
@@ -300,21 +299,7 @@ Deno.serve(async req => {
       }))
       .filter(b => b.currency !== "");
 
-    // 8. load watermark PNG. the file is co-located in the function
-    // dir (export-report-pdf/assets/) so supabase deploy bundles it.
-    // _shared/ assets don't resolve correctly in the compiled
-    // edge-runtime because import.meta.url points to /var/tmp/...
-    let watermarkPng: Uint8Array | null;
-    try {
-      watermarkPng = await Deno.readFile(
-        new URL("./assets/logo-watermark.png", import.meta.url)
-      );
-    } catch (err) {
-      console.error("[export-report-pdf] missing watermark asset:", err);
-      watermarkPng = null;
-    }
-
-    // 9. build the PDF
+    // 8. build the PDF
     const labels = PDF_LABELS[locale];
     const pdfBytes = await buildReportPdf({
       report: {
@@ -338,7 +323,6 @@ Deno.serve(async req => {
         transactionType: t.transaction_type ?? "expense",
       })),
       perCurrency,
-      watermarkPng,
       labels,
       formatCurrency: makeFormatCurrency(locale),
       formatDate: makeFormatDate(locale),
