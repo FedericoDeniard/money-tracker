@@ -1,5 +1,6 @@
 import { LazyMotion, m, domAnimation } from "framer-motion";
 import type { Transaction } from "../../services/transactions.service";
+import type { ReportSummary } from "../../types/reports";
 import { getTransactionType } from "../../utils/transactionUtils";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { useFormatDate } from "../../hooks/useFormatDate";
@@ -9,6 +10,7 @@ import { gmailService } from "../../services/gmail.service";
 import { getCurrencySymbol } from "../../utils/currency";
 import { useEffect, useState } from "react";
 import { TagBadge } from "../tags/TagBadge";
+import { ReportBadge } from "../reports/ReportBadge";
 
 const MAX_VISIBLE_TAGS = 3;
 
@@ -16,12 +18,19 @@ interface TransactionCardProps {
   transaction: Transaction;
   isSelected: boolean;
   onClick: () => void;
+  /**
+   * Resolved report summary for `transaction.report_id`. The parent page
+   * passes a `reportsById` map down so every card reads from one
+   * shared TanStack query instead of triggering N fetches.
+   */
+  report?: ReportSummary;
 }
 
 export function TransactionCard({
   transaction,
   isSelected,
   onClick,
+  report,
 }: TransactionCardProps) {
   const { sign, colorClass } = getTransactionType(
     transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
@@ -59,9 +68,19 @@ export function TransactionCard({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
+
+        {/* Report badge — anchored to the card's top-right corner so it
+            stays visible regardless of content length. z-10 keeps it
+            above the active selection overlay. */}
+        {report && (
+          <div className="absolute top-2 right-2 z-10 pointer-events-none">
+            <ReportBadge title={report.title} size="sm" />
+          </div>
+        )}
+
         <div className="relative flex items-center gap-4">
-          {/* Content */}
-          <div className="flex-1 min-w-0">
+          {/* Content — pr-20 leaves room for the absolute report badge */}
+          <div className="flex-1 min-w-0 pr-20">
             <h3
               className={`font-semibold truncate ${
                 isSelected ? "text-white" : "text-[var(--text-primary)]"

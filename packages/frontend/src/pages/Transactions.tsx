@@ -30,6 +30,7 @@ import {
   hasMorePages,
 } from "../hooks/useTransactions";
 import { useLiveTransaction } from "../hooks/useLiveTransaction";
+import { useReports } from "../hooks/useReports";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -83,6 +84,16 @@ function TransactionsList({
     isFetchingNextPage: loadingMore,
     refetch,
   } = useTransactions({ filters });
+
+  // One shared query for all reports — every TransactionCard renders a
+  // deterministic-color badge for its report. TanStack dedupes the cache
+  // so this is a single fetch for the page, not N. `data` is undefined
+  // until the first fetch resolves, so we default to `[]` for the map.
+  const { data: activeReports } = useReports("active");
+  const reportsById = useMemo(
+    () => new Map((activeReports ?? []).map(r => [r.id, r])),
+    [activeReports]
+  );
 
   const transactions = flattenTransactionsData(transactionsData);
   const totalCount = getTotalCount(transactionsData);
@@ -155,6 +166,7 @@ function TransactionsList({
             onLoadMore={handleLoadMore}
             hasMore={hasMore}
             isLoadingMore={loadingMore}
+            reportsById={reportsById}
           />
         </div>
       </div>
