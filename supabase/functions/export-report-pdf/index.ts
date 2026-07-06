@@ -193,21 +193,17 @@ Deno.serve(async req => {
         ? "es"
         : "en";
 
-    // 4. usage cap (admin bypass, same pattern as process-document)
+    // 4. usage cap — check limit only (don't increment yet). We
+    // increment AFTER a successful PDF build so that errors (bad PNG,
+    // encoding, etc.) don't burn the user's quota.
     if (role !== "admin") {
-      const { data: usage, error: usageError } = await serviceRoleSupabase
+      const { data: limitRows, error: limitError } = await serviceRoleSupabase
         .schema("payments")
-        .rpc("check_and_increment_usage", {
+        .rpc("resolve_usage_limit", {
           target_user_id: auth.user.id,
           cap: USAGE_CAPABILITY,
         });
-      if (usageError) {
-        // Fail-open: a counter bug should not block paying users.
-        console.error(
-          "[export-report-pdf] usage check failed; failing open",
-          usageError
-        );
-      } else if (!(usage as Array<{ allowed: boolean }> | null)?.[0]?.allowed) {
+      if (!limitError && limitRows && (limitRows as number) <= 0) {
         return new Response(
           JSON.stringify({
             error: `Usage limit exceeded: ${USAGE_CAPABILITY}`,
@@ -322,7 +318,17 @@ Deno.serve(async req => {
       formatDate: makeFormatDate(locale),
     });
 
-    // 10. respond with PDF binary. The Content-Disposition makes the
+    // 10. increment usage counter — only AFTER a successful build.
+    if (role !== "admin") {
+      await serviceRoleSupabase
+        .schema("payments")
+        .rpc("check_and_increment_usage", {
+          target_user_id: auth.user.id,
+          cap: USAGE_CAPABILITY,
+        });
+    }
+
+    // 11. respond with PDF binary. The Content-Disposition makes the
     // browser trigger a download with our filename.
     const filename = slugifyFilename(report.title);
     const headers = {
