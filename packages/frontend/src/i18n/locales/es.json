@@ -20,15 +20,16 @@
     "refresh": "Actualizar"
   },
   "navigation": {
-    "dashboard": "Panel Principal",
+    "dashboard": "Panel",
     "transactions": "Transacciones",
     "subscriptions": "Suscripciones",
     "metrics": "Métricas",
     "settings": "Configuración",
     "assistant": "Asistente",
-    "logout": "Cerrar Sesión",
+    "logout": "Cerrar sesión",
     "home": "Inicio",
-    "emails": "Emails"
+    "emails": "Correos",
+    "reports": "Reportes"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -166,6 +167,87 @@
     "confirmDelete": "¿Eliminar la etiqueta \"{{name}}\"? Se quitará de todas las transacciones.",
     "filterByTag": "Etiquetas",
     "clearAll": "Limpiar todas"
+  },
+  "reports": {
+    "title": "Reportes",
+    "description": "Agrupa transacciones relacionadas para revisarlas, exportarlas o analizarlas juntas.",
+    "create": "Nuevo reporte",
+    "edit": "Editar reporte",
+    "delete": "Eliminar reporte",
+    "archive": "Archivar",
+    "unarchive": "Restaurar",
+    "archived": "Archivado",
+    "active": "Activo",
+    "tabs": {
+      "active": "Activos",
+      "archived": "Archivados"
+    },
+    "assignToReport": "Asignar a reporte",
+    "changeReport": "Cambiar reporte",
+    "singleReportHint": "1 reporte por transacción",
+    "noReport": "Sin reporte",
+    "removeFromReport": "Quitar del reporte",
+    "noReports": "Todavía no hay reportes",
+    "emptyDescription": "Agrupa transacciones relacionadas para revisarlas, exportarlas o analizarlas juntas.",
+    "archivedEmpty": "No hay reportes archivados",
+    "archivedEmptyDescription": "Los reportes que archives aparecerán aquí para consulta posterior.",
+    "form": {
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ej. Viaje Italia, Cliente Acme, Enero 2026",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Contexto opcional",
+      "dateRangeLabel": "Rango de fechas (opcional)",
+      "startDateLabel": "Fecha de inicio",
+      "endDateLabel": "Fecha de fin",
+      "clear": "Limpiar",
+      "save": "Guardar cambios",
+      "create": "Crear reporte",
+      "cancel": "Cancelar",
+      "titleRequired": "El título es obligatorio",
+      "titleTooLong": "El título debe tener 120 caracteres o menos",
+      "descriptionTooLong": "La descripción debe tener 2000 caracteres o menos",
+      "endBeforeStart": "La fecha de fin debe ser igual o posterior a la fecha de inicio"
+    },
+    "summary": {
+      "income": "Ingresos",
+      "expenses": "Gastos",
+      "net": "Neto",
+      "count_one": "{{count}} transacción",
+      "count_other": "{{count}} transacciones"
+    },
+    "dateRange": {
+      "fromTo": "{{from}} → {{to}}",
+      "openEnded": "{{from}} →",
+      "toOnly": "→ {{to}}",
+      "none": "Sin rango de fechas"
+    },
+    "export": {
+      "button": "Descargar PDF",
+      "loading": "Generando PDF…",
+      "success": "PDF descargado",
+      "error": "No se pudo generar el PDF",
+      "premiumRequired": "La exportación a PDF es una función premium",
+      "usageLimit": "Alcanzaste el límite mensual de exportación a PDF"
+    },
+    "header": {
+      "open": "Abrir",
+      "actions": "Acciones",
+      "confirmDelete": "¿Eliminar el reporte \"{{title}}\"? Las transacciones dentro se desvincularán pero no se eliminarán.",
+      "confirmArchive": "¿Archivar el reporte \"{{title}}\"? Se ocultará de la lista principal.",
+      "confirmUnarchive": "¿Restaurar el reporte \"{{title}}\" a la lista activa?",
+      "deleteSuccess": "Reporte eliminado",
+      "archiveSuccess": "Reporte archivado",
+      "unarchiveSuccess": "Reporte restaurado",
+      "saveSuccess": "Reporte actualizado",
+      "createSuccess": "Reporte creado",
+      "saveError": "No se pudo guardar el reporte",
+      "deleteError": "No se pudo eliminar el reporte",
+      "archiveError": "No se pudo archivar el reporte"
+    },
+    "noTransactions": "Todavía no hay transacciones en este reporte",
+    "noTransactionsDescription": "Asigná transacciones desde la página de transacciones o desde el detalle de una transacción.",
+    "back": "Volver a reportes",
+    "detailsTitle": "Detalles del reporte"
   },
   "upload": {
     "title": "Subir Documento",

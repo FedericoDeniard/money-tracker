@@ -6,6 +6,7 @@ import {
   SlidersHorizontal,
   LogOut,
   MessageSquare,
+  FileText,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -39,6 +40,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: CalendarClock,
       label: t("navigation.subscriptions"),
       path: "/subscriptions",
+    },
+    {
+      icon: FileText,
+      label: t("navigation.reports"),
+      path: "/reports",
     },
     { icon: BarChart3, label: t("navigation.metrics"), path: "/metrics" },
     ...(isChatEnabled

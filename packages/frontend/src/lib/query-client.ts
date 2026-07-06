@@ -106,4 +106,12 @@ export const queryKeys = {
     mySubscription: (userId?: string) =>
       [...queryKeys.payments.all, "my-subscription", userId] as const,
   },
+  reports: {
+    all: ["reports"] as const,
+    list: (status: string) =>
+      [...queryKeys.reports.all, "list", status] as const,
+    detail: (id: string) => [...queryKeys.reports.all, "detail", id] as const,
+    transactions: (id: string) =>
+      [...queryKeys.reports.detail(id), "transactions"] as const,
+  },
 } as const;

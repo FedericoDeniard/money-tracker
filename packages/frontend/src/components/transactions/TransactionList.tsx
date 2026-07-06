@@ -1,5 +1,6 @@
 import { Receipt } from "lucide-react";
 import type { Transaction } from "../../services/transactions.service";
+import type { ReportSummary } from "../../types/reports";
 import { TransactionCard } from "./TransactionCard";
 import { EmptyState } from "../ui/EmptyState";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
@@ -8,10 +9,11 @@ import { LoadingSpinner } from "../ui/LoadingSpinner";
 interface TransactionListProps {
   transactions: Transaction[];
   selectedTransactionId: string | null;
-  onSelectTransaction: (transaction: Transaction) => void;
+  onSelectTransaction: (transactionId: string) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  reportsById?: Map<string, ReportSummary>;
 }
 
 export function TransactionList({
@@ -21,6 +23,7 @@ export function TransactionList({
   onLoadMore,
   hasMore = false,
   isLoadingMore = false,
+  reportsById,
 }: TransactionListProps) {
   const sentinelRef = useInfiniteScroll({
     onLoadMore: onLoadMore || (() => {}),
@@ -46,7 +49,12 @@ export function TransactionList({
           key={transaction.id}
           transaction={transaction}
           isSelected={selectedTransactionId === transaction.id}
-          onClick={() => onSelectTransaction(transaction)}
+          onClick={() => onSelectTransaction(transaction.id)}
+          report={
+            transaction.report_id
+              ? reportsById?.get(transaction.report_id)
+              : undefined
+          }
         />
       ))}
 

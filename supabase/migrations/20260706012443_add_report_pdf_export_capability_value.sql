@@ -1,0 +1,21 @@
+-- migration: add_report_pdf_export_capability_value
+--
+-- purpose:
+--   extend payments.capability enum with the new 'report_pdf_export'
+--   value. this migration deliberately does NOTHING ELSE: postgres
+--   marks any transaction that adds an enum value as "unsafe" because
+--   the new value is invisible to other transactions running in
+--   parallel. by isolating the `ALTER TYPE` here (and the next
+--   migration using it in a fresh transaction) the apply path is
+--   linear and `bun docker:db:migration:up` succeeds.
+--
+--   the next file in the same sequence (20260706012444) inserts into
+--   plan_capabilities, default_capabilities, and usage_limits using
+--   the new enum value. timing of apply: 1 -> 2, both atomic
+--   individually.
+--
+--   why `if not exists`: makes the migration idempotent on environments
+--   where it was partially applied (e.g. the value was added by an
+--   earlier hand-run but the rest of the migration was skipped).
+
+alter type payments.capability add value if not exists 'report_pdf_export';

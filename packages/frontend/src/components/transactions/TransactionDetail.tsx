@@ -9,8 +9,10 @@ import { useFormatDate } from "../../hooks/useFormatDate";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { TransactionAttachments } from "./TransactionAttachments";
+import { ReportSelector } from "../reports/ReportSelector";
 import { TagSelector } from "../tags/TagSelector";
 import { useTagMutations } from "../../hooks/useTagMutations";
+import { useReportMutations } from "../../hooks/useReportMutations";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -42,6 +44,7 @@ export function TransactionDetail({
   // into the same cache via `queryKeys.transactions.all`, so add/remove
   // re-renders happen there without us mirroring the value in local state.
   const { setTransactionTags, isSettingTransactionTags } = useTagMutations();
+  const { assignTransactionToReport, isAssigning } = useReportMutations();
 
   const handleChangeTags = (ids: string[]) => {
     // The TagSelector's `onChange` passes the full new selected list
@@ -53,6 +56,17 @@ export function TransactionDetail({
     }).catch(error => {
       console.error("Error updating transaction tags:", error);
     });
+  };
+
+  const handleAssignReport = async (reportId: string | null) => {
+    try {
+      await assignTransactionToReport({
+        transactionId: transaction.id,
+        reportId,
+      });
+    } catch (error) {
+      console.error("Failed to assign transaction to report:", error);
+    }
   };
 
   const handleCopyId = () => {
@@ -229,6 +243,16 @@ export function TransactionDetail({
               iconOnly
             />
           </div>
+        </div>
+
+        {/* Report */}
+        <div className="mt-4 px-1">
+          <ReportSelector
+            label={t("reports.title", "Report")}
+            value={transaction.report_id ?? null}
+            disabled={isAssigning}
+            onChange={handleAssignReport}
+          />
         </div>
 
         {/* Attachments */}

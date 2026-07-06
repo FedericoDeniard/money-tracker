@@ -1,8 +1,9 @@
 import {
   Suspense,
   useCallback,
-  useReducer,
   useEffect,
+  useMemo,
+  useReducer,
   Component,
   useState,
 } from "react";
@@ -28,6 +29,8 @@ import {
   getTotalCount,
   hasMorePages,
 } from "../hooks/useTransactions";
+import { useLiveTransaction } from "../hooks/useLiveTransaction";
+import { useReports } from "../hooks/useReports";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -58,8 +61,8 @@ interface TransactionsListProps {
   userId: string | undefined;
   filters: TransactionFilters;
   onFiltersChange: (f: TransactionFilters) => void;
-  selectedTransaction: Transaction | null;
-  onSelectTransaction: (t: Transaction | null) => void;
+  selectedTransactionId: string | null;
+  onSelectTransaction: (transactionId: string) => void;
   onDelete: (id: string) => Promise<void>;
   onUpdate: (id: string, updates: Partial<Transaction>) => Promise<void>;
   isMobile: boolean;
@@ -68,7 +71,7 @@ interface TransactionsListProps {
 function TransactionsList({
   userId,
   filters,
-  selectedTransaction,
+  selectedTransactionId,
   onSelectTransaction,
   isMobile,
 }: TransactionsListProps) {
@@ -81,6 +84,16 @@ function TransactionsList({
     isFetchingNextPage: loadingMore,
     refetch,
   } = useTransactions({ filters });
+
+  // One shared query for all reports — every TransactionCard renders a
+  // deterministic-color badge for its report. TanStack dedupes the cache
+  // so this is a single fetch for the page, not N. `data` is undefined
+  // until the first fetch resolves, so we default to `[]` for the map.
+  const { data: activeReports } = useReports("active");
+  const reportsById = useMemo(
+    () => new Map((activeReports ?? []).map(r => [r.id, r])),
+    [activeReports]
+  );
 
   const transactions = flattenTransactionsData(transactionsData);
   const totalCount = getTotalCount(transactionsData);
@@ -148,11 +161,12 @@ function TransactionsList({
         <div className="overflow-y-auto flex-1 p-4">
           <TransactionList
             transactions={transactions || []}
-            selectedTransactionId={selectedTransaction?.id || null}
+            selectedTransactionId={selectedTransactionId}
             onSelectTransaction={onSelectTransaction}
             onLoadMore={handleLoadMore}
             hasMore={hasMore}
             isLoadingMore={loadingMore}
+            reportsById={reportsById}
           />
         </div>
       </div>
@@ -162,7 +176,7 @@ function TransactionsList({
 
 // ─── Page shell — renders immediately ────────────────────────────────────────
 interface TransactionsState {
-  selectedTransaction: Transaction | null;
+  selectedTransactionId: string | null;
   filters: TransactionFilters;
   isFormModalOpen: boolean;
   isUploadModalOpen: boolean;
@@ -170,7 +184,7 @@ interface TransactionsState {
 }
 
 type TransactionsAction =
-  | { type: "SELECT_TRANSACTION"; transaction: Transaction | null }
+  | { type: "SELECT_TRANSACTION"; transactionId: string | null }
   | { type: "SET_FILTERS"; filters: TransactionFilters }
   | { type: "SET_FORM_MODAL_OPEN"; isOpen: boolean }
   | { type: "SET_UPLOAD_MODAL_OPEN"; isOpen: boolean }
@@ -182,7 +196,7 @@ function transactionsReducer(
 ): TransactionsState {
   switch (action.type) {
     case "SELECT_TRANSACTION":
-      return { ...state, selectedTransaction: action.transaction };
+      return { ...state, selectedTransactionId: action.transactionId };
     case "SET_FILTERS":
       return { ...state, filters: action.filters };
     case "SET_FORM_MODAL_OPEN":
@@ -197,7 +211,7 @@ function transactionsReducer(
 function initTransactionsState(initial: string | null): TransactionsState {
   // Support legacy `?category=` and new `?tag=` (single tag id) entry points.
   return {
-    selectedTransaction: null,
+    selectedTransactionId: null,
     filters: {
       category: initial && !looksLikeUuid(initial) ? initial : undefined,
       tagIds: initial && looksLikeUuid(initial) ? [initial] : undefined,
@@ -228,12 +242,17 @@ export function Transactions() {
     initTransactionsState
   );
   const {
-    selectedTransaction,
+    selectedTransactionId,
     filters,
     isFormModalOpen,
     isUploadModalOpen,
     preFilledData,
   } = state;
+
+  // Live transaction derived from the TanStack cache. Re-renders whenever
+  // any `transactions.*` query mutates (optimistic updates from report
+  // assignments, tag edits, archive operations, etc.).
+  const selectedTransaction = useLiveTransaction(selectedTransactionId);
 
   const [, setSearchParams] = useSearchParams();
 
@@ -241,14 +260,7 @@ export function Transactions() {
   useEffect(() => {
     const transactionId = searchParams.get("id");
     if (!transactionId) return;
-
-    getSupabase().then(async supabase => {
-      const service = createTransactionsService(supabase);
-      const transaction = await service.getTransactionById(transactionId);
-      if (transaction) {
-        dispatch({ type: "SELECT_TRANSACTION", transaction });
-      }
-    });
+    dispatch({ type: "SELECT_TRANSACTION", transactionId });
 
     setSearchParams(prev => {
       prev.delete("id");
@@ -264,8 +276,8 @@ export function Transactions() {
   const handleDeleteTransaction = async (id: string) => {
     try {
       await deleteTransaction(id);
-      if (selectedTransaction?.id === id)
-        dispatch({ type: "SELECT_TRANSACTION", transaction: null });
+      if (selectedTransactionId === id)
+        dispatch({ type: "SELECT_TRANSACTION", transactionId: null });
       toast.success(t("transactions.deleteSuccess"));
     } catch (error) {
       console.error("Error deleting transaction:", error);
@@ -276,19 +288,13 @@ export function Transactions() {
 
   const handleUpdateTransaction = async (
     id: string,
-    updates: Partial<Transaction>
+    _updates: Partial<Transaction>
   ) => {
     try {
-      await updateTransaction(id, updates);
-      if (selectedTransaction?.id === id) {
-        dispatch({
-          type: "SELECT_TRANSACTION",
-          transaction:
-            selectedTransaction?.id === id
-              ? { ...selectedTransaction, ...updates }
-              : selectedTransaction,
-        });
-      }
+      await updateTransaction(id, _updates);
+      // The selectedTransaction is derived from the live cache, so the
+      // optimistic update in the mutation flows through automatically —
+      // no manual state merge needed here.
       toast.success(t("transactions.updateSuccess"));
     } catch (error) {
       console.error("Error updating transaction:", error);
@@ -351,9 +357,9 @@ export function Transactions() {
             userId={user?.id}
             filters={filters}
             onFiltersChange={f => dispatch({ type: "SET_FILTERS", filters: f })}
-            selectedTransaction={selectedTransaction}
-            onSelectTransaction={t =>
-              dispatch({ type: "SELECT_TRANSACTION", transaction: t })
+            selectedTransactionId={selectedTransactionId}
+            onSelectTransaction={id =>
+              dispatch({ type: "SELECT_TRANSACTION", transactionId: id })
             }
             onDelete={handleDeleteTransaction}
             onUpdate={handleUpdateTransaction}
@@ -390,7 +396,7 @@ export function Transactions() {
                 onDelete={handleDeleteTransaction}
                 onUpdate={handleUpdateTransaction}
                 onClose={() =>
-                  dispatch({ type: "SELECT_TRANSACTION", transaction: null })
+                  dispatch({ type: "SELECT_TRANSACTION", transactionId: null })
                 }
               />
             </TransactionDetailErrorBoundary>
