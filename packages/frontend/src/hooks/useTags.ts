@@ -15,7 +15,7 @@ export function useTags() {
   });
 }
 
-export function useTransactionTags(transactionId: string | undefined) {
+function useTransactionTags(transactionId: string | undefined) {
   return useQuery<TransactionTagLite[]>({
     queryKey: queryKeys.transactionTags.list(transactionId ?? ""),
     queryFn: async () => {

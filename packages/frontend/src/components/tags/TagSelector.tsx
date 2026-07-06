@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,6 +24,8 @@ import { useTagMutations } from "../../hooks/useTagMutations";
 import { TagBadge } from "./TagBadge";
 import type { Tag } from "../../types/tags";
 
+const EMPTY_TAG_IDS: string[] = [];
+
 interface TagSelectorProps {
   mode: "assign" | "manage";
   value?: string[];
@@ -35,7 +37,7 @@ interface TagSelectorProps {
 
 export function TagSelector({
   mode,
-  value = [],
+  value = EMPTY_TAG_IDS,
   onChange,
   disabled,
   className,
@@ -244,25 +246,23 @@ function CreateTagInline({
   const [color, setColor] = useState<TagColor>(DEFAULT_TAG_COLOR);
   const [submitting, setSubmitting] = useState(false);
 
+  const handleSubmit = async () => {
+    if (!name.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit({ name: name.trim(), color });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <form
-      className="space-y-2 p-1"
-      onSubmit={async e => {
-        e.preventDefault();
-        if (!name.trim() || submitting) return;
-        setSubmitting(true);
-        try {
-          await onSubmit({ name: name.trim(), color });
-        } finally {
-          setSubmitting(false);
-        }
-      }}
-    >
+    <div className="space-y-2 p-1">
       <input
-        autoFocus
         type="text"
         value={name}
         onChange={e => setName(e.target.value)}
+        aria-label={t("tags.namePlaceholder", "Tag name")}
         placeholder={t("tags.namePlaceholder", "Tag name")}
         maxLength={50}
         className="w-full px-3 py-2 rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] text-sm focus:outline-none focus:border-[var(--primary)]"
@@ -288,16 +288,17 @@ function CreateTagInline({
           {t("common.cancel")}
         </Button>
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="sm"
+          onClick={handleSubmit}
           disabled={!name.trim() || submitting}
           loading={submitting}
         >
           {t("common.save")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -421,6 +422,23 @@ function CreateTagRow({
   const [color, setColor] = useState<TagColor>(DEFAULT_TAG_COLOR);
   const [submitting, setSubmitting] = useState(false);
 
+  const closeAndReset = () => {
+    setOpen(false);
+    setName("");
+    setColor(DEFAULT_TAG_COLOR);
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      await onCreate({ name: name.trim(), color });
+      closeAndReset();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!open) {
     return (
       <Button
@@ -436,29 +454,14 @@ function CreateTagRow({
   }
 
   return (
-    <form
-      className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3"
-      onSubmit={async e => {
-        e.preventDefault();
-        if (!name.trim() || submitting) return;
-        setSubmitting(true);
-        try {
-          await onCreate({ name: name.trim(), color });
-          setName("");
-          setColor(DEFAULT_TAG_COLOR);
-          setOpen(false);
-        } finally {
-          setSubmitting(false);
-        }
-      }}
-    >
+    <div className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3">
       <div className="flex items-center gap-2">
         <TagIcon size={14} className="text-[var(--text-secondary)] shrink-0" />
         <input
-          autoFocus
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
+          aria-label={t("tags.namePlaceholder", "Tag name")}
           placeholder={t("tags.namePlaceholder", "Tag name")}
           maxLength={50}
           className="flex-1 px-3 py-2 rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] text-sm focus:outline-none focus:border-[var(--primary)]"
@@ -487,29 +490,21 @@ function CreateTagRow({
         </div>
       </div>
       <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setOpen(false);
-            setName("");
-            setColor(DEFAULT_TAG_COLOR);
-          }}
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={closeAndReset}>
           {t("common.cancel")}
         </Button>
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="sm"
+          onClick={handleSubmit}
           disabled={!name.trim() || submitting}
           loading={submitting}
         >
           {t("common.save")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -524,32 +519,37 @@ function EditTagRow({
   onCancel: () => void;
   t: TFunction;
 }) {
-  const [name, setName] = useState(tag.name);
-  const [color, setColor] = useState<TagColor>(tag.color);
+  // The component is remounted via `key={tag.id}` upstream, so uncontrolled
+  // inputs naturally snap back to each tag's values when the user switches
+  // rows. Local state tracks only the user's in-progress color pick.
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [pickedColor, setPickedColor] = useState<TagColor | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const selectedColor: TagColor = pickedColor ?? tag.color;
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    const nextName = (nameRef.current?.value ?? "").trim();
+    if (nextName.length === 0) return;
+    setSubmitting(true);
+    try {
+      const updates: { name?: string; color?: TagColor } = {};
+      if (nextName !== tag.name) updates.name = nextName;
+      if (selectedColor !== tag.color) updates.color = selectedColor;
+      await onSave(updates);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <form
-      className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3"
-      onSubmit={async e => {
-        e.preventDefault();
-        if (submitting) return;
-        setSubmitting(true);
-        try {
-          const updates: { name?: string; color?: TagColor } = {};
-          if (name.trim() !== tag.name) updates.name = name.trim();
-          if (color !== tag.color) updates.color = color;
-          await onSave(updates);
-        } finally {
-          setSubmitting(false);
-        }
-      }}
-    >
+    <div className="p-3 rounded-lg border border-[var(--text-secondary)]/15 bg-[var(--bg-secondary)] space-y-3">
       <input
-        autoFocus
+        ref={nameRef}
         type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
+        defaultValue={tag.name}
+        aria-label={t("tags.namePlaceholder", "Tag name")}
         maxLength={50}
         className="w-full px-3 py-2 rounded-lg border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] text-sm focus:outline-none focus:border-[var(--primary)]"
       />
@@ -562,13 +562,13 @@ function EditTagRow({
             <button
               key={c}
               type="button"
-              onClick={() => setColor(c)}
+              onClick={() => setPickedColor(c)}
               aria-label={`Color ${c}`}
               className={cn(
                 "size-6 rounded-full border",
                 TAG_COLOR_CLASSES[c].bg,
                 TAG_COLOR_CLASSES[c].border,
-                color === c &&
+                selectedColor === c &&
                   `ring-2 ring-offset-1 ${TAG_COLOR_CLASSES[c].ring}`
               )}
             />
@@ -580,15 +580,15 @@ function EditTagRow({
           {t("common.cancel")}
         </Button>
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           size="sm"
-          disabled={!name.trim() || submitting}
+          onClick={handleSubmit}
           loading={submitting}
         >
           {t("common.save")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }

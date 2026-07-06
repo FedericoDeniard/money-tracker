@@ -35,6 +35,7 @@ interface TransactionFormModalProps {
 }
 
 const FORM_ID = "transaction-form";
+const EMPTY_TAG_IDS: string[] = [];
 
 export function TransactionFormModal({
   isOpen,
@@ -43,7 +44,7 @@ export function TransactionFormModal({
   mode,
   transaction,
   initialData,
-  initialTagIds = [],
+  initialTagIds = EMPTY_TAG_IDS,
   onTagsChange,
 }: TransactionFormModalProps) {
   const { t } = useTranslation();
