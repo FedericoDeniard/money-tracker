@@ -34,3 +34,42 @@ export const registerSchema = z
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+export const reportSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "El título es obligatorio")
+      .max(120, "El título debe tener 120 caracteres o menos"),
+    description: z
+      .string()
+      .max(2000, "La descripción debe tener 2000 caracteres o menos")
+      .optional()
+      .or(z.literal("")),
+    dateRangeStart: z
+      .string()
+      .regex(isoDateRegex, "Fecha inválida")
+      .optional()
+      .or(z.literal("")),
+    dateRangeEnd: z
+      .string()
+      .regex(isoDateRegex, "Fecha inválida")
+      .optional()
+      .or(z.literal("")),
+  })
+  .refine(
+    data =>
+      !data.dateRangeStart ||
+      !data.dateRangeEnd ||
+      data.dateRangeEnd >= data.dateRangeStart,
+    {
+      message:
+        "La fecha de fin debe ser igual o posterior a la fecha de inicio",
+      path: ["dateRangeEnd"],
+    }
+  );
+
+export type ReportFormData = z.infer<typeof reportSchema>;

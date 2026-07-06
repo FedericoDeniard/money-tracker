@@ -28,7 +28,8 @@
     "assistant": "Assistant",
     "logout": "Logout",
     "home": "Home",
-    "emails": "Emails"
+    "emails": "Emails",
+    "reports": "Reports"
   },
   "auth": {
     "login": "Login",
@@ -166,6 +167,79 @@
     "confirmDelete": "Delete tag \"{{name}}\"? It will be removed from all transactions.",
     "filterByTag": "Tags",
     "clearAll": "Clear all"
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Group related transactions to review, export, or analyze them together.",
+    "create": "New report",
+    "edit": "Edit report",
+    "delete": "Delete report",
+    "archive": "Archive",
+    "unarchive": "Restore",
+    "archived": "Archived",
+    "active": "Active",
+    "tabs": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "assignToReport": "Assign to report",
+    "changeReport": "Change report",
+    "singleReportHint": "1 report per transaction",
+    "noReport": "No report",
+    "removeFromReport": "Remove from report",
+    "noReports": "No reports yet",
+    "emptyDescription": "Group related transactions to review, export, or analyze them together.",
+    "archivedEmpty": "No archived reports",
+    "archivedEmptyDescription": "Reports you archive will appear here for later reference.",
+    "form": {
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Italy trip, Client Acme, January 2026",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional context",
+      "dateRangeLabel": "Date range (optional)",
+      "startDateLabel": "Start date",
+      "endDateLabel": "End date",
+      "clear": "Clear",
+      "save": "Save changes",
+      "create": "Create report",
+      "cancel": "Cancel",
+      "titleRequired": "Title is required",
+      "titleTooLong": "Title must be 120 characters or fewer",
+      "descriptionTooLong": "Description must be 2000 characters or fewer",
+      "endBeforeStart": "End date must be on or after the start date"
+    },
+    "summary": {
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "count_one": "{{count}} transaction",
+      "count_other": "{{count}} transactions"
+    },
+    "dateRange": {
+      "fromTo": "{{from}} → {{to}}",
+      "openEnded": "{{from}} →",
+      "toOnly": "→ {{to}}",
+      "none": "No date range"
+    },
+    "header": {
+      "open": "Open",
+      "actions": "Actions",
+      "confirmDelete": "Delete report \"{{title}}\"? Transactions inside will be unlinked but not deleted.",
+      "confirmArchive": "Archive report \"{{title}}\"? It will be hidden from the main list.",
+      "confirmUnarchive": "Restore report \"{{title}}\" to the active list?",
+      "deleteSuccess": "Report deleted",
+      "archiveSuccess": "Report archived",
+      "unarchiveSuccess": "Report restored",
+      "saveSuccess": "Report updated",
+      "createSuccess": "Report created",
+      "saveError": "Could not save report",
+      "deleteError": "Could not delete report",
+      "archiveError": "Could not archive report"
+    },
+    "noTransactions": "No transactions in this report yet",
+    "noTransactionsDescription": "Assign transactions from the list page or from a transaction's detail view.",
+    "back": "Back to reports",
+    "detailsTitle": "Report details"
   },
   "upload": {
     "title": "Upload Document",

@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -2714,6 +2715,45 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          date_range_end: string | null
+          date_range_start: string | null
+          description: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       seeds: {
         Row: {
           created_at: string | null
@@ -2924,6 +2964,7 @@ export type Database = {
           id: string
           merchant: string
           name: string
+          report_id: string | null
           source_email: string
           source_message_id: string
           transaction_date: string
@@ -2945,6 +2986,7 @@ export type Database = {
           id?: string
           merchant: string
           name: string
+          report_id?: string | null
           source_email: string
           source_message_id: string
           transaction_date: string
@@ -2966,6 +3008,7 @@ export type Database = {
           id?: string
           merchant?: string
           name?: string
+          report_id?: string | null
           source_email?: string
           source_message_id?: string
           transaction_date?: string
@@ -2976,6 +3019,13 @@ export type Database = {
           user_oauth_token_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_user_oauth_token_id_fkey"
             columns: ["user_oauth_token_id"]
@@ -3170,6 +3220,25 @@ export type Database = {
           currency: string
         }[]
       }
+      get_report_summaries: {
+        Args: { p_status: string }
+        Returns: {
+          archived_at: string
+          created_at: string
+          currency: string
+          date_range_end: string
+          date_range_start: string
+          description: string
+          id: string
+          status: string
+          title: string
+          total_expenses: number
+          total_income: number
+          transaction_count: number
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_subscription_candidates: {
         Args: { p_min_confidence?: number; p_min_occurrences?: number }
         Returns: {
@@ -3204,6 +3273,7 @@ export type Database = {
           id: string
           merchant: string
           name: string
+          report_id: string | null
           source_email: string
           source_message_id: string
           transaction_date: string
