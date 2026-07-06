@@ -8,7 +8,7 @@ import { LoadingSpinner } from "../ui/LoadingSpinner";
 interface TransactionListProps {
   transactions: Transaction[];
   selectedTransactionId: string | null;
-  onSelectTransaction: (transaction: Transaction) => void;
+  onSelectTransaction: (transactionId: string) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
@@ -46,7 +46,7 @@ export function TransactionList({
           key={transaction.id}
           transaction={transaction}
           isSelected={selectedTransactionId === transaction.id}
-          onClick={() => onSelectTransaction(transaction)}
+          onClick={() => onSelectTransaction(transaction.id)}
         />
       ))}
 

@@ -1,19 +1,18 @@
-import { Check, Copy, Edit, Trash2, ArrowDown, ArrowUp, X } from "lucide-react";
-import { Button } from "../ui/Button";
-import type { Transaction } from "../../services/transactions.service";
-import { getTransactionType } from "../../utils/transactionUtils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useTranslateCategory } from "../../hooks/useTranslateCategory";
-import { useFormatDate } from "../../hooks/useFormatDate";
+import { Edit, Trash2, X } from "lucide-react";
+import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { TransactionAttachments } from "./TransactionAttachments";
-import { TagBadge } from "../tags/TagBadge";
-import { TagSelector } from "../tags/TagSelector";
+import { ReportSelector } from "../reports/ReportSelector";
+import { TransactionDetailHeader } from "./TransactionDetailHeader";
+import { TransactionDetailMetadata } from "./TransactionDetailMetadata";
+import { TransactionDetailTags } from "./TransactionDetailTags";
 import { useTagMutations } from "../../hooks/useTagMutations";
 import { useTags } from "../../hooks/useTags";
-import type { TransactionTagLite, Tag } from "../../types/tags";
+import { useReportMutations } from "../../hooks/useReportMutations";
+import type { Transaction } from "../../services/transactions.service";
 
 interface TransactionDetailProps {
   transaction: Transaction;
@@ -29,69 +28,38 @@ export function TransactionDetail({
   onClose,
 }: TransactionDetailProps) {
   const { t } = useTranslation();
-  const { isIncome } = getTransactionType(
-    transaction.transaction_type as "income" | "expense" | "ingreso" | "egreso"
-  );
-
-  const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { translateCategory } = useTranslateCategory();
-  const { formatDateTime } = useFormatDate();
-
-  // Local optimistic copy of tags so inline add/remove feels instant.
-  // Re-sync whenever the underlying transaction's tags change (e.g. refetch).
-  const [localTags, setLocalTags] = useState<TransactionTagLite[]>(
-    transaction.tags ?? []
-  );
-  useEffect(() => {
-    setLocalTags(transaction.tags ?? []);
-  }, [transaction.id, transaction.tags]);
 
   const { setTransactionTags, isSettingTransactionTags } = useTagMutations();
   const { data: allTags = [] } = useTags();
+  const { assignTransactionToReport, isAssigning } = useReportMutations();
 
-  const persistTags = async (next: TransactionTagLite[]) => {
-    setLocalTags(next);
+  const handleChangeTags = async (ids: string[]) => {
     try {
       await setTransactionTags({
         transactionId: transaction.id,
-        tagIds: next.map(t => t.id),
+        tagIds: ids,
       });
     } catch (error) {
       console.error("Error updating transaction tags:", error);
-      setLocalTags(transaction.tags ?? []);
     }
   };
 
-  const handleChangeTags = (ids: string[]) => {
-    // The TagSelector's `onChange` passes the full new selected list
-    // (toggle semantics), so we resolve those ids against the user's tag
-    // catalog and replace `localTags` entirely — never merge.
-    const existingById = new Map<string, Tag>(allTags.map(t => [t.id, t]));
-    const next: TransactionTagLite[] = ids
-      .map(id => {
-        const full = existingById.get(id);
-        return full
-          ? { id: full.id, name: full.name, color: full.color }
-          : { id, name: "", color: "slate" as const };
-      })
-      .filter((t): t is TransactionTagLite => t !== null);
-    persistTags(next);
-  };
-
-  const handleCopyId = () => {
-    if (typeof window !== "undefined" && window.navigator?.clipboard) {
-      window.navigator.clipboard.writeText(transaction.source_message_id);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleAssignReport = async (reportId: string | null) => {
+    try {
+      await assignTransactionToReport({
+        transactionId: transaction.id,
+        reportId,
+      });
+    } catch (error) {
+      console.error("Failed to assign transaction to report:", error);
     }
   };
 
   const handleDelete = async () => {
     if (!onDelete) return;
-
     setIsDeleting(true);
     try {
       await onDelete(transaction.id);
@@ -109,162 +77,58 @@ export function TransactionDetail({
     await onUpdate(transaction.id, updates);
   };
 
-  const amountColor = "text-[var(--text-primary)]";
-
-  // Format date and time
-  let dateTimeStr: string;
-  try {
-    dateTimeStr = formatDateTime(
-      transaction.transaction_date || transaction.date
-    );
-  } catch {
-    dateTimeStr = "Invalid date";
-  }
-
-  let amountDisplay: string;
-  try {
-    amountDisplay = transaction.amount.toLocaleString();
-  } catch {
-    amountDisplay = "error";
-  }
+  // The selected tag ids are derived from the transaction prop. The mutation's
+  // onMutate already pushes optimistic updates into the transactions cache,
+  // so the prop is the source of truth — no local mirror needed.
+  const selectedTagIds = transaction.tags?.map(tag => tag.id) ?? [];
 
   return (
     <div className="h-full flex flex-col bg-white lg:rounded-3xl relative lg:shadow-sm lg:border border-zinc-100">
-      {/* Mobile Close Button */}
       {onClose && (
         <Button
+          type="button"
           onClick={onClose}
           variant="ghost"
           size="sm"
           icon={<X size={20} />}
           className="lg:hidden absolute top-4 right-4 z-10"
+          aria-label={t("common.close")}
         />
       )}
 
-      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Header with Icon */}
-        <div className="flex justify-center mb-6 mt-2">
-          <div
-            className={`p-4 rounded-2xl ${
-              isIncome
-                ? "bg-green-100 text-green-600"
-                : "bg-red-100 text-red-600"
-            }`}
-          >
-            {isIncome ? (
-              <ArrowDown strokeWidth={3} size={32} />
-            ) : (
-              <ArrowUp strokeWidth={3} size={32} />
-            )}
-          </div>
+        <TransactionDetailHeader transaction={transaction} />
+
+        <div className="space-y-6 px-1 mt-4">
+          <TransactionDetailMetadata transaction={transaction} />
         </div>
 
-        {/* Amount */}
-        <div className="text-center mb-3">
-          <h1
-            className={`text-3xl font-semibold ${amountColor} tracking-tight`}
-          >
-            {isIncome ? "+" : "-"}
-            {transaction.currency} {amountDisplay}
-          </h1>
-        </div>
-
-        {/* Context Pill */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-full text-sm text-[var(--text-secondary)] shadow-sm">
-            <div
-              className={`size-2 rounded-full ${isIncome ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className="font-medium text-[var(--text-primary)]">
-              {transaction.merchant || t("transactions.unknown")}
-            </span>
-            <span className="text-zinc-300 text-xs">•</span>
-            <span className="capitalize">
-              {translateCategory(transaction.category)}
-            </span>
-          </div>
-        </div>
-
-        {/* Details List */}
-        <div className="space-y-6 px-1">
-          <DetailRow label={t("transactions.dateTime")} value={dateTimeStr} />
-
-          <DetailRow
-            label={t("transactions.type")}
-            value={
-              isIncome ? t("transactions.income") : t("transactions.expense")
-            }
-          />
-
-          <DetailRow
-            label={
-              isIncome
-                ? t("transactions.receivedFrom")
-                : t("transactions.merchant")
-            }
-            value={transaction.merchant || t("transactions.unknown")}
-          />
-
-          <DetailRow
-            label={t("transactions.description")}
-            value={transaction.transaction_description}
-          />
-
-          <DetailRow
-            label={t("transactions.amount")}
-            value={`${transaction.currency} ${amountDisplay}`}
-          />
-
-          <div className="flex items-center justify-between py-1">
-            <span className="text-[var(--text-secondary)] text-sm">
-              {t("transactions.reference")}
-            </span>
-            <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium text-sm text-right overflow-hidden pl-4">
-              <span className="truncate w-32 md:w-40 font-mono text-xs opacity-70">
-                {transaction.source_message_id}
-              </span>
-              <Button
-                onClick={handleCopyId}
-                variant="ghost"
-                size="sm"
-                icon={
-                  copied ? (
-                    <Check size={14} className="text-green-500" />
-                  ) : (
-                    <Copy size={14} />
-                  )
-                }
-                title={t("common.copy")}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Tags */}
         <div className="mt-6 px-1">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[var(--text-secondary)] text-sm font-medium">
-              {t("tags.title", "Tags")}
-            </span>
-            <TagSelector
-              mode="assign"
-              value={localTags.map(t => t.id)}
-              onChange={handleChangeTags}
-              disabled={isSettingTransactionTags}
-              iconOnly
-            />
-          </div>
+          <TransactionDetailTags
+            label={t("tags.title", "Tags")}
+            selectedIds={selectedTagIds}
+            allTags={allTags}
+            disabled={isSettingTransactionTags}
+            onChange={handleChangeTags}
+          />
         </div>
 
-        {/* Attachments */}
+        <div className="mt-4 px-1">
+          <ReportSelector
+            label={t("reports.title", "Report")}
+            value={transaction.report_id ?? null}
+            disabled={isAssigning}
+            onChange={handleAssignReport}
+          />
+        </div>
+
         <TransactionAttachments transactionId={transaction.id} />
       </div>
 
-      {/* Footer Actions — always visible at the bottom */}
       <div className="shrink-0 p-6 pt-4 border-t border-zinc-100">
         <div className="flex gap-3">
           <Button
+            type="button"
             onClick={() => setShowDeleteModal(true)}
             variant="danger"
             size="md"
@@ -274,6 +138,7 @@ export function TransactionDetail({
             {t("transactions.delete")}
           </Button>
           <Button
+            type="button"
             onClick={() => setShowEditModal(true)}
             variant="secondary"
             size="md"
@@ -285,7 +150,6 @@ export function TransactionDetail({
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -293,11 +157,10 @@ export function TransactionDetail({
         title={t("transactions.deleteTransaction")}
         message={t("transactions.deleteConfirmation")}
         confirmText={t("transactions.delete")}
-        isDestructive={true}
+        isDestructive
         isLoading={isDeleting}
       />
 
-      {/* Edit Modal */}
       <EditTransactionModal
         key={transaction.id}
         isOpen={showEditModal}
@@ -305,23 +168,6 @@ export function TransactionDetail({
         onSave={handleUpdate}
         transaction={transaction}
       />
-    </div>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-[var(--text-secondary)] text-sm">{label}</span>
-      <span className="text-[var(--text-primary)] font-medium text-sm text-right">
-        {value}
-      </span>
     </div>
   );
 }
