@@ -825,7 +825,7 @@
       },
       "ai": {
         "title": "AI Extraction",
-        "description": "Powered by xAI Grok to accurately extract amounts, merchants, dates, and auto-categorize expenses."
+        "description": "An AI analyzes your emails and documents to accurately extract amounts, merchants, and dates, and to auto-categorize your expenses."
       },
       "currency": {
         "title": "Multi-Currency",
@@ -985,7 +985,7 @@
         "Authentication data: email address, name (if using Google OAuth), and encrypted password.",
         "Financial transaction data: amounts, merchants, categories, dates, and descriptions extracted from your emails.",
         "Uploaded documents: PDFs and images you voluntarily upload for transaction extraction.",
-        "Gmail data: read-only access to process receipt and transaction emails. OAuth tokens are stored encrypted.",
+        "Gmail data: read-only access. We only process emails in INBOX (excluding SPAM and Trash). We store the Gmail message ID and sender to prevent re-processing, plus the extracted structured data (amount, merchant, date, category, description). OAuth tokens are stored in our database, protected by the at-rest encryption of our infrastructure provider (Supabase). The email body is not kept.",
         "Notification preferences: push notification settings and per-type preferences.",
         "Tutorial state: language preference and tutorial progress saved in localStorage."
       ]
@@ -994,9 +994,13 @@
       "title": "Purpose of Processing",
       "content": "Your data is used exclusively to: (a) authenticate and manage your account, (b) automatically extract and categorize financial transactions from Gmail and uploaded documents, (c) display metrics and analysis of your finances, (d) send you relevant notifications (new transactions, connection alerts), and (e) improve the service through AI performance analysis."
     },
-    "aiProcessing": {
-      "title": "AI Processing",
-      "content": "Emails and documents you upload are processed by xAI (Grok) to extract financial information. We also use Langfuse for observability and tracing of AI extractions, to diagnose errors and improve system accuracy. We do not use your data to train AI models nor share it with third parties for commercial purposes."
+    "gmailIntegration": {
+      "title": "Gmail and AI Integration (Optional)",
+      "content": "Connecting Gmail is entirely optional. If you choose to connect it, the emails in your inbox (INBOX) are analyzed by an AI provider whose sole purpose is to extract financial transactions. The provider may change over time; the providers we use today are xAI (Grok) for extraction and OpenRouter with Gemini as a guardrail.\n\nFrom each email we extract only structured data (amount, merchant, date, category, description) and the Gmail message ID required to prevent re-processing. We do not keep the original email body or attachments. Emails that are not transactions are discarded, and we only keep their ID to avoid reprocessing.\n\nWe keep tracing and logs of AI extractions solely to monitor accuracy, diagnose errors, and improve the product. No humans read your emails, unless you explicitly ask us to in order to resolve an issue, for security purposes, or to comply with legal obligations. Observability and AI providers may have access to email content during processing and for a limited retention period for debugging and product improvement purposes.\n\nYou can disconnect Gmail at any time from Settings. When you do, OAuth tokens are deactivated immediately and the deactivation is logged."
+    },
+    "googleLimitedUse": {
+      "title": "Google Compliance",
+      "content": "Money Tracker's use of information received from Google APIs will adhere to Google API Services User Data Policy, including the Limited Use requirements."
     },
     "thirdParties": {
       "title": "Third Parties",
@@ -1004,14 +1008,14 @@
       "items": [
         "Supabase: PostgreSQL database, authentication, and serverless functions provider. Data is stored on Supabase servers with encryption at rest.",
         "Google (Gmail API): read-only access to read transaction emails. We use the gmail.readonly and userinfo.email scopes.",
-        "xAI (Grok): AI processing to extract financial data from emails and documents.",
-        "Langfuse: observability platform to monitor and debug AI extractions.",
+        "xAI (Grok) and OpenRouter (with Gemini as a guardrail): AI processing to extract financial data. AI providers may change; we always use providers that meet equivalent privacy standards.",
+        "Observability provider (currently Langfuse): third-party platform used to monitor and debug AI extractions. This provider receives and stores the content sent to the AI (email subject, body, and attachments) for the configured retention period, solely to diagnose errors and improve accuracy. The content is stored alongside technical identifiers, not your personal account.",
         "Web Push API: native browser push notifications. No third-party services are used for push."
       ]
     },
     "security": {
       "title": "Security",
-      "content": "We implement the following security measures: database encryption at rest (Supabase), Gmail OAuth tokens stored in encrypted columns, Row-Level Security (RLS) policies ensuring each user can only access their own data, HTTPS communication with CSP headers, and authentication sessions with automatic token refresh."
+      "content": "We implement the following security measures: encryption at rest of the database (AES-256 provided by Supabase), Row-Level Security (RLS) policies ensuring each user can only access their own data, HTTPS communication with CSP headers, authentication sessions with automatic token refresh, and Google Pub/Sub signature validation on Gmail webhook notifications. OAuth tokens are stored in the database protected by Supabase's at-rest encryption; migration to application-level encryption is on our security roadmap."
     },
     "localStorage": {
       "title": "Local Storage and Cookies",
