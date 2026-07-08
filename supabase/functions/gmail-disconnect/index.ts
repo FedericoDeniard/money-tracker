@@ -4,6 +4,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireMinRole, requireUserAuth } from "../_shared/auth.ts";
 import { requireCapability } from "../_shared/capabilities.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
+import { type OAuthTokenRow } from "../_shared/lib/gmail-auth.ts";
+import { decryptTokenRow } from "../_shared/lib/oauth-token-crypto.ts";
 
 const corsHeaderOverrides = {
   "Access-Control-Allow-Methods": "DELETE, OPTIONS",
@@ -63,15 +65,19 @@ Deno.serve(async req => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get the token data first and verify ownership
-    const { data: tokenData, error: fetchError } = await supabase
+    // Get the token data first and verify ownership. Select the encrypted
+    // columns (plaintext columns are NULL after MON-18) and decrypt in memory
+    // to call gmail/v1/users/me/stop below.
+    const { data, error: fetchError } = await supabase
       .from("user_oauth_tokens")
-      .select("*")
+      .select(
+        "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active"
+      )
       .eq("id", connectionId)
       .eq("user_id", user.id)
       .single();
 
-    if (fetchError || !tokenData) {
+    if (fetchError || !data) {
       return new Response(
         JSON.stringify({ error: "Connection not found or unauthorized" }),
         {
@@ -80,6 +86,9 @@ Deno.serve(async req => {
         }
       );
     }
+
+    const tokenData = data as OAuthTokenRow;
+    await decryptTokenRow(supabase, tokenData);
 
     // Check if there are other users with the same Gmail account
     const { data: otherTokens } = await supabase

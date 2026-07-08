@@ -47,7 +47,7 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.trycloudflare.com https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000" +
+    "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.trycloudflare.com https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000" +
       (mastraOrigin ? ` ${mastraOrigin}` : ""),
     "frame-src 'none'",
     "object-src 'none'",

@@ -825,7 +825,7 @@
       },
       "ai": {
         "title": "Extracción con IA",
-        "description": "Potenciado por xAI Grok para extraer montos, comercios, fechas con precisión y categorizar gastos automáticamente."
+        "description": "Una IA analiza tus correos y documentos para extraer montos, comercios y fechas con precisión, y categorizar tus gastos automáticamente."
       },
       "currency": {
         "title": "Multi-Moneda",
@@ -985,7 +985,7 @@
         "Datos de autenticación: correo electrónico, nombre (si usás Google OAuth) y contraseña encriptada.",
         "Datos de transacciones financieras: montos, comercios, categorías, fechas y descripciones extraídos de tus correos electrónicos.",
         "Documentos subidos: PDFs e imágenes que subís voluntariamente para extracción de transacciones.",
-        "Datos de Gmail: acceso de solo lectura para procesar correos de recibos y transacciones. Los tokens OAuth se almacenan encriptados.",
+        "Datos de Gmail: acceso de solo lectura. Procesamos únicamente correos del INBOX (excluidos SPAM y Papelera). Almacenamos el ID de mensaje de Gmail y el remitente para evitar reprocesamiento, y los datos estructurados extraídos (monto, comercio, fecha, categoría, descripción). Los tokens OAuth se almacenan en la base de datos con la protección de cifrado en reposo de nuestro proveedor de infraestructura (Supabase). El cuerpo del email no se conserva.",
         "Preferencias de notificaciones: configuraciones de notificaciones push y preferencias por tipo.",
         "Estado de tutoriales: preferencia de idioma y progreso de tutoriales guardados en localStorage."
       ]
@@ -994,24 +994,28 @@
       "title": "Finalidad del tratamiento",
       "content": "Tus datos se utilizan exclusivamente para: (a) autenticación y gestión de tu cuenta, (b) extraer y categorizar automáticamente transacciones financieras desde Gmail y documentos subidos, (c) mostrarte métricas y análisis de tus finanzas, (d) enviarte notificaciones relevantes (nuevas transacciones, alertas de conexión), y (e) mejorar el servicio mediante el análisis de rendimiento de la IA."
     },
-    "aiProcessing": {
-      "title": "Procesamiento con inteligencia artificial",
-      "content": "Los correos electrónicos y documentos que subís son procesados por xAI (Grok) para extraer información financiera. También utilizamos Langfuse para observabilidad y trazado de las extracciones de IA, con el fin de diagnosticar errores y mejorar la precisión del sistema. No utilizamos tus datos para entrenar modelos de IA ni los compartimos con terceros con fines comerciales."
+    "gmailIntegration": {
+      "title": "Integración con Gmail e IA (opcional)",
+      "content": "La conexión con Gmail es totalmente opcional. Si decidís conectarla, los correos de tu bandeja de entrada (INBOX) son analizados por un proveedor de inteligencia artificial cuyo único propósito es extraer transacciones financieras. El proveedor puede cambiar con el tiempo; los proveedores que utilizamos hoy son xAI (Grok) para la extracción y OpenRouter con Gemini como guardrail.\n\nDe cada email extraemos únicamente datos estructurados (monto, comercio, fecha, categoría, descripción) y el ID de mensaje de Gmail necesario para evitar reprocesamiento. No conservamos el cuerpo ni los adjuntos originales del email. Los emails que no son transacciones se descartan y solo guardamos su ID para no volver a procesarlos.\n\nConservamos registros (tracing y logs) de las extracciones de la IA con el único fin de monitorear precisión, diagnosticar errores y mejorar el producto. Ningún humano lee tus emails, salvo que vos lo solicites explícitamente para resolver un problema, por seguridad, o por obligación legal. Los proveedores de observabilidad e IA pueden tener acceso al contenido de los emails durante el procesamiento y por un período de retención limitado con fines de debugging y mejora del producto.\n\nPodés desconectar Gmail en cualquier momento desde Configuración. Al hacerlo, los tokens OAuth se desactivan inmediatamente y se registra la desactivación."
+    },
+    "googleLimitedUse": {
+      "title": "Cumplimiento con Google",
+      "content": "El uso por parte de Money Tracker de la información recibida desde las APIs de Google se ajusta a la Google API Services User Data Policy, incluyendo los requisitos de Limited Use."
     },
     "thirdParties": {
       "title": "Terceros involucrados",
       "intro": "Money Tracker utiliza los siguientes servicios de terceros para su funcionamiento:",
       "items": [
-        "Supabase: proveedor de base de datos PostgreSQL, autenticación y funciones serverless. Los datos se almacenan en servidores de Supabase con encriptación en reposo.",
+        "Supabase: proveedor de base de datos PostgreSQL, autenticación y funciones serverless. Los datos se almacenan en servidores de Supabase con cifrado en reposo.",
         "Google (Gmail API): acceso de solo lectura para leer correos de transacciones. Utilizamos los scopes gmail.readonly y userinfo.email.",
-        "xAI (Grok): procesamiento de IA para extraer datos financieros de correos y documentos.",
-        "Langfuse: plataforma de observabilidad para monitorear y depurar las extracciones de IA.",
+        "xAI (Grok) y OpenRouter (con Gemini como guardrail): procesamiento de IA para extraer datos financieros. Los proveedores de IA pueden variar; siempre usamos proveedores que cumplen con estándares equivalentes de privacidad.",
+        "Proveedor de observabilidad (actualmente Langfuse): plataforma de terceros para monitorear y depurar las extracciones de IA. Este proveedor recibe y almacena el contenido enviado a la IA (asunto, cuerpo y adjuntos del email) durante el período de retención configurado, con el único fin de diagnosticar errores y mejorar la precisión. El contenido se almacena asociado a identificadores técnicos, no a tu cuenta personal.",
         "Web Push API: notificaciones push nativas del navegador. No utilizamos servicios de terceros para push."
       ]
     },
     "security": {
       "title": "Seguridad",
-      "content": "Implementamos las siguientes medidas de seguridad: encriptación en reposo de la base de datos (Supabase), tokens OAuth de Gmail almacenados en columnas encriptadas, políticas de seguridad a nivel de fila (RLS) que garantizan que cada usuario solo accede a sus propios datos, comunicación mediante HTTPS con headers CSP, y sesiones de autenticación con renovación automática de tokens."
+      "content": "Implementamos las siguientes medidas de seguridad: cifrado en reposo de la base de datos (AES-256 provisto por Supabase), políticas de seguridad a nivel de fila (RLS) que garantizan que cada usuario solo accede a sus propios datos, comunicación mediante HTTPS con headers CSP, sesiones de autenticación con renovación automática de tokens, y validación de firma de Google Pub/Sub en las notificaciones del webhook de Gmail. Los tokens OAuth se almacenan en la base de datos protegidos por el cifrado en reposo de Supabase; la migración a cifrado a nivel de aplicación está en nuestro roadmap de seguridad."
     },
     "localStorage": {
       "title": "Almacenamiento local y cookies",

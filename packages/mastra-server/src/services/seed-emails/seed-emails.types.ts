@@ -46,8 +46,13 @@ export interface ConnectionRow {
   id: string;
   user_id: string;
   gmail_email: string | null;
+  // Plaintext in memory after findActiveConnection runs decryptTokenRow.
+  // Never read from the DB after MON-18 (the DB only stores *_encrypted).
   access_token: string | null;
   refresh_token: string | null;
+  // base64 BYTEA as returned by PostgREST; decrypted by decryptTokenRow.
+  access_token_encrypted?: string | null;
+  refresh_token_encrypted?: string | null;
   expires_at: string | null;
   is_active: boolean | undefined;
 }

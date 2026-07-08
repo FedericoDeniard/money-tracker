@@ -1,6 +1,7 @@
 // Repository layer for seed-emails: pure Supabase queries.
 // No business logic, no error handling, no notifications — just data access.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { decryptTokenRow } from "../../lib/seed-shared/oauth-token-crypto";
 import type { ConnectionRow, SeedRow } from "./seed-emails.types";
 
 export function createServiceClient(): SupabaseClient {
@@ -16,10 +17,13 @@ export async function findActiveConnection(
   connectionId: string,
   userId: string
 ): Promise<ConnectionRow | null> {
+  // Plaintext columns are NULL after MON-18; select the encrypted columns
+  // and decrypt in memory so the caller receives a fully-populated
+  // ConnectionRow with access_token / refresh_token in plaintext.
   const { data, error } = await supabase
     .from("user_oauth_tokens")
     .select(
-      "id, user_id, gmail_email, access_token, refresh_token, expires_at, is_active"
+      "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active"
     )
     .eq("id", connectionId)
     .eq("user_id", userId)
@@ -27,6 +31,7 @@ export async function findActiveConnection(
     .single();
 
   if (error || !data) return null;
+  await decryptTokenRow(supabase, data as ConnectionRow);
   return data as ConnectionRow;
 }
 

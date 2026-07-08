@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { handleCorsPreflightRequest } from '../_shared/cors.ts'
+import { encryptSecret } from '../_shared/lib/oauth-token-crypto.ts'
 
 interface OAuthCallbackResponse {
   success: boolean
@@ -122,7 +123,9 @@ Deno.serve(async (req) => {
       return Response.redirect(`${frontendUrl}/settings?error=oauth_failed&reason=no_email`, 302)
     }
 
-    // Store tokens directly for now
+    // Hold tokens in memory for the Gmail watch setup call below; the
+    // values are never persisted in plaintext (see the encrypted INSERT
+    // / UPDATE further down).
     const accessToken = tokens.access_token
     const refreshToken = tokens.refresh_token || null
 
@@ -137,10 +140,18 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
+    // Encrypt the new tokens before persistence. The encryption key never
+    // leaves Postgres — we only ever call the encrypt_secret / decrypt_secret
+    // RPCs (see supabase/migrations/20260708164517_add_oauth_token_encryption.sql).
+    const newAccessEncrypted = await encryptSecret(supabase, accessToken)
+    const newRefreshEncrypted = refreshToken
+      ? await encryptSecret(supabase, refreshToken)
+      : null
+
     // Check if token already exists
     const { data: existingToken } = await supabase
       .from('user_oauth_tokens')
-      .select('id, is_active, refresh_token')
+      .select('id, is_active, refresh_token_encrypted')
       .eq('user_id', userId)
       .eq('gmail_email', gmailEmail)
       .maybeSingle()
@@ -150,8 +161,13 @@ Deno.serve(async (req) => {
       const { error: updateError } = await supabase
         .from('user_oauth_tokens')
         .update({
-          access_token: accessToken,
-          refresh_token: refreshToken || existingToken.refresh_token || null,
+          access_token_encrypted: newAccessEncrypted,
+          // Persist the new encrypted refresh_token if Google rotated it;
+          // otherwise keep the existing encrypted value untouched.
+          refresh_token_encrypted:
+            newRefreshEncrypted || existingToken.refresh_token_encrypted,
+          access_token: null,
+          refresh_token: null,
           token_type: tokens.token_type || 'Bearer',
           expires_at: expiresAt,
           scope: tokens.scope || null,
@@ -173,8 +189,10 @@ Deno.serve(async (req) => {
         .from('user_oauth_tokens')
         .insert({
           user_id: userId,
-          access_token: accessToken,
-          refresh_token: refreshToken,
+          access_token_encrypted: newAccessEncrypted,
+          refresh_token_encrypted: newRefreshEncrypted,
+          access_token: null,
+          refresh_token: null,
           token_type: tokens.token_type || 'Bearer',
           expires_at: expiresAt,
           scope: tokens.scope || null,

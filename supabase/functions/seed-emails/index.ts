@@ -20,6 +20,7 @@ import {
   ensureFreshAccessToken,
   fetchGmailWithRecovery,
 } from "../_shared/lib/gmail-auth.ts";
+import { decryptTokenRow } from "../_shared/lib/oauth-token-crypto.ts";
 
 interface SeedRequest {
   connectionId?: string;
@@ -165,11 +166,12 @@ Deno.serve(async req => {
       );
     }
 
-    // Verify connection belongs to user
+    // Verify connection belongs to user. Plaintext columns are NULL after
+    // MON-18 — select the encrypted columns and decrypt in memory.
     const { data: tokenData, error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .select(
-        "id, user_id, gmail_email, access_token, refresh_token, expires_at, is_active"
+        "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active"
       )
       .eq("id", connectionId)
       .eq("user_id", userId)
@@ -185,6 +187,8 @@ Deno.serve(async req => {
         }
       );
     }
+
+    await decryptTokenRow(supabase, tokenData);
 
     // Check for existing in-progress seed
     const { data: existingSeed } = await supabase
@@ -430,15 +434,19 @@ async function processChunk(
     };
   }
 
-  // Get OAuth token
+  // Get OAuth token. Select the encrypted columns (plaintext is NULL after
+  // MON-18) and decrypt in memory before passing to ensureFreshAccessToken.
   const { data: tokenData } = await supabase
     .from("user_oauth_tokens")
-    .select("*")
+    .select(
+      "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active, last_refresh_at, last_refresh_error"
+    )
     .eq("id", seed.user_oauth_token_id)
     .single();
 
   if (!tokenData) throw new Error("OAuth tokens not found");
 
+  await decryptTokenRow(supabase, tokenData);
   await ensureFreshAccessToken(
     supabase,
     tokenData as OAuthTokenRow,

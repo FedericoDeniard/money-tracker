@@ -4,6 +4,24 @@ import { DecorativeSquare } from "../components/ui/DecorativeSquare";
 import logo from "../logo.svg";
 
 const CURRENT_YEAR = new Date().getFullYear();
+const LAST_UPDATED = new Date("2026-07-08");
+
+// Module-scope cache for Intl.DateTimeFormat instances, keyed by locale.
+// Building one is expensive; reuse across renders and across components.
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+};
+function formatLastUpdated(locale: string, date: Date): string {
+  let formatter = dateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, DATE_FORMAT_OPTIONS);
+    dateFormatters.set(locale, formatter);
+  }
+  return formatter.format(date);
+}
 
 function Section({
   title,
@@ -33,7 +51,9 @@ function List({ items }: { items: string[] }) {
 }
 
 export function PrivacyPolicy() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const lastUpdatedFormatted = formatLastUpdated(i18n.language, LAST_UPDATED);
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col font-sans">
@@ -62,7 +82,7 @@ export function PrivacyPolicy() {
           {t("privacy.title")}
         </h1>
         <p className="text-sm text-[var(--text-secondary)]/60 mb-10">
-          {t("privacy.lastUpdated", { date: "4 de mayo de 2026" })}
+          {t("privacy.lastUpdated", { date: lastUpdatedFormatted })}
         </p>
 
         <Section title={t("privacy.controller.title")}>
@@ -86,9 +106,15 @@ export function PrivacyPolicy() {
           </p>
         </Section>
 
-        <Section title={t("privacy.aiProcessing.title")}>
+        <Section title={t("privacy.gmailIntegration.title")}>
+          <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+            {t("privacy.gmailIntegration.content")}
+          </p>
+        </Section>
+
+        <Section title={t("privacy.googleLimitedUse.title")}>
           <p className="text-[var(--text-secondary)] leading-relaxed">
-            {t("privacy.aiProcessing.content")}
+            {t("privacy.googleLimitedUse.content")}
           </p>
         </Section>
 
