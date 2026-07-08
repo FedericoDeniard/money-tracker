@@ -6,6 +6,23 @@ import logo from "../logo.svg";
 const CURRENT_YEAR = new Date().getFullYear();
 const LAST_UPDATED = new Date("2026-07-08");
 
+// Module-scope cache for Intl.DateTimeFormat instances, keyed by locale.
+// Building one is expensive; reuse across renders and across components.
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+};
+function formatLastUpdated(locale: string, date: Date): string {
+  let formatter = dateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, DATE_FORMAT_OPTIONS);
+    dateFormatters.set(locale, formatter);
+  }
+  return formatter.format(date);
+}
+
 function Section({
   title,
   children,
@@ -36,11 +53,7 @@ function List({ items }: { items: string[] }) {
 export function PrivacyPolicy() {
   const { t, i18n } = useTranslation();
 
-  const lastUpdatedFormatted = new Intl.DateTimeFormat(i18n.language, {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(LAST_UPDATED);
+  const lastUpdatedFormatted = formatLastUpdated(i18n.language, LAST_UPDATED);
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col font-sans">
