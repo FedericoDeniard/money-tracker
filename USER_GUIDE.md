@@ -1,6 +1,6 @@
-# Guía de Usuario — Money Tracker
+# Guía de Usuario — Receiptle
 
-Money Tracker es una app de finanzas personales que se conecta a tu Gmail para detectar y extraer transacciones financieras automáticamente usando inteligencia artificial. También podés agregar transacciones a mano o subiendo documentos (facturas, comprobantes).
+Receiptle es una app de finanzas personales que se conecta a tu Gmail para detectar y extraer transacciones financieras automáticamente usando inteligencia artificial. También podés agregar transacciones a mano o subiendo documentos (facturas, comprobantes).
 
 ---
 

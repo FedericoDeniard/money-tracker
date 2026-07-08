@@ -65,12 +65,12 @@ export function PrivacyPolicy() {
               <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
               <img
                 src={logo}
-                alt="Money Tracker Logo"
+                alt="Receiptle Logo"
                 className="relative z-10 w-full h-full p-1 object-contain"
               />
             </div>
             <span className="font-bold text-xl tracking-tight text-[var(--text-primary)]">
-              Money Tracker
+              Receiptle
             </span>
           </Link>
         </div>
@@ -174,7 +174,7 @@ export function PrivacyPolicy() {
       {/* Footer */}
       <footer className="border-t border-[var(--text-secondary)]/10 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-[var(--text-secondary)]/60">
-          &copy; {CURRENT_YEAR} Money Tracker.
+          &copy; {CURRENT_YEAR} Receiptle.
         </div>
       </footer>
     </div>

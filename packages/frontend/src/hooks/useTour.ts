@@ -7,7 +7,7 @@ import type { Driver, DriveStep } from "driver.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SKIP_ALL_KEY = "money_tracker_tour_skip_all";
+const SKIP_ALL_KEY = "receiptle_tour_skip_all";
 
 const TOUR_ROUTES = [
   "/dashboard",
@@ -20,11 +20,11 @@ const TOUR_ROUTES = [
 type TourRoute = (typeof TOUR_ROUTES)[number];
 
 const DONE_KEYS: Record<TourRoute, string> = {
-  "/dashboard": "money_tracker_tour_done_dashboard",
-  "/transactions": "money_tracker_tour_done_transactions",
-  "/subscriptions": "money_tracker_tour_done_subscriptions",
-  "/metrics": "money_tracker_tour_done_metrics",
-  "/settings": "money_tracker_tour_done_settings",
+  "/dashboard": "receiptle_tour_done_dashboard",
+  "/transactions": "receiptle_tour_done_transactions",
+  "/subscriptions": "receiptle_tour_done_subscriptions",
+  "/metrics": "receiptle_tour_done_metrics",
+  "/settings": "receiptle_tour_done_settings",
 };
 
 // ─── Module-level session tracking ───────────────────────────────────────────

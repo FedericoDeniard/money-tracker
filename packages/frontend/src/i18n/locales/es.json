@@ -811,7 +811,7 @@
       "badge": "Seguimiento Inteligente de Finanzas en Piloto Automático",
       "titlePart1": "Tus Finanzas,",
       "titlePart2": "Automatizadas por IA.",
-      "description": "Conectá tu Gmail y dejá que Money Tracker extraiga, categorice y haga un seguimiento automático de tus gastos en tiempo real.",
+      "description": "Conectá tu Gmail y dejá que Receiptle extraiga, categorice y haga un seguimiento automático de tus gastos en tiempo real.",
       "getStarted": "Comenzar Ahora",
       "readDocs": "Leer Documentación"
     },
@@ -821,7 +821,7 @@
       "description": "Funciones potentes diseñadas para darte visibilidad completa sin la entrada manual de datos.",
       "gmail": {
         "title": "Integración con Gmail",
-        "description": "Procesamiento de emails en tiempo real. Dejá de cargar todo a mano y dejá que Money Tracker vigile tu bandeja en busca de recibos."
+        "description": "Procesamiento de emails en tiempo real. Dejá de cargar todo a mano y dejá que Receiptle vigile tu bandeja en busca de recibos."
       },
       "ai": {
         "title": "Extracción con IA",
@@ -846,7 +846,7 @@
     },
     "howItWorks": {
       "title": "Cómo funciona",
-      "description": "Dejá de perder horas de tu vida en hojas de cálculo. Money Tracker automatiza las partes tediosas de las finanzas personales para que puedas enfocarte en construir riqueza.",
+      "description": "Dejá de perder horas de tu vida en hojas de cálculo. Receiptle automatiza las partes tediosas de las finanzas personales para que puedas enfocarte en construir riqueza.",
       "step1": {
         "title": "Conectá tu Cuenta",
         "description": "Vinculá tu Gmail de forma segura mediante OAuth. Solo te pedimos los permisos necesarios para leer los emails de recibos."
@@ -861,7 +861,7 @@
       },
       "cta": {
         "title": "¿Listo para verlo en acción?",
-        "description": "Unite hoy y dejá que Money Tracker importe los emails de transacciones de tus últimos 3 meses automáticamente.",
+        "description": "Unite hoy y dejá que Receiptle importe los emails de transacciones de tus últimos 3 meses automáticamente.",
         "button": "Crear cuenta gratuita",
         "footer": "No requiere tarjeta de crédito. La configuración toma 2 minutos."
       }
@@ -893,7 +893,7 @@
     },
     "dashboard": {
       "step1": {
-        "title": "Bienvenido a Money Tracker",
+        "title": "Bienvenido a Receiptle",
         "description": "Te vamos a guiar por cada seccion de la app la primera vez que la visites. Podes saltar el tutorial en cualquier momento con la X."
       },
       "step2": {
@@ -980,7 +980,7 @@
     },
     "dataCollected": {
       "title": "Datos que recopilamos",
-      "intro": "Money Tracker recopila los siguientes datos personales para su funcionamiento:",
+      "intro": "Receiptle recopila los siguientes datos personales para su funcionamiento:",
       "items": [
         "Datos de autenticación: correo electrónico, nombre (si usás Google OAuth) y contraseña encriptada.",
         "Datos de transacciones financieras: montos, comercios, categorías, fechas y descripciones extraídos de tus correos electrónicos.",
@@ -1000,11 +1000,11 @@
     },
     "googleLimitedUse": {
       "title": "Cumplimiento con Google",
-      "content": "El uso por parte de Money Tracker de la información recibida desde las APIs de Google se ajusta a la Google API Services User Data Policy, incluyendo los requisitos de Limited Use."
+      "content": "El uso por parte de Receiptle de la información recibida desde las APIs de Google se ajusta a la Google API Services User Data Policy, incluyendo los requisitos de Limited Use."
     },
     "thirdParties": {
       "title": "Terceros involucrados",
-      "intro": "Money Tracker utiliza los siguientes servicios de terceros para su funcionamiento:",
+      "intro": "Receiptle utiliza los siguientes servicios de terceros para su funcionamiento:",
       "items": [
         "Supabase: proveedor de base de datos PostgreSQL, autenticación y funciones serverless. Los datos se almacenan en servidores de Supabase con cifrado en reposo.",
         "Google (Gmail API): acceso de solo lectura para leer correos de transacciones. Utilizamos los scopes gmail.readonly y userinfo.email.",
@@ -1019,7 +1019,7 @@
     },
     "localStorage": {
       "title": "Almacenamiento local y cookies",
-      "content": "Money Tracker no utiliza cookies de seguimiento ni publicitarias. Usamos localStorage del navegador únicamente para guardar tu preferencia de idioma y el estado de los tutoriales interactivos. No hay rastreadores, analytics ni píxeles de terceros."
+      "content": "Receiptle no utiliza cookies de seguimiento ni publicitarias. Usamos localStorage del navegador únicamente para guardar tu preferencia de idioma y el estado de los tutoriales interactivos. No hay rastreadores, analytics ni píxeles de terceros."
     },
     "pushNotifications": {
       "title": "Notificaciones push",
@@ -1051,8 +1051,8 @@
     }
   },
   "assistant": {
-    "brand": "Money Tracker",
-    "logoAlt": "Logo de Money Tracker",
+    "brand": "Receiptle",
+    "logoAlt": "Logo de Receiptle",
     "greeting": {
       "morning": "Buen día",
       "afternoon": "Buenas tardes",

@@ -1,4 +1,4 @@
-# Money Tracker
+# Receiptle
 
 A personal finance app that automatically extracts transactions from your Gmail inbox and uploaded documents using AI. It tracks income and expenses, categorizes them, and provides financial insights across multiple currencies.
 
@@ -14,7 +14,7 @@ A personal finance app that automatically extracts transactions from your Gmail 
 ## How it works
 
 1. Sign up and connect your Gmail account via OAuth.
-2. Money Tracker imports your last 3 months of transaction emails automatically.
+2. Receiptle imports your last 3 months of transaction emails automatically.
 3. New emails are processed in real time as they arrive.
 4. AI extracts amount, currency, merchant, category, date, and transaction type.
 5. View your finances in the dashboard with filters, charts, and metrics.
@@ -61,6 +61,7 @@ PROJECT_ROOT=$(pwd) docker compose up --build
 ```
 
 This starts:
+
 - The frontend with hot reload at `http://localhost:3000`
 - A Supabase local stack (database, auth, edge functions, studio)
 
@@ -104,17 +105,17 @@ bun run docker:db:types
 
 Seeds are configured in `supabase/config.toml` as `sql_paths = ["./seeds/*.sql"]` and run automatically on `db reset`.
 
-| File | Description |
-|------|-------------|
-| `001_auth_test_user.sql` | Creates test account `user@test.com` / `password123` |
-| `002_transactions_test_user.sql` | Inserts 132 demo transactions for the test account |
+| File                                      | Description                                                                      |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `001_auth_test_user.sql`                  | Creates test account `user@test.com` / `password123`                             |
+| `002_transactions_test_user.sql`          | Inserts 132 demo transactions for the test account                               |
 | `005_internal_functions_secret_local.sql` | Upserts local Vault secret `INTERNAL_FUNCTIONS_SECRET=local-dev-internal-secret` |
 
 ## Environment variables
 
-| Location | Purpose |
-|----------|---------|
-| `packages/frontend/.env` | Frontend (Supabase URL, anon key, port) |
+| Location                  | Purpose                                         |
+| ------------------------- | ----------------------------------------------- |
+| `packages/frontend/.env`  | Frontend (Supabase URL, anon key, port)         |
 | `supabase/functions/.env` | Edge Functions (OAuth, AI keys, Langfuse, etc.) |
 
 See each `.env.example` for the full list of required variables.

@@ -9,7 +9,7 @@ Stack: TypeScript (strict, `noUncheckedIndexedAccess` on), React 19, React Route
 ## Workspace layout
 
 ```
-money-tracker/
+receiptle/
 ├── packages/
 │   ├── frontend/         # React 19 SPA served by Bun (Bun.serve, no Vite)
 │   │   └── src/{components,hooks,pages,services,lib,routes,types,utils}
@@ -82,11 +82,13 @@ The CI workflow (`.github/workflows/ci.yml`) only runs `bun install`, `bun run l
 Two test surfaces; the rest of the repo has no unit tests.
 
 1. **Grok transaction-agent integration test** (Deno, hits live xAI):
+
    ```bash
    bun run test:grok:transaction-agent
    # Internally: cd supabase && deno test --no-check --env-file=functions/.env \
    #   --allow-env --allow-net functions/_shared/ai/transaction-agent.integration.test.ts
    ```
+
    `unset OPENROUTER_API_KEY` is intentional — Grok-only path. Requires `XAI_API_KEY` in `supabase/functions/.env`.
 
 2. **Frontend E2E tests** (`bun test`, Stagehand browser driver):
@@ -99,11 +101,11 @@ Two test surfaces; the rest of the repo has no unit tests.
 
 Three distinct env files, never consolidated:
 
-| File | Read by | Notes |
-|---|---|---|
-| `packages/frontend/.env` | `src/index.tsx` (Bun auto-loads .env) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `PORT`, `VAPID_PUBLIC_KEY`, `CHAT_ENABLED`, `MASTRA_SERVER_URL`, `APP_URL`, `XAI_API_KEY` (E2E only), `MP_PUBLIC_KEY` |
-| `supabase/functions/.env` | All Deno edge functions (`--env-file=functions/.env`) | OAuth, `XAI_API_KEY`, `LANGFUSE_*`, `INTERNAL_FUNCTIONS_SECRET`, etc. |
-| `packages/mastra-server/.env` | `src/env-loader.ts` | Loaded synchronously because **pnpm strips env vars before forking Bun** — `env-loader.ts` MUST be the first import in `src/server.ts`. Don't use `dotenv`; Bun already auto-loads, but the explicit loader makes the contract visible. |
+| File                          | Read by                                               | Notes                                                                                                                                                                                                                                   |
+| ----------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/frontend/.env`      | `src/index.tsx` (Bun auto-loads .env)                 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `PORT`, `VAPID_PUBLIC_KEY`, `CHAT_ENABLED`, `MASTRA_SERVER_URL`, `APP_URL`, `XAI_API_KEY` (E2E only), `MP_PUBLIC_KEY`                                                                              |
+| `supabase/functions/.env`     | All Deno edge functions (`--env-file=functions/.env`) | OAuth, `XAI_API_KEY`, `LANGFUSE_*`, `INTERNAL_FUNCTIONS_SECRET`, etc.                                                                                                                                                                   |
+| `packages/mastra-server/.env` | `src/env-loader.ts`                                   | Loaded synchronously because **pnpm strips env vars before forking Bun** — `env-loader.ts` MUST be the first import in `src/server.ts`. Don't use `dotenv`; Bun already auto-loads, but the explicit loader makes the contract visible. |
 
 `INTERNAL_FUNCTIONS_SECRET` must match in `supabase/functions/.env` and in Vault (`vault.decrypted_secrets`). The seed `supabase/seeds/005_internal_functions_secret_local.sql` populates it for local dev. For production, set both the env secret and the Vault secret — they are read by different layers.
 
@@ -191,7 +193,7 @@ Load these with the `skill` tool when the task matches:
 
 ## Things agents get wrong
 
-- `package.json` says "npm workspace monorepo" in some legacy copy. It's a **pnpm** workspace (`pnpm-workspace.yaml`, `packageManager: pnpm@11.9.0`). Bun is the *runtime*, not the package manager.
+- `package.json` says "npm workspace monorepo" in some legacy copy. It's a **pnpm** workspace (`pnpm-workspace.yaml`, `packageManager: pnpm@11.9.0`). Bun is the _runtime_, not the package manager.
 - ESLint is NOT used. Lint/format is **oxlint + oxfmt** (root configs in `.oxlintrc.json`, `.oxfmtrc.json`).
 - There are TWO frontend processes, not one: the React app on `:3000` and the mastra-server on `:4111`. They talk via `MASTRA_SERVER_URL`.
 - `bun run dev` at the root starts both packages in parallel via `pnpm --parallel -r run dev`.

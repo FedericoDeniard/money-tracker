@@ -369,7 +369,7 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
       <div className="mb-12 flex items-center gap-2 text-[var(--text-primary)]">
         <Banknote className="size-6" />
         <span className="text-sm font-bold tracking-wider uppercase">
-          Money Tracker
+          Receiptle
         </span>
       </div>
 

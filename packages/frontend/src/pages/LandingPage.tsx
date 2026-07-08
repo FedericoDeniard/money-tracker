@@ -21,12 +21,12 @@ export function LandingPage() {
               <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
               <img
                 src={logo}
-                alt="Money Tracker Logo"
+                alt="Receiptle Logo"
                 className="relative z-10 w-full h-full p-1 object-contain"
               />
             </div>
             <span className="font-bold text-xl tracking-tight text-[var(--text-primary)]">
-              Money Tracker
+              Receiptle
             </span>
           </div>
           <nav className="flex items-center gap-4">
@@ -64,23 +64,23 @@ export function LandingPage() {
                 />
                 <img
                   src={logo}
-                  alt="Money Tracker"
+                  alt="Receiptle"
                   className="relative z-10 w-full h-full p-0.5 object-contain"
                 />
               </div>
               <span className="font-semibold text-[var(--text-secondary)]">
-                Money Tracker
+                Receiptle
               </span>
             </div>
             <div className="flex gap-6 text-sm text-[var(--text-secondary)]">
               <a
-                href="https://federicodeniard-money-tracker.mintlify.app/"
+                href="https://federicodeniard-receiptle.mintlify.app/"
                 className="hover:text-[var(--primary)] transition-colors"
               >
                 {t("landing.nav.documentation")}
               </a>
               <a
-                href="https://github.com/federicodeniard/money-tracker"
+                href="https://github.com/federicodeniard/receiptle"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-[var(--primary)] transition-colors"
@@ -96,8 +96,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="mt-8 text-center text-sm text-[var(--text-secondary)]/60">
-            &copy; {CURRENT_YEAR} Money Tracker.{" "}
-            {t("landing.nav.personalProject")}
+            &copy; {CURRENT_YEAR} Receiptle. {t("landing.nav.personalProject")}
           </div>
         </div>
       </footer>

@@ -13,7 +13,7 @@ export function AuthIllustration() {
           <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
             <img
               src={logo}
-              alt="Money Tracker Logo"
+              alt="Receiptle Logo"
               className="w-3/5 h-3/5 drop-shadow-2xl opacity-90 object-contain"
             />
           </div>

@@ -1,6 +1,6 @@
 {
-  "name": "Money Tracker",
-  "short_name": "Money Tracker",
+  "name": "Receiptle",
+  "short_name": "Receiptle",
   "description": "Track your financial transactions automatically from Gmail",
   "start_url": "/",
   "display": "standalone",
