@@ -1,12 +1,18 @@
 import { createSystemNotification } from "../notifications.ts";
 import { getGoogleOAuthConfig } from "./config.ts";
+import { encryptSecret } from "./oauth-token-crypto.ts";
 
 export type OAuthTokenRow = {
   id: string;
   user_id: string;
   gmail_email: string | null;
+  // Plaintext in memory after decryptTokenRow; never read from the DB
+  // (the DB only stores *_encrypted).
   access_token: string | null;
   refresh_token: string | null;
+  // base64 BYTEA as returned by PostgREST; decrypted by decryptTokenRow.
+  access_token_encrypted?: string | null;
+  refresh_token_encrypted?: string | null;
   expires_at: string | null;
   is_active?: boolean;
   last_refresh_at?: string | null;
@@ -177,14 +183,26 @@ export async function refreshAccessToken(
     `[gmail-auth] Token refresh SUCCESS for ${tokenData.gmail_email}: new_expires_at=${newExpiresAt} has_access_token=${!!refreshData.access_token} has_new_refresh_token=${!!refreshData.refresh_token}`
   );
 
+  const newAccessEncrypted = await encryptSecret(
+    supabase,
+    refreshData.access_token
+  );
+  const newRefreshEncrypted = refreshData.refresh_token
+    ? await encryptSecret(supabase, refreshData.refresh_token)
+    : null;
+
   const { error: updateError } = await supabase
     .from("user_oauth_tokens")
     .update({
-      access_token: refreshData.access_token,
+      access_token_encrypted: newAccessEncrypted,
       // Persist rotated refresh_token if Google returned one; keep existing otherwise.
-      ...(refreshData.refresh_token && {
-        refresh_token: refreshData.refresh_token,
+      ...(newRefreshEncrypted && {
+        refresh_token_encrypted: newRefreshEncrypted,
       }),
+      // Always null the plaintext columns (defence in depth: even if a stale
+      // plaintext slipped through from before encryption, drop it on refresh).
+      access_token: null,
+      refresh_token: null,
       expires_at: newExpiresAt,
       is_active: true,
       last_refresh_at: now,
@@ -202,6 +220,10 @@ export async function refreshAccessToken(
   tokenData.access_token = refreshData.access_token;
   if (refreshData.refresh_token) {
     tokenData.refresh_token = refreshData.refresh_token;
+  }
+  tokenData.access_token_encrypted = newAccessEncrypted;
+  if (newRefreshEncrypted) {
+    tokenData.refresh_token_encrypted = newRefreshEncrypted;
   }
   tokenData.expires_at = newExpiresAt;
   tokenData.is_active = true;

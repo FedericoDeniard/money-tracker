@@ -10,6 +10,7 @@ import {
   ensureFreshAccessToken,
   fetchGmailWithRecovery,
 } from "../_shared/lib/gmail-auth.ts";
+import { decryptTokenRow } from "../_shared/lib/oauth-token-crypto.ts";
 
 Deno.serve(async req => {
   console.info("[renew-watches] Function invoked");
@@ -61,7 +62,9 @@ Deno.serve(async req => {
 
     const { data: allActiveTokens, error: tokenFetchError } = await supabase
       .from("user_oauth_tokens")
-      .select("*")
+      .select(
+        "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active, last_refresh_at, last_refresh_error"
+      )
       .eq("is_active", true);
 
     if (tokenFetchError) {
@@ -75,6 +78,9 @@ Deno.serve(async req => {
 
       for (const tokenRow of (allActiveTokens ?? []) as OAuthTokenRow[]) {
         try {
+          // Decrypt the *_encrypted columns into the plaintext access_token /
+          // refresh_token fields that ensureFreshAccessToken expects.
+          await decryptTokenRow(supabase, tokenRow);
           await ensureFreshAccessToken(
             supabase,
             tokenRow,
@@ -206,7 +212,9 @@ Deno.serve(async req => {
         );
         const { data: tokenData, error: tokenError } = await supabase
           .from("user_oauth_tokens")
-          .select("*")
+          .select(
+            "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active, last_refresh_at, last_refresh_error"
+          )
           .eq("user_id", watch.user_id)
           .eq("gmail_email", watch.gmail_email)
           .eq("is_active", true)
@@ -246,11 +254,14 @@ Deno.serve(async req => {
           continue;
         }
 
-        console.info(
-          `[renew-watches] Token found: tokenId=${tokenData.id} has_access_token=${!!tokenData.access_token} has_refresh_token=${!!tokenData.refresh_token} expires_at=${tokenData.expires_at} is_active=${tokenData.is_active}`
-        );
-
+        // Decrypt the *_encrypted columns into the plaintext access_token /
+        // refresh_token fields that ensureFreshAccessToken expects.
         const oauthToken = tokenData as OAuthTokenRow;
+        await decryptTokenRow(supabase, oauthToken);
+
+        console.info(
+          `[renew-watches] Token found: tokenId=${oauthToken.id} has_access_token=${!!oauthToken.access_token} has_refresh_token=${!!oauthToken.refresh_token} expires_at=${oauthToken.expires_at} is_active=${oauthToken.is_active}`
+        );
 
         console.info(
           `[renew-watches] Ensuring fresh access token for ${watch.gmail_email}`
