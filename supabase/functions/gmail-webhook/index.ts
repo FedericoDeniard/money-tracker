@@ -11,6 +11,7 @@ import {
   ensureFreshAccessToken,
   fetchGmailWithRecovery,
 } from "../_shared/lib/gmail-auth.ts";
+import { decryptTokenRow } from "../_shared/lib/oauth-token-crypto.ts";
 
 // Set to avoid processing the same message multiple times
 const processedMessages = new Set<string>();
@@ -69,10 +70,15 @@ Deno.serve(async req => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Find ALL user tokens for this Gmail account
+    // Find ALL user tokens for this Gmail account. We select the encrypted
+    // columns (not the plaintext ones, which are NULL after MON-18) and
+    // decrypt them in memory before passing to ensureFreshAccessToken /
+    // fetchGmailWithRecovery.
     const { data: allTokens, error: tokenError } = await supabase
       .from("user_oauth_tokens")
-      .select("*")
+      .select(
+        "id, user_id, gmail_email, access_token_encrypted, refresh_token_encrypted, expires_at, is_active, last_refresh_at, last_refresh_error"
+      )
       .eq("gmail_email", gmailEmail)
       .eq("is_active", true);
 
@@ -87,6 +93,7 @@ Deno.serve(async req => {
     const validTokens: OAuthTokenRow[] = [];
     for (const tokenData of allTokens as OAuthTokenRow[]) {
       try {
+        await decryptTokenRow(supabase, tokenData);
         await ensureFreshAccessToken(
           supabase,
           tokenData,
