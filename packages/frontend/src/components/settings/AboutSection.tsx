@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Info, RotateCcw, SkipForward } from "lucide-react";
 import { useTourStatus } from "../../hooks/useTour";
 import { Button } from "../ui/Button";
@@ -74,7 +74,7 @@ function AppVersionCard() {
     <div className="p-4 rounded-xl bg-[var(--bg-secondary)]">
       <div className="flex items-center gap-3">
         <Info size={16} className="text-[var(--text-secondary)] shrink-0" />
-        <div className="space-y-1">
+        <div className="space-y-1 flex-1">
           <p className="text-sm text-[var(--text-primary)]">
             <span className="font-medium">{t("settings.version")}:</span>{" "}
             {APP_VERSION}
@@ -84,6 +84,12 @@ function AppVersionCard() {
               {t("settings.buildDate")}: {buildDate}
             </p>
           )}
+          <Link
+            to="/privacy"
+            className="inline-block text-xs font-medium text-[var(--button-primary)] hover:underline pt-1"
+          >
+            {t("settings.privacy")}
+          </Link>
         </div>
       </div>
     </div>
