@@ -66,8 +66,6 @@ export const queryKeys = {
   },
   dashboard: {
     all: ["dashboard"] as const,
-    tasks: (userId?: string) =>
-      [...queryKeys.dashboard.all, "tasks", userId] as const,
   },
   notifications: {
     all: ["notifications"] as const,

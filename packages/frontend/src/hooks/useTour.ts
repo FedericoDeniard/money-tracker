@@ -88,28 +88,10 @@ function buildStepsForRoute(
           },
         },
         {
-          element: "[data-tour='quick-actions']",
+          element: "[data-tour='sidebar']",
           popover: {
             title: t("tour.dashboard.step3.title"),
             description: t("tour.dashboard.step3.description"),
-            side: "bottom",
-            align: "start",
-          },
-        },
-        {
-          element: "[data-tour='dashboard-status']",
-          popover: {
-            title: t("tour.dashboard.step4.title"),
-            description: t("tour.dashboard.step4.description"),
-            side: "top",
-            align: "start",
-          },
-        },
-        {
-          element: "[data-tour='sidebar']",
-          popover: {
-            title: t("tour.dashboard.step5.title"),
-            description: t("tour.dashboard.step5.description"),
             side: "right",
             align: "center",
           },

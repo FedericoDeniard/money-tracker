@@ -1,296 +1,161 @@
-import { Suspense, useCallback, useEffect, useReducer } from "react";
+import { Suspense, useCallback, useMemo, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  Activity,
-  CalendarClock,
-  Mail,
-  ReceiptText,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
-import { Button } from "../components/ui/Button";
+import { useNavigate } from "react-router-dom";
 import { TransactionFormModal } from "../components/transactions/TransactionFormModal";
 import type { TransactionFormData } from "../components/transactions/TransactionFormModal";
-import { QuickActionCard } from "../components/dashboard/QuickActionCard";
-import { TaskListItem } from "../components/dashboard/TaskListItem";
-import { EmptyState } from "../components/ui/EmptyState";
+import { UploadTransactionModal } from "../components/transactions/UploadTransactionModal";
+import { Greeting } from "../components/dashboard/Greeting";
+import { KpiRow } from "../components/dashboard/KpiRow";
+import { DashboardCharts } from "../components/dashboard/DashboardCharts";
+import { RecentTransactions } from "../components/dashboard/RecentTransactions";
+import { OnboardingSteps } from "../components/dashboard/OnboardingSteps";
 import { useAuth } from "../hooks/useAuth";
 import { useSeedNotifications } from "../hooks/useSeedNotifications";
-import { useDashboardTasks } from "../hooks/useDashboardTasks";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
-import { gmailService } from "../services/gmail.service";
+import { useTransactions } from "../hooks/useTransactions";
+import { useReports } from "../hooks/useReports";
+import { useMetricsData } from "../hooks/useMetricsData";
 import { toast } from "../utils/toast";
-import type { DashboardTask } from "../hooks/useDashboardTasks";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
-import { startSeedWithFeedback } from "../utils/seedImport";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
-import { ConfirmModal } from "../components/ui/ConfirmModal";
+import { currentYearMonth, getDateRange } from "../utils/period";
 
-// ─── Data section — suspends while useDashboardTasks loads ───────────────────
+// ─── Data section — suspends while queries load ─────────────────────────────
 interface DashboardContentProps {
-  userId: string;
-  isSyncing: boolean;
-  onForceSync: (connectionId?: string | null) => void;
-  onActiveConnections: (
-    connections: { id: string; gmail_email: string }[]
-  ) => void;
+  onSelectTransaction: (transactionId: string) => void;
+  onUpload: () => void;
+  onAddManually: () => void;
+}
+
+interface CategoryDatum {
+  category: string;
+  amount: number;
+  percentage: number;
+  count: number;
 }
 
 function DashboardContent({
-  userId,
-  isSyncing,
-  onForceSync,
-  onActiveConnections,
+  onSelectTransaction,
+  onUpload,
+  onAddManually,
 }: DashboardContentProps) {
-  const { t } = useTranslation();
+  const dateRange = useMemo(
+    () => getDateRange({ kind: "month", yearMonth: currentYearMonth() }),
+    []
+  );
 
-  const { data, refetch } = useDashboardTasks(userId);
+  const { metrics, filteredTransactions } = useMetricsData({
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+    previousStartDate: dateRange.previousStartDate,
+    previousEndDate: dateRange.previousEndDate,
+    selectedCurrency: "all",
+  });
 
-  const dashboardData = data ?? {
-    tasks: [],
-    inactiveConnectionsCount: 0,
-    expiredWatchCount: 0,
-    expiringSoonWatchCount: 0,
-    expiringWatchCount: 0,
-    activeConnectionCount: 0,
-    primaryConnectionId: null,
-    activeConnectionIds: [],
-    activeConnections: [],
-    activity: {
-      emailsProcessedByAi: 0,
-      transactionsFound: 0,
-      skippedEmails: 0,
-    },
-  };
+  const { data: activeReports } = useReports("active");
+  const reportsById = useMemo(
+    () => new Map((activeReports ?? []).map(r => [r.id, r])),
+    [activeReports]
+  );
 
-  useEffect(() => {
-    onActiveConnections(dashboardData.activeConnections);
-  }, [dashboardData.activeConnections, onActiveConnections]);
-
-  const getTaskContent = (task: DashboardTask) => {
-    switch (task.type) {
-      case "reconnect_gmail":
-        return {
-          title: t("dashboardActionFirst.tasks.reconnectGmail.title"),
-          description: t(
-            "dashboardActionFirst.tasks.reconnectGmail.description",
-            {
-              count: task.count ?? 0,
-            }
-          ),
-          actionLabel: t("dashboardActionFirst.tasks.reconnectGmail.action"),
-        };
-      case "renew_watch":
-        return {
-          title: t("dashboardActionFirst.tasks.renewWatch.title"),
-          description: t("dashboardActionFirst.tasks.renewWatch.description", {
-            count: task.count ?? 0,
-          }),
-          actionLabel: t("dashboardActionFirst.tasks.renewWatch.action"),
-        };
-      case "seed_processing":
-        return {
-          title: t("dashboardActionFirst.tasks.seedProcessing.title"),
-          description: t(
-            "dashboardActionFirst.tasks.seedProcessing.description",
-            {
-              totalEmails: task.totalEmails ?? 0,
-              processedByAi: task.processedByAi ?? 0,
-            }
-          ),
-          actionLabel: undefined,
-        };
-      case "seed_failed":
-        return {
-          title: t("dashboardActionFirst.tasks.seedFailed.title"),
-          description:
-            task.errorMessage ||
-            t("dashboardActionFirst.tasks.seedFailed.description"),
-          actionLabel: t("dashboardActionFirst.tasks.seedFailed.action"),
-        };
-      default:
-        return { title: "", description: "", actionLabel: undefined };
+  const { data: recentData } = useTransactions({
+    filters: { sortBy: "transaction_date", sortOrder: "desc" },
+  });
+  const recentTransactions = useMemo(() => {
+    if (!recentData) return [];
+    const seen = new Set<string>();
+    const out = [];
+    for (const page of recentData.pages) {
+      for (const tx of page.transactions) {
+        if (seen.has(tx.id)) continue;
+        seen.add(tx.id);
+        out.push(tx);
+        if (out.length >= 5) return out;
+      }
     }
-  };
+    return out;
+  }, [recentData]);
+
+  const displayCurrency = filteredTransactions[0]?.currency || "USD";
+
+  const hasTransactions = filteredTransactions.length > 0;
+
+  const categoryData = useMemo((): CategoryDatum[] => {
+    if (!filteredTransactions.length) return [];
+    const total = metrics.totalExpense;
+    const categoryMap = new Map<string, { amount: number; count: number }>();
+    for (const tx of filteredTransactions) {
+      if (tx.transaction_type !== "expense") continue;
+      const category = tx.category || "other";
+      if (!categoryMap.has(category))
+        categoryMap.set(category, { amount: 0, count: 0 });
+      const data = categoryMap.get(category);
+      if (!data) continue;
+      data.amount += tx.amount;
+      data.count += 1;
+    }
+    return Array.from(categoryMap.entries())
+      .map(([category, data]) => ({
+        category,
+        amount: data.amount,
+        percentage: total > 0 ? (data.amount / total) * 100 : 0,
+        count: data.count,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [filteredTransactions, metrics.totalExpense]);
 
   return (
-    <>
-      {/* Header with live badge counts */}
-      <div className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
-          <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
-            {t("dashboardActionFirst.badges.pending")}:{" "}
-            {dashboardData.tasks.length}
-          </span>
-          <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1 text-xs text-[var(--text-secondary)]">
-            {t("dashboardActionFirst.badges.activeConnections")}:{" "}
-            {dashboardData.activeConnectionCount}
-          </span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<RefreshCw size={16} />}
-          onClick={() => refetch()}
-        >
-          {t("common.refresh")}
-        </Button>
-      </div>
-
-      {/* Tasks + AI activity */}
-      <section className="grid gap-6 lg:grid-cols-12">
-        <div className="space-y-4 lg:col-span-8">
-          <div className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                {t("dashboardActionFirst.smartTasks.title")}
-              </h2>
-              <Link
-                to="/settings"
-                className="text-sm font-medium text-[var(--button-primary)] hover:underline"
-              >
-                {t("dashboardActionFirst.smartTasks.manageConnections")}
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              {dashboardData.tasks.length === 0 ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70">
-                  <EmptyState
-                    icon={Sparkles}
-                    title={t("dashboardActionFirst.smartTasks.empty")}
-                  />
-                </div>
-              ) : (
-                dashboardData.tasks.map(task => {
-                  const taskContent = getTaskContent(task);
-                  return (
-                    <TaskListItem
-                      key={task.id}
-                      title={taskContent.title}
-                      description={taskContent.description}
-                      level={task.level}
-                      levelLabel={t(
-                        `dashboardActionFirst.priority.${task.level}`
-                      )}
-                      actionLabel={taskContent.actionLabel}
-                      actionPath={
-                        task.type === "seed_failed"
-                          ? undefined
-                          : task.actionPath
-                      }
-                      onAction={
-                        task.type === "seed_failed"
-                          ? () => onForceSync(task.connectionId)
-                          : undefined
-                      }
-                      disabled={task.type === "seed_failed" && isSyncing}
-                    />
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4 lg:col-span-4">
-          <div className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <Sparkles size={18} />
-              {t("dashboardActionFirst.aiActivity.title")}
-            </h2>
-
-            <div className="space-y-3">
-              <div className="rounded-xl bg-[var(--bg-secondary)] p-3">
-                <p className="text-xs text-[var(--text-secondary)]">
-                  {t("dashboardActionFirst.aiActivity.processedEmails")}
-                </p>
-                <p className="text-xl font-bold text-[var(--text-primary)]">
-                  {dashboardData.activity.emailsProcessedByAi}
-                </p>
-              </div>
-              <div className="rounded-xl bg-[var(--bg-secondary)] p-3">
-                <p className="text-xs text-[var(--text-secondary)]">
-                  {t("dashboardActionFirst.aiActivity.foundTransactions")}
-                </p>
-                <p className="text-xl font-bold text-[var(--text-primary)]">
-                  {dashboardData.activity.transactionsFound}
-                </p>
-              </div>
-              <div className="rounded-xl bg-[var(--bg-secondary)] p-3">
-                <p className="text-xs text-[var(--text-secondary)]">
-                  {t("dashboardActionFirst.aiActivity.skippedEmails")}
-                </p>
-                <p className="text-xl font-bold text-[var(--text-primary)]">
-                  {dashboardData.activity.skippedEmails}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-5 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <Activity size={18} />
-              {t("dashboardActionFirst.quickStatus.title")}
-            </h2>
-            <ul className="space-y-2 text-sm text-[var(--text-secondary)]">
-              <li>
-                {t("dashboardActionFirst.quickStatus.accountsToReconnect")}:{" "}
-                {dashboardData.inactiveConnectionsCount}
-              </li>
-              <li>
-                {t("dashboardActionFirst.quickStatus.expiringWatches72h")}:{" "}
-                {dashboardData.expiringSoonWatchCount}
-              </li>
-            </ul>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm">
+        <Greeting />
       </section>
-    </>
+
+      <KpiRow
+        totalIncome={metrics.totalIncome}
+        totalExpense={metrics.totalExpense}
+        netBalance={metrics.netBalance}
+        savingsRate={metrics.savingsRate}
+        changes={metrics.changes}
+        displayCurrency={displayCurrency}
+      />
+
+      <DashboardCharts categoryData={categoryData} hasData={hasTransactions} />
+
+      {hasTransactions ? (
+        <RecentTransactions
+          transactions={recentTransactions}
+          reportsById={reportsById}
+          onSelectTransaction={onSelectTransaction}
+        />
+      ) : (
+        <OnboardingSteps onUpload={onUpload} onAddManually={onAddManually} />
+      )}
+    </div>
   );
 }
 
 // ─── Page shell — renders immediately (no data dependency) ───────────────────
 interface HomeState {
   isCreateModalOpen: boolean;
-  isSyncing: boolean;
-  activeConnections: { id: string; gmail_email: string }[];
-  connectionsLoaded: boolean;
-  isSyncModalOpen: boolean;
+  isUploadModalOpen: boolean;
 }
 
 type HomeAction =
   | { type: "SET_CREATE_MODAL_OPEN"; isOpen: boolean }
-  | { type: "SET_SYNCING"; isSyncing: boolean }
-  | {
-      type: "SET_ACTIVE_CONNECTIONS";
-      connections: { id: string; gmail_email: string }[];
-    }
-  | { type: "SET_CONNECTIONS_LOADED"; loaded: boolean }
-  | { type: "SET_SYNC_MODAL_OPEN"; isOpen: boolean };
+  | { type: "SET_UPLOAD_MODAL_OPEN"; isOpen: boolean };
 
 function homeReducer(state: HomeState, action: HomeAction): HomeState {
   switch (action.type) {
     case "SET_CREATE_MODAL_OPEN":
       return { ...state, isCreateModalOpen: action.isOpen };
-    case "SET_SYNCING":
-      return { ...state, isSyncing: action.isSyncing };
-    case "SET_ACTIVE_CONNECTIONS":
-      return { ...state, activeConnections: action.connections };
-    case "SET_CONNECTIONS_LOADED":
-      return { ...state, connectionsLoaded: action.loaded };
-    case "SET_SYNC_MODAL_OPEN":
-      return { ...state, isSyncModalOpen: action.isOpen };
+    case "SET_UPLOAD_MODAL_OPEN":
+      return { ...state, isUploadModalOpen: action.isOpen };
   }
 }
 
 const initialHomeState: HomeState = {
   isCreateModalOpen: false,
-  isSyncing: false,
-  activeConnections: [],
-  connectionsLoaded: false,
-  isSyncModalOpen: false,
+  isUploadModalOpen: false,
 };
 
 export function Home() {
@@ -300,144 +165,35 @@ export function Home() {
 
   const { createTransaction } = useTransactionMutations();
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
-  const {
-    isCreateModalOpen,
-    isSyncing,
-    activeConnections,
-    connectionsLoaded,
-    isSyncModalOpen,
-  } = state;
+  const { isCreateModalOpen, isUploadModalOpen } = state;
   const navigate = useNavigate();
-
-  const handleActiveConnections = useCallback(
-    (connections: { id: string; gmail_email: string }[]) => {
-      dispatch({ type: "SET_ACTIVE_CONNECTIONS", connections });
-      dispatch({ type: "SET_CONNECTIONS_LOADED", loaded: true });
-    },
-    []
-  );
-
-  const handleConnectGmail = async () => {
-    try {
-      await gmailService.connectGmail();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("dashboardActionFirst.errors.connectGmail");
-      toast.error(t("common.error"), message);
-    }
-  };
-
-  const handleForceSync = async (connectionId?: string | null) => {
-    if (!connectionId) return;
-    try {
-      dispatch({ type: "SET_SYNCING", isSyncing: true });
-      await startSeedWithFeedback(connectionId, t);
-    } finally {
-      dispatch({ type: "SET_SYNCING", isSyncing: false });
-    }
-  };
-
-  const handleForceSyncAll = async () => {
-    if (activeConnections.length === 0) return;
-    try {
-      dispatch({ type: "SET_SYNCING", isSyncing: true });
-      dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false });
-      await Promise.all(
-        activeConnections.map(c => startSeedWithFeedback(c.id, t))
-      );
-    } finally {
-      dispatch({ type: "SET_SYNCING", isSyncing: false });
-    }
-  };
 
   const handleCreateTransaction = async (formData: TransactionFormData) => {
     await createTransaction(mapTransactionFormDataToInsert(formData));
+    dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: false });
   };
 
+  const handleSelectTransaction = useCallback(
+    (transactionId: string) => {
+      navigate(`/transactions?id=${transactionId}`);
+    },
+    [navigate]
+  );
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Static header — renders immediately */}
-      <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-6 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-            {t("navigation.dashboard")}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {t("dashboardActionFirst.headerDescription")}
-          </p>
-        </div>
-      </section>
-
-      {/* Static quick actions — renders immediately */}
-      <section
-        data-tour="quick-actions"
-        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-      >
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.addTransaction.title")}
-          description={t(
-            "dashboardActionFirst.quickActions.addTransaction.description"
-          )}
-          icon={<ReceiptText size={18} />}
-          actionLabel={t("transactions.addManually")}
-          onClick={() =>
-            dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: true })
-          }
-        />
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.connectGmail.title")}
-          description={t(
-            "dashboardActionFirst.quickActions.connectGmail.description"
-          )}
-          icon={<Mail size={18} />}
-          actionLabel={t(
-            "dashboardActionFirst.quickActions.connectGmail.action"
-          )}
-          onClick={handleConnectGmail}
-        />
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.forceSync.title")}
-          description={t(
-            "dashboardActionFirst.quickActions.forceSync.description"
-          )}
-          icon={<RefreshCw size={18} />}
-          actionLabel={
-            isSyncing
-              ? t("dashboardActionFirst.quickActions.forceSync.syncing")
-              : t("dashboardActionFirst.quickActions.forceSync.action")
-          }
-          onClick={() =>
-            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: true })
-          }
-          disabled={isSyncing}
-        />
-        <QuickActionCard
-          title={t("dashboardActionFirst.quickActions.openTransactions.title")}
-          description={t(
-            "dashboardActionFirst.quickActions.openTransactions.description"
-          )}
-          icon={<CalendarClock size={18} />}
-          actionLabel={t(
-            "dashboardActionFirst.quickActions.openTransactions.action"
-          )}
-          href="/transactions"
-        />
-      </section>
-
-      {/* Data-dependent section — shows skeleton while loading */}
+    <div className="space-y-6 pb-8 animate-in fade-in duration-500">
       {user?.id && (
-        <div data-tour="dashboard-status">
-          <Suspense fallback={<SuspenseFallback rows={4} />}>
-            <DashboardContent
-              userId={user.id}
-              isSyncing={isSyncing}
-              onForceSync={handleForceSync}
-              onActiveConnections={handleActiveConnections}
-            />
-          </Suspense>
-        </div>
+        <Suspense fallback={<SuspenseFallback rows={6} />}>
+          <DashboardContent
+            onSelectTransaction={handleSelectTransaction}
+            onUpload={() =>
+              dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: true })
+            }
+            onAddManually={() =>
+              dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: true })
+            }
+          />
+        </Suspense>
       )}
 
       <TransactionFormModal
@@ -449,76 +205,16 @@ export function Home() {
         mode="create"
       />
 
-      {connectionsLoaded && activeConnections.length === 0 ? (
-        <ConfirmModal
-          isOpen={isSyncModalOpen}
-          onClose={() =>
-            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false })
-          }
-          onConfirm={() => {
-            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false });
-            navigate("/settings");
-          }}
-          title={t(
-            "dashboardActionFirst.quickActions.forceSync.modalTitle",
-            "Sincronizar cuentas"
-          )}
-          confirmText={t("settings.connectGmail", "Conectar cuenta")}
-        >
-          <div className="flex flex-col items-center gap-3 py-4 mb-6 text-center">
-            <div className="rounded-full bg-[var(--bg-secondary)] p-4">
-              <Mail size={28} className="text-[var(--text-secondary)]" />
-            </div>
-            <p className="text-[var(--text-primary)] font-medium">
-              {t(
-                "dashboardActionFirst.quickActions.forceSync.noAccountsTitle",
-                "No hay cuentas conectadas"
-              )}
-            </p>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {t(
-                "dashboardActionFirst.quickActions.forceSync.noAccountsDescription",
-                "Conectá tu cuenta de Gmail para que podamos importar tus transacciones automáticamente."
-              )}
-            </p>
-          </div>
-        </ConfirmModal>
-      ) : (
-        <ConfirmModal
-          isOpen={isSyncModalOpen}
-          onClose={() =>
-            dispatch({ type: "SET_SYNC_MODAL_OPEN", isOpen: false })
-          }
-          onConfirm={handleForceSyncAll}
-          title={t(
-            "dashboardActionFirst.quickActions.forceSync.modalTitle",
-            "Sincronizar cuentas"
-          )}
-          confirmText={t("dashboardActionFirst.quickActions.forceSync.action")}
-          isLoading={isSyncing}
-        >
-          <p className="text-[var(--text-secondary)] mb-3">
-            {t(
-              "dashboardActionFirst.quickActions.forceSync.modalDescription",
-              "Se van a importar los últimos 3 meses de emails de las siguientes cuentas:"
-            )}
-          </p>
-          <ul className="space-y-2 mb-6">
-            {activeConnections.map(c => (
-              <li
-                key={c.id}
-                className="flex items-center gap-2 text-sm text-[var(--text-primary)]"
-              >
-                <Mail
-                  size={14}
-                  className="text-[var(--text-secondary)] shrink-0"
-                />
-                {c.gmail_email}
-              </li>
-            ))}
-          </ul>
-        </ConfirmModal>
-      )}
+      <UploadTransactionModal
+        isOpen={isUploadModalOpen}
+        onClose={() =>
+          dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: false })
+        }
+        onSuccess={transactionId =>
+          navigate(`/transactions?id=${transactionId}`)
+        }
+        onError={error => toast.error(t("common.error"), error)}
+      />
     </div>
   );
 }

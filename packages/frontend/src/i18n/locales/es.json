@@ -17,7 +17,8 @@
     "or": "o",
     "userId": "ID de Usuario",
     "note": "Nota",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "open": "Abrir"
   },
   "navigation": {
     "dashboard": "Panel",
@@ -775,6 +776,58 @@
     "errors": {
       "connectGmail": "No se pudo iniciar la conexión.",
       "startSync": "No se pudo iniciar la importación."
+    }
+  },
+  "dashboardOverview": {
+    "greeting": {
+      "morning": "Buen día",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches",
+      "subtitle": "Así están tus finanzas en este momento.",
+      "monthlyTag": "Así vas en {{month}}",
+      "dayProgress": "Día {{day}} de {{total}} · {{percent}}% del mes"
+    },
+    "kpi": {
+      "income": "Ingresos",
+      "expense": "Gastos",
+      "net": "Balance neto",
+      "savingsRate": "Tasa de ahorro"
+    },
+    "charts": {
+      "categoryBreakdown": "Gasto por categoría",
+      "viewMore": "Ver métricas",
+      "noData": "Aún no hay suficientes transacciones para graficar.",
+      "noDataSubtitle": "Conectá Gmail o agregá una transacción manual para empezar."
+    },
+    "recent": {
+      "title": "Transacciones recientes",
+      "empty": "Todavía no hay transacciones.",
+      "viewAll": "Ver todas las transacciones"
+    },
+    "health": {
+      "title": "Estado de la cuenta",
+      "aiActivity": "Actividad de IA (7 días)",
+      "processed": "Procesados",
+      "found": "Encontrados",
+      "skipped": "Omitidos",
+      "allSet": "Todo listo. Sin tareas pendientes."
+    },
+    "quickActionsTitle": "Acciones rápidas",
+    "onboarding": {
+      "title": "Tres pasos para empezar",
+      "subtitle": "Receiptle funciona mejor cuando conectás tus cuentas y transacciones.",
+      "step1": {
+        "title": "Conectá Gmail",
+        "description": "Vinculá una casilla para extraer tus transacciones automáticamente."
+      },
+      "step2": {
+        "title": "Subí un documento",
+        "description": "Adjuntá un PDF o foto de un comprobante para sumarlo en segundos."
+      },
+      "step3": {
+        "title": "Agregá manual",
+        "description": "Cargá un gasto o ingreso eventual."
+      }
     }
   },
   "update": {

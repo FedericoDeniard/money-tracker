@@ -17,7 +17,8 @@
     "or": "or",
     "userId": "User ID",
     "note": "Note",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "open": "Open"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -775,6 +776,58 @@
     "errors": {
       "connectGmail": "Could not start the connection.",
       "startSync": "Could not start the import."
+    }
+  },
+  "dashboardOverview": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "subtitle": "Here's how your finances are doing.",
+      "monthlyTag": "So far this {{month}}",
+      "dayProgress": "Day {{day}} of {{total}} · {{percent}}% of the month"
+    },
+    "kpi": {
+      "income": "Income",
+      "expense": "Expense",
+      "net": "Net balance",
+      "savingsRate": "Savings rate"
+    },
+    "charts": {
+      "categoryBreakdown": "Spending by category",
+      "viewMore": "Open metrics",
+      "noData": "Not enough transactions to draw a chart yet.",
+      "noDataSubtitle": "Connect Gmail or add a manual transaction to get started."
+    },
+    "recent": {
+      "title": "Recent transactions",
+      "empty": "No transactions yet.",
+      "viewAll": "View all transactions"
+    },
+    "health": {
+      "title": "Account health",
+      "aiActivity": "AI activity (7 days)",
+      "processed": "Processed",
+      "found": "Found",
+      "skipped": "Skipped",
+      "allSet": "All set. No pending tasks right now."
+    },
+    "quickActionsTitle": "Quick actions",
+    "onboarding": {
+      "title": "Three steps to get started",
+      "subtitle": "Receiptle works best once your accounts and transactions are connected.",
+      "step1": {
+        "title": "Connect Gmail",
+        "description": "Link an inbox so we can extract your transactions automatically."
+      },
+      "step2": {
+        "title": "Upload a document",
+        "description": "Drop a PDF or photo of a receipt to add it in seconds."
+      },
+      "step3": {
+        "title": "Add manually",
+        "description": "Record a one-off expense or income entry."
+      }
     }
   },
   "update": {
