@@ -215,6 +215,7 @@ function PasswordInput({
         />
         <button
           type="button"
+          aria-label={showPassword ? "Hide password" : "Show password"}
           className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           onClick={onToggle}
         >
@@ -369,7 +370,7 @@ export function AuthForm({ initialIsSignUp = false }: AuthFormProps) {
       <div className="mb-12 flex items-center gap-2 text-[var(--text-primary)]">
         <Banknote className="size-6" />
         <span className="text-sm font-bold tracking-wider uppercase">
-          Money Tracker
+          Receiptle
         </span>
       </div>
 

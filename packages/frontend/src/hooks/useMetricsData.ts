@@ -9,12 +9,14 @@ interface MetricsData {
   netBalance: number;
   transactionCount: number;
   averageTransaction: number;
+  savingsRate: number | null;
   topCategory: { name: string; amount: number } | null;
   changes: {
     income: number | null;
     expense: number | null;
     netBalance: number | null;
     averageTransaction: number | null;
+    savingsRate: number | null;
   };
 }
 
@@ -113,12 +115,14 @@ export function useMetricsData({
         netBalance: 0,
         transactionCount: 0,
         averageTransaction: 0,
+        savingsRate: null,
         topCategory: null,
         changes: {
           income: null,
           expense: null,
           netBalance: null,
           averageTransaction: null,
+          savingsRate: null,
         },
       };
     }
@@ -149,11 +153,14 @@ export function useMetricsData({
       filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
       filteredTransactions.length;
 
+    const savingsRate = income > 0 ? ((income - expense) / income) * 100 : null;
+
     let changes = {
       income: null as number | null,
       expense: null as number | null,
       netBalance: null as number | null,
       averageTransaction: null as number | null,
+      savingsRate: null as number | null,
     };
 
     if (previousFilteredTransactions.length > 0) {
@@ -164,6 +171,9 @@ export function useMetricsData({
       const prevExpense = previousFilteredTransactions
         .filter((tx: Transaction) => tx.transaction_type === "expense")
         .reduce((sum, tx) => sum + tx.amount, 0);
+
+      const prevSavingsRate =
+        prevIncome > 0 ? ((prevIncome - prevExpense) / prevIncome) * 100 : null;
 
       const prevAverage =
         previousFilteredTransactions.reduce((sum, tx) => sum + tx.amount, 0) /
@@ -186,6 +196,10 @@ export function useMetricsData({
           prevAverage > 0
             ? ((averageTransaction - prevAverage) / prevAverage) * 100
             : null,
+        savingsRate:
+          prevSavingsRate !== null && savingsRate !== null
+            ? savingsRate - prevSavingsRate
+            : null,
       };
     }
 
@@ -195,6 +209,7 @@ export function useMetricsData({
       netBalance: income - expense,
       transactionCount: filteredTransactions.length,
       averageTransaction,
+      savingsRate,
       topCategory: topCategory
         ? { name: topCategory[0], amount: topCategory[1] }
         : null,

@@ -33,7 +33,7 @@ self.addEventListener("push", (event: PushEvent) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "Money Tracker", body: event.data.text() };
+    data = { title: "Receiptle", body: event.data.text() };
   }
 
   event.waitUntil(

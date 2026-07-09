@@ -17,7 +17,8 @@
     "or": "or",
     "userId": "User ID",
     "note": "Note",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "open": "Open"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -293,6 +294,10 @@
     "specificMonth": "Specific month",
     "inMonth": "in {{month}}",
     "monthlyTrend": "Monthly Trend",
+    "barChart": "Bar chart",
+    "areaChart": "Area chart",
+    "pieChart": "Pie chart",
+    "treemapChart": "Treemap",
     "categoryBreakdown": "Expense Breakdown by Category",
     "insights": "Financial Insights",
     "topSpendingCategory": "Top Spending Category",
@@ -389,6 +394,7 @@
     "education": "Education",
     "housing": "Housing",
     "clothing": "Clothing",
+    "taxes": "Taxes",
     "other": "Other"
   },
   "settings": {
@@ -776,6 +782,63 @@
       "startSync": "Could not start the import."
     }
   },
+  "dashboardOverview": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "subtitle": "Here's how your finances are doing.",
+      "monthlyTag": "So far this {{month}}",
+      "dayProgress": "Day {{day}} of {{total}} · {{percent}}% of the month",
+      "named": {
+        "morning": "Good morning, {{name}}",
+        "afternoon": "Good afternoon, {{name}}",
+        "evening": "Good evening, {{name}}"
+      }
+    },
+    "kpi": {
+      "income": "Income",
+      "expense": "Expense",
+      "net": "Net balance",
+      "savingsRate": "Savings rate"
+    },
+    "charts": {
+      "categoryBreakdown": "Spending by category",
+      "viewMore": "Open metrics",
+      "noData": "Not enough transactions to draw a chart yet.",
+      "noDataSubtitle": "Connect Gmail or add a manual transaction to get started."
+    },
+    "recent": {
+      "title": "Recent transactions",
+      "empty": "No transactions yet.",
+      "viewAll": "View all transactions"
+    },
+    "health": {
+      "title": "Account health",
+      "aiActivity": "AI activity (7 days)",
+      "processed": "Processed",
+      "found": "Found",
+      "skipped": "Skipped",
+      "allSet": "All set. No pending tasks right now."
+    },
+    "quickActionsTitle": "Quick actions",
+    "onboarding": {
+      "title": "Three steps to get started",
+      "subtitle": "Receiptle works best once your accounts and transactions are connected.",
+      "step1": {
+        "title": "Connect Gmail",
+        "description": "Link an inbox so we can extract your transactions automatically."
+      },
+      "step2": {
+        "title": "Upload a document",
+        "description": "Drop a PDF or photo of a receipt to add it in seconds."
+      },
+      "step3": {
+        "title": "Add manually",
+        "description": "Record a one-off expense or income entry."
+      }
+    }
+  },
   "update": {
     "available": "New version available",
     "description": "An update is ready. Reload to get the latest version.",
@@ -811,7 +874,7 @@
       "badge": "Smart Finance Tracking on Autopilot",
       "titlePart1": "Your Finances,",
       "titlePart2": "Automated by AI.",
-      "description": "Connect your Gmail, and let Money Tracker automatically extract, categorize, and track your expenses in real-time.",
+      "description": "Connect your Gmail, and let Receiptle automatically extract, categorize, and track your expenses in real-time.",
       "getStarted": "Get Started Now",
       "readDocs": "Read Docs"
     },
@@ -821,7 +884,7 @@
       "description": "Powerful features designed to give you complete visibility without the manual data entry.",
       "gmail": {
         "title": "Gmail Integration",
-        "description": "Real-time email processing. Stop manual entry and let Money Tracker watch your inbox for receipts."
+        "description": "Real-time email processing. Stop manual entry and let Receiptle watch your inbox for receipts."
       },
       "ai": {
         "title": "AI Extraction",
@@ -841,12 +904,12 @@
       },
       "security": {
         "title": "Secure & Private",
-        "description": "Read-only access to your emails. Data is encrypted at rest and never shared."
+        "description": "Read-only access to your emails. Tokens and data are encrypted at rest and at the application layer. Never shared with third parties."
       }
     },
     "howItWorks": {
       "title": "How it works",
-      "description": "Stop wasting hours spreadsheeting your life. Money Tracker automates the tedious parts of personal finance so you can focus on building wealth.",
+      "description": "Stop wasting hours spreadsheeting your life. Receiptle automates the tedious parts of personal finance so you can focus on building wealth.",
       "step1": {
         "title": "Connect Account",
         "description": "Securely link your Gmail via OAuth. We only ask for the permissions needed to read receipt emails."
@@ -861,7 +924,7 @@
       },
       "cta": {
         "title": "Ready to see it in action?",
-        "description": "Join today and let Money Tracker import your last 3 months of transaction emails automatically.",
+        "description": "Join today and let Receiptle import your last 3 months of transaction emails automatically.",
         "button": "Create free account",
         "footer": "No credit card required. Setup takes 2 minutes."
       }
@@ -893,7 +956,7 @@
     },
     "dashboard": {
       "step1": {
-        "title": "Welcome to Money Tracker",
+        "title": "Welcome to Receiptle",
         "description": "We will guide you through each section of the app the first time you visit it. You can skip the tutorial at any time with the X button."
       },
       "step2": {
@@ -980,12 +1043,12 @@
     },
     "dataCollected": {
       "title": "Data We Collect",
-      "intro": "Money Tracker collects the following personal data to operate:",
+      "intro": "Receiptle collects the following personal data to operate:",
       "items": [
         "Authentication data: email address, name (if using Google OAuth), and encrypted password.",
         "Financial transaction data: amounts, merchants, categories, dates, and descriptions extracted from your emails.",
         "Uploaded documents: PDFs and images you voluntarily upload for transaction extraction.",
-        "Gmail data: read-only access. We only process emails in INBOX (excluding SPAM and Trash). We store the Gmail message ID and sender to prevent re-processing, plus the extracted structured data (amount, merchant, date, category, description). OAuth tokens are stored in our database, protected by the at-rest encryption of our infrastructure provider (Supabase). The email body is not kept.",
+        "Gmail data: read-only access. We only process emails in INBOX (excluding SPAM and Trash). We store the Gmail message ID and sender to prevent re-processing, plus the extracted structured data (amount, merchant, date, category, description). OAuth tokens are stored encrypted in our database using pgcrypto with a Vault-managed key, in addition to Supabase's at-rest encryption. The email body is not kept.",
         "Notification preferences: push notification settings and per-type preferences.",
         "Tutorial state: language preference and tutorial progress saved in localStorage."
       ]
@@ -1000,11 +1063,11 @@
     },
     "googleLimitedUse": {
       "title": "Google Compliance",
-      "content": "Money Tracker's use of information received from Google APIs will adhere to Google API Services User Data Policy, including the Limited Use requirements."
+      "content": "Receiptle's use of information received from Google APIs will adhere to Google API Services User Data Policy, including the Limited Use requirements."
     },
     "thirdParties": {
       "title": "Third Parties",
-      "intro": "Money Tracker uses the following third-party services to operate:",
+      "intro": "Receiptle uses the following third-party services to operate:",
       "items": [
         "Supabase: PostgreSQL database, authentication, and serverless functions provider. Data is stored on Supabase servers with encryption at rest.",
         "Google (Gmail API): read-only access to read transaction emails. We use the gmail.readonly and userinfo.email scopes.",
@@ -1015,11 +1078,11 @@
     },
     "security": {
       "title": "Security",
-      "content": "We implement the following security measures: encryption at rest of the database (AES-256 provided by Supabase), Row-Level Security (RLS) policies ensuring each user can only access their own data, HTTPS communication with CSP headers, authentication sessions with automatic token refresh, and Google Pub/Sub signature validation on Gmail webhook notifications. OAuth tokens are stored in the database protected by Supabase's at-rest encryption; migration to application-level encryption is on our security roadmap."
+      "content": "We implement the following security measures: encryption at rest of the database (AES-256 provided by Supabase), application-level encryption of OAuth tokens using pgcrypto with the key stored in Supabase Vault (the key is never exposed to the edge function runtime), Row-Level Security (RLS) policies ensuring each user can only access their own data, HTTPS communication with CSP headers, authentication sessions with automatic token refresh, and Google Pub/Sub signature validation on Gmail webhook notifications."
     },
     "localStorage": {
       "title": "Local Storage and Cookies",
-      "content": "Money Tracker does not use tracking or advertising cookies. We use browser localStorage only to save your language preference and interactive tutorial state. There are no trackers, analytics, or third-party pixels."
+      "content": "Receiptle does not use tracking or advertising cookies. We use browser localStorage only to save your language preference and interactive tutorial state. There are no trackers, analytics, or third-party pixels."
     },
     "pushNotifications": {
       "title": "Push Notifications",
@@ -1051,8 +1114,8 @@
     }
   },
   "assistant": {
-    "brand": "Money Tracker",
-    "logoAlt": "Money Tracker Logo",
+    "brand": "Receiptle",
+    "logoAlt": "Receiptle Logo",
     "greeting": {
       "morning": "Good morning",
       "afternoon": "Good afternoon",

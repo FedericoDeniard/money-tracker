@@ -1,17 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { AlertCircle } from "lucide-react";
 import { useRecharts } from "../../hooks/useRecharts";
-
-function InsufficientData() {
-  const { t } = useTranslation();
-  return (
-    <div className="h-[320px] flex flex-col items-center justify-center text-[var(--text-secondary)]">
-      <AlertCircle className="size-8 mb-2 opacity-50" />
-      <p className="text-sm">{t("metrics.needMoreData")}</p>
-      <p className="text-xs opacity-75 mt-1">{t("metrics.minimumMonths")}</p>
-    </div>
-  );
-}
+import { InsufficientData } from "../ui/InsufficientData";
 
 interface MonthlyData {
   month: string;
@@ -49,7 +38,7 @@ export default function MonthlyAreaChart({ data }: MonthlyAreaChartProps) {
   }
 
   if (data.length < 2) {
-    return <InsufficientData />;
+    return <InsufficientData height="h-[320px]" />;
   }
 
   // To make expenses render nicely on a stacked area chart below income instead of stacking directly

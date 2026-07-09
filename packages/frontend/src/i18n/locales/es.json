@@ -17,7 +17,8 @@
     "or": "o",
     "userId": "ID de Usuario",
     "note": "Nota",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "open": "Abrir"
   },
   "navigation": {
     "dashboard": "Panel",
@@ -293,6 +294,10 @@
     "specificMonth": "Mes específico",
     "inMonth": "en {{month}}",
     "monthlyTrend": "Tendencia Mensual",
+    "barChart": "Gráfico de barras",
+    "areaChart": "Gráfico de área",
+    "pieChart": "Gráfico circular",
+    "treemapChart": "Mapa de árbol",
     "categoryBreakdown": "Desglose de Gastos por Categoría",
     "insights": "Insights Financieros",
     "topSpendingCategory": "Categoría Principal de Gasto",
@@ -389,6 +394,7 @@
     "education": "Educación",
     "housing": "Vivienda",
     "clothing": "Ropa",
+    "taxes": "Impuestos",
     "other": "Otros"
   },
   "settings": {
@@ -776,6 +782,63 @@
       "startSync": "No se pudo iniciar la importación."
     }
   },
+  "dashboardOverview": {
+    "greeting": {
+      "morning": "Buen día",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches",
+      "subtitle": "Así están tus finanzas en este momento.",
+      "monthlyTag": "Así vas en {{month}}",
+      "dayProgress": "Día {{day}} de {{total}} · {{percent}}% del mes",
+      "named": {
+        "morning": "Buen día, {{name}}",
+        "afternoon": "Buenas tardes, {{name}}",
+        "evening": "Buenas noches, {{name}}"
+      }
+    },
+    "kpi": {
+      "income": "Ingresos",
+      "expense": "Gastos",
+      "net": "Balance neto",
+      "savingsRate": "Tasa de ahorro"
+    },
+    "charts": {
+      "categoryBreakdown": "Gasto por categoría",
+      "viewMore": "Ver métricas",
+      "noData": "Aún no hay suficientes transacciones para graficar.",
+      "noDataSubtitle": "Conectá Gmail o agregá una transacción manual para empezar."
+    },
+    "recent": {
+      "title": "Transacciones recientes",
+      "empty": "Todavía no hay transacciones.",
+      "viewAll": "Ver todas las transacciones"
+    },
+    "health": {
+      "title": "Estado de la cuenta",
+      "aiActivity": "Actividad de IA (7 días)",
+      "processed": "Procesados",
+      "found": "Encontrados",
+      "skipped": "Omitidos",
+      "allSet": "Todo listo. Sin tareas pendientes."
+    },
+    "quickActionsTitle": "Acciones rápidas",
+    "onboarding": {
+      "title": "Tres pasos para empezar",
+      "subtitle": "Receiptle funciona mejor cuando conectás tus cuentas y transacciones.",
+      "step1": {
+        "title": "Conectá Gmail",
+        "description": "Vinculá una casilla para extraer tus transacciones automáticamente."
+      },
+      "step2": {
+        "title": "Subí un documento",
+        "description": "Adjuntá un PDF o foto de un comprobante para sumarlo en segundos."
+      },
+      "step3": {
+        "title": "Agregá manual",
+        "description": "Cargá un gasto o ingreso eventual."
+      }
+    }
+  },
   "update": {
     "available": "Nueva versión disponible",
     "description": "Hay una actualización lista. Recargá para obtener la última versión.",
@@ -811,7 +874,7 @@
       "badge": "Seguimiento Inteligente de Finanzas en Piloto Automático",
       "titlePart1": "Tus Finanzas,",
       "titlePart2": "Automatizadas por IA.",
-      "description": "Conectá tu Gmail y dejá que Money Tracker extraiga, categorice y haga un seguimiento automático de tus gastos en tiempo real.",
+      "description": "Conectá tu Gmail y dejá que Receiptle extraiga, categorice y haga un seguimiento automático de tus gastos en tiempo real.",
       "getStarted": "Comenzar Ahora",
       "readDocs": "Leer Documentación"
     },
@@ -821,7 +884,7 @@
       "description": "Funciones potentes diseñadas para darte visibilidad completa sin la entrada manual de datos.",
       "gmail": {
         "title": "Integración con Gmail",
-        "description": "Procesamiento de emails en tiempo real. Dejá de cargar todo a mano y dejá que Money Tracker vigile tu bandeja en busca de recibos."
+        "description": "Procesamiento de emails en tiempo real. Dejá de cargar todo a mano y dejá que Receiptle vigile tu bandeja en busca de recibos."
       },
       "ai": {
         "title": "Extracción con IA",
@@ -841,12 +904,12 @@
       },
       "security": {
         "title": "Seguro y Privado",
-        "description": "Acceso de solo lectura a tus emails. Los datos se cifran en reposo y nunca se comparten."
+        "description": "Acceso de solo lectura a tus emails. Los tokens y datos se cifran en reposo y a nivel de aplicación. Nunca se comparten con terceros."
       }
     },
     "howItWorks": {
       "title": "Cómo funciona",
-      "description": "Dejá de perder horas de tu vida en hojas de cálculo. Money Tracker automatiza las partes tediosas de las finanzas personales para que puedas enfocarte en construir riqueza.",
+      "description": "Dejá de perder horas de tu vida en hojas de cálculo. Receiptle automatiza las partes tediosas de las finanzas personales para que puedas enfocarte en construir riqueza.",
       "step1": {
         "title": "Conectá tu Cuenta",
         "description": "Vinculá tu Gmail de forma segura mediante OAuth. Solo te pedimos los permisos necesarios para leer los emails de recibos."
@@ -861,7 +924,7 @@
       },
       "cta": {
         "title": "¿Listo para verlo en acción?",
-        "description": "Unite hoy y dejá que Money Tracker importe los emails de transacciones de tus últimos 3 meses automáticamente.",
+        "description": "Unite hoy y dejá que Receiptle importe los emails de transacciones de tus últimos 3 meses automáticamente.",
         "button": "Crear cuenta gratuita",
         "footer": "No requiere tarjeta de crédito. La configuración toma 2 minutos."
       }
@@ -893,7 +956,7 @@
     },
     "dashboard": {
       "step1": {
-        "title": "Bienvenido a Money Tracker",
+        "title": "Bienvenido a Receiptle",
         "description": "Te vamos a guiar por cada seccion de la app la primera vez que la visites. Podes saltar el tutorial en cualquier momento con la X."
       },
       "step2": {
@@ -980,12 +1043,12 @@
     },
     "dataCollected": {
       "title": "Datos que recopilamos",
-      "intro": "Money Tracker recopila los siguientes datos personales para su funcionamiento:",
+      "intro": "Receiptle recopila los siguientes datos personales para su funcionamiento:",
       "items": [
         "Datos de autenticación: correo electrónico, nombre (si usás Google OAuth) y contraseña encriptada.",
         "Datos de transacciones financieras: montos, comercios, categorías, fechas y descripciones extraídos de tus correos electrónicos.",
         "Documentos subidos: PDFs e imágenes que subís voluntariamente para extracción de transacciones.",
-        "Datos de Gmail: acceso de solo lectura. Procesamos únicamente correos del INBOX (excluidos SPAM y Papelera). Almacenamos el ID de mensaje de Gmail y el remitente para evitar reprocesamiento, y los datos estructurados extraídos (monto, comercio, fecha, categoría, descripción). Los tokens OAuth se almacenan en la base de datos con la protección de cifrado en reposo de nuestro proveedor de infraestructura (Supabase). El cuerpo del email no se conserva.",
+        "Datos de Gmail: acceso de solo lectura. Procesamos únicamente correos del INBOX (excluidos SPAM y Papelera). Almacenamos el ID de mensaje de Gmail y el remitente para evitar reprocesamiento, y los datos estructurados extraídos (monto, comercio, fecha, categoría, descripción). Los tokens OAuth se almacenan cifrados en la base de datos con pgcrypto y una clave gestionada en Vault, además del cifrado en reposo de Supabase. El cuerpo del email no se conserva.",
         "Preferencias de notificaciones: configuraciones de notificaciones push y preferencias por tipo.",
         "Estado de tutoriales: preferencia de idioma y progreso de tutoriales guardados en localStorage."
       ]
@@ -1000,11 +1063,11 @@
     },
     "googleLimitedUse": {
       "title": "Cumplimiento con Google",
-      "content": "El uso por parte de Money Tracker de la información recibida desde las APIs de Google se ajusta a la Google API Services User Data Policy, incluyendo los requisitos de Limited Use."
+      "content": "El uso por parte de Receiptle de la información recibida desde las APIs de Google se ajusta a la Google API Services User Data Policy, incluyendo los requisitos de Limited Use."
     },
     "thirdParties": {
       "title": "Terceros involucrados",
-      "intro": "Money Tracker utiliza los siguientes servicios de terceros para su funcionamiento:",
+      "intro": "Receiptle utiliza los siguientes servicios de terceros para su funcionamiento:",
       "items": [
         "Supabase: proveedor de base de datos PostgreSQL, autenticación y funciones serverless. Los datos se almacenan en servidores de Supabase con cifrado en reposo.",
         "Google (Gmail API): acceso de solo lectura para leer correos de transacciones. Utilizamos los scopes gmail.readonly y userinfo.email.",
@@ -1015,11 +1078,11 @@
     },
     "security": {
       "title": "Seguridad",
-      "content": "Implementamos las siguientes medidas de seguridad: cifrado en reposo de la base de datos (AES-256 provisto por Supabase), políticas de seguridad a nivel de fila (RLS) que garantizan que cada usuario solo accede a sus propios datos, comunicación mediante HTTPS con headers CSP, sesiones de autenticación con renovación automática de tokens, y validación de firma de Google Pub/Sub en las notificaciones del webhook de Gmail. Los tokens OAuth se almacenan en la base de datos protegidos por el cifrado en reposo de Supabase; la migración a cifrado a nivel de aplicación está en nuestro roadmap de seguridad."
+      "content": "Implementamos las siguientes medidas de seguridad: cifrado en reposo de la base de datos (AES-256 provisto por Supabase), cifrado a nivel de aplicación de los tokens OAuth con pgcrypto y clave almacenada en Supabase Vault (la clave nunca se expone al runtime de las funciones edge), políticas de seguridad a nivel de fila (RLS) que garantizan que cada usuario solo accede a sus propios datos, comunicación mediante HTTPS con headers CSP, sesiones de autenticación con renovación automática de tokens, y validación de firma de Google Pub/Sub en las notificaciones del webhook de Gmail."
     },
     "localStorage": {
       "title": "Almacenamiento local y cookies",
-      "content": "Money Tracker no utiliza cookies de seguimiento ni publicitarias. Usamos localStorage del navegador únicamente para guardar tu preferencia de idioma y el estado de los tutoriales interactivos. No hay rastreadores, analytics ni píxeles de terceros."
+      "content": "Receiptle no utiliza cookies de seguimiento ni publicitarias. Usamos localStorage del navegador únicamente para guardar tu preferencia de idioma y el estado de los tutoriales interactivos. No hay rastreadores, analytics ni píxeles de terceros."
     },
     "pushNotifications": {
       "title": "Notificaciones push",
@@ -1051,8 +1114,8 @@
     }
   },
   "assistant": {
-    "brand": "Money Tracker",
-    "logoAlt": "Logo de Money Tracker",
+    "brand": "Receiptle",
+    "logoAlt": "Logo de Receiptle",
     "greeting": {
       "morning": "Buen día",
       "afternoon": "Buenas tardes",

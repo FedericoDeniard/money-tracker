@@ -256,6 +256,8 @@ export function Metrics() {
                   <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
                     <button
                       onClick={() => setTrendChartType("bar")}
+                      aria-label={t("metrics.barChart", "Bar chart")}
+                      aria-pressed={trendChartType === "bar"}
                       className={`p-1.5 rounded-md transition-colors ${trendChartType === "bar" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
                       title="Bar Chart"
                       type="button"
@@ -264,6 +266,8 @@ export function Metrics() {
                     </button>
                     <button
                       onClick={() => setTrendChartType("area")}
+                      aria-label={t("metrics.areaChart", "Area chart")}
+                      aria-pressed={trendChartType === "area"}
                       className={`p-1.5 rounded-md transition-colors ${trendChartType === "area" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
                       title="Area Chart"
                       type="button"
@@ -290,6 +294,8 @@ export function Metrics() {
                   <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--text-secondary)]/10">
                     <button
                       onClick={() => setBreakdownChartType("pie")}
+                      aria-label={t("metrics.pieChart", "Pie chart")}
+                      aria-pressed={breakdownChartType === "pie"}
                       className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "pie" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
                       title="Pie Chart"
                       type="button"
@@ -298,6 +304,8 @@ export function Metrics() {
                     </button>
                     <button
                       onClick={() => setBreakdownChartType("treemap")}
+                      aria-label={t("metrics.treemapChart", "Treemap")}
+                      aria-pressed={breakdownChartType === "treemap"}
                       className={`p-1.5 rounded-md transition-colors ${breakdownChartType === "treemap" ? "bg-[var(--primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"}`}
                       title="Treemap"
                       type="button"

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LazyMotion, m, domAnimation, AnimatePresence } from "motion/react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,8 +39,9 @@ export function FilterValueCombobox({
   const [open, setOpen] = useState(false);
   const [commandInput, setCommandInput] = useState("");
   const commandInputRef = useRef<HTMLInputElement>(null);
+  const filterValueSet = useMemo(() => new Set(filterValues), [filterValues]);
   const nonSelectedFilterValues = options.filter(
-    filter => !filterValues.includes(filter.name)
+    filter => !filterValueSet.has(filter.name)
   );
 
   return (

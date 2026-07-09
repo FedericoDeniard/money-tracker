@@ -9,6 +9,7 @@ export const TRANSACTION_CATEGORIES = [
   "education",
   "housing",
   "clothing",
+  "taxes",
   "other",
 ] as const;
 

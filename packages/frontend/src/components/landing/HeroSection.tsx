@@ -202,7 +202,7 @@ function HeroCtaButtons() {
         <ArrowRight size={20} />
       </Link>
       <Link
-        to="https://federicodeniard-money-tracker.mintlify.app/"
+        to="https://federicodeniard-receiptle.mintlify.app/"
         target="_blank"
         rel="noopener noreferrer"
         className="w-full sm:w-auto flex items-center justify-center px-8 py-4 bg-[var(--bg-secondary)] hover:bg-zinc-100 text-[var(--text-primary)] border border-[var(--text-secondary)]/20 rounded-xl font-semibold transition-all"

@@ -71,12 +71,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <DecorativeSquare size={40} className="absolute inset-0 m-auto" />
             <img
               src={logo}
-              alt="Money Tracker Logo"
+              alt="Receiptle Logo"
               className="relative z-10 w-full h-full p-1.5 object-contain"
             />
           </div>
           <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-            Money Tracker
+            Receiptle
           </h1>
         </div>
       </div>

@@ -92,6 +92,7 @@ export const TransactionSchema = z.object({
       "education",
       "housing",
       "clothing",
+      "taxes",
       "other",
     ])
     .describe("Category of the transaction"),

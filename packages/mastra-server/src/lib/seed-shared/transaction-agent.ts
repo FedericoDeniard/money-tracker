@@ -194,6 +194,7 @@ EXAMPLES — how to apply user clarifications:
 - Clarification: "gas for the trip" → name: "Gas", description: "Fuel fill-up for trip", category: "transport"
 - Clarification: "paid rent to my sister" → name: "Rent", description: "Rent payment", merchant: "Sister", category: "housing"
 - Clarification: "took the motorcycle to repair" → name: "Motorcycle repair", description: "Motorcycle service", category: "transport" (infer the category from the SUBJECT the user mentions — here, the motorcycle — not from the verb "to repair", which would default to "services")
+- Clarification: "pagué el monotributo este mes" → name: "Monotributo", description: "Monthly monotributo tax payment", category: "taxes"
 
 Notice the pattern: the clarification is short and conversational, but the output is a clean, normalized transaction title. The LLM extracts the topic and writes a polished, concise value. When the user names a specific subject (a vehicle, a property, a person), infer the category from that subject rather than from the action being performed.\n`
     : ""
@@ -209,7 +210,7 @@ Return ONLY valid JSON matching this exact schema:
     "description": string,
     "date": "YYYY-MM-DD|null",
     "merchant": string,
-    "category": "salary|entertainment|investment|food|transport|services|health|education|housing|clothing|other"
+    "category": "salary|entertainment|investment|food|transport|services|health|education|housing|clothing|taxes|other"
   },
   "reason": string
 }
@@ -369,6 +370,7 @@ EXAMPLES — how to apply user clarifications:
 - Clarification: "gas for the trip" → name: "Gas", description: "Fuel fill-up for trip", category: "transport"
 - Clarification: "paid rent to my sister" → name: "Rent", description: "Rent payment", merchant: "Sister", category: "housing"
 - Clarification: "took the motorcycle to repair" → name: "Motorcycle repair", description: "Motorcycle service", category: "transport" (infer the category from the SUBJECT the user mentions — here, the motorcycle — not from the verb "to repair", which would default to "services")
+- Clarification: "pagué el monotributo este mes" → name: "Monotributo", description: "Monthly monotributo tax payment", category: "taxes"
 
 Notice the pattern: the clarification is short and conversational, but the output is a clean, normalized transaction title. The LLM extracts the topic and writes a polished, concise value. When the user names a specific subject (a vehicle, a property, a person), infer the category from that subject rather than from the action being performed.`;
   }

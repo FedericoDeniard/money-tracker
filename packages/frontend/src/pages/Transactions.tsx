@@ -41,20 +41,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 import { useTagMutations } from "../hooks/useTagMutations";
-
-const categories = [
-  "salary",
-  "entertainment",
-  "investment",
-  "food",
-  "transport",
-  "services",
-  "health",
-  "education",
-  "housing",
-  "clothing",
-  "other",
-];
+import { TRANSACTION_CATEGORIES } from "../constants/transactions";
 
 // ─── Data section — suspends on transactions + gmail status ──────────────────
 interface TransactionsListProps {
@@ -343,7 +330,7 @@ export function Transactions() {
         <TransactionFiltersComponent
           filters={filters}
           onFiltersChange={f => dispatch({ type: "SET_FILTERS", filters: f })}
-          categories={categories}
+          categories={TRANSACTION_CATEGORIES}
         />
       </div>
 

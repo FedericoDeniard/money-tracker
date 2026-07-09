@@ -33,12 +33,12 @@ export function DashboardLayout() {
             <DecorativeSquare size={32} className="absolute inset-0 m-auto" />
             <img
               src={logo}
-              alt="Money Tracker Logo"
+              alt="Receiptle Logo"
               className="relative z-10 w-full h-full p-1 object-contain"
             />
           </div>
           <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-            Money Tracker
+            Receiptle
           </h1>
         </div>
         <div className="flex items-center gap-2">

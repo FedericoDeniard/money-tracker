@@ -108,8 +108,8 @@ export async function shouldProcessEmail(
     const headers = [
       { field: "Authorization", value: `Bearer ${apiKey}` },
       { field: "Content-Type", value: "application/json" },
-      { field: "HTTP-Referer", value: "https://money-tracker.app" },
-      { field: "X-Title", value: "Money Tracker" },
+      { field: "HTTP-Referer", value: "https://receiptle.com" },
+      { field: "X-Title", value: "Receiptle" },
     ];
 
     // Call via PostgreSQL http extension, bypassing Deno's TLS fingerprinting.
