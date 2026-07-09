@@ -89,6 +89,7 @@ interface AssignTagSelectorProps {
   className?: string;
   iconOnly?: boolean;
   t: TFunction;
+  id?: string;
 }
 
 function AssignTagSelector({
@@ -101,6 +102,7 @@ function AssignTagSelector({
   className,
   iconOnly,
   t,
+  id,
 }: AssignTagSelectorProps) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -112,6 +114,8 @@ function AssignTagSelector({
         .filter((t): t is Tag => !!t),
     [value, tags]
   );
+
+  const selectedIds = useMemo(() => new Set(value), [value]);
 
   const toggle = (id: string) => {
     if (!onChange) return;
@@ -162,6 +166,7 @@ function AssignTagSelector({
             variant={iconOnly ? "secondary" : "outline"}
             size="sm"
             disabled={disabled || isLoading}
+            id={id}
             icon={<Plus size={iconOnly ? 16 : 14} />}
             className={cn(
               iconOnly
@@ -194,7 +199,7 @@ function AssignTagSelector({
               ) : (
                 <div className="max-h-56 overflow-y-auto space-y-0.5">
                   {tags.map(tag => {
-                    const isSelected = value.includes(tag.id);
+                    const isSelected = selectedIds.has(tag.id);
                     return (
                       <button
                         key={tag.id}

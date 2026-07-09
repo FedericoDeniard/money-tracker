@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import type { Transaction } from "../../services/transactions.service";
@@ -83,6 +83,14 @@ export function EditTransactionModal({
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
   const [isPending, startTransition] = useTransition();
+  const typeId = useId();
+  const nameId = useId();
+  const descriptionId = useId();
+  const merchantId = useId();
+  const dateId = useId();
+  const amountId = useId();
+  const currencyId = useId();
+  const categoryId = useId();
 
   const [formData, setFormData] = useState({
     name: transaction.name || "",
@@ -149,10 +157,14 @@ export function EditTransactionModal({
       <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={typeId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.type")}
           </label>
           <select
+            id={typeId}
             value={formData.transaction_type}
             onChange={e =>
               setFormData(prev => ({
@@ -170,12 +182,15 @@ export function EditTransactionModal({
 
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={nameId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.name")}
           </label>
           <input
+            id={nameId}
             type="text"
-            aria-label={t("transactions.name")}
             value={formData.name}
             onChange={e =>
               setFormData(prev => ({ ...prev, name: e.target.value }))
@@ -189,11 +204,14 @@ export function EditTransactionModal({
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={descriptionId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.description")}
           </label>
           <textarea
-            aria-label={t("transactions.description")}
+            id={descriptionId}
             value={formData.transaction_description}
             onChange={e =>
               setFormData(prev => ({
@@ -211,12 +229,15 @@ export function EditTransactionModal({
 
         {/* Merchant */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={merchantId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.merchant")}
           </label>
           <input
+            id={merchantId}
             type="text"
-            aria-label={t("transactions.merchant")}
             value={formData.merchant}
             onChange={e =>
               setFormData(prev => ({ ...prev, merchant: e.target.value }))
@@ -228,12 +249,15 @@ export function EditTransactionModal({
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={dateId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.date")}
           </label>
           <input
+            id={dateId}
             type="date"
-            aria-label={t("transactions.date")}
             value={formData.transaction_date}
             onChange={e =>
               setFormData(prev => ({
@@ -249,14 +273,17 @@ export function EditTransactionModal({
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={amountId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.amount")}
           </label>
           <input
+            id={amountId}
             type="number"
             step="0.01"
             min="0.01"
-            aria-label={t("transactions.amount")}
             value={formData.amount}
             onChange={e =>
               setFormData(prev => ({ ...prev, amount: e.target.value }))
@@ -269,10 +296,14 @@ export function EditTransactionModal({
 
         {/* Currency */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={currencyId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.currency")}
           </label>
           <select
+            id={currencyId}
             value={formData.currency}
             onChange={e =>
               setFormData(prev => ({ ...prev, currency: e.target.value }))
@@ -290,10 +321,14 @@ export function EditTransactionModal({
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label
+            htmlFor={categoryId}
+            className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+          >
             {t("transactions.category")}
           </label>
           <select
+            id={categoryId}
             value={formData.category}
             onChange={e =>
               setFormData(prev => ({

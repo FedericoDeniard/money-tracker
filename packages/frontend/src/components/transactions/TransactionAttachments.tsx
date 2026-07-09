@@ -112,6 +112,7 @@ export function TransactionAttachments({
                   href={attachment.signedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`${t("transactions.viewAttachment")} – ${attachment.filename}`}
                   className="inline-flex items-center justify-center size-8 rounded-md text-[var(--text-secondary)] hover:bg-zinc-200 hover:text-[var(--text-primary)] transition-colors"
                   title={t("transactions.viewAttachment")}
                 >
@@ -119,6 +120,7 @@ export function TransactionAttachments({
                 </a>
                 <button
                   type="button"
+                  aria-label={`${t("transactions.downloadAttachment", "Download")} – ${attachment.filename}`}
                   onClick={() =>
                     downloadAttachment(
                       attachment.storage_path,

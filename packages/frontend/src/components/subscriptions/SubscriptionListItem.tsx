@@ -5,7 +5,7 @@ import { useFormatDate } from "../../hooks/useFormatDate";
 import type { SubscriptionCandidate } from "../../services/transactions.service";
 import { formatCurrency } from "../../utils/currency";
 import { getSubscriptionStatus } from "./subscriptionStatus";
-import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
+import { LazyMotion, m, domAnimation } from "framer-motion";
 import { SubscriptionTransactionsList } from "./SubscriptionTransactionsList";
 
 interface SubscriptionListItemProps {
@@ -124,25 +124,24 @@ export function SubscriptionListItem({ candidate }: SubscriptionListItemProps) {
           </div>
         </button>
 
-        {/* Expanded Accordion Area */}
-        <AnimatePresence>
-          {isExpanded && (
-            <m.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="px-3 sm:px-4 pb-3 sm:pb-4 border-t-0 -mt-2">
-                <SubscriptionTransactionsList
-                  merchantNormalized={candidate.merchant_normalized}
-                  currency={candidate.currency}
-                />
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
+        {/* Expanded Accordion Area — animates via grid-template-rows
+            so the browser does not retrigger layout each frame. */}
+        <div
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            isExpanded
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="px-3 sm:px-4 pb-3 sm:pb-4 border-t-0 -mt-2">
+              <SubscriptionTransactionsList
+                merchantNormalized={candidate.merchant_normalized}
+                currency={candidate.currency}
+              />
+            </div>
+          </div>
+        </div>
       </article>
     </LazyMotion>
   );

@@ -325,10 +325,14 @@ function TagFilterButton({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const selectedTagIds = filters.tagIds ?? [];
+  const selectedTagIds = useMemo(() => filters.tagIds ?? [], [filters.tagIds]);
+  const selectedTagIdSet = useMemo(
+    () => new Set(selectedTagIds),
+    [selectedTagIds]
+  );
 
   const toggle = (id: string) => {
-    const next = selectedTagIds.includes(id)
+    const next = selectedTagIdSet.has(id)
       ? selectedTagIds.filter(x => x !== id)
       : [...selectedTagIds, id];
     onFiltersChange({
@@ -363,7 +367,7 @@ function TagFilterButton({
         ) : (
           <div className="max-h-64 overflow-y-auto space-y-0.5">
             {availableTags.map(tag => {
-              const isSelected = selectedTagIds.includes(tag.id);
+              const isSelected = selectedTagIdSet.has(tag.id);
               return (
                 <button
                   key={tag.id}
