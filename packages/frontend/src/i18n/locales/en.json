@@ -18,7 +18,8 @@
     "userId": "User ID",
     "note": "Note",
     "refresh": "Refresh",
-    "open": "Open"
+    "open": "Open",
+    "edit": "Edit"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -399,6 +400,7 @@
   },
   "settings": {
     "title": "Settings",
+    "pageDescription": "Manage your account preferences and integrations.",
     "general": "General",
     "account": "Account",
     "preferences": "Preferences",
@@ -488,6 +490,36 @@
     "tags": "Tags",
     "tagsTitle": "Transaction tags",
     "tagsDescription": "Create custom labels to organize your transactions. Tags are complementary to categories and can be assigned from any transaction."
+  },
+  "settingsLayout": {
+    "nav": {
+      "account": "Account",
+      "profile": "Profile",
+      "connections": "Connections",
+      "notifications": "Notifications",
+      "preferences": "Preferences",
+      "about": "About"
+    },
+    "categoryDescription": {
+      "account": "Plan, subscription and billing.",
+      "profile": "Your personal info and how the app calls you.",
+      "connections": "Gmail accounts and integrations.",
+      "notifications": "Push and per-type notification preferences.",
+      "preferences": "Interface language and tags.",
+      "about": "Tutorials, app version and credits."
+    },
+    "profile": {
+      "displayName": "Display name",
+      "displayNamePlaceholder": "Add your name",
+      "displayNameHint": "Used in greetings and the chat assistant.",
+      "email": "Email",
+      "emailHint": "To change your email, contact support.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving",
+      "saved": "Display name updated",
+      "saveError": "Could not update your display name"
+    }
   },
   "accountBilling": {
     "title": "Account & Billing",
