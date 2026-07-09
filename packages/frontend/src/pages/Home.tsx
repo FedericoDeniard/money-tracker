@@ -177,7 +177,7 @@ export function Home() {
   );
 
   return (
-    <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+    <div className="space-y-6 pt-4 pb-8 lg:pt-0 animate-in fade-in duration-500">
       <section className="rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4 md:p-6 shadow-sm">
         <Greeting user={user} />
       </section>
