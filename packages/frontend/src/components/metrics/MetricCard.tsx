@@ -23,13 +23,13 @@ export function MetricCard({
 
   return (
     <LazyMotion features={domAnimation}>
-      <div className="p-6 rounded-xl bg-[var(--bg-secondary)] border border-transparent hover:border-[var(--border)] transition-all duration-300">
+      <div className="p-6 rounded-xl border border-[#3d5a80]/15 hover:border-[#3d5a80]/30 transition-all duration-300">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-2 rounded-lg bg-[var(--bg-primary)] text-[var(--text-secondary)]">
+          <div className="p-2 rounded-lg bg-[#3d5a80]/15 text-[#3d5a80]">
             {icon}
           </div>
           {currency && (
-            <span className="text-xs font-medium px-2 py-1 rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border)]">
+            <span className="text-xs font-medium text-[#3d5a80]/70">
               {currency}
             </span>
           )}
