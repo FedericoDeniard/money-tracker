@@ -1,7 +1,10 @@
 import { useTranslation } from "react-i18next";
+import type { User } from "@supabase/supabase-js";
 import { formatMonthLabel, currentYearMonth } from "../../utils/period";
+import { getDisplayName } from "../../utils/user";
 
 interface GreetingProps {
+  user?: User | null;
   now?: Date;
 }
 
@@ -12,10 +15,11 @@ function getTimeOfDay(date: Date): "morning" | "afternoon" | "evening" {
   return "evening";
 }
 
-export function Greeting({ now = new Date() }: GreetingProps) {
+export function Greeting({ user, now = new Date() }: GreetingProps) {
   const { t, i18n } = useTranslation();
   const timeOfDay = getTimeOfDay(now);
   const monthLabel = formatMonthLabel(currentYearMonth(), i18n.language);
+  const name = getDisplayName(user);
 
   const day = now.getDate();
   const daysInMonth = new Date(
@@ -28,7 +32,9 @@ export function Greeting({ now = new Date() }: GreetingProps) {
   return (
     <div>
       <h1 className="text-xl md:text-2xl font-semibold text-[var(--text-primary)]">
-        {t(`dashboardOverview.greeting.${timeOfDay}`)}
+        {name
+          ? t(`dashboardOverview.greeting.named.${timeOfDay}`, { name })
+          : t(`dashboardOverview.greeting.${timeOfDay}`)}
       </h1>
       <p className="mt-1 text-xs md:text-sm text-[var(--text-secondary)]">
         {t("dashboardOverview.greeting.monthlyTag", { month: monthLabel })}

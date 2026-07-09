@@ -785,7 +785,12 @@
       "evening": "Buenas noches",
       "subtitle": "Así están tus finanzas en este momento.",
       "monthlyTag": "Así vas en {{month}}",
-      "dayProgress": "Día {{day}} de {{total}} · {{percent}}% del mes"
+      "dayProgress": "Día {{day}} de {{total}} · {{percent}}% del mes",
+      "named": {
+        "morning": "Buen día, {{name}}",
+        "afternoon": "Buenas tardes, {{name}}",
+        "evening": "Buenas noches, {{name}}"
+      }
     },
     "kpi": {
       "income": "Ingresos",

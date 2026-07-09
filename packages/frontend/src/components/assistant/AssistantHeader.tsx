@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
+import { getDisplayName } from "../../utils/user";
 
 function GreetingCurve() {
   return (
@@ -19,25 +20,6 @@ function GreetingCurve() {
       />
     </svg>
   );
-}
-
-function getDisplayName(user: ReturnType<typeof useAuth>["user"]): string {
-  const metadata = user?.user_metadata as
-    | { full_name?: string; name?: string }
-    | undefined;
-  const fullName = metadata?.full_name ?? metadata?.name;
-  if (fullName) {
-    const first = fullName.split(" ")[0]?.trim();
-    if (first) return first;
-  }
-  const email = user?.email;
-  if (email) {
-    const local = email.split("@")[0];
-    if (local) {
-      return local.charAt(0).toUpperCase() + local.slice(1);
-    }
-  }
-  return "";
 }
 
 type GreetingKey = "morning" | "afternoon" | "evening";

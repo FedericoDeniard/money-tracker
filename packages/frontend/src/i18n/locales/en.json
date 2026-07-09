@@ -785,7 +785,12 @@
       "evening": "Good evening",
       "subtitle": "Here's how your finances are doing.",
       "monthlyTag": "So far this {{month}}",
-      "dayProgress": "Day {{day}} of {{total}} · {{percent}}% of the month"
+      "dayProgress": "Day {{day}} of {{total}} · {{percent}}% of the month",
+      "named": {
+        "morning": "Good morning, {{name}}",
+        "afternoon": "Good afternoon, {{name}}",
+        "evening": "Good evening, {{name}}"
+      }
     },
     "kpi": {
       "income": "Income",
