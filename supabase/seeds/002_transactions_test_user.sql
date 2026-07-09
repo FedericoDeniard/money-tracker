@@ -30,8 +30,9 @@ seed_rows AS (
       'clothing',
       'entertainment',
       'investment',
+      'taxes',
       'other'
-    ])[((g.n - 1) % 11) + 1] AS category
+    ])[((g.n - 1) % 12) + 1] AS category
   FROM test_user u
   CROSS JOIN generate_series(1, 132) AS g(n)
 )
@@ -63,6 +64,7 @@ SELECT
     WHEN 'clothing' THEN 'orders@fashion.com'
     WHEN 'entertainment' THEN 'tickets@cinema.com'
     WHEN 'investment' THEN 'reports@broker.com'
+    WHEN 'taxes' THEN 'noreply@gov.com'
     ELSE 'noreply@merchant.com'
   END,
   format('seed-test-transaction-%s', lpad(r.seq::text, 3, '0')),
@@ -91,6 +93,7 @@ SELECT
     WHEN 'clothing' THEN 'StyleShop'
     WHEN 'entertainment' THEN 'MoviePlex'
     WHEN 'investment' THEN 'BrokerNow'
+    WHEN 'taxes' THEN 'IRS'
     ELSE 'Generic Store'
   END,
   r.category

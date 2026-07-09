@@ -5,6 +5,7 @@ import { Modal } from "../ui/Modal";
 import type { Transaction } from "../../services/transactions.service";
 import { useTranslateCategory } from "../../hooks/useTranslateCategory";
 import { getCurrencySymbol } from "../../utils/currency";
+import { TRANSACTION_CATEGORIES } from "../../constants/transactions";
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -12,20 +13,6 @@ interface EditTransactionModalProps {
   onSave: (updates: Partial<Transaction>) => Promise<void>;
   transaction: Transaction;
 }
-
-const CATEGORIES = [
-  "salary",
-  "entertainment",
-  "investment",
-  "food",
-  "transport",
-  "services",
-  "health",
-  "education",
-  "housing",
-  "clothing",
-  "other",
-] as const;
 
 const CURRENCIES = [
   "USD",
@@ -311,13 +298,14 @@ export function EditTransactionModal({
             onChange={e =>
               setFormData(prev => ({
                 ...prev,
-                category: e.target.value as (typeof CATEGORIES)[number],
+                category: e.target
+                  .value as (typeof TRANSACTION_CATEGORIES)[number],
               }))
             }
             className="w-full px-4 py-3 rounded-2xl border border-zinc-200 focus:border-[var(--primary)] focus:outline-none transition-colors"
             disabled={isPending}
           >
-            {CATEGORIES.map(cat => (
+            {TRANSACTION_CATEGORIES.map(cat => (
               <option key={cat} value={cat}>
                 {translateCategory(cat)}
               </option>

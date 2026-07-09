@@ -9,6 +9,7 @@ export const CATEGORY_VALUES = [
   "education",
   "housing",
   "clothing",
+  "taxes",
   "other",
 ] as const;
 
