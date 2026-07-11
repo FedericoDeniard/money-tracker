@@ -5,15 +5,27 @@ import { supabaseFromToken } from "../../lib/supabase-from-token";
 export const deleteTransactionTool = createTool({
   id: "delete-transaction",
   description:
-    "Discard (soft-delete) one or more existing transactions. The transactions are marked as discarded so they no longer appear in lists or summaries, and Gmail-sourced transactions are recorded in discarded_emails so future seed imports do not re-detect them. Use this only when the user explicitly asks to delete, remove, discard, or hide a transaction. Pass an array of 1-50 transaction IDs in a single call. Requires explicit user approval before any database write.",
+    "Discard (soft-delete) one or more existing transactions. The transactions are marked as discarded so they no longer appear in lists or summaries, and Gmail-sourced transactions are recorded in discarded_emails so future seed imports do not re-detect them. Use this only when the user explicitly asks to delete, remove, discard, or hide a transaction. Pass an array of 1-50 transaction IDs in a single call. Requires explicit user approval before any database write. NEVER invent or guess UUIDs — each ID must be copied verbatim from a listTransactionsTool result in this conversation; if the user did not specify which transactions, call listTransactionsTool first.",
   requireApproval: true,
+  strict: true,
+  inputExamples: [
+    {
+      input: {
+        transactionIds: [
+          "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+          "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        ],
+        reason: "Duplicate import",
+      },
+    },
+  ],
   inputSchema: z.object({
     transactionIds: z
       .array(z.string().uuid())
       .min(1)
       .max(50)
       .describe(
-        "Array of 1-50 transaction UUIDs to discard. Batch all IDs into a single call instead of invoking the tool multiple times."
+        "Array of 1-50 transaction UUIDs to discard. Each ID must be the EXACT `id` string copied verbatim from a listTransactionsTool result in this conversation. Format: lowercase hex, 8-4-4-4-12 characters, RFC 4122 v4 (version digit `4`, variant digit `8`, `9`, `a`, or `b`), e.g. 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'. Batch all IDs into a single call instead of invoking the tool multiple times. NEVER invent, fabricate, or guess these values — if the user did not specify which transactions to discard, call listTransactionsTool first and copy the `id`s from its output."
       ),
     reason: z
       .string()
