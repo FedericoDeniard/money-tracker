@@ -27,15 +27,34 @@ export function SettingsNav({
 
   useEffect(() => {
     const active = itemRefs.current?.get(activeId);
-    if (active && listRef.current) {
-      const list = listRef.current;
+    if (!active || !listRef.current) return;
+
+    const list = listRef.current;
+    const isFirst = activeId === categories[0]?.id;
+    const isLast = activeId === categories[categories.length - 1]?.id;
+
+    let targetScrollLeft: number;
+
+    if (isFirst) {
+      targetScrollLeft = 0;
+    } else if (isLast) {
+      targetScrollLeft = list.scrollWidth - list.clientWidth;
+    } else {
       const listRect = list.getBoundingClientRect();
       const itemRect = active.getBoundingClientRect();
-      const offset =
-        itemRect.left - listRect.left - listRect.width / 2 + itemRect.width / 2;
-      list.scrollBy({ left: offset, behavior: "smooth" });
+      targetScrollLeft =
+        list.scrollLeft +
+        (itemRect.left - listRect.left) -
+        listRect.width / 2 +
+        itemRect.width / 2;
+      const maxScrollLeft = list.scrollWidth - list.clientWidth;
+      targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
     }
-  }, [activeId]);
+
+    if (Math.abs(list.scrollLeft - targetScrollLeft) > 1) {
+      list.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
+    }
+  }, [activeId, categories]);
 
   const links = useMemo(
     () =>
