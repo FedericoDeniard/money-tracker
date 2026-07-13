@@ -43,11 +43,11 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.trycloudflare.com https://accounts.google.com https://oauth2.googleapis.com http://localhost:4111 http://localhost:3000" +
+    "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.trycloudflare.com https://accounts.google.com https://oauth2.googleapis.com https://cloudflareinsights.com http://localhost:4111 http://localhost:3000" +
       (mastraOrigin ? ` ${mastraOrigin}` : ""),
     "frame-src 'none'",
     "object-src 'none'",
