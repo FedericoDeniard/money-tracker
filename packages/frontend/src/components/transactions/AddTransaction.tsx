@@ -15,6 +15,8 @@ import type { TransactionFormData } from "./TransactionFormModal";
 import { UploadTransactionModal } from "./UploadTransactionModal";
 import { useTransactionMutations } from "../../hooks/useTransactionMutations";
 import { useTagMutations } from "../../hooks/useTagMutations";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useSidebar } from "../../contexts/SidebarContext";
 import { mapTransactionFormDataToInsert } from "../../utils/transactionForm";
 import { toast } from "../../utils/toast";
 
@@ -36,6 +38,9 @@ export const AddTransaction = forwardRef<
   const navigate = useNavigate();
   const { createTransaction } = useTransactionMutations();
   const { setTransactionTags } = useTagMutations();
+  const { isOpen: isSidebarOpen } = useSidebar();
+  const isMobile = useMediaQuery("(max-width: 1024px)");
+  const isDisabled = isMobile && isSidebarOpen;
 
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -48,6 +53,10 @@ export const AddTransaction = forwardRef<
   >(initialData);
 
   const fabContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isDisabled && isFabOpen) setIsFabOpen(false);
+  }, [isDisabled, isFabOpen]);
 
   useEffect(() => {
     if (!isFabOpen) return;
@@ -133,6 +142,7 @@ export const AddTransaction = forwardRef<
           icon={<Plus size={24} />}
           className="size-14 rounded-full shadow-lg hover:scale-105 transition-all duration-200"
           aria-label={t("transactions.addTransaction")}
+          disabled={isDisabled}
         />
 
         <AnimatePresence>
