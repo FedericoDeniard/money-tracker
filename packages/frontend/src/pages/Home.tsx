@@ -1,9 +1,9 @@
-import { Suspense, useCallback, useMemo, useReducer } from "react";
-import { useTranslation } from "react-i18next";
+import { Suspense, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TransactionFormModal } from "../components/transactions/TransactionFormModal";
-import type { TransactionFormData } from "../components/transactions/TransactionFormModal";
-import { UploadTransactionModal } from "../components/transactions/UploadTransactionModal";
+import {
+  AddTransaction,
+  type AddTransactionHandle,
+} from "../components/transactions/AddTransaction";
 import { Greeting } from "../components/dashboard/Greeting";
 import { KpiRow } from "../components/dashboard/KpiRow";
 import { DashboardCharts } from "../components/dashboard/DashboardCharts";
@@ -11,12 +11,9 @@ import { RecentTransactions } from "../components/dashboard/RecentTransactions";
 import { OnboardingSteps } from "../components/dashboard/OnboardingSteps";
 import { useAuth } from "../hooks/useAuth";
 import { useSeedNotifications } from "../hooks/useSeedNotifications";
-import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useTransactions } from "../hooks/useTransactions";
 import { useReports } from "../hooks/useReports";
 import { useMetricsData } from "../hooks/useMetricsData";
-import { toast } from "../utils/toast";
-import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
 import { currentYearMonth, getDateRange } from "../utils/period";
 
@@ -131,49 +128,27 @@ function DashboardContent({
 }
 
 // ─── Page shell — renders immediately (no data dependency) ───────────────────
-interface HomeState {
-  isCreateModalOpen: boolean;
-  isUploadModalOpen: boolean;
-}
-
-type HomeAction =
-  | { type: "SET_CREATE_MODAL_OPEN"; isOpen: boolean }
-  | { type: "SET_UPLOAD_MODAL_OPEN"; isOpen: boolean };
-
-function homeReducer(state: HomeState, action: HomeAction): HomeState {
-  switch (action.type) {
-    case "SET_CREATE_MODAL_OPEN":
-      return { ...state, isCreateModalOpen: action.isOpen };
-    case "SET_UPLOAD_MODAL_OPEN":
-      return { ...state, isUploadModalOpen: action.isOpen };
-  }
-}
-
-const initialHomeState: HomeState = {
-  isCreateModalOpen: false,
-  isUploadModalOpen: false,
-};
-
 export function Home() {
-  const { t } = useTranslation();
   const { user } = useAuth();
   useSeedNotifications(user?.id);
 
-  const { createTransaction } = useTransactionMutations();
-  const [state, dispatch] = useReducer(homeReducer, initialHomeState);
-  const { isCreateModalOpen, isUploadModalOpen } = state;
   const navigate = useNavigate();
-
-  const handleCreateTransaction = async (formData: TransactionFormData) => {
-    await createTransaction(mapTransactionFormDataToInsert(formData));
-    dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: false });
-  };
+  const addTransactionRef = useRef<AddTransactionHandle>(null);
 
   const handleSelectTransaction = useCallback(
     (transactionId: string) => {
       navigate(`/transactions?id=${transactionId}`);
     },
     [navigate]
+  );
+
+  const openManualAdd = useCallback(
+    () => addTransactionRef.current?.openManualAdd(),
+    []
+  );
+  const openUpload = useCallback(
+    () => addTransactionRef.current?.openUpload(),
+    []
   );
 
   return (
@@ -186,35 +161,13 @@ export function Home() {
         <Suspense fallback={<SuspenseFallback rows={6} />}>
           <DashboardContent
             onSelectTransaction={handleSelectTransaction}
-            onUpload={() =>
-              dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: true })
-            }
-            onAddManually={() =>
-              dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: true })
-            }
+            onUpload={openUpload}
+            onAddManually={openManualAdd}
           />
         </Suspense>
       )}
 
-      <TransactionFormModal
-        isOpen={isCreateModalOpen}
-        onClose={() =>
-          dispatch({ type: "SET_CREATE_MODAL_OPEN", isOpen: false })
-        }
-        onSave={handleCreateTransaction}
-        mode="create"
-      />
-
-      <UploadTransactionModal
-        isOpen={isUploadModalOpen}
-        onClose={() =>
-          dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: false })
-        }
-        onSuccess={transactionId =>
-          navigate(`/transactions?id=${transactionId}`)
-        }
-        onError={error => toast.error(t("common.error"), error)}
-      />
+      <AddTransaction ref={addTransactionRef} />
     </div>
   );
 }

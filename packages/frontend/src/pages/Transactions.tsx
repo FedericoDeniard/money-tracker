@@ -5,7 +5,6 @@ import {
   useMemo,
   useReducer,
   Component,
-  useState,
 } from "react";
 import { Receipt, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
@@ -17,10 +16,7 @@ import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { TransactionList } from "../components/transactions/TransactionList";
 import { TransactionDetail } from "../components/transactions/TransactionDetail";
 import { TransactionFiltersComponent } from "../components/transactions/TransactionFilters";
-import { AddTransactionButton } from "../components/transactions/AddTransactionButton";
-import { TransactionFormModal } from "../components/transactions/TransactionFormModal";
-import { UploadTransactionModal } from "../components/transactions/UploadTransactionModal";
-import type { TransactionFormData } from "../components/transactions/TransactionFormModal";
+import { AddTransaction } from "../components/transactions/AddTransaction";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -33,14 +29,12 @@ import { useLiveTransaction } from "../hooks/useLiveTransaction";
 import { useReports } from "../hooks/useReports";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useGmailStatus } from "../hooks/useGmailStatus";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getSupabase } from "../lib/supabase";
 import { createTransactionsService } from "../services/transactions.service";
 import { toast } from "sonner";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { mapTransactionFormDataToInsert } from "../utils/transactionForm";
 import { SuspenseFallback } from "../components/ui/SuspenseFallback";
-import { useTagMutations } from "../hooks/useTagMutations";
 import { TRANSACTION_CATEGORIES } from "../constants/transactions";
 
 // ─── Data section — suspends on transactions + gmail status ──────────────────
@@ -165,17 +159,11 @@ function TransactionsList({
 interface TransactionsState {
   selectedTransactionId: string | null;
   filters: TransactionFilters;
-  isFormModalOpen: boolean;
-  isUploadModalOpen: boolean;
-  preFilledData: TransactionFormData | undefined;
 }
 
 type TransactionsAction =
   | { type: "SELECT_TRANSACTION"; transactionId: string | null }
-  | { type: "SET_FILTERS"; filters: TransactionFilters }
-  | { type: "SET_FORM_MODAL_OPEN"; isOpen: boolean }
-  | { type: "SET_UPLOAD_MODAL_OPEN"; isOpen: boolean }
-  | { type: "SET_PRE_FILLED_DATA"; data: TransactionFormData | undefined };
+  | { type: "SET_FILTERS"; filters: TransactionFilters };
 
 function transactionsReducer(
   state: TransactionsState,
@@ -186,12 +174,6 @@ function transactionsReducer(
       return { ...state, selectedTransactionId: action.transactionId };
     case "SET_FILTERS":
       return { ...state, filters: action.filters };
-    case "SET_FORM_MODAL_OPEN":
-      return { ...state, isFormModalOpen: action.isOpen };
-    case "SET_UPLOAD_MODAL_OPEN":
-      return { ...state, isUploadModalOpen: action.isOpen };
-    case "SET_PRE_FILLED_DATA":
-      return { ...state, preFilledData: action.data };
   }
 }
 
@@ -205,9 +187,6 @@ function initTransactionsState(initial: string | null): TransactionsState {
       sortBy: "transaction_date",
       sortOrder: "desc",
     },
-    isFormModalOpen: false,
-    isUploadModalOpen: false,
-    preFilledData: undefined,
   };
 }
 
@@ -221,20 +200,13 @@ export function Transactions() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [state, dispatch] = useReducer(
     transactionsReducer,
     searchParams.get("category"),
     initTransactionsState
   );
-  const {
-    selectedTransactionId,
-    filters,
-    isFormModalOpen,
-    isUploadModalOpen,
-    preFilledData,
-  } = state;
+  const { selectedTransactionId, filters } = state;
 
   // Live transaction derived from the TanStack cache. Re-renders whenever
   // any `transactions.*` query mutates (optimistic updates from report
@@ -255,10 +227,7 @@ export function Transactions() {
     });
   }, [searchParams, setSearchParams]);
 
-  const { deleteTransaction, updateTransaction, createTransaction } =
-    useTransactionMutations();
-  const { setTransactionTags } = useTagMutations();
-  const [pendingTagIds, setPendingTagIds] = useState<string[]>([]);
+  const { deleteTransaction, updateTransaction } = useTransactionMutations();
 
   const handleDeleteTransaction = async (id: string) => {
     try {
@@ -288,38 +257,6 @@ export function Transactions() {
       toast.error(t("transactions.updateError"));
       throw error;
     }
-  };
-
-  const handleUploadSuccess = useCallback(
-    (transactionId: string) => {
-      toast.success(t("upload.success", "Document processed successfully!"));
-      navigate(`/transactions?id=${transactionId}`);
-    },
-    [t, navigate]
-  );
-
-  const handleUploadError = useCallback(
-    (error: string) => {
-      toast.error(t("upload.error", "Upload failed: {{error}}", { error }));
-    },
-    [t]
-  );
-
-  const handleCreateTransaction = async (formData: TransactionFormData) => {
-    const transaction = await createTransaction(
-      mapTransactionFormDataToInsert(formData)
-    );
-    if (pendingTagIds.length > 0) {
-      try {
-        await setTransactionTags({
-          transactionId: transaction.id,
-          tagIds: pendingTagIds,
-        });
-      } catch (error) {
-        console.error("Error assigning tags to new transaction:", error);
-      }
-    }
-    navigate(`/transactions?id=${transaction.id}`);
   };
 
   return (
@@ -390,37 +327,7 @@ export function Transactions() {
           </div>
         )}
 
-        <AddTransactionButton
-          onManualAdd={() =>
-            dispatch({ type: "SET_FORM_MODAL_OPEN", isOpen: true })
-          }
-          onUpload={() =>
-            dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: true })
-          }
-        />
-
-        <TransactionFormModal
-          isOpen={isFormModalOpen}
-          onClose={() => {
-            dispatch({ type: "SET_FORM_MODAL_OPEN", isOpen: false });
-            dispatch({ type: "SET_PRE_FILLED_DATA", data: undefined });
-            setPendingTagIds([]);
-          }}
-          onSave={handleCreateTransaction}
-          mode="create"
-          initialData={preFilledData}
-          initialTagIds={pendingTagIds}
-          onTagsChange={setPendingTagIds}
-        />
-
-        <UploadTransactionModal
-          isOpen={isUploadModalOpen}
-          onClose={() =>
-            dispatch({ type: "SET_UPLOAD_MODAL_OPEN", isOpen: false })
-          }
-          onSuccess={handleUploadSuccess}
-          onError={handleUploadError}
-        />
+        <AddTransaction />
       </div>
     </div>
   );
