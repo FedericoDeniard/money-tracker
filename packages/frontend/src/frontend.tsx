@@ -13,11 +13,13 @@ if (process.env.NODE_ENV !== "production") {
   import("react-grab");
 }
 
-Sentry.init({
-  dsn: "https://f7412c2f69834bacbcb32d504da177b6@glitchtip-web-production-dbe1.up.railway.app/1",
-  tracesSampleRate: 0.01,
-  autoSessionTracking: false,
-});
+if (process.env.NODE_ENV === "production") {
+  Sentry.init({
+    dsn: "https://f7412c2f69834bacbcb32d504da177b6@glitchtip-web-production-dbe1.up.railway.app/1",
+    tracesSampleRate: 0.01,
+    autoSessionTracking: false,
+  });
+}
 
 function start() {
   const root = createRoot(document.getElementById("root")!);
