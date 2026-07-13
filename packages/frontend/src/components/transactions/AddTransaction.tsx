@@ -1,4 +1,10 @@
-import { forwardRef, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { LazyMotion, m, domAnimation, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -40,6 +46,29 @@ export const AddTransaction = forwardRef<
   const [preFilledData, setPreFilledData] = useState<
     TransactionFormData | undefined
   >(initialData);
+
+  const fabContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isFabOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const container = fabContainerRef.current;
+      if (container && !container.contains(event.target as Node)) {
+        setIsFabOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFabOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFabOpen]);
 
   useImperativeHandle(
     ref,
@@ -92,7 +121,11 @@ export const AddTransaction = forwardRef<
 
   return (
     <LazyMotion features={domAnimation}>
-      <div data-tour="transaction-fab" className="fixed bottom-6 right-6 z-40">
+      <div
+        ref={fabContainerRef}
+        data-tour="transaction-fab"
+        className="fixed bottom-6 right-6 z-40"
+      >
         <Button
           onClick={() => setIsFabOpen(!isFabOpen)}
           variant="primary"
