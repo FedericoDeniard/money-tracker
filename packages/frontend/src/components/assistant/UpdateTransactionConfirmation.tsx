@@ -211,12 +211,15 @@ export function UpdateTransactionConfirmation({
     );
   }
 
+  const disableApprovalActions = !loading && (notFound || !detail);
+
   return (
     <ApprovalCardShell
       part={part}
       onApprove={onApprove}
       onReject={onReject}
       summary={summary}
+      disableApprovalActions={disableApprovalActions}
     >
       {content}
     </ApprovalCardShell>
@@ -228,12 +231,14 @@ function ApprovalCardShell({
   onApprove,
   onReject,
   summary,
+  disableApprovalActions,
   children,
 }: {
   part: UpdateTransactionToolUIPart;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   summary: string;
+  disableApprovalActions: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -244,6 +249,7 @@ function ApprovalCardShell({
       i18nPrefix="assistant.updateTransaction"
       count={1}
       summary={summary}
+      disableApprovalActions={disableApprovalActions}
     >
       {children}
     </ToolApprovalCard>
