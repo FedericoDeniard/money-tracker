@@ -18,7 +18,8 @@
     "userId": "ID de Usuario",
     "note": "Nota",
     "refresh": "Actualizar",
-    "open": "Abrir"
+    "open": "Abrir",
+    "edit": "Editar"
   },
   "navigation": {
     "dashboard": "Panel",
@@ -399,6 +400,7 @@
   },
   "settings": {
     "title": "Configuración",
+    "pageDescription": "Gestioná tus preferencias de cuenta e integraciones.",
     "general": "General",
     "account": "Cuenta",
     "preferences": "Preferencias",
@@ -488,6 +490,36 @@
     "tags": "Etiquetas",
     "tagsTitle": "Etiquetas de transacciones",
     "tagsDescription": "Creá etiquetas personalizadas para organizar tus transacciones. Las etiquetas son complementarias a las categorías y se pueden asignar desde cualquier transacción."
+  },
+  "settingsLayout": {
+    "nav": {
+      "account": "Cuenta",
+      "profile": "Perfil",
+      "connections": "Conexiones",
+      "notifications": "Notificaciones",
+      "preferences": "Preferencias",
+      "about": "Acerca de"
+    },
+    "categoryDescription": {
+      "account": "Plan, suscripción y facturación.",
+      "profile": "Tu información personal y cómo te llama la app.",
+      "connections": "Cuentas de Gmail e integraciones.",
+      "notifications": "Push y preferencias por tipo de notificación.",
+      "preferences": "Idioma de la interfaz y etiquetas.",
+      "about": "Tutoriales, versión de la app y créditos."
+    },
+    "profile": {
+      "displayName": "Nombre para mostrar",
+      "displayNamePlaceholder": "Agregá tu nombre",
+      "displayNameHint": "Se usa en los saludos y en el asistente.",
+      "email": "Email",
+      "emailHint": "Para cambiar tu email, contactanos.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saving": "Guardando",
+      "saved": "Nombre actualizado",
+      "saveError": "No se pudo actualizar el nombre"
+    }
   },
   "accountBilling": {
     "title": "Cuenta y Facturación",

@@ -289,6 +289,28 @@ export function useAuth() {
     await supabase.auth.signOut();
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const supabase = await getSupabase();
+    const {
+      data: { user: freshUser },
+      error,
+    } = await supabase.auth.getUser();
+    if (error || !freshUser) {
+      console.error("Failed to refresh user:", error);
+      return null;
+    }
+    const {
+      data: { session: freshSession },
+    } = await supabase.auth.getSession();
+    updateAuthSnapshot({
+      user: freshUser,
+      session: freshSession,
+      role: readRoleFromSession(freshSession),
+      capabilities: readCapabilitiesFromSession(freshSession),
+    });
+    return freshUser;
+  }, []);
+
   return {
     user,
     session,
@@ -296,5 +318,6 @@ export function useAuth() {
     role,
     capabilities,
     signOut,
+    refreshUser,
   };
 }

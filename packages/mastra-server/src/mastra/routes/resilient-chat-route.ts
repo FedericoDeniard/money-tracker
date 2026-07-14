@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
+import { randomUUID } from "node:crypto";
 import { requireCapability } from "../../lib/capabilities";
 import { mastra } from "../index";
 
@@ -49,6 +50,97 @@ const UI_MESSAGE_STREAM_HEADERS = {
   "cache-control": "no-cache, no-transform",
   "x-accel-buffering": "no",
 } as const;
+
+interface PendingToolApprovalPart {
+  toolCallId?: unknown;
+  state?: unknown;
+  approval?: { approved?: boolean; reason?: string };
+}
+
+interface UIMessageLike {
+  id?: string;
+  role?: string;
+  parts?: unknown[];
+}
+
+function isMissingRunSnapshotError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const id = (err as { id?: unknown }).id;
+  if (id === "AGENT_RESUME_NO_SNAPSHOT_FOUND") return true;
+  const message = (err as { message?: unknown }).message;
+  return (
+    typeof message === "string" &&
+    message.includes("could not find a suspended run")
+  );
+}
+
+/**
+ * Builds a synthetic UI message stream that mirrors what
+ * `handleChatStream` would have emitted if the agent had run:
+ *  - a `start` part carrying the existing assistant messageId so
+ *    the AI SDK reducer treats the parts as an in-place update of
+ *    the message that already has the tool in
+ *    `approval-responded` state;
+ *  - a `tool-output-denied` part for every tool the user denied;
+ *  - a `tool-output-error` part for every tool the user approved
+ *    (the agent can't run, so we surface an error rather than
+ *    silently no-op);
+ *  - a `finish` terminator.
+ *
+ * The stream emits plain part objects, exactly like the real
+ * one, so the existing `JsonToSseTransformStream` pipes it
+ * through unchanged.
+ */
+function synthesizeApprovalOutcomeStream(
+  params: { messages?: UIMessageLike[] } | undefined
+): ReadableStream<unknown> {
+  const messages = Array.isArray(params?.messages) ? params.messages : [];
+  const lastAssistant = [...messages]
+    .reverse()
+    .find(m => m && m.role === "assistant");
+  const lastMessageId =
+    lastAssistant && typeof lastAssistant.id === "string"
+      ? lastAssistant.id
+      : undefined;
+
+  const parts: unknown[] = [
+    { type: "start", ...(lastMessageId ? { messageId: lastMessageId } : {}) },
+  ];
+
+  if (lastAssistant && Array.isArray(lastAssistant.parts)) {
+    for (const rawPart of lastAssistant.parts) {
+      const part = rawPart as PendingToolApprovalPart;
+      if (part?.state !== "approval-responded") continue;
+      if (typeof part.toolCallId !== "string") continue;
+      if (part.approval?.approved === true) {
+        parts.push({
+          type: "tool-output-error",
+          toolCallId: part.toolCallId,
+          errorText:
+            "The agent's run expired before this action was approved. Please try again.",
+        });
+      } else {
+        parts.push({
+          type: "tool-output-denied",
+          toolCallId: part.toolCallId,
+        });
+      }
+    }
+  }
+
+  parts.push({ type: "finish" });
+
+  let index = 0;
+  return new ReadableStream<unknown>({
+    pull(controller) {
+      if (index < parts.length) {
+        controller.enqueue(parts[index++]);
+      } else {
+        controller.close();
+      }
+    },
+  });
+}
 
 export const chatHandler = async (c: Context) => {
   const userId = c.get("userId");
@@ -174,6 +266,24 @@ export const chatHandler = async (c: Context) => {
     sendFinish: true,
     sendReasoning: false,
     sendSources: false,
+  }).catch((err: unknown) => {
+    // Workaround for an upstream @mastra/ai-sdk issue: when the user
+    // approves/denies a tool whose suspended-run snapshot is no longer
+    // available (server restart, an already-completed run, or a stale
+    // runId), handleChatStream throws AGENT_RESUME_NO_SNAPSHOT_FOUND
+    // with a 500. The AI SDK does not recover from this and the
+    // frontend's tool part stays stuck in approval-responded forever.
+    // We synthesize an outcome stream that mirrors the parts the
+    // agent would have emitted so the frontend's reducer transitions
+    // the tool part out of approval-responded. Without this fix the
+    // approval flow breaks the whole chat for the rest of the session.
+    if (isMissingRunSnapshotError(err)) {
+      console.warn(
+        "[chatHandler] agent run snapshot missing; synthesizing approval outcome stream"
+      );
+      return synthesizeApprovalOutcomeStream(params);
+    }
+    throw err;
   });
 
   const sseStream = (uiMessageStream as ReadableStream<unknown>).pipeThrough(

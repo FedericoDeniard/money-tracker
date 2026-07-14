@@ -38,6 +38,12 @@ interface ToolApprovalCardProps {
   confirmVariant?: "primary" | "danger";
   /** Confirm button icon (default CheckIcon). Use Trash2 for delete. */
   confirmIcon?: ReactNode;
+  /** When true, the approval-requested card hides the Confirm button and
+   *  renders only Cancel. Use when pre-validation already determined the
+   *  action would be a no-op (e.g. target row no longer exists). Cancel
+   *  still calls onReject so the AI SDK transitions the part out of
+   *  approval-requested and the agent's paused run resumes. */
+  disableApprovalActions?: boolean;
 }
 
 export function ToolApprovalCard({
@@ -50,6 +56,7 @@ export function ToolApprovalCard({
   summary,
   confirmVariant = "primary",
   confirmIcon,
+  disableApprovalActions = false,
 }: ToolApprovalCardProps) {
   const { t } = useTranslation();
 
@@ -85,14 +92,16 @@ export function ToolApprovalCard({
           >
             {t("common.cancel")}
           </Button>
-          <Button
-            variant={confirmVariant}
-            size="sm"
-            icon={confirmIcon ?? <CheckIcon size={16} />}
-            onClick={() => onApprove(part.approval.id)}
-          >
-            {t("common.confirm")}
-          </Button>
+          {!disableApprovalActions && (
+            <Button
+              variant={confirmVariant}
+              size="sm"
+              icon={confirmIcon ?? <CheckIcon size={16} />}
+              onClick={() => onApprove(part.approval.id)}
+            >
+              {t("common.confirm")}
+            </Button>
+          )}
         </footer>
       </article>
     );

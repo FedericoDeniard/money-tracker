@@ -242,6 +242,7 @@ export function DeleteTransactionConfirmation({
       summary={summary}
       confirmVariant="danger"
       confirmIcon={<Trash2 size={16} />}
+      disableApprovalActions={!fetchLoading && details.length === 0}
     >
       {approvalContent}
     </ToolApprovalCard>

@@ -10,8 +10,8 @@ with test_user as (
 insert into public.user_oauth_tokens (
   user_id,
   gmail_email,
-  access_token,
-  refresh_token,
+  access_token_encrypted,
+  refresh_token_encrypted,
   token_type,
   scope,
   expires_at,
@@ -22,8 +22,8 @@ insert into public.user_oauth_tokens (
 select
   u.id,
   v.gmail_email,
-  v.access_token,
-  v.refresh_token,
+  public.encrypt_secret(v.access_token),
+  public.encrypt_secret(v.refresh_token),
   'Bearer',
   'https://www.googleapis.com/auth/gmail.readonly',
   v.expires_at,
@@ -50,8 +50,8 @@ cross join (
 ) as v(gmail_email, access_token, refresh_token, expires_at, is_active)
 on conflict (user_id, gmail_email) do update
 set
-  access_token = excluded.access_token,
-  refresh_token = excluded.refresh_token,
+  access_token_encrypted = excluded.access_token_encrypted,
+  refresh_token_encrypted = excluded.refresh_token_encrypted,
   token_type = excluded.token_type,
   scope = excluded.scope,
   expires_at = excluded.expires_at,

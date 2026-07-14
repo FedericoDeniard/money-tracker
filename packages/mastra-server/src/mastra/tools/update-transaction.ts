@@ -61,13 +61,30 @@ const updateFields = z.object({
 export const updateTransactionTool = createTool({
   id: "update-transaction",
   description:
-    "Update a single existing transaction's fields (name, category, merchant, amount, currency, description, type, or date). Use this only when the user explicitly asks to change, correct, recategorize, edit, or fix a transaction. The user must identify the transaction (by merchant, date, amount, or by listing it first with listTransactionsTool). Requires explicit user approval before any database write. Never use this to delete a transaction; use deleteTransactionTool instead.",
+    "Update a single existing transaction's fields (name, category, merchant, amount, currency, description, type, date, or tags). Use this only when the user explicitly asks to change, correct, recategorize, edit, or fix a transaction. The user must identify the transaction (by merchant, date, amount, or by listing it first with listTransactionsTool). Requires explicit user approval before any database write. NEVER use this to delete a transaction; use deleteTransactionTool instead. NEVER invent or guess a UUID — if you do not have an exact `id` from listTransactionsTool in this conversation, call listTransactionsTool first and copy the `id` verbatim from its result.",
   requireApproval: true,
+  strict: true,
+  inputExamples: [
+    {
+      input: {
+        transactionId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        updates: { category: "groceries" },
+      },
+    },
+    {
+      input: {
+        transactionId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        updates: { currency: "ARS", merchant: "Starbucks" },
+      },
+    },
+  ],
   inputSchema: z.object({
     transactionId: z
       .string()
       .uuid()
-      .describe("UUID of the transaction to update."),
+      .describe(
+        "UUID of the transaction to update. Must be the EXACT `id` string copied verbatim from a listTransactionsTool result in this conversation. Format: lowercase hex, 8-4-4-4-12 characters, RFC 4122 v4 (version digit `4`, variant digit `8`, `9`, `a`, or `b`), e.g. 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'. NEVER invent, fabricate, or guess this value — if the user did not specify which transaction to update, call listTransactionsTool first and copy the `id` from its output."
+      ),
     updates: updateFields.describe(
       "Fields to update. At least one field must be provided. Omitted fields are left unchanged."
     ),
