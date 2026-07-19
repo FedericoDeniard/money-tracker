@@ -1,5 +1,3 @@
-WARN: config section [inbucket] is deprecated. Please use [local_smtp] instead.
-Connecting to db 5432
 export type Json =
   | string
   | number
