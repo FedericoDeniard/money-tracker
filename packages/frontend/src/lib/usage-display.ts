@@ -45,20 +45,27 @@ export function sortByDisplayOrder<T extends { capability: Capability }>(
 }
 
 /**
- * Human-readable label for a stored scope. Returns the raw scope
- * (with a `[usage]` warning) for prefixes the frontend doesn't know
- * about, so the tooltip stays informative without crashing.
+ * Human-readable label for a resolved scope. Takes the typed
+ * `scopeKind` + `scopeValue` pair (rather than a colon-joined string)
+ * so the frontend doesn't have to parse strings. Unknown kinds
+ * fall back to a stringified `scopeValue ?? scopeKind` with a
+ * `[usage]` warning so the tooltip stays informative without
+ * crashing.
  */
-export function resolveScopeLabel(scope: string, t: Translator): string {
-  if (scope === "default") return t("settings.usage.scope.default");
-  if (scope.startsWith("role:")) {
-    const role = scope.slice("role:".length);
-    return t("settings.usage.scope.roleTest", { role });
+export function resolveScopeLabel(
+  scopeKind: "role" | "plan" | "default" | "team" | "org",
+  scopeValue: string | null,
+  t: Translator
+): string {
+  if (scopeKind === "default") return t("settings.usage.scope.default");
+  if (scopeKind === "role") {
+    return t("settings.usage.scope.roleTest", { role: scopeValue ?? "" });
   }
-  if (scope.startsWith("plan:")) {
-    const planKey = scope.slice("plan:".length);
-    return t("settings.usage.scope.plan", { planKey });
+  if (scopeKind === "plan") {
+    return t("settings.usage.scope.plan", { planKey: scopeValue ?? "" });
   }
-  usageWarn("unhandled scope prefix in tooltip", { scope });
-  return scope;
+  // Forward-compat: 'team' / 'org' ship later. Don't crash the panel;
+  // just show the qualifier and log.
+  usageWarn("unhandled scope_kind in tooltip", { scopeKind, scopeValue });
+  return scopeValue ?? scopeKind;
 }

@@ -41,8 +41,14 @@ export interface UsageRow {
   capability: Capability;
   used: number;
   limit: number;
-  /** Where the resolved limit came from — used for the tooltip. */
-  scope: string;
+  /**
+   * Where the resolved limit came from — drives the tooltip copy.
+   * `scopeKind` is the enum value; `scopeValue` is the qualifier
+   * (e.g. "tester" for `role`, "lite_monthly" for `plan`), or null
+   * for `default`.
+   */
+  scopeKind: "role" | "plan" | "default" | "team" | "org";
+  scopeValue: string | null;
   /** ISO timestamp for the period start (server is ground truth). */
   periodStart: string;
   /** ISO timestamp one period later — what the reset line displays. */
@@ -106,7 +112,8 @@ export const usageService = {
         capability: cap,
         used,
         limit: resolved.value,
-        scope: resolved.scope,
+        scopeKind: resolved.scopeKind,
+        scopeValue: resolved.scopeValue,
         periodStart,
         resetsAt: computeResetsAt(periodStart),
         hasCounter: counter !== null,
@@ -168,17 +175,24 @@ async function fetchCurrentCounters(
 async function fetchAllUsageLimits(
   supabase: DbClient
 ): Promise<UsageLimitRow[]> {
+  // Read from the unified view `payments.usage_limits_v` which UNIONs
+  // the three typed tables (role, plan, default). Same row shape as
+  // the legacy polymorphic table — capability, scope_kind,
+  // scope_value, period, max_count — so the rest of the pipeline
+  // is unchanged. RLS on the underlying tables is enforced through
+  // the view (security_invoker = true).
   const { data, error } = await supabase
     .schema("payments")
-    .from("usage_limits")
-    .select("capability, scope, period, max_count");
+    .from("usage_limits_v")
+    .select("capability, scope_kind, scope_value, period, max_count");
   if (error) {
-    usageWarn("usage_limits fetch failed", { error: error.message });
+    usageWarn("usage_limits_v fetch failed", { error: error.message });
     return [];
   }
   const rows = (data ?? []) as Array<{
     capability: string;
-    scope: string;
+    scope_kind: string;
+    scope_value: string | null;
     period: string;
     max_count: number;
   }>;
@@ -187,9 +201,10 @@ async function fetchAllUsageLimits(
     return [
       {
         capability: row.capability,
-        scope: row.scope,
-        period: row.period,
-        max_count: row.max_count,
+        scopeKind: row.scope_kind as UsageLimitRow["scopeKind"],
+        scopeValue: row.scope_value,
+        period: row.period as UsageLimitRow["period"],
+        maxCount: row.max_count,
       },
     ];
   });

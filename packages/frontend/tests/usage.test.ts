@@ -11,115 +11,83 @@ import {
   getUsageRowStatus,
   resolveUsageLimit,
   startOfMonthUtc,
-  validatePeriod,
-  validateScope,
 } from "../src/utils/usage";
 import type { Capability } from "../src/lib/capabilities";
-
-describe("validateScope", () => {
-  test("accepts known prefixes", () => {
-    expect(validateScope("role:tester")).toEqual({
-      prefix: "role",
-      value: "tester",
-    });
-    expect(validateScope("plan:lite_monthly")).toEqual({
-      prefix: "plan",
-      value: "lite_monthly",
-    });
-    expect(validateScope("default")).toEqual({
-      prefix: "default",
-      value: "",
-    });
-  });
-
-  test("accepts forward-compatible prefixes", () => {
-    expect(validateScope("team:enterprise")?.prefix).toBe("team");
-    expect(validateScope("org:acme")?.prefix).toBe("org");
-    expect(validateScope("region:eu")?.prefix).toBe("region");
-  });
-
-  test("rejects malformed scopes", () => {
-    expect(validateScope("Role:tester")).toBeNull(); // uppercase prefix
-    expect(validateScope("role:")).toBeNull(); // empty value
-    expect(validateScope(":tester")).toBeNull(); // empty prefix
-    expect(validateScope("role")).toBeNull(); // no colon
-    expect(validateScope("")).toBeNull();
-  });
-});
-
-describe("validatePeriod", () => {
-  test("accepts known periods", () => {
-    expect(validatePeriod("month")).toBe(true);
-    expect(validatePeriod("day")).toBe(true);
-    expect(validatePeriod("hour")).toBe(true);
-  });
-  test("rejects unknowns", () => {
-    expect(validatePeriod("week")).toBe(false);
-    expect(validatePeriod("")).toBe(false);
-  });
-});
 
 describe("resolveUsageLimit", () => {
   const limits = [
     {
       capability: "ai_assistant" as Capability,
-      scope: "role:tester",
-      period: "month",
-      max_count: 200,
+      scopeKind: "role" as const,
+      scopeValue: "tester",
+      period: "month" as const,
+      maxCount: 200,
     },
     {
       capability: "ai_assistant" as Capability,
-      scope: "default",
-      period: "month",
-      max_count: 50,
+      scopeKind: "default" as const,
+      scopeValue: null,
+      period: "month" as const,
+      maxCount: 50,
     },
     {
       capability: "gmail_sync" as Capability,
-      scope: "default",
-      period: "month",
-      max_count: 100,
+      scopeKind: "default" as const,
+      scopeValue: null,
+      period: "month" as const,
+      maxCount: 100,
     },
     {
       capability: "report_pdf_export" as Capability,
-      scope: "role:tester",
-      period: "month",
-      max_count: 500,
+      scopeKind: "role" as const,
+      scopeValue: "tester",
+      period: "month" as const,
+      maxCount: 500,
     },
     {
       capability: "report_pdf_export" as Capability,
-      scope: "plan:lite_monthly",
-      period: "month",
-      max_count: 200,
+      scopeKind: "plan" as const,
+      scopeValue: "lite_monthly",
+      period: "month" as const,
+      maxCount: 200,
     },
     {
       capability: "report_pdf_export" as Capability,
-      scope: "default",
-      period: "month",
-      max_count: 10,
+      scopeKind: "default" as const,
+      scopeValue: null,
+      period: "month" as const,
+      maxCount: 10,
     },
   ];
 
   test("role override wins over plan and default", () => {
     expect(resolveUsageLimit("tester", null, "ai_assistant", limits)).toEqual({
       value: 200,
-      scope: "role:tester",
+      scopeKind: "role",
+      scopeValue: "tester",
     });
   });
 
   test("plan override wins over default", () => {
     expect(
       resolveUsageLimit("user", "lite_monthly", "report_pdf_export", limits)
-    ).toEqual({ value: 200, scope: "plan:lite_monthly" });
+    ).toEqual({
+      value: 200,
+      scopeKind: "plan",
+      scopeValue: "lite_monthly",
+    });
   });
 
   test("falls through to default", () => {
     expect(resolveUsageLimit("user", null, "ai_assistant", limits)).toEqual({
       value: 50,
-      scope: "default",
+      scopeKind: "default",
+      scopeValue: null,
     });
     expect(resolveUsageLimit(null, null, "gmail_sync", limits)).toEqual({
       value: 100,
-      scope: "default",
+      scopeKind: "default",
+      scopeValue: null,
     });
   });
 
@@ -134,44 +102,49 @@ describe("resolveUsageLimit", () => {
     ).toBeNull();
   });
 
-  test("skips rows with unknown period", () => {
+  test("skips rows with non-month period", () => {
     const dayLimits = [
       {
         capability: "ai_assistant" as Capability,
-        scope: "default",
-        period: "day",
-        max_count: 1,
+        scopeKind: "default" as const,
+        scopeValue: null,
+        period: "day" as const,
+        maxCount: 1,
       },
       {
         capability: "ai_assistant" as Capability,
-        scope: "default",
-        period: "month",
-        max_count: 50,
+        scopeKind: "default" as const,
+        scopeValue: null,
+        period: "month" as const,
+        maxCount: 50,
       },
     ];
     expect(resolveUsageLimit("user", null, "ai_assistant", dayLimits)).toEqual({
       value: 50,
-      scope: "default",
+      scopeKind: "default",
+      scopeValue: null,
     });
   });
 
-  test("treats unknown scope prefix as no override (falls through)", () => {
+  test("treats unknown scope_kind as no override (falls through)", () => {
     const teamLimits = [
       {
         capability: "ai_assistant" as Capability,
-        scope: "team:enterprise",
-        period: "month",
-        max_count: 999,
+        scopeKind: "team" as const,
+        scopeValue: "enterprise",
+        period: "month" as const,
+        maxCount: 999,
       },
       {
         capability: "ai_assistant" as Capability,
-        scope: "default",
-        period: "month",
-        max_count: 50,
+        scopeKind: "default" as const,
+        scopeValue: null,
+        period: "month" as const,
+        maxCount: 50,
       },
     ];
     expect(resolveUsageLimit("user", null, "ai_assistant", teamLimits)).toEqual(
-      { value: 50, scope: "default" }
+      { value: 50, scopeKind: "default", scopeValue: null }
     );
   });
 });
@@ -191,7 +164,7 @@ describe("startOfMonthUtc / addMonthsIso / computeResetsAt", () => {
     );
   });
 
-  test("addMonthsIso clamps month-end (Jan 31 → Feb 28)", () => {
+  test("addMonthsIso clamps month-end (Jan 31 -> Feb 28)", () => {
     // Postgres `interval '1 month'` for Jan 31 + 1 month gives Feb 28.
     expect(addMonthsIso("2026-01-31T00:00:00.000Z", 1)).toBe(
       "2026-02-28T00:00:00.000Z"

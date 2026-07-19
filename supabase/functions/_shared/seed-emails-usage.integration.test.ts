@@ -81,34 +81,75 @@ async function setUsageLimit(
   role: "user" | "tester" | "admin",
   maxCount: number
 ): Promise<() => Promise<void>> {
-  // Inserts an explicit role-scoped row. The production
-  // `resolve_usage_limit` returns it before falling through to
-  // `default`. We don't filter by userId because the row is global
-  // per (capability, scope, period) — resolve_usage_limit picks the
-  // limit by caller role, not by row ownership.
+  // Inserts a row into `payments.usage_limits_role` — the typed table
+  // for role-scoped overrides. The PK (capability, role, period)
+  // guarantees uniqueness; typos in the role literal are rejected
+  // by the enum (no more "Tester"/"testr" silently accepted).
   const { error } = await supabase
     .schema("payments")
-    .from("usage_limits")
+    .from("usage_limits_role")
     .upsert(
       {
         capability: "gmail_sync",
-        scope: `role:${role}`,
+        role,
         period: "month",
         max_count: maxCount,
       },
-      { onConflict: "capability,scope,period" }
+      { onConflict: "capability,role,period" }
     );
   if (error) {
-    throw new Error(`setup: failed to upsert usage_limits: ${error.message}`);
+    throw new Error(
+      `setup: failed to upsert usage_limits_role: ${error.message}`
+    );
   }
   return async () => {
     await supabase
       .schema("payments")
-      .from("usage_limits")
+      .from("usage_limits_role")
       .delete()
       .eq("capability", "gmail_sync")
-      .eq("scope", `role:${role}`)
+      .eq("role", role)
       .eq("period", "month");
+  };
+}
+
+/**
+ * Create a minimal auth.users row + a public.user_roles row so the
+ * `resolve_usage_limit` RPC reads the role override. Without an
+ * auth.users row, the FK on user_roles fails. We use the admin auth
+ * API to create the user (PostgREST doesn't expose auth.users).
+ */
+async function setUserRole(
+  userId: string,
+  role: "user" | "tester" | "admin"
+): Promise<() => Promise<void>> {
+  const supabase = serviceClient();
+  const { error: userErr } = await supabase.auth.admin.createUser({
+    id: userId,
+    email: `${userId}@test.local`,
+    email_confirm: true,
+  });
+  // Idempotent re-run: supabase-js returns an error envelope even on
+  // uniqueness conflicts. Treat the email-already-registered case as
+  // a soft success.
+  const msg = userErr?.message ?? "";
+  if (userErr && !/already.*registered|already been registered/i.test(msg)) {
+    throw new Error(`setup: failed to create auth user: ${msg}`);
+  }
+
+  const { error: roleErr } = await supabase.from("user_roles").insert({
+    user_id: userId,
+    role,
+  });
+  if (roleErr && roleErr.code !== "23505") {
+    throw new Error(`setup: failed to insert user_roles: ${roleErr.message}`);
+  }
+
+  return async () => {
+    await supabase.from("user_roles").delete().eq("user_id", userId);
+    // Leave auth.users in place; it's harmless and cheaper than
+    // orchestrating the cascade. Other tests that pick up the same
+    // UUID will get the same role from the surviving user_roles row.
   };
 }
 
@@ -158,7 +199,8 @@ Deno.test({
   fn: async () => {
     const supabase = serviceClient();
     const userId = ephemeralUserId();
-    const cleanup = await setUsageLimit(supabase, "user", 3);
+    const cleanupLimit = await setUsageLimit(supabase, "user", 3);
+    const cleanupRole = await setUserRole(userId, "user");
     try {
       // 3 calls succeed.
       for (let i = 0; i < 3; i++) {
@@ -182,7 +224,8 @@ Deno.test({
         "counter must not exceed limit even after a blocked call"
       );
     } finally {
-      await cleanup();
+      await cleanupLimit();
+      await cleanupRole();
       await clearCounter(userId);
     }
   },
@@ -199,7 +242,8 @@ Deno.test({
     // counter bypass to include tester, this test breaks.
     const supabase = serviceClient();
     const userId = ephemeralUserId();
-    const cleanup = await setUsageLimit(supabase, "tester", 5);
+    const cleanupLimit = await setUsageLimit(supabase, "tester", 5);
+    const cleanupRole = await setUserRole(userId, "tester");
     try {
       const r = await incrementGmailSyncUsage(supabase, userId, "tester", {
         messageId: "m0",
@@ -207,7 +251,8 @@ Deno.test({
       assertEquals(r.counted, true);
       assertEquals(await counterFor(userId), 1);
     } finally {
-      await cleanup();
+      await cleanupLimit();
+      await cleanupRole();
       await clearCounter(userId);
     }
   },

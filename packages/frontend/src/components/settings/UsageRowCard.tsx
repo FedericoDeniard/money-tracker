@@ -50,7 +50,7 @@ export function UsageRowCard({ row, hasActivePlan }: UsageRowCardProps) {
   const label = t(labelKey, {
     defaultValue: row.capability.replace(/_/g, " "),
   });
-  const scopeLabel = resolveScopeLabel(row.scope, t);
+  const scopeLabel = resolveScopeLabel(row.scopeKind, row.scopeValue, t);
   const resetDate = formatResetDateLocalized(row.resetsAt, i18n.language);
   const atLimit = status === "exceeded";
 

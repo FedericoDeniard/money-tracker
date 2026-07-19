@@ -5,76 +5,40 @@
  * browser or Supabase. The service layer composes these primitives;
  * components consume their typed outputs.
  */
-import { usageWarn } from "../lib/usage-logger";
 import type { Capability } from "../lib/capabilities";
-
-// ---------- Scope / period validation ----------
-
-/**
- * Permissive scope regex: any `prefix:value` shape with a lowercase
- * prefix and a non-empty value, plus the special scope `default`
- * (no colon — the DB stores it as a literal string per
- * `20260705163606_add_usage_limits_and_counters.sql:100`). Forward-
- * compatible with future scope types (`team:`, `org:`, `region:`,
- * ...) without needing a code change to the regex itself. Unknown
- * prefixes still parse; they are treated as "no override" by
- * `resolveUsageLimit` so the panel silently falls through to default
- * rather than crashing.
- */
-const SCOPE_RE = /^(?:default|[a-z_]+:.+)$/;
+import { usageWarn } from "../lib/usage-logger";
 
 /**
- * Known scope prefixes in resolution priority order: `role` first,
- * then `plan`, then `default`. New prefixes (e.g. `team`) must be
- * added here in the right priority position to participate in the
- * chain. The resolver uses this array to walk the usage_limits rows
- * in order and stop at the first match.
+ * Mirrors `payments.usage_scope_kind` in the database. Kept in sync
+ * with the enum so the TypeScript layer catches drift at build time
+ * (an INSERT/UPDATE with an unknown value would fail at the DB layer
+ * regardless). If a new prefix is added to the enum, this union must
+ * grow — TypeScript will surface the missing case in the discriminated
+ * switch inside `usage-display.ts#resolveScopeLabel`.
  */
-const KNOWN_SCOPE_PREFIXES = ["role", "plan", "default"] as const;
-type KnownScopePrefix = (typeof KNOWN_SCOPE_PREFIXES)[number];
-
-export interface ParsedScope {
-  prefix: string;
-  value: string;
-}
-
-export function validateScope(scope: string): ParsedScope | null {
-  if (!SCOPE_RE.test(scope)) return null;
-  if (scope === "default") return { prefix: "default", value: "" };
-  const idx = scope.indexOf(":");
-  if (idx <= 0 || idx === scope.length - 1) return null;
-  return { prefix: scope.slice(0, idx), value: scope.slice(idx + 1) };
-}
-
-export function isKnownScopePrefix(prefix: string): prefix is KnownScopePrefix {
-  return (KNOWN_SCOPE_PREFIXES as readonly string[]).includes(prefix);
-}
+export type UsageScopeKind = "role" | "plan" | "default" | "team" | "org";
 
 /**
- * Period values the frontend knows how to render. Anything else in
- * `usage_limits.period` is skipped with a warning — future migration
- * that adds a new period type will surface as a console warning
- * rather than silently rendering the wrong bucket.
+ * Mirrors `payments.usage_period`. Today the panel only renders monthly
+ * counters, so other periods are filtered out at the resolver level.
  */
-const KNOWN_PERIODS = ["month", "day", "hour"] as const;
-export type KnownPeriod = (typeof KNOWN_PERIODS)[number];
-
-export function validatePeriod(period: string): period is KnownPeriod {
-  return (KNOWN_PERIODS as readonly string[]).includes(period);
-}
+export type UsagePeriod = "month" | "day" | "hour";
 
 // ---------- Limit resolution ----------
 
 export interface UsageLimitRow {
   capability: Capability;
-  scope: string;
-  period: string;
-  max_count: number;
+  scopeKind: UsageScopeKind;
+  /** NULL only for `scopeKind === "default"` rows (per DB CHECK). */
+  scopeValue: string | null;
+  period: UsagePeriod;
+  maxCount: number;
 }
 
 export interface ResolvedLimit {
   value: number;
-  scope: string;
+  scopeKind: UsageScopeKind;
+  scopeValue: string | null;
 }
 
 /**
@@ -83,17 +47,13 @@ export interface ResolvedLimit {
  * the tooltip).
  *
  * `role` and `planKey` may be null (free user with no subscription).
- * Unknown scope prefixes are skipped silently with a warning — a
- * `team:foo` row would not match role/plan/default and would fall
- * through to the default row, which is the safe behaviour. To
- * actually use a team override, add the prefix to
- * `KNOWN_SCOPE_PREFIXES`.
+ * Period filter keeps the resolver fast on tables that mix month/day
+ * rows. Returns `null` if no row matches at any scope — the panel
+ * then skips the capability entirely (no usage bar to draw).
  *
- * Rows with periods we don't recognise are also skipped (see
- * `validatePeriod`).
- *
- * Returns `null` if no row matches at any scope — the panel will
- * then skip the capability entirely (no usage bar to draw).
+ * The lookup is plain `.find` over an in-memory array because the
+ * panel already has the full `usage_limits` table cached and the
+ * alternative (one RPC per capability) is the N+1 anti-pattern.
  */
 export function resolveUsageLimit(
   role: string | null,
@@ -101,28 +61,34 @@ export function resolveUsageLimit(
   capability: Capability,
   limits: UsageLimitRow[]
 ): ResolvedLimit | null {
-  // Build a single normalised view: only rows for this capability
-  // and with known periods. Scope validation is permissive — we keep
-  // the row and let the prefix-walk decide whether it matches.
-  const rows = limits.filter(
-    r =>
-      r.capability === capability &&
-      validatePeriod(r.period) &&
-      r.period === "month" // panel only renders monthly counters today
-  );
+  const candidates: ReadonlyArray<{
+    scopeKind: UsageScopeKind;
+    scopeValue: string | null;
+  }> = [
+    { scopeKind: "role", scopeValue: role },
+    { scopeKind: "plan", scopeValue: planKey },
+    { scopeKind: "default", scopeValue: null },
+  ];
 
-  for (const prefix of KNOWN_SCOPE_PREFIXES) {
-    let candidateScope: string | null = null;
-    if (prefix === "role" && role) {
-      candidateScope = `role:${role}`;
-    } else if (prefix === "plan" && planKey) {
-      candidateScope = `plan:${planKey}`;
-    } else if (prefix === "default") {
-      candidateScope = "default";
+  for (const c of candidates) {
+    // Skip candidates that don't have the value the row needs.
+    // 'default' always has a value of null and matches any default row.
+    // 'role' / 'plan' need a non-null value from the caller.
+    if (c.scopeKind !== "default" && !c.scopeValue) continue;
+    const row = limits.find(
+      l =>
+        l.capability === capability &&
+        l.period === "month" &&
+        l.scopeKind === c.scopeKind &&
+        l.scopeValue === c.scopeValue
+    );
+    if (row) {
+      return {
+        value: row.maxCount,
+        scopeKind: row.scopeKind,
+        scopeValue: row.scopeValue,
+      };
     }
-    if (!candidateScope) continue;
-    const row = rows.find(r => r.scope === candidateScope);
-    if (row) return { value: row.max_count, scope: row.scope };
   }
 
   return null;
@@ -151,9 +117,6 @@ export function startOfMonthUtc(now: Date = new Date()): string {
  */
 export function addMonthsIso(iso: string, n: number): string {
   const d = new Date(iso);
-  // setUTCDate(0) of month N+1 is the last day of month N. We use
-  // setUTCMonth which clamps, so Jan 31 + 1 month → Mar 3 (wrong).
-  // Workaround: clamp the day after the math.
   const targetMonth = d.getUTCMonth() + n;
   const targetYear = d.getUTCFullYear() + Math.floor(targetMonth / 12);
   const normalizedMonth = ((targetMonth % 12) + 12) % 12;
