@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -19,6 +20,7 @@ import {
   AttachmentRemove,
 } from "../ai-elements/attachments";
 import { TooltipProvider } from "../ui/shadcn/tooltip";
+import { Spinner } from "../ui/shadcn/spinner";
 import { useUploadChatAttachments } from "../../hooks/useChatAttachments";
 import type { ChatAttachment } from "../../services/chat-attachments.service";
 import { HistoryToggleButton } from "./HistoryToggleButton";
@@ -79,50 +81,63 @@ function AssistantInputBody({
     remove: removePromptFile,
   } = usePromptInputAttachments();
   const uploadAttachments = useUploadChatAttachments();
+  // Re-entrance guard: the async attachment upload runs outside of useChat's
+  // status (status stays "ready" until sendMessage is called), so the submit
+  // button stays clickable during the upload. Without this, a double-click or
+  // a second Enter triggers a second handleSubmit, causing duplicate uploads
+  // (extra rows in chat_attachments + storage) and duplicate user messages.
+  const isSubmittingRef = useRef(false);
+  const isUploading = uploadAttachments.isPending;
 
   return (
     <PromptInput
       accept="image/*"
       onSubmit={async message => {
-        if (status !== "ready") {
-          throw new Error("Chat is busy");
-        }
-        const trimmed = message.text.trim();
-        if (!trimmed && promptFiles.length === 0) return;
-
-        const threadId = resolveThreadId();
-        let uploaded: ChatAttachment[] = [];
-        if (promptFiles.length > 0) {
-          const filesToUpload = await Promise.all(
-            promptFiles.map(async f => {
-              const response = await fetch(f.url);
-              const blob = await response.blob();
-              return new File([blob], f.filename ?? "file", {
-                type: f.mediaType ?? blob.type,
-              });
-            })
-          );
-          try {
-            uploaded = await uploadAttachments.mutateAsync({
-              threadId,
-              files: filesToUpload,
-            });
-            onAttachmentsUploaded?.(uploaded);
-          } catch (err) {
-            console.error("[Assistant] attachment upload failed", err);
-            return;
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
+        try {
+          if (status !== "ready") {
+            throw new Error("Chat is busy");
           }
+          const trimmed = message.text.trim();
+          if (!trimmed && promptFiles.length === 0) return;
+
+          const threadId = resolveThreadId();
+          let uploaded: ChatAttachment[] = [];
+          if (promptFiles.length > 0) {
+            const filesToUpload = await Promise.all(
+              promptFiles.map(async f => {
+                const response = await fetch(f.url);
+                const blob = await response.blob();
+                return new File([blob], f.filename ?? "file", {
+                  type: f.mediaType ?? blob.type,
+                });
+              })
+            );
+            try {
+              uploaded = await uploadAttachments.mutateAsync({
+                threadId,
+                files: filesToUpload,
+              });
+              onAttachmentsUploaded?.(uploaded);
+            } catch (err) {
+              console.error("[Assistant] attachment upload failed", err);
+              return;
+            }
+          }
+
+          const files = uploaded.map(a => ({
+            type: "file" as const,
+            mediaType: a.mime_type,
+            filename: a.filename,
+            url: a.signedUrl,
+          }));
+
+          onSend({ threadId, text: trimmed, files });
+          clearPromptFiles();
+        } finally {
+          isSubmittingRef.current = false;
         }
-
-        const files = uploaded.map(a => ({
-          type: "file" as const,
-          mediaType: a.mime_type,
-          filename: a.filename,
-          url: a.signedUrl,
-        }));
-
-        onSend({ threadId, text: trimmed, files });
-        clearPromptFiles();
       }}
       className="shrink-0 overflow-hidden rounded-2xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] shadow-sm [&_[data-slot=input-group]]:!border-0"
     >
@@ -158,7 +173,9 @@ function AssistantInputBody({
           </PromptInputActionMenu>
           <HistoryToggleButton show={showHistory} onToggle={onToggleHistory} />
         </PromptInputTools>
-        <PromptInputSubmit status={status} onStop={stop} />
+        <PromptInputSubmit disabled={isUploading} status={status} onStop={stop}>
+          {isUploading ? <Spinner /> : undefined}
+        </PromptInputSubmit>
       </PromptInputFooter>
     </PromptInput>
   );
