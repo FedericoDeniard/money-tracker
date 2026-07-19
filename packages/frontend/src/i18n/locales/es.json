@@ -499,6 +499,7 @@
       "retry": "Reintentar",
       "loadingError": "No se pudo cargar el uso.",
       "empty": "Sin límites de uso activos.",
+      "unlimitedAria": "Uso ilimitado",
       "ariaLabelProgress": "{{used}} de {{limit}}",
       "ariaValueText": "{{used}} de {{limit}} ({{percent}}%)",
       "scopeAriaLabel": "Scope resuelto",
@@ -506,7 +507,8 @@
       "scope": {
         "roleTest": "Rol: {{role}}",
         "plan": "Plan: {{planKey}}",
-        "default": "Por defecto"
+        "default": "Por defecto",
+        "adminBypass": "Bypass de admin — counter deshabilitado"
       },
       "capabilities": {
         "gmail_sync": {

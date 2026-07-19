@@ -1,10 +1,14 @@
 /**
  * One row of the usage panel.
  *
- * Renders: capability label, `used / limit`, progress bar with
- * colour bucketed by `getUsageRowStatus`, reset date, and either
- * an Upgrade link (free user at limit) or an At-limit badge
- * (paid user at limit).
+ * Renders one of two layouts depending on the row kind:
+ *   - normal (limit enforced): capability label, `used / limit`,
+ *     progress bar with colour bucketed by `getUsageRowStatus`, reset
+ *     date, and either an Upgrade link (free user at limit) or an
+ *     At-limit badge (paid user at limit).
+ *   - unlimited (admin role bypass): capability label, infinity glyph,
+ *     neutral progress bar, and a "Admin bypass" caption. The Upgrade
+ *     / At-limit CTAs don't apply.
  *
  * The tooltip on the scope label uses the Radix-based
  * `components/ui/shadcn/tooltip.tsx`. The colour thresholds map to
@@ -38,21 +42,10 @@ const STATUS_BAR_CLASS = {
 
 export function UsageRowCard({ row, hasActivePlan }: UsageRowCardProps) {
   const { t, i18n } = useTranslation();
-  const status = getUsageRowStatus(row.used, row.limit);
-  // Cap visual width at 100% so an over-limit row doesn't overflow
-  // the container; we still render the `used / limit` text and the
-  // exceeded status separately.
-  const pct = Math.min(
-    100,
-    Math.round((row.used / Math.max(row.limit, 1)) * 100)
-  );
   const labelKey = `settings.usage.capabilities.${row.capability}.label`;
   const label = t(labelKey, {
     defaultValue: row.capability.replace(/_/g, " "),
   });
-  const scopeLabel = resolveScopeLabel(row.scopeKind, row.scopeValue, t);
-  const resetDate = formatResetDateLocalized(row.resetsAt, i18n.language);
-  const atLimit = status === "exceeded";
 
   return (
     <div
@@ -69,34 +62,124 @@ export function UsageRowCard({ row, hasActivePlan }: UsageRowCardProps) {
           <span className="text-sm font-medium text-[var(--text-primary)] truncate">
             {label}
           </span>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-2 hover:underline cursor-help"
-                  aria-label={t("settings.usage.scopeAriaLabel")}
-                >
-                  ({scopeLabel})
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {t("settings.usage.scopeTooltip")}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <ScopeTooltip row={row} />
         </div>
-        <span
-          className="text-xs font-mono tabular-nums text-[var(--text-secondary)]"
-          aria-label={t("settings.usage.ariaLabelProgress", {
-            used: row.used,
-            limit: row.limit,
-          })}
-        >
-          {row.used} / {row.limit}
-        </span>
+        {row.unlimited ? <UnlimitedBadge /> : <UsageCount row={row} />}
       </div>
 
+      {row.unlimited ? (
+        <UnlimitedBody />
+      ) : (
+        <TrackedBody
+          row={row}
+          hasActivePlan={hasActivePlan}
+          t={t}
+          i18n={i18n}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Tiny presentational sub-components kept in this file for locality. */
+
+function ScopeTooltip({ row }: { row: UsageRow }) {
+  const { t } = useTranslation();
+  // Unlimited rows skip the resolver, so the resolved scope is "default"
+  // with no value. Show a fixed "admin bypass" copy instead of the
+  // usual role/plan/default label so the user understands why.
+  const label =
+    row.unlimited && row.scopeValue === null && row.scopeKind === "default"
+      ? t("settings.usage.scope.adminBypass")
+      : resolveScopeLabel(row.scopeKind, row.scopeValue, t);
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-2 hover:underline cursor-help"
+            aria-label={t("settings.usage.scopeAriaLabel")}
+          >
+            ({label})
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{t("settings.usage.scopeTooltip")}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function UnlimitedBadge() {
+  const { t } = useTranslation();
+  return (
+    <span
+      className="text-base font-mono tabular-nums text-[var(--text-primary)]"
+      aria-label={t("settings.usage.unlimitedAria")}
+    >
+      ∞
+    </span>
+  );
+}
+
+function UsageCount({ row }: { row: UsageRow }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className="text-xs font-mono tabular-nums text-[var(--text-secondary)]"
+      aria-label={t("settings.usage.ariaLabelProgress", {
+        used: row.used,
+        limit: row.limit,
+      })}
+    >
+      {row.used} / {row.limit}
+    </span>
+  );
+}
+
+function UnlimitedBody() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuenow={0}
+        aria-label={t("settings.usage.unlimitedAria")}
+        className="h-2 w-full overflow-hidden rounded-full bg-[var(--text-secondary)]/15"
+      >
+        <div className="h-full w-full bg-transparent" />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-[var(--text-secondary)]">
+          {t("settings.usage.scope.adminBypass")}
+        </span>
+      </div>
+    </>
+  );
+}
+
+interface TrackedBodyProps {
+  row: UsageRow;
+  hasActivePlan: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+  i18n: ReturnType<typeof useTranslation>["i18n"];
+}
+
+function TrackedBody({ row, hasActivePlan, t, i18n }: TrackedBodyProps) {
+  const status = getUsageRowStatus(row.used, row.limit);
+  // Cap visual width at 100% so an over-limit row doesn't overflow
+  // the container; we still render the `used / limit` text and the
+  // exceeded status separately.
+  const pct = Math.min(
+    100,
+    Math.round((row.used / Math.max(row.limit, 1)) * 100)
+  );
+  const resetDate = formatResetDateLocalized(row.resetsAt, i18n.language);
+  const atLimit = status === "exceeded";
+
+  return (
+    <>
       <div
         role="progressbar"
         aria-valuemin={0}
@@ -119,19 +202,19 @@ export function UsageRowCard({ row, hasActivePlan }: UsageRowCardProps) {
         <span className="text-xs text-[var(--text-secondary)]">
           {t("settings.usage.resetsOn", { date: resetDate })}
         </span>
-        {atLimit && !hasActivePlan ? (
+        {!row.unlimited && atLimit && !hasActivePlan ? (
           <Link to="/account/billing">
             <Button variant="primary" size="sm" icon={<Calculator size={14} />}>
               {t("settings.usage.upgrade")}
             </Button>
           </Link>
-        ) : atLimit ? (
+        ) : !row.unlimited && atLimit ? (
           <span className="rounded-full bg-[var(--error)]/10 px-2 py-0.5 text-xs font-medium text-[var(--error)]">
             {t("settings.usage.atLimit")}
           </span>
         ) : null}
       </div>
-    </div>
+    </>
   );
 }
 

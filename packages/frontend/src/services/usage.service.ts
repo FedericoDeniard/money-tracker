@@ -42,6 +42,13 @@ export interface UsageRow {
   used: number;
   limit: number;
   /**
+   * True when the user's role bypasses the counter entirely (admin).
+   * The component renders an infinity glyph instead of a numeric
+   * limit, skips the progress bar's colour bucket, and hides the
+   * Upgrade / At-limit CTAs.
+   */
+  unlimited: boolean;
+  /**
    * Where the resolved limit came from — drives the tooltip copy.
    * `scopeKind` is the enum value; `scopeValue` is the qualifier
    * (e.g. "tester" for `role`, "lite_monthly" for `plan`), or null
@@ -70,8 +77,29 @@ export interface ListForUserInput {
 
 export const usageService = {
   async listForUser(input: ListForUserInput): Promise<UsageRow[]> {
-    // Admin panel is empty by design — see ticket acceptance criteria.
-    if (input.role === "admin") return [];
+    // Admin path: the capability gate bypasses for admin at all three
+    // call sites (process-document, chat, export-report-pdf) and so
+    // does `check_and_increment_usage`. The counter never increments,
+    // so we render every capability that has a configured usage limit
+    // with `unlimited: true` and let the panel show the infinity
+    // glyph. No capability lookup via the RPC, no counter query.
+    if (input.role === "admin") {
+      const supabase = await getSupabase();
+      const periodStartFilter = startOfMonthUtc();
+      const limits = await fetchAllUsageLimits(supabase);
+      const caps = Array.from(new Set(limits.map(l => l.capability)));
+      return caps.map(capability => ({
+        capability,
+        used: 0,
+        limit: 0,
+        unlimited: true,
+        scopeKind: "default" as const,
+        scopeValue: null,
+        periodStart: periodStartFilter,
+        resetsAt: computeResetsAt(periodStartFilter),
+        hasCounter: false,
+      }));
+    }
 
     const supabase = await getSupabase();
     const periodStartFilter = startOfMonthUtc();
@@ -112,6 +140,7 @@ export const usageService = {
         capability: cap,
         used,
         limit: resolved.value,
+        unlimited: false,
         scopeKind: resolved.scopeKind,
         scopeValue: resolved.scopeValue,
         periodStart,

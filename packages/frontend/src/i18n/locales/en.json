@@ -499,6 +499,7 @@
       "retry": "Retry",
       "loadingError": "Could not load usage.",
       "empty": "No active usage limits.",
+      "unlimitedAria": "Unlimited usage",
       "ariaLabelProgress": "{{used}} of {{limit}}",
       "ariaValueText": "{{used}} of {{limit}} ({{percent}}%)",
       "scopeAriaLabel": "Resolved scope",
@@ -506,7 +507,8 @@
       "scope": {
         "roleTest": "Role: {{role}}",
         "plan": "Plan: {{planKey}}",
-        "default": "Default"
+        "default": "Default",
+        "adminBypass": "Admin bypass — counter disabled"
       },
       "capabilities": {
         "gmail_sync": {
