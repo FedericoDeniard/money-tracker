@@ -128,6 +128,56 @@ Deno.test({
 });
 
 Deno.test({
+  name: "usage-schema: user_capabilities RPC includes role grants for tester",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    // A tester without a subscription should see every capability
+    // that has a `usage_limits_role role:tester` row — not just the
+    // defaults. This mirrors the ROLE_BYPASS in
+    // supabase/functions/_shared/capabilities.ts:53 so the panel and
+    // the capability gate stay in sync.
+    const supabase = serviceClient();
+    const userId = crypto.randomUUID();
+    await supabase.auth.admin.createUser({
+      id: userId,
+      email: `${userId}@test.local`,
+      email_confirm: true,
+    });
+    await supabase
+      .from("user_roles")
+      .insert({ user_id: userId, role: "tester" });
+
+    try {
+      const { data, error } = await supabase
+        .schema("payments")
+        .rpc("user_capabilities", { target_user_id: userId });
+      assert(error === null, `user_capabilities RPC error: ${error?.message}`);
+      const caps = (data ?? []) as string[];
+      // Seeded matrix: gmail_sync, ai_assistant, process_documents,
+      // report_pdf_export all have role:tester rows today.
+      for (const expected of [
+        "gmail_sync",
+        "ai_assistant",
+        "process_documents",
+        "report_pdf_export",
+      ]) {
+        assert(
+          caps.includes(expected),
+          `tester should see '${expected}' via role grant; got: ${caps.join(", ")}`
+        );
+      }
+    } finally {
+      await supabase.from("user_roles").delete().eq("user_id", userId);
+      await supabase.auth.admin.deleteUser(userId).catch(() => {
+        // best effort — the row may have been cascade-deleted via the
+        // auth.users delete above.
+      });
+    }
+  },
+});
+
+Deno.test({
   name: "usage-schema: resolve_usage_limit RPC returns int",
   sanitizeOps: false,
   sanitizeResources: false,
