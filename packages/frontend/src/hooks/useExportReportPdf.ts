@@ -1,8 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { getSupabase } from "../lib/supabase";
 import { createReportsService } from "../services/reports.service";
 import { getEdgeFunctionErrorMessage } from "../utils/edge-function-errors";
+import { queryKeys } from "../lib/query-client";
 import { toast } from "sonner";
 
 export interface ExportReportPdfInput {
@@ -19,6 +20,7 @@ interface UseExportReportPdfReturn {
 
 export function useExportReportPdf(): UseExportReportPdfReturn {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async (input: ExportReportPdfInput) => {
@@ -32,13 +34,18 @@ export function useExportReportPdf(): UseExportReportPdfReturn {
       triggerDownload(blob, buildFilename(input.title));
     },
     onSuccess: () => {
+      // The increment is post-build in export-report-pdf/index.ts:326;
+      // a successful export guarantees the counter went up. Refresh
+      // the usage panel so the next mount shows the new value.
+      queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
       toast.success(t("reports.export.success"));
     },
     onError: err => {
       // The existing classifier maps 403 (forbidden-capability) to
       // errors.premiumFeature and 429 (usage-limit) to
       // errors.usageLimitExceeded; falls back to the raw server
-      // message for network/unknown errors.
+      // message for network/unknown errors. No invalidation here —
+      // a failed build does NOT consume quota on the server side.
       toast.error(getEdgeFunctionErrorMessage(err, t));
     },
   });

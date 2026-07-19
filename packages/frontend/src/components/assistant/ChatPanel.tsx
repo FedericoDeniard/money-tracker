@@ -247,6 +247,12 @@ export function ChatPanel({
     }
 
     toast.error(getEdgeFunctionErrorMessage(err, t));
+    // The chat route runs `check_and_increment_usage(ai_assistant)`
+    // before opening the stream; an error after that point means
+    // the counter was already incremented (no rollback unless
+    // quota was exhausted). Invalidate so the usage panel refetches
+    // on its next mount and reflects reality.
+    queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
     onHardError();
   }, [
     error,
@@ -322,8 +328,14 @@ export function ChatPanel({
     if (status === "ready" && wasStreamingRef.current) {
       wasStreamingRef.current = false;
       onMessageComplete();
+      // The mastra chat route increments ai_assistant BEFORE the
+      // stream opens (resilient-chat-route.ts:179-198), so a
+      // successful send has already moved the counter. Invalidate
+      // so the next mount of the Settings usage panel shows the new
+      // number.
+      queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
     }
-  }, [status, onMessageComplete]);
+  }, [status, onMessageComplete, queryClient]);
 
   const hasMessages = messages.length > 0;
   const isThinking = status === "submitted" || status === "streaming";

@@ -11,6 +11,7 @@
     "npm:@supabase/postgrest-js@2.108.2": "2.108.2",
     "npm:@supabase/realtime-js@2.108.2": "2.108.2",
     "npm:@supabase/storage-js@2.108.2": "2.108.2",
+    "npm:@supabase/supabase-js@2": "2.110.1",
     "npm:ai@*": "6.0.156_zod@4.4.3",
     "npm:googleapis@173": "173.0.0",
     "npm:langfuse@*": "3.38.20",
@@ -115,8 +116,20 @@
         "tslib"
       ]
     },
+    "@supabase/auth-js@2.110.1": {
+      "integrity": "sha512-8EJUoRoqzAYWkieHrLCrGrxs3cBbRB94xK8GzHe0aSLlSa4mt1enYLCiMgLiKJOF8GNYeX6PLTBNef0XAhILgw==",
+      "dependencies": [
+        "tslib"
+      ]
+    },
     "@supabase/functions-js@2.108.2": {
       "integrity": "sha512-RNUX8EiBy3iLwAX19jtRzLyePnl11/fHcgwDHLnpKcDSXt/5qBnh3LUwAtIjT21Q66QsmNUR2esrHziLCpNubw==",
+      "dependencies": [
+        "tslib"
+      ]
+    },
+    "@supabase/functions-js@2.110.1": {
+      "integrity": "sha512-Pm9HD9Qth6zQO0aOGZ3DxYb6QlCzrkTkP6eUEOvhTlbvcvYRDSCZXIJ5dkDLpqxD+gdrXfWDFOpU9BpRKYjsIQ==",
       "dependencies": [
         "tslib"
       ]
@@ -130,8 +143,21 @@
         "tslib"
       ]
     },
+    "@supabase/postgrest-js@2.110.1": {
+      "integrity": "sha512-BILNhS40oGlP2bn/VJjh/1hCyrWNMmpGZGcCrPvqd5R3s8gf8Bd5qyKoHZdMwTKynGCuJGjagRXa069abhibMw==",
+      "dependencies": [
+        "tslib"
+      ]
+    },
     "@supabase/realtime-js@2.108.2": {
       "integrity": "sha512-aAGxCSUemZvQIibnCdvNvgaKib28I4rfrNjKbQ9cG1uBLwUsI7hVpGXgEbypCCDhLjQlDTAiJlu7rgljYUT73g==",
+      "dependencies": [
+        "@supabase/phoenix",
+        "tslib"
+      ]
+    },
+    "@supabase/realtime-js@2.110.1": {
+      "integrity": "sha512-JmWCpMoe2iJPNrXIdHqIvf2Mie6NfSuWHS9Ve6YCmLkn1mNl3vrK3a67IukJ5lPjgmAzB+jFagyMz2oSIX+Xnw==",
       "dependencies": [
         "@supabase/phoenix",
         "tslib"
@@ -142,6 +168,23 @@
       "dependencies": [
         "iceberg-js",
         "tslib"
+      ]
+    },
+    "@supabase/storage-js@2.110.1": {
+      "integrity": "sha512-UqJGzhFMiIRBe8vT7a6ZtrN2U5YufH4Tk9nyc9KKfa2TUtV11BkSg/v3lyy/c4A8SbekVH3UywTF0s42zpF4zw==",
+      "dependencies": [
+        "iceberg-js",
+        "tslib"
+      ]
+    },
+    "@supabase/supabase-js@2.110.1": {
+      "integrity": "sha512-MiJh0THZgyAvTWm91FOLknjH5dYjXRKOdxpuUsyTVZVXIf7FxCShzevIm4KGCubHRU2n25Gyt8PhTXIFzcD9FA==",
+      "dependencies": [
+        "@supabase/auth-js@2.110.1",
+        "@supabase/functions-js@2.110.1",
+        "@supabase/postgrest-js@2.110.1",
+        "@supabase/realtime-js@2.110.1",
+        "@supabase/storage-js@2.110.1"
       ]
     },
     "@types/node-fetch@2.6.13": {

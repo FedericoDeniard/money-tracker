@@ -489,11 +489,53 @@
     "accountBillingAction": "Administrar plan",
     "tags": "Etiquetas",
     "tagsTitle": "Etiquetas de transacciones",
-    "tagsDescription": "Creá etiquetas personalizadas para organizar tus transacciones. Las etiquetas son complementarias a las categorías y se pueden asignar desde cualquier transacción."
+    "tagsDescription": "Creá etiquetas personalizadas para organizar tus transacciones. Las etiquetas son complementarias a las categorías y se pueden asignar desde cualquier transacción.",
+    "usage": {
+      "title": "Uso",
+      "description": "Cuántas operaciones de IA mensuales usaste.",
+      "resetsOn": "Se reinicia el {{date}}",
+      "atLimit": "En el límite",
+      "upgrade": "Mejorar plan",
+      "retry": "Reintentar",
+      "loadingError": "No se pudo cargar el uso.",
+      "empty": "Sin límites de uso activos.",
+      "unlimitedAria": "Uso ilimitado",
+      "ariaLabelProgress": "{{used}} de {{limit}}",
+      "ariaValueText": "{{used}} de {{limit}} ({{percent}}%)",
+      "scopeAriaLabel": "Scope resuelto",
+      "scopeTooltip": "De dónde viene el límite (override de rol, override de plan, o default).",
+      "scope": {
+        "roleTest": "Rol: {{role}}",
+        "plan": "Plan: {{planKey}}",
+        "default": "Por defecto",
+        "adminBypass": "Bypass de admin — counter deshabilitado"
+      },
+      "capabilities": {
+        "gmail_sync": {
+          "label": "Sincronización Gmail"
+        },
+        "ai_assistant": {
+          "label": "Asistente IA"
+        },
+        "push_notifications": {
+          "label": "Notificaciones push"
+        },
+        "advanced_reports": {
+          "label": "Reportes avanzados"
+        },
+        "process_documents": {
+          "label": "Procesar documentos"
+        },
+        "report_pdf_export": {
+          "label": "Exportar reporte PDF"
+        }
+      }
+    }
   },
   "settingsLayout": {
     "nav": {
       "account": "Cuenta",
+      "usage": "Uso",
       "profile": "Perfil",
       "connections": "Conexiones",
       "notifications": "Notificaciones",
@@ -502,6 +544,7 @@
     },
     "categoryDescription": {
       "account": "Plan, suscripción y facturación.",
+      "usage": "Cuántas operaciones de IA usaste en este período.",
       "profile": "Tu información personal y cómo te llama la app.",
       "connections": "Cuentas de Gmail e integraciones.",
       "notifications": "Push y preferencias por tipo de notificación.",

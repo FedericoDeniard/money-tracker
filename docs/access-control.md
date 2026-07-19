@@ -97,16 +97,16 @@ of the raw error. See `packages/frontend/src/i18n/locales/{en,es}.json#errors.pr
 `FEATURES` source of truth:
 `packages/frontend/src/lib/features.ts#FEATURES`.
 
-| `FEATURES` key | Current value | Connected edge function | Frontend page/action | Purpose |
-| --- | --- | --- | --- | --- |
-| `seed` | `user` | `seed-emails` | Settings → "Import emails" modal | Bulk-import historical emails from Gmail. Likely candidate to flip to `tester` (dev tool). |
-| `chat` | `user` | (none — chat runs in mastra-server) | `/assistant` route | AI assistant chat surface. |
-| `metrics` | `user` | (none — direct supabase reads) | `/metrics` route, sidebar link | Spending analytics and reports. |
-| `transactions` | `user` | (none — direct supabase reads) | `/transactions` route, sidebar link | Transaction list and CRUD. |
-| `subscriptions` | `user` | `create-subscription`, `cancel-subscription` | `/account/billing`, `/subscriptions` | Subscription management. |
-| `settings` | `user` | (none — direct supabase reads) | `/settings` route, sidebar link | Account and integrations settings. |
-| `processDocument` | `user` | `process-document` | "Upload receipt" modal | Receipt/image OCR → transaction. |
-| `gmailConnect` | `user` | `gmail-disconnect` | Settings → "Connect Gmail" / disconnect | Gmail OAuth lifecycle. |
+| `FEATURES` key    | Current value | Connected edge function                      | Frontend page/action                    | Purpose                                                                                    |
+| ----------------- | ------------- | -------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `seed`            | `user`        | `seed-emails`                                | Settings → "Import emails" modal        | Bulk-import historical emails from Gmail. Likely candidate to flip to `tester` (dev tool). |
+| `chat`            | `user`        | (none — chat runs in mastra-server)          | `/assistant` route                      | AI assistant chat surface.                                                                 |
+| `metrics`         | `user`        | (none — direct supabase reads)               | `/metrics` route, sidebar link          | Spending analytics and reports.                                                            |
+| `transactions`    | `user`        | (none — direct supabase reads)               | `/transactions` route, sidebar link     | Transaction list and CRUD.                                                                 |
+| `subscriptions`   | `user`        | `create-subscription`, `cancel-subscription` | `/account/billing`, `/subscriptions`    | Subscription management.                                                                   |
+| `settings`        | `user`        | (none — direct supabase reads)               | `/settings` route, sidebar link         | Account and integrations settings.                                                         |
+| `processDocument` | `user`        | `process-document`                           | "Upload receipt" modal                  | Receipt/image OCR → transaction.                                                           |
+| `gmailConnect`    | `user`        | `gmail-disconnect`                           | Settings → "Connect Gmail" / disconnect | Gmail OAuth lifecycle.                                                                     |
 
 All values are `user` today, which means the middleware accepts every
 caller. The wiring is in place so flipping any value to `tester` or
@@ -146,7 +146,7 @@ sees and what `custom_access_token_hook` writes into the
 1. **Default grants** (`payments.default_capabilities`) — every
    authenticated user. The table starts empty; rows are inserted
    manually (e.g. `INSERT INTO payments.default_capabilities VALUES
-   ('ai_assistant')`) to give a capability to all users without a
+('ai_assistant')`) to give a capability to all users without a
    subscription. Used for the free-tier surface.
 2. **Plan grants** (`payments.plan_capabilities`) — each row ties a
    `plan_id` to a capability. Granted per plan in the seed
@@ -165,13 +165,13 @@ roundtrip returns the union.
 
 `payments.capability` enum is the vocabulary. The five values today:
 
-| Capability | Gated by | Default (free)? | Paid plans (lite_monthly)? |
-| --- | --- | --- | --- |
-| `gmail_sync` | `gmail-disconnect` | — | ✓ |
-| `ai_assistant` | (mastra-server chat handler) | — | ✓ |
-| `push_notifications` | (none yet — backend hook to be added) | — | ✓ |
-| `advanced_reports` | (none yet — `/metrics` route guard to be added) | — | ✓ |
-| `process_documents` | `process-document` | — | ✓ |
+| Capability           | Gated by                                        | Default (free)? | Paid plans (lite_monthly)? |
+| -------------------- | ----------------------------------------------- | --------------- | -------------------------- |
+| `gmail_sync`         | `gmail-disconnect`                              | —               | ✓                          |
+| `ai_assistant`       | (mastra-server chat handler)                    | —               | ✓                          |
+| `push_notifications` | (none yet — backend hook to be added)           | —               | ✓                          |
+| `advanced_reports`   | (none yet — `/metrics` route guard to be added) | —               | ✓                          |
+| `process_documents`  | `process-document`                              | —               | ✓                          |
 
 The "Default" column is empty by default. To grant a capability to
 all free users, insert it into `payments.default_capabilities`:
@@ -195,7 +195,7 @@ rejecting them on that capability. No code change needed.
    `packages/mastra-server/src/lib/capabilities.ts`.
 3. Call `requireCapability(auth, "<key>", corsHeaders)` in the
    relevant edge function (or `requireCapability({userId,
-   supabaseToken, role}, "<key>")` in mastra-server routes).
+supabaseToken, role}, "<key>")` in mastra-server routes).
 4. Add the grant for the demo `lite_monthly` plan in the seed section
    4 of `006_payments_demo.sql`.
 5. If the capability is AI-backed and should be usage-capped, add a
@@ -247,10 +247,10 @@ only 200 times per calendar month (usage cap enforces the budget).
   - `role:<role>` (e.g. `role:tester`)
   - `plan:<plan_key>` (e.g. `plan:lite_monthly`)
   - `default` (fallback)
-  Resolution order: role → plan → default. An absent default row
-  means callers are rejected (count 0) for that capability — fail-
-  closed for unknown capabilities is intentional (a deployment
-  mistake, not a license to spam).
+    Resolution order: role → plan → default. An absent default row
+    means callers are rejected (count 0) for that capability — fail-
+    closed for unknown capabilities is intentional (a deployment
+    mistake, not a license to spam).
 - `payments.usage_counters` — counter. One row per
   `(user_id, capability, period_start)`. `period_start` is
   `date_trunc('month', now())` for `'month'`,
@@ -269,6 +269,7 @@ only 200 times per calendar month (usage cap enforces the budget).
   it resolve the schema (see https://docs.postgrest.org/en/v12/references/api/schemas.html).
 
 ### Wire-up (in the mastra-server chat handler and supabase edge
+
 functions)
 
 After the capability gate, the same call site does:
@@ -307,16 +308,17 @@ the chat's `getEdgeFunctionErrorMessage` path all surface the usage
 toast without any per-caller change.
 
 ### Seeded matrix (from
+
 `supabase/migrations/20260705163606_add_usage_limits_and_counters.sql`)
 
-| capability | scope | period | max_count |
-| --- | --- | --- | --- |
-| `ai_assistant` | `role:tester` | `month` | 200 |
-| `ai_assistant` | `default` | `month` | 50 |
-| `process_documents` | `role:tester` | `month` | 50 |
-| `process_documents` | `default` | `month` | 5 |
-| `gmail_sync` | `role:tester` | `month` | 1000 |
-| `gmail_sync` | `default` | `month` | 100 |
+| capability          | scope         | period  | max_count |
+| ------------------- | ------------- | ------- | --------- |
+| `ai_assistant`      | `role:tester` | `month` | 200       |
+| `ai_assistant`      | `default`     | `month` | 50        |
+| `process_documents` | `role:tester` | `month` | 50        |
+| `process_documents` | `default`     | `month` | 5         |
+| `gmail_sync`        | `role:tester` | `month` | 1000      |
+| `gmail_sync`        | `default`     | `month` | 100       |
 
 To add a per-plan override (e.g. `lite_monthly` gets 1000 messages
 on `ai_assistant`):
@@ -330,14 +332,23 @@ The plan row resolves before the default for users on `lite_monthly`.
 
 ### Follow-up: gmail_sync call site
 
-`gmail_sync` is in the matrix but has no per-email counter wire-up
-yet. The `seed-emails` edge function and the
-`packages/mastra-server/src/mastra/routes/seed-emails-route.ts`
-route do the actual AI email analysis; the counter increment
-should go inside the loop that processes each email (per-email, not
-per-batch). This is a follow-up because the seed handler runs in
-chunks with auto-invocation and the per-email call site needs
-care to avoid double-counting on chunk boundaries.
+`gmail_sync` is in the matrix and the per-email counter wire-up
+lives in `packages/mastra-server/src/lib/seed-shared/usage-counter.ts`,
+called from `packages/mastra-server/src/services/seed-emails/seed-emails.processor.ts`
+inside `processSingleMessage`. The increment fires AFTER the
+email produces a persisted row (a `public.transactions` insert via
+`insertTransaction` OR a `public.discarded_emails` insert via
+`insertDiscarded`). SPAM/TRASH labels, AI failures, and
+duplicate-messageId early-returns do NOT burn quota.
+
+Failure mode: the helper fail-opens on RPC errors (matches
+`process-document` and `chat`). Role bypass: only `admin`
+short-circuits; `tester` is counted normally — this matches the
+three other call sites and diverges from the broader ROLE_BYPASS
+in `supabase/functions/_shared/capabilities.ts` which covers the
+capability gate (a different concern). Integration coverage lives in
+`supabase/functions/_shared/seed-emails-usage.integration.test.ts`
+(runner: `bun run test:seed-emails-usage`).
 
 ### Follow-up: counter cleanup
 
@@ -362,7 +373,7 @@ keeps the table bounded. Out of scope for this PR.
 - `packages/frontend/src/lib/capabilities.ts` — `CAPABILITIES`,
   `Capability`.
 - `packages/frontend/src/utils/edge-function-errors.ts` — classifier
-  + premium-feature substitution.
+  - premium-feature substitution.
 - `supabase/migrations/20260625125528_add_user_roles_and_access_token_hook.sql`
   — `app_role` enum + JWT hook for `user_role`.
 - `supabase/migrations/20260705031212_add_plan_capabilities.sql` —

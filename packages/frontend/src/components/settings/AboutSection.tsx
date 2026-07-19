@@ -66,9 +66,15 @@ function TutorialsCard() {
 }
 
 function AppVersionCard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const buildDate = BUILD_TIMESTAMP
-    ? new Date(BUILD_TIMESTAMP).toLocaleString("en-US")
+    ? new Date(BUILD_TIMESTAMP).toLocaleString(i18n.language || "en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : null;
   return (
     <div className="p-4 rounded-xl bg-[var(--bg-secondary)]">

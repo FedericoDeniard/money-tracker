@@ -1,9 +1,13 @@
 /**
  * Minimal translator shape. Compatible with `t` returned by
  * `useTranslation()` from react-i18next (which has a richer overload
- * set but is callable as `(key: string) => string` for our needs).
+ * set but is callable as `(key: string, options?: Interpolation) => string`
+ * for our needs).
  */
-export type Translator = (key: string) => string;
+export type Translator = (
+  key: string,
+  options?: Record<string, unknown>
+) => string;
 
 /**
  * Classifies an error thrown by an edge function call into a small

@@ -6,11 +6,12 @@ import {
   Attachments,
 } from "@/components/ai-elements/attachments";
 import { MessageResponse } from "@/components/ai-elements/message";
+import { AttachmentLightbox } from "./AttachmentLightbox";
 import { ToolPill } from "./ToolPill";
 import { CreateTransactionConfirmation } from "./CreateTransactionConfirmation";
 import { DeleteTransactionConfirmation } from "./DeleteTransactionConfirmation";
 import { UpdateTransactionConfirmation } from "./UpdateTransactionConfirmation";
-import { type ReactNode } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 
 type ToolPart = Extract<
   UIMessage["parts"][number],
@@ -62,6 +63,10 @@ export function MessageParts({
   onRejectTool,
 }: MessagePartsProps) {
   const hasApproval = Boolean(onApproveTool && onRejectTool);
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(
+    null
+  );
+  const closeLightbox = useCallback(() => setLightbox(null), []);
   const elements: ReactNode[] = [];
 
   for (const part of parts) {
@@ -75,16 +80,52 @@ export function MessageParts({
     }
 
     if (part.type === "file" && isUser) {
+      const isImage =
+        typeof part.mediaType === "string" &&
+        part.mediaType.startsWith("image/");
+      const openLightbox = () => {
+        if (!isImage) return;
+        setLightbox({
+          src: part.url,
+          alt: part.filename ?? "Attached image",
+        });
+      };
+
       elements.push(
-        <Attachments
-          key={`file-${part.url}`}
-          variant="grid"
-          className="mb-2 [button]:hidden"
-        >
-          <Attachment data={{ ...part, id: part.url } as never}>
-            <AttachmentPreview />
-          </Attachment>
-        </Attachments>
+        <div key={`file-${part.url}`} className="mb-2 [button]:hidden">
+          <Attachments variant="grid">
+            <Attachment
+              data={{ ...part, id: part.url } as never}
+              {...(isImage
+                ? {
+                    className:
+                      "cursor-zoom-in transition-opacity hover:opacity-90",
+                    onClick: openLightbox,
+                    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openLightbox();
+                      }
+                    },
+                    role: "button",
+                    tabIndex: 0,
+                  }
+                : {})}
+            >
+              <AttachmentPreview />
+            </Attachment>
+          </Attachments>
+          {isImage && (
+            <AttachmentLightbox
+              alt={part.filename ?? "Attached image"}
+              open={lightbox?.src === part.url}
+              src={part.url}
+              onOpenChange={open => {
+                if (!open) closeLightbox();
+              }}
+            />
+          )}
+        </div>
       );
       continue;
     }

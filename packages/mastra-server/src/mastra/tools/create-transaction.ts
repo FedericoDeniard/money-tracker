@@ -6,15 +6,52 @@ import { CATEGORY_VALUES, TRANSACTION_TYPE_VALUES } from "./constants";
 export const createTransactionTool = createTool({
   id: "create-transaction",
   description:
-    "Create one or more new transactions on behalf of the user. Pass an array of 1-50 transactions in a single call. Use this only when the user explicitly asks to add, log, register, or record transactions (income or expense). Do NOT use this for transactions already detected from Gmail emails (those are inserted by the email processing pipeline). The tool requires explicit user approval before any database write: the agent must summarize the proposed transactions and then call this tool so the user can confirm or cancel.",
+    "If the user did not state whether the transaction is income or expense, ask them before calling this tool. Do not guess. Create one or more new transactions on behalf of the user. Pass an array of 1-50 transactions in a single call. Use this only when the user explicitly asks to add, log, register, or record transactions (income or expense). Do NOT use this for transactions already detected from Gmail emails (those are inserted by the email processing pipeline). The tool requires explicit user approval before any database write: the agent must summarize the proposed transactions and then call this tool so the user can confirm or cancel.",
   requireApproval: true,
+  strict: true,
+  inputExamples: [
+    {
+      input: {
+        transactions: [
+          {
+            transaction_type: "expense",
+            name: "Coffee at Starbucks",
+            merchant: "Starbucks",
+            amount: 4.5,
+            currency: "USD",
+            category: "food",
+            transaction_date: "2026-07-18",
+            transaction_description: "Morning coffee before work.",
+          },
+        ],
+      },
+    },
+    {
+      input: {
+        transactions: [
+          {
+            transaction_type: "income",
+            name: "July 2026 salary",
+            merchant: "Acme Corp",
+            amount: 5000,
+            currency: "USD",
+            category: "salary",
+            transaction_date: "2026-07-01",
+            transaction_description: "Monthly salary payment for July 2026.",
+          },
+        ],
+      },
+    },
+  ],
   inputSchema: z.object({
     transactions: z
       .array(
         z.object({
           transaction_type: z
             .enum(TRANSACTION_TYPE_VALUES)
-            .describe("Type of transaction: 'income' or 'expense'."),
+            .describe(
+              "Type of transaction: 'income' or 'expense'. Required. If the user did not state which one, ask them — do not guess and do not call this tool without it."
+            ),
           name: z
             .string()
             .min(1)
