@@ -1,6 +1,7 @@
 // Service layer for seed-emails: orchestrates the seed flow.
 // The controller calls startSeed; the service handles validation,
 // creates the seed row, and spawns a background job to process chunks.
+import type { UserRole } from "../../lib/roles";
 import { createSystemNotification } from "../../lib/seed-shared/notifications";
 import {
   GmailReconnectRequiredError,
@@ -96,6 +97,7 @@ export async function startSeed(
   runBackgroundJob({
     supabase,
     userId: input.userId,
+    userRole: input.userRole,
     connectionId: input.connectionId,
     tokenData: connection,
     seedId: seed.id,
@@ -113,13 +115,14 @@ export async function startSeed(
 interface BackgroundJobInput {
   supabase: ReturnType<typeof createServiceClient>;
   userId: string;
+  userRole: UserRole;
   connectionId: string;
   tokenData: ConnectionRow;
   seedId: string;
 }
 
 async function runBackgroundJob(input: BackgroundJobInput): Promise<void> {
-  const { supabase, userId, tokenData, seedId } = input;
+  const { supabase, userId, userRole, tokenData, seedId } = input;
 
   try {
     let isDone = false;
@@ -133,7 +136,10 @@ async function runBackgroundJob(input: BackgroundJobInput): Promise<void> {
       }
 
       try {
-        lastResult = await processChunk({ supabase, tokenData, userId }, seed);
+        lastResult = await processChunk(
+          { supabase, tokenData, userId, userRole },
+          seed
+        );
         isDone = lastResult.done;
 
         await updateSeedProgress(supabase, seedId, {

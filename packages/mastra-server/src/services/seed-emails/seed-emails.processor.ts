@@ -10,6 +10,8 @@ import {
 } from "../../lib/seed-shared/gmail-auth";
 import { createSystemNotification } from "../../lib/seed-shared/notifications";
 import { flushLangfuse } from "../../lib/seed-shared/langfuse";
+import { incrementGmailSyncUsage } from "../../lib/seed-shared/usage-counter";
+import type { UserRole } from "../../lib/roles";
 import {
   findExistingDiscarded,
   findExistingTransaction,
@@ -35,6 +37,7 @@ export interface ProcessorDeps {
   supabase: SupabaseClient;
   tokenData: OAuthTokenRow;
   userId: string;
+  userRole: UserRole;
 }
 
 // --- Public API: process a single chunk ---
@@ -73,6 +76,7 @@ export async function processChunk(
     supabase: deps.supabase,
     tokenData: deps.tokenData,
     userId: deps.userId,
+    userRole: deps.userRole,
     tokenId: deps.tokenData.id,
     messageIds: chunk,
     userFullName,
@@ -169,6 +173,7 @@ interface BatchDeps {
   supabase: SupabaseClient;
   tokenData: OAuthTokenRow;
   userId: string;
+  userRole: UserRole;
   tokenId: string;
   messageIds: string[];
   userFullName: string | undefined;
@@ -191,6 +196,7 @@ async function processChunkBatch(
             supabase: deps.supabase,
             tokenData: deps.tokenData,
             userId: deps.userId,
+            userRole: deps.userRole,
             tokenId: deps.tokenId,
             messageId,
             userFullName: deps.userFullName,
@@ -221,6 +227,7 @@ interface MessageDeps {
   supabase: SupabaseClient;
   tokenData: OAuthTokenRow;
   userId: string;
+  userRole: UserRole;
   tokenId: string;
   messageId: string;
   userFullName: string | undefined;
@@ -325,6 +332,15 @@ async function processSingleMessage(
       if (duplicate || !inserted) {
         return { transactionFound: false };
       }
+      // Counted AFTER successful insert (matches the export-report-pdf
+      // pattern: only count when the work actually produced a row).
+      // The helper fail-opens on RPC errors and surfaces a quota
+      // exhausted flag we currently ignore — the email has already
+      // landed, so rolling it back would be more surprising than
+      // letting the user keep their last processed message.
+      await incrementGmailSyncUsage(deps.supabase, deps.userId, deps.userRole, {
+        messageId: deps.messageId,
+      });
       return { transactionFound: true };
     }
 
@@ -332,6 +348,13 @@ async function processSingleMessage(
       tokenId: deps.tokenId,
       messageId: deps.messageId,
       reason: aiResult.reason || "No transaction detected",
+    });
+    // Counted AFTER the discarded row is persisted — same rationale
+    // as the transaction branch above. Only emails that produced a
+    // row in the DB burn quota; spam labels, AI failures, and
+    // duplicates are filtered earlier and never reach this point.
+    await incrementGmailSyncUsage(deps.supabase, deps.userId, deps.userRole, {
+      messageId: deps.messageId,
     });
   } catch (error) {
     console.error("[seed-processor] AI processing error:", error);

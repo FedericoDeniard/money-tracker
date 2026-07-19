@@ -31,9 +31,20 @@ export class SeedConflictError extends Error {
 
 // DTOs
 
+import type { UserRole } from "../../lib/roles";
+
 export interface StartSeedInput {
   userId: string;
   connectionId: string;
+  /**
+   * The caller's role, decoded from the JWT by the mastra auth
+   * middleware (see packages/mastra-server/src/middleware/auth.ts).
+   * Used by the per-email processor to decide whether to bypass the
+   * `gmail_sync` usage counter (only `admin` bypasses; `tester` is
+   * counted). See `lib/seed-shared/usage-counter.ts` for the
+   * rationale.
+   */
+  userRole: UserRole;
 }
 
 export interface StartSeedResult {

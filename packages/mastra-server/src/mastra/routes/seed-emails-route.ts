@@ -18,6 +18,7 @@ export const seedEmailsHandler = async (c: Context) => {
   if (!userId) {
     return c.json({ error: "Unauthorized" }, 401);
   }
+  const userRole = c.get("userRole") ?? "user";
 
   let body: SeedRequestBody;
   try {
@@ -30,6 +31,7 @@ export const seedEmailsHandler = async (c: Context) => {
     const result = await startSeed({
       userId,
       connectionId: body.connectionId ?? "",
+      userRole,
     });
     return c.json(
       {
