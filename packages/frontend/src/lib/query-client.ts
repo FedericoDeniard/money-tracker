@@ -104,6 +104,18 @@ export const queryKeys = {
     mySubscription: (userId?: string) =>
       [...queryKeys.payments.all, "my-subscription", userId] as const,
   },
+  usage: {
+    all: ["usage"] as const,
+    /**
+     * Cache key for the user's current-period usage panel data.
+     * The key includes userId, role, and planKey so a subscription
+     * change invalidates implicitly (the key changes, TanStack
+     * treats it as a fresh query). The service layer reads the
+     * latest plan from `useMySubscription` and passes it down.
+     */
+    list: (userId?: string, role?: string, planKey?: string) =>
+      [...queryKeys.usage.all, "list", userId, role, planKey] as const,
+  },
   reports: {
     all: ["reports"] as const,
     list: (status: string) =>

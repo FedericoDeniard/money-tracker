@@ -15,16 +15,23 @@ import { toast } from "../utils/toast";
 import { getEdgeFunctionErrorMessage } from "../utils/edge-function-errors";
 import type { MySubscription } from "../services/payments.service";
 import { FREE_PLAN } from "../services/pricing";
+import {
+  ACTIVE_SUBSCRIPTION_STATUSES,
+  isActiveSubscriptionStatus,
+} from "../lib/subscription-status";
 
-// status values where a cancel button makes sense. cancelled and
-// pending_cancellation are excluded because the user already kicked
-// off cancellation (or the cancellation completed) — there's nothing
-// left to cancel.
-const ACTIVE_STATUSES = new Set(["authorized", "pending", "paused"]);
+// statuses where the cancel button is visible. `cancelled` and
+// `pending_cancellation` are excluded because the user has already
+// kicked off cancellation — there's nothing left to cancel. We
+// take the active-status set and drop `pending_cancellation` for
+// this single use case; the rest of the codebase uses the full set.
+const CANCELLABLE_STATUSES = new Set(
+  ACTIVE_SUBSCRIPTION_STATUSES.filter(s => s !== "pending_cancellation")
+);
 
 export function AccountBilling() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const userId = user?.id;
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -41,17 +48,20 @@ export function AccountBilling() {
 
   // when mp redirects the user back here with ?subscribed=1 we toast a
   // confirmation and invalidate the subscription cache so the new plan
-  // shows up. the webhook will be the source of truth for the row, but
-  // the user gets an immediate acknowledgement.
+  // shows up. we also refresh the JWT so the `user_capabilities` and
+  // `user_role` claims reflect the new entitlements before the user
+  // navigates elsewhere (otherwise the Settings → Usage panel can show
+  // a stale scope for the first few seconds).
   useEffect(() => {
     if (searchParams.get("subscribed") === "1") {
       invalidatePayments();
+      void refreshUser();
       toast.success(t("accountBilling.toast.subscribed"));
       const next = new URLSearchParams(searchParams);
       next.delete("subscribed");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams, invalidatePayments, t]);
+  }, [searchParams, setSearchParams, invalidatePayments, refreshUser, t]);
 
   // tier click. the pricing card key is the plan id (for db plans) or
   // "free" (for the free card). only db plans route through
@@ -121,7 +131,8 @@ export function AccountBilling() {
 
       {subscription &&
         subscription.plan_id &&
-        ACTIVE_STATUSES.has(subscription.status) && (
+        isActiveSubscriptionStatus(subscription.status) &&
+        CANCELLABLE_STATUSES.has(subscription.status as never) && (
           <div className="flex justify-center">
             <button
               type="button"

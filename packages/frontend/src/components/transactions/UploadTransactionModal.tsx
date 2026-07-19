@@ -8,10 +8,12 @@ import {
   Loader,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { uploadDocumentForAnalysis } from "../../services/document-upload.service";
 import { getEdgeFunctionErrorMessage } from "../../utils/edge-function-errors";
+import { queryKeys } from "../../lib/query-client";
 import {
   useClipboardFile,
   type ClipboardReadError,
@@ -358,6 +360,7 @@ export function UploadTransactionModal({
   onError,
 }: UploadTransactionModalProps) {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(uploadFormReducer, initialState);
   const {
     selectedFile,
@@ -507,6 +510,11 @@ export function UploadTransactionModal({
       if (result.success && result.transaction) {
         dispatch({ type: "SET_UPLOAD_STATE", state: "success" });
         onSuccess(result.transaction.id as string);
+        // process-document/index.ts:62-85 increments the counter
+        // BEFORE running the AI extraction. A success means the
+        // counter went up. Invalidate the usage panel so the next
+        // Settings mount shows the new value.
+        queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
         setTimeout(() => {
           onClose();
           dispatch({ type: "RESET" });
@@ -520,6 +528,11 @@ export function UploadTransactionModal({
       // error message becomes the localized "This is a premium
       // feature" copy instead of the raw "Requires capability: X".
       const errorMsg = getEdgeFunctionErrorMessage(error, t);
+      // The pre-increment ran before the AI call, so a 429 from the
+      // server still consumed the counter (then rolled it back
+      // internally). For other errors the counter is also already
+      // incremented. Either way: invalidate.
+      queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
       dispatch({ type: "SET_ERROR", message: errorMsg });
       onError(errorMsg);
     }

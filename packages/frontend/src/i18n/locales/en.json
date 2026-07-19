@@ -489,11 +489,51 @@
     "accountBillingAction": "Manage plan",
     "tags": "Tags",
     "tagsTitle": "Transaction tags",
-    "tagsDescription": "Create custom labels to organize your transactions. Tags are complementary to categories and can be assigned from any transaction."
+    "tagsDescription": "Create custom labels to organize your transactions. Tags are complementary to categories and can be assigned from any transaction.",
+    "usage": {
+      "title": "Usage",
+      "description": "How many of your monthly AI operations you've used.",
+      "resetsOn": "Resets {{date}}",
+      "atLimit": "At limit",
+      "upgrade": "Upgrade",
+      "retry": "Retry",
+      "loadingError": "Could not load usage.",
+      "empty": "No active usage limits.",
+      "ariaLabelProgress": "{{used}} of {{limit}}",
+      "ariaValueText": "{{used}} of {{limit}} ({{percent}}%)",
+      "scopeAriaLabel": "Resolved scope",
+      "scopeTooltip": "Where the limit comes from (role override, plan override, or default).",
+      "scope": {
+        "roleTest": "Role: {{role}}",
+        "plan": "Plan: {{planKey}}",
+        "default": "Default"
+      },
+      "capabilities": {
+        "gmail_sync": {
+          "label": "Gmail sync"
+        },
+        "ai_assistant": {
+          "label": "AI assistant"
+        },
+        "push_notifications": {
+          "label": "Push notifications"
+        },
+        "advanced_reports": {
+          "label": "Advanced reports"
+        },
+        "process_documents": {
+          "label": "Process documents"
+        },
+        "report_pdf_export": {
+          "label": "Report PDF export"
+        }
+      }
+    }
   },
   "settingsLayout": {
     "nav": {
       "account": "Account",
+      "usage": "Usage",
       "profile": "Profile",
       "connections": "Connections",
       "notifications": "Notifications",
@@ -502,6 +542,7 @@
     },
     "categoryDescription": {
       "account": "Plan, subscription and billing.",
+      "usage": "How many of your AI operations you've used this period.",
       "profile": "Your personal info and how the app calls you.",
       "connections": "Gmail accounts and integrations.",
       "notifications": "Push and per-type notification preferences.",

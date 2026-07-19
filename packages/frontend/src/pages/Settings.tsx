@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsLayout } from "../components/settings/SettingsLayout";
 import { SettingsCategoryCard } from "../components/settings/SettingsCategoryCard";
 import { AccountSection } from "../components/settings/AccountSection";
+import { UsageSection } from "../components/settings/UsageSection";
 import { ProfileSection } from "../components/settings/ProfileSection";
 import { ConnectionsSection } from "../components/settings/ConnectionsSection";
 import { NotificationsSection } from "../components/settings/NotificationsSection";
@@ -10,6 +11,7 @@ import { AboutSection } from "../components/settings/AboutSection";
 
 const CATEGORIES = [
   { id: "account", titleKey: "settingsLayout.nav.account" },
+  { id: "usage", titleKey: "settingsLayout.nav.usage" },
   { id: "profile", titleKey: "settingsLayout.nav.profile" },
   { id: "connections", titleKey: "settingsLayout.nav.connections" },
   { id: "notifications", titleKey: "settingsLayout.nav.notifications" },
@@ -32,6 +34,7 @@ export function Settings() {
 
       <SettingsLayout categories={CATEGORIES}>
         <AccountSection />
+        <UsageSection />
         <ProfileSection />
         <ConnectionsSection />
         <NotificationsSection />
