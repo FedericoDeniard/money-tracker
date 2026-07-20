@@ -24,7 +24,6 @@ export const USAGE_DISPLAY_ORDER: readonly Capability[] = [
   "report_pdf_export",
   "gmail_sync",
   "push_notifications",
-  "advanced_reports",
 ] as const;
 
 /**

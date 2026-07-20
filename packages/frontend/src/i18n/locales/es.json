@@ -520,9 +520,6 @@
         "push_notifications": {
           "label": "Notificaciones push"
         },
-        "advanced_reports": {
-          "label": "Reportes avanzados"
-        },
         "process_documents": {
           "label": "Procesar documentos"
         },
@@ -597,8 +594,7 @@
           "everythingInFree": "Todo lo del plan Free",
           "gmailSync": "Sincronización automática con Gmail",
           "aiAssistant": "Asistente financiero con IA",
-          "pushNotifications": "Notificaciones push",
-          "advancedReports": "Reportes avanzados"
+          "pushNotifications": "Notificaciones push"
         }
       }
     },

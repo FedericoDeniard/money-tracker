@@ -70,8 +70,8 @@ update payments.plans
 -- 4) Capability grants.
 --    Same ordering constraint as section 3: must run AFTER section 1.
 --    lite_monthly is the only paid plan in the demo, so it gets all
---    five capabilities from the payments.capability enum (gmail_sync,
---    ai_assistant, push_notifications, advanced_reports,
+--    basic capabilities from the payments.capability enum (gmail_sync,
+--    ai_assistant, push_notifications,
 --    process_documents). process_documents was added after the first
 --    cut to gate the receipt/image upload path independently from the
 --    chat assistant (ai_assistant) — they share the same underlying
@@ -92,7 +92,6 @@ select p.id, c.capability
        'gmail_sync',
        'ai_assistant',
        'push_notifications',
-       'advanced_reports',
        'process_documents'
      ]::payments.capability[]) as c(capability)
  where p.plan_key = 'lite_monthly'
