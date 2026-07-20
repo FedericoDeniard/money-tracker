@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { getUsageRowStatus } from "../../utils/usage";
 import type { UsageRow } from "../../services/usage.service";
 
@@ -146,14 +145,7 @@ function TrackedMetric({
         </span>
       </div>
 
-      {atLimit && !hasActivePlan ? (
-        <Link
-          to="/account/billing"
-          className="inline-flex items-center justify-center rounded-md bg-[var(--button-primary)] px-3 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--button-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-focus)] focus:ring-offset-2"
-        >
-          {t("settings.usage.upgrade")}
-        </Link>
-      ) : atLimit ? (
+      {atLimit ? (
         <span className="whitespace-nowrap rounded-full bg-[var(--error)]/10 px-2 py-0.5 text-xs font-medium text-[var(--error)]">
           {t("settings.usage.atLimit")}
         </span>
