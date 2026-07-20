@@ -12,6 +12,7 @@ import {
   fetchGmailWithRecovery,
 } from "../_shared/lib/gmail-auth.ts";
 import { decryptTokenRow } from "../_shared/lib/oauth-token-crypto.ts";
+import { incrementGmailSyncUsage } from "../_shared/lib/usage-counter.ts";
 
 // Set to avoid processing the same message multiple times
 const processedMessages = new Set<string>();
@@ -334,6 +335,32 @@ Deno.serve(async req => {
       }
     }
 
+    // Look up user roles in one round-trip so the gmail_sync usage
+    // counter can apply the admin bypass per user. Missing rows
+    // (e.g. user created after the access-token hook write) default to
+    // "user" — the conservative counter, no accidental bypass.
+    const roleByUser = new Map<string, "user" | "tester" | "admin">();
+    if (validTokens.length > 0) {
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in(
+          "user_id",
+          validTokens.map(t => t.user_id)
+        );
+      for (const row of roleRows ?? []) {
+        if (
+          row.role === "user" ||
+          row.role === "tester" ||
+          row.role === "admin"
+        ) {
+          roleByUser.set(row.user_id, row.role);
+        }
+      }
+    }
+    const roleFor = (userId: string): "user" | "tester" | "admin" =>
+      roleByUser.get(userId) ?? "user";
+
     console.log("Analyzing email...", { bodyTextLength: bodyText.length });
 
     // Use shared document analysis pipeline (image/PDF extraction + AI).
@@ -412,6 +439,19 @@ Deno.serve(async req => {
             `AI transaction saved for user ${tokenData.user_id}: ${transaction.amount} ${transaction.currency}`
           );
         }
+        // Count this email for the user's gmail_sync usage counter
+        // regardless of whether their transaction insert succeeded.
+        // The work (token refresh, history fetch, AI analysis) happened
+        // for every user in validTokens; the duplicate path is the
+        // common case when one Gmail address is connected by multiple
+        // users in the same app — they all get billed +1. The helper
+        // fails open on RPC errors and applies the admin bypass.
+        await incrementGmailSyncUsage(
+          supabase,
+          tokenData.user_id,
+          roleFor(tokenData.user_id),
+          { messageId: message.id }
+        );
       }
 
       if (savedTransaction && aiResult.attachments.length > 0) {
@@ -495,6 +535,16 @@ Deno.serve(async req => {
               `Fallback transaction saved for user ${tokenData.user_id}`
             );
           }
+          // Same rationale as the AI branch above: every user that
+          // owned this Gmail address when the webhook fired counts as
+          // +1 on their gmail_sync quota, regardless of which user
+          // ended up winning the unique source_message_id race.
+          await incrementGmailSyncUsage(
+            supabase,
+            tokenData.user_id,
+            roleFor(tokenData.user_id),
+            { messageId: message.id }
+          );
         }
 
         if (savedTransaction && aiResult.attachments.length > 0) {
@@ -528,6 +578,17 @@ Deno.serve(async req => {
               { error: discardError }
             );
           }
+          // Count this email for every user's gmail_sync usage counter
+          // — discarded_emails is a row we produced, so it represents
+          // real work the user triggered. The unique constraint on
+          // (user_oauth_token_id, message_id) makes the insert always
+          // succeed per user, so we count unconditionally here.
+          await incrementGmailSyncUsage(
+            supabase,
+            tokenData.user_id,
+            roleFor(tokenData.user_id),
+            { messageId: message.id }
+          );
         }
       }
     } else {
@@ -555,6 +616,16 @@ Deno.serve(async req => {
             );
           }
         }
+        // Same rationale as the fallback-discard branch above: every
+        // user in validTokens gets +1 on their gmail_sync quota. A
+        // 23505 here means we already counted this message in a prior
+        // webhook delivery and the helper short-circuits as no-op.
+        await incrementGmailSyncUsage(
+          supabase,
+          tokenData.user_id,
+          roleFor(tokenData.user_id),
+          { messageId: message.id }
+        );
       }
     }
 

@@ -18,12 +18,16 @@
  *   - SUPABASE_URL
  *   - SUPABASE_SERVICE_ROLE_KEY
  *
- * The helper under test is imported directly from the mastra-server
- * tree so the test cannot drift from production semantics.
+ * The helper under test is the same one imported by the
+ * mastra-server seed processor (`seed-emails.processor.ts`) and by
+ * the `gmail-webhook` edge function, so the test cannot drift from
+ * production semantics. Co-locating the helper in
+ * `_shared/lib/usage-counter.ts` lets the Deno edge function runtime
+ * and the Bun mastra-server both import it without duplication.
  */
 import { assert, assertEquals } from "jsr:@std/assert";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { incrementGmailSyncUsage } from "../../../packages/mastra-server/src/lib/seed-shared/usage-counter.ts";
+import { incrementGmailSyncUsage } from "./lib/usage-counter.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

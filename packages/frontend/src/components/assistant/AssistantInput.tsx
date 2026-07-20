@@ -151,21 +151,33 @@ function AssistantInputBody({
               <Attachment
                 key={file.id}
                 data={file}
-                onRemove={() => removePromptFile(file.id)}
+                onRemove={() => {
+                  if (!isUploading) removePromptFile(file.id);
+                }}
                 className="bg-blue-500/10"
               >
                 <AttachmentPreview />
-                <AttachmentRemove className="bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent)]/80" />
+                <AttachmentRemove
+                  disabled={isUploading}
+                  className="bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent)]/80"
+                />
               </Attachment>
             ))}
           </div>
         )}
-        <PromptInputTextarea placeholder={placeholder} className="text-base" />
+        <PromptInputTextarea
+          disabled={isUploading}
+          placeholder={placeholder}
+          className="text-base"
+        />
       </PromptInputBody>
       <PromptInputFooter>
         <PromptInputTools>
           <PromptInputActionMenu>
-            <PromptInputActionMenuTrigger className="bg-white" />
+            <PromptInputActionMenuTrigger
+              disabled={isUploading}
+              className="bg-white"
+            />
             <PromptInputActionMenuContent style={{ backgroundColor: "#fff" }}>
               <PromptInputActionAddAttachments />
               <PromptInputActionAddScreenshot />
