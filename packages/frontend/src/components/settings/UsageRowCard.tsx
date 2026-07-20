@@ -125,7 +125,6 @@ function TrackedMetric({
   locale,
 }: TrackedMetricProps) {
   const { t } = useTranslation();
-  const atLimit = status === "exceeded";
   const resetDate = formatResetDateLocalized(row.resetsAt, locale);
 
   return (
@@ -144,12 +143,6 @@ function TrackedMetric({
           {t("settings.usage.resetsOn", { date: resetDate })}
         </span>
       </div>
-
-      {atLimit ? (
-        <span className="whitespace-nowrap rounded-full bg-[var(--error)]/10 px-2 py-0.5 text-xs font-medium text-[var(--error)]">
-          {t("settings.usage.atLimit")}
-        </span>
-      ) : null}
     </div>
   );
 }
