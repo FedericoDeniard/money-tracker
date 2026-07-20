@@ -23,51 +23,46 @@ export function Modal({
     <AnimatePresence>
       {isOpen && (
         <LazyMotion features={domAnimation}>
-          <>
-            {/* Backdrop */}
+          <m.div
+            onClick={event => {
+              if (closeDisabled) return;
+              if (event.target !== event.currentTarget) return;
+              onClose();
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          >
             <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col relative"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                  {title}
+                </h2>
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={20} />}
+                  disabled={closeDisabled}
+                />
+              </div>
 
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <m.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col"
-                onClick={e => e.stopPropagation()}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
-                  <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                    {title}
-                  </h2>
-                  <Button
-                    onClick={onClose}
-                    variant="ghost"
-                    size="sm"
-                    icon={<X size={20} />}
-                    disabled={closeDisabled}
-                  />
-                </div>
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-6 pb-4">{children}</div>
 
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto px-6 pb-4">
-                  {children}
-                </div>
-
-                {/* Footer */}
-                <div className="flex gap-3 px-6 py-4 shrink-0 border-t border-zinc-100">
-                  {footer}
-                </div>
-              </m.div>
-            </div>
-          </>
+              {/* Footer */}
+              <div className="flex gap-3 px-6 py-4 shrink-0 border-t border-zinc-100">
+                {footer}
+              </div>
+            </m.div>
+          </m.div>
         </LazyMotion>
       )}
     </AnimatePresence>
