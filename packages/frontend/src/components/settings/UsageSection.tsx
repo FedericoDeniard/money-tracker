@@ -35,7 +35,7 @@ export function UsageSection() {
       ) : orderedRows.length === 0 ? (
         <UsageEmptyState />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="divide-y divide-[var(--text-secondary)]/10 overflow-hidden rounded-xl bg-[var(--bg-secondary)]">
           {orderedRows.map(row => (
             <UsageRowCard
               key={row.capability}
@@ -52,14 +52,14 @@ export function UsageSection() {
 function UsageSkeleton() {
   return (
     <div
-      className="space-y-3 animate-pulse"
+      className="divide-y divide-[var(--text-secondary)]/10 overflow-hidden rounded-xl bg-[var(--bg-secondary)] animate-pulse"
       aria-busy="true"
       aria-live="polite"
     >
       {[0, 1, 2].map(i => (
         <div
           key={i}
-          className="h-20 rounded-xl bg-[var(--bg-secondary)]"
+          className="h-14 bg-[var(--bg-secondary)]"
           style={{ opacity: 1 - i * 0.15 }}
         />
       ))}

@@ -196,19 +196,27 @@ export interface UsageCounterRow {
  * If no row exists, returns `null` (the caller should default `used`
  * to 0 and use the client-computed start-of-month as the period).
  *
- * Defensive against rows from other periods — if the server returns
- * a counter whose `period_start` doesn't match the start of the
- * current month, we log a warning and use it anyway (the server is
- * ground truth, but the inconsistency is worth flagging).
+ * The service already filters counters via
+ * `.gte("period_start", clientPeriodStart)` so every row it returns
+ * is from the current period. We compare via Date timestamp (not raw
+ * string equality) because Postgres serializes timestamptz as
+ * `2026-07-01T00:00:00+00:00` while JS `toISOString()` produces
+ * `2026-07-01T00:00:00.000Z` — semantically the same instant, but the
+ * strings don't match.
  */
 export function findCurrentPeriodCounter(
   capability: Capability,
   counters: UsageCounterRow[],
   clientPeriodStart: string = startOfMonthUtc()
 ): UsageCounterRow | null {
+  const clientMs = Date.parse(clientPeriodStart);
   for (const row of counters) {
     if (row.capability !== capability) continue;
-    if (row.period_start === clientPeriodStart) return row;
+    if (Date.parse(row.period_start) === clientMs) return row;
+    // Different period start than expected (e.g. counter created
+    // mid-period with a non-truncated timestamp). The service's gte
+    // filter caught it but the date string differs — log and use it
+    // as ground truth anyway.
     usageWarn("counter period mismatch", {
       capability,
       serverPeriodStart: row.period_start,
