@@ -1,7 +1,8 @@
 /**
- * Wire-up for the `gmail_sync` usage counter inside the seed-emails
- * pipeline. The capability and the per-(capability, scope, period)
- * configuration are already in place:
+ * Wire-up for the `gmail_sync` usage counter inside the Gmail processing
+ * pipelines (`seed-emails` backfill and `gmail-webhook` real-time). The
+ * capability and the per-(capability, scope, period) configuration are
+ * already in place:
  *
  *   - payments.capability enum value 'gmail_sync'
  *     (supabase/migrations/20260705031212_add_plan_capabilities.sql)
@@ -14,12 +15,14 @@
  * What was missing was a call site in the per-email processor. The
  * three other wired-up call sites — process-document, chat, and
  * export-report-pdf — all live at the request boundary and count
- * before any AI work happens. seed-emails is different: it processes
- * a batch of messages asynchronously, each one independently, and we
- * want to count only the messages that actually produced a persisted
- * row (a transactions row OR a discarded_emails row). Otherwise we
- * would burn quota on emails that turned out to be SPAM, or failed
- * AI extraction, or were duplicates of an already-processed message.
+ * before any AI work happens. Gmail processing is different: it
+ * processes messages asynchronously (one batch per seed chunk in
+ * seed-emails, one Pub/Sub push per new INBOX message in
+ * gmail-webhook), each one independently, and we want to count only
+ * the messages that actually produced a persisted row (a transactions
+ * row OR a discarded_emails row). Otherwise we would burn quota on
+ * messages that turned out to be SPAM, or failed AI extraction, or
+ * were duplicates of an already-processed message.
  *
  * Idempotency: the caller is responsible for not calling this twice
  * for the same message. Today the processor's `findExistingTransaction`
@@ -30,7 +33,7 @@
  * and the existing convention in the other call sites (see
  * `process-document/index.ts:69-75`, `resilient-chat-route.ts:188-194`)
  * require fail-open: log the error, let the caller continue. A usage
- * counter bug must not block the user's seed pipeline.
+ * counter bug must not block the user's Gmail processing.
  *
  * Role bypass: only `admin` bypasses the counter. `tester` is counted
  * normally — this matches the three other call sites. Note this
@@ -41,8 +44,16 @@
  * feature at all); the usage counter bypass is narrow (your calls do
  * not increment the counter). The other call sites only bypass the
  * counter for `admin`; we mirror that here.
+ *
+ * Runtime targets: this file is imported by both the Bun mastra-server
+ * (`packages/mastra-server/src/services/seed-emails/seed-emails.processor.ts`)
+ * and the Deno edge function `gmail-webhook/index.ts`, plus the Deno
+ * integration test at `seed-emails-usage.integration.test.ts`. We use
+ * the `jsr:` specifier for `@supabase/supabase-js` so Deno resolves
+ * it directly, and the same import works for Bun via the jsr → npm
+ * resolution in Bun 1.x.
  */
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 /**
  * Local copy of the role union. Mirrors `UserRole` in
@@ -74,8 +85,8 @@ export interface IncrementResult {
    * True when the RPC returned `allowed=false`. The RPC has already
    * rolled back the increment, so the persisted counter stays
    * accurate. The caller can use this flag for observability (e.g.
-   * "you've hit your Gmail quota" notification) but the seed-emails
-   * processor currently ignores it — the email has already been
+   * "you've hit your Gmail quota" notification) but the Gmail
+   * processors currently ignore it — the email has already been
    * persisted at that point, and rolling it back would be more
    * surprising than letting it through.
    */
@@ -92,8 +103,8 @@ export interface IncrementContext {
 
 /**
  * Increment the `gmail_sync` usage counter for the given user. Safe
- * to call from the seed-emails background loop; never throws on RPC
- * errors.
+ * to call from the seed-emails background loop and from the
+ * gmail-webhook handler; never throws on RPC errors.
  */
 export async function incrementGmailSyncUsage(
   supabase: SupabaseClient,
@@ -117,7 +128,7 @@ export async function incrementGmailSyncUsage(
     // Fail-open: a counter bug must not break the user's seed
     // pipeline. Log so observability can surface the regression.
     console.error(
-      `[seed-emails] gmail_sync usage check failed; failing open (message ${context.messageId})`,
+      `[gmail] gmail_sync usage check failed; failing open (message ${context.messageId})`,
       error
     );
     return { counted: false, quotaExhausted: false };
@@ -128,7 +139,7 @@ export async function incrementGmailSyncUsage(
     // The RPC has already rolled back the +1 internally
     // (see 20260705163606_add_usage_limits_and_counters.sql:290).
     console.warn(
-      `[seed-emails] gmail_sync quota exhausted for user ${userId}; skipping message ${context.messageId}`
+      `[gmail] gmail_sync quota exhausted for user ${userId}; skipping message ${context.messageId}`
     );
     return { counted: false, quotaExhausted: true };
   }

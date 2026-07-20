@@ -10,7 +10,7 @@ import {
 } from "../../lib/seed-shared/gmail-auth";
 import { createSystemNotification } from "../../lib/seed-shared/notifications";
 import { flushLangfuse } from "../../lib/seed-shared/langfuse";
-import { incrementGmailSyncUsage } from "../../lib/seed-shared/usage-counter";
+import { incrementGmailSyncUsage } from "../../../../../supabase/functions/_shared/lib/usage-counter";
 import type { UserRole } from "../../lib/roles";
 import {
   findExistingDiscarded,

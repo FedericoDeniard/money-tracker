@@ -330,16 +330,31 @@ values ('ai_assistant', 'plan:lite_monthly', 'month', 1000);
 
 The plan row resolves before the default for users on `lite_monthly`.
 
-### Follow-up: gmail_sync call site
+### gmail_sync call sites
 
 `gmail_sync` is in the matrix and the per-email counter wire-up
-lives in `packages/mastra-server/src/lib/seed-shared/usage-counter.ts`,
-called from `packages/mastra-server/src/services/seed-emails/seed-emails.processor.ts`
-inside `processSingleMessage`. The increment fires AFTER the
-email produces a persisted row (a `public.transactions` insert via
-`insertTransaction` OR a `public.discarded_emails` insert via
-`insertDiscarded`). SPAM/TRASH labels, AI failures, and
-duplicate-messageId early-returns do NOT burn quota.
+lives in `supabase/functions/_shared/lib/usage-counter.ts`
+(`incrementGmailSyncUsage`). The helper is shared by both Gmail
+processing pipelines:
+
+- `packages/mastra-server/src/services/seed-emails/seed-emails.processor.ts`
+  inside `processSingleMessage` — backfill path (3-month scan
+  when the user first connects Gmail).
+- `supabase/functions/gmail-webhook/index.ts` — real-time path
+  (Pub/Sub push on every new INBOX message).
+
+In both pipelines the increment fires AFTER the email produces a
+persisted row (a `public.transactions` insert OR a
+`public.discarded_emails` insert). SPAM/TRASH labels, AI failures,
+and duplicate-messageId early-returns do NOT burn quota.
+
+Multi-user semantics (webhook only): the webhook processes one
+email for every active `user_oauth_tokens` row matching the Gmail
+address. Each user in `validTokens` gets +1 on their counter
+independently of the unique-`source_message_id` race that only
+lets one transaction row land. The role lookup is a single
+`select user_id, role from user_roles where user_id in (…)` round
+trip and is fail-closed to `"user"` (no accidental admin bypass).
 
 Failure mode: the helper fail-opens on RPC errors (matches
 `process-document` and `chat`). Role bypass: only `admin`
