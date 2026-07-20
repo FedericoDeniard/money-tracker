@@ -11,6 +11,7 @@ import {
 } from "../../constants/transactions";
 import type { Transaction } from "../../services/transactions.service";
 import { TagSelector } from "../tags/TagSelector";
+import { ReportSelector } from "../reports/ReportSelector";
 
 export type TransactionFormData = {
   name: string;
@@ -32,6 +33,8 @@ interface TransactionFormModalProps {
   initialData?: TransactionFormData;
   initialTagIds?: string[];
   onTagsChange?: (ids: string[]) => void;
+  initialReportId?: string | null;
+  onReportChange?: (reportId: string | null) => void;
 }
 
 const FORM_ID = "transaction-form";
@@ -43,6 +46,8 @@ interface TransactionFormFieldsProps {
   isPending: boolean;
   selectedTagIds: string[];
   onTagsChange: (ids: string[]) => void;
+  selectedReportId: string | null;
+  onReportChange: (reportId: string | null) => void;
 }
 
 function TransactionFormFields({
@@ -51,6 +56,8 @@ function TransactionFormFields({
   isPending,
   selectedTagIds,
   onTagsChange,
+  selectedReportId,
+  onReportChange,
 }: TransactionFormFieldsProps) {
   const { t } = useTranslation();
   const { translateCategory } = useTranslateCategory();
@@ -272,6 +279,14 @@ function TransactionFormFields({
           disabled={isPending}
         />
       </div>
+
+      {/* Report */}
+      <ReportSelector
+        label={t("reports.title", "Report")}
+        value={selectedReportId}
+        onChange={onReportChange}
+        disabled={isPending}
+      />
     </div>
   );
 }
@@ -285,6 +300,8 @@ export function TransactionFormModal({
   initialData,
   initialTagIds = EMPTY_TAG_IDS,
   onTagsChange,
+  initialReportId = null,
+  onReportChange,
 }: TransactionFormModalProps) {
   const { t } = useTranslation();
   const [isPending, startTransition] = useTransition();
@@ -308,10 +325,18 @@ export function TransactionFormModal({
   });
 
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTagIds);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(
+    initialReportId
+  );
 
   const handleTagsChange = (ids: string[]) => {
     setSelectedTagIds(ids);
     onTagsChange?.(ids);
+  };
+
+  const handleReportChange = (reportId: string | null) => {
+    setSelectedReportId(reportId);
+    onReportChange?.(reportId);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -380,6 +405,8 @@ export function TransactionFormModal({
           isPending={isPending}
           selectedTagIds={selectedTagIds}
           onTagsChange={handleTagsChange}
+          selectedReportId={selectedReportId}
+          onReportChange={handleReportChange}
         />
       </form>
     </Modal>

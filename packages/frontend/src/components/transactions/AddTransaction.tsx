@@ -15,6 +15,7 @@ import type { TransactionFormData } from "./TransactionFormModal";
 import { UploadTransactionModal } from "./UploadTransactionModal";
 import { useTransactionMutations } from "../../hooks/useTransactionMutations";
 import { useTagMutations } from "../../hooks/useTagMutations";
+import { useReportMutations } from "../../hooks/useReportMutations";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { mapTransactionFormDataToInsert } from "../../utils/transactionForm";
@@ -38,6 +39,7 @@ export const AddTransaction = forwardRef<
   const navigate = useNavigate();
   const { createTransaction } = useTransactionMutations();
   const { setTransactionTags } = useTagMutations();
+  const { assignTransactionToReport } = useReportMutations();
   const { isOpen: isSidebarOpen } = useSidebar();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const isDisabled = isMobile && isSidebarOpen;
@@ -48,6 +50,7 @@ export const AddTransaction = forwardRef<
   const [pendingTagIds, setPendingTagIds] = useState<string[]>(
     initialTagIds ?? []
   );
+  const [pendingReportId, setPendingReportId] = useState<string | null>(null);
   const [preFilledData, setPreFilledData] = useState<
     TransactionFormData | undefined
   >(initialData);
@@ -98,6 +101,7 @@ export const AddTransaction = forwardRef<
     setIsCreateModalOpen(false);
     setPreFilledData(undefined);
     setPendingTagIds(initialTagIds ?? []);
+    setPendingReportId(null);
   };
 
   const handleCreate = async (formData: TransactionFormData) => {
@@ -112,6 +116,16 @@ export const AddTransaction = forwardRef<
         });
       } catch (error) {
         console.error("Error assigning tags to new transaction:", error);
+      }
+    }
+    if (pendingReportId) {
+      try {
+        await assignTransactionToReport({
+          transactionId: transaction.id,
+          reportId: pendingReportId,
+        });
+      } catch (error) {
+        console.error("Error assigning report to new transaction:", error);
       }
     }
     closeCreateModal();
@@ -190,6 +204,8 @@ export const AddTransaction = forwardRef<
         initialData={preFilledData}
         initialTagIds={pendingTagIds}
         onTagsChange={setPendingTagIds}
+        initialReportId={pendingReportId}
+        onReportChange={setPendingReportId}
       />
 
       <UploadTransactionModal
