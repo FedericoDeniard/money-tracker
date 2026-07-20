@@ -35,10 +35,20 @@
 --   payments.user_capabilities(uuid)  — returns payments.capability[]
 
 -- 0. delete rows referencing the value being removed.
---    the only rows come from supabase/seeds/006_payments_demo.sql
---    section 4, which grants advanced_reports to the lite_monthly
---    plan. no production subscription ever used this capability.
+--    the demo seed placed advanced_reports in plan_capabilities,
+--    default_capabilities, and usage_limits_role. no production
+--    subscription ever used this capability.
 delete from payments.plan_capabilities
+ where capability = 'advanced_reports';
+delete from payments.default_capabilities
+ where capability = 'advanced_reports';
+delete from payments.usage_limits_role
+ where capability = 'advanced_reports';
+delete from payments.usage_limits_plan
+ where capability = 'advanced_reports';
+delete from payments.usage_limits_default
+ where capability = 'advanced_reports';
+delete from payments.usage_counters
  where capability = 'advanced_reports';
 
 -- 1. drop objects with a direct type or column dependency.
