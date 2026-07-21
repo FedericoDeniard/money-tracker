@@ -2,14 +2,23 @@ import { useRef, useState, useEffect } from "react";
 import {
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type Row,
+  type SortingState,
 } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronsUpDown,
+} from "lucide-react";
 
 interface AdminDataTableProps<TRow> {
-  /** TanStack column definitions. */
+  /** TanStack column definitions. Each column needs an accessorKey
+   *  (or accessorFn) so sorting can read the raw value. */
   columns: ColumnDef<TRow, unknown>[];
   /** Rows to render. */
   rows: TRow[];
@@ -33,6 +42,12 @@ interface AdminDataTableProps<TRow> {
  * `overflow-x-hidden`. Every column sizes to its content via
  * `size: 'auto'`; if the total exceeds the container, the user can
  * scroll horizontally without losing the rightmost cells.
+ *
+ * Sorting is enabled on every column by default. Click a header to
+ * sort asc, click again for desc, click a third time to clear. The
+ * header shows an up / down / neutral chevron so the sort direction
+ * is always visible. Per-column `enableSorting: false` (used by the
+ * action button column on most pages) opts out.
  */
 export function AdminDataTable<TRow>({
   columns,
@@ -46,11 +61,15 @@ export function AdminDataTable<TRow>({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable<TRow>({
     data: rows,
     columns,
+    state: { sorting },
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getRowId: row => rowKey(row),
   });
 
@@ -130,24 +149,39 @@ export function AdminDataTable<TRow>({
           <thead className="bg-[var(--bg-secondary)] text-left text-xs font-medium uppercase tracking-wide text-[var(--text-secondary)]">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th
-                    key={header.id}
-                    scope="col"
-                    className={cx(
-                      "px-4 py-3 font-medium",
-                      header.column.getIsSorted() &&
-                        "text-[var(--text-primary)]"
-                    )}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                ))}
+                {headerGroup.headers.map(header => {
+                  const canSort = header.column.getCanSort();
+                  const sortDir = header.column.getIsSorted();
+                  const label = header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      );
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      className={cx(
+                        "px-4 py-3 font-medium",
+                        sortDir && "text-[var(--text-primary)]"
+                      )}
+                    >
+                      {canSort ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="inline-flex items-center gap-1 text-left uppercase tracking-wide transition-colors hover:text-[var(--text-primary)]"
+                        >
+                          <span>{label}</span>
+                          <SortIcon dir={sortDir} />
+                        </button>
+                      ) : (
+                        label
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -166,6 +200,12 @@ export function AdminDataTable<TRow>({
       </div>
     </div>
   );
+}
+
+function SortIcon({ dir }: { dir: false | "asc" | "desc" }) {
+  if (dir === "asc") return <ChevronUp size={12} aria-hidden="true" />;
+  if (dir === "desc") return <ChevronDown size={12} aria-hidden="true" />;
+  return <ChevronsUpDown size={12} aria-hidden="true" className="opacity-40" />;
 }
 
 function RowEl<TRow>({

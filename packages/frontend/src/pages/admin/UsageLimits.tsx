@@ -56,11 +56,13 @@ export function UsageLimits() {
   const limitsColumns: ColumnDef<AdminUsageLimitRow>[] = [
     {
       id: "capability",
+      accessorKey: "capability",
       header: () => t("admin.usageLimits.columns.capability"),
       cell: ({ row }) => row.original.capability,
     },
     {
       id: "scope",
+      accessorFn: row => `${row.scope_kind}:${row.scope_value ?? "default"}`,
       header: () => t("admin.usageLimits.columns.scope"),
       cell: ({ row }) => (
         <ScopeBadge
@@ -71,16 +73,19 @@ export function UsageLimits() {
     },
     {
       id: "period",
+      accessorKey: "period",
       header: () => t("admin.usageLimits.columns.period"),
       cell: ({ row }) => row.original.period,
     },
     {
       id: "max",
+      accessorKey: "max_count",
       header: () => t("admin.usageLimits.columns.maxCount"),
       cell: ({ row }) => row.original.max_count.toLocaleString(),
     },
     {
       id: "affected",
+      accessorKey: "affected_users",
       header: () => t("admin.usageLimits.columns.affectedUsers"),
       cell: ({ row }) => row.original.affected_users.toLocaleString(),
     },
@@ -89,11 +94,13 @@ export function UsageLimits() {
   const topConsumersColumns: ColumnDef<AdminTopConsumerRow>[] = [
     {
       id: "user",
+      accessorFn: row => row.user_email ?? row.user_id,
       header: () => t("admin.usageLimits.columns.user"),
       cell: ({ row }) => row.original.user_email ?? row.original.user_id,
     },
     {
       id: "count",
+      accessorKey: "count",
       header: () => t("admin.usageLimits.columns.currentCount"),
       cell: ({ row }) => row.original.count.toLocaleString(),
     },
@@ -102,11 +109,13 @@ export function UsageLimits() {
   const userSummaryColumns: ColumnDef<AdminUserUsageSummaryRow>[] = [
     {
       id: "capability",
+      accessorKey: "capability",
       header: () => t("admin.usageLimits.columns.capability"),
       cell: ({ row }) => row.original.capability,
     },
     {
       id: "scope",
+      accessorFn: row => `${row.scope_kind}:${row.scope_value ?? "default"}`,
       header: () => t("admin.usageLimits.columns.scope"),
       cell: ({ row }) => (
         <ScopeBadge
@@ -117,16 +126,19 @@ export function UsageLimits() {
     },
     {
       id: "period",
+      accessorKey: "period",
       header: () => t("admin.usageLimits.columns.period"),
       cell: ({ row }) => row.original.period,
     },
     {
       id: "limit",
+      accessorKey: "resolved_limit",
       header: () => t("admin.usageLimits.columns.maxCount"),
       cell: ({ row }) => row.original.resolved_limit.toLocaleString(),
     },
     {
       id: "used",
+      accessorKey: "current_count",
       header: () => t("admin.usageLimits.columns.currentCount"),
       cell: ({ row }) => row.original.current_count.toLocaleString(),
     },

@@ -24,16 +24,19 @@ const ROLES: AppRole[] = ["user", "tester", "admin"];
 const usageColumns: ColumnDef<AdminUserUsageSummaryRow>[] = [
   {
     id: "capability",
+    accessorKey: "capability",
     header: () => "Capability",
     cell: ({ row }) => row.original.capability,
   },
   {
     id: "period",
+    accessorKey: "period",
     header: () => "Period",
     cell: ({ row }) => row.original.period,
   },
   {
     id: "scope",
+    accessorFn: row => `${row.scope_kind}:${row.scope_value ?? "default"}`,
     header: () => "Scope",
     cell: ({ row }) => (
       <ScopeBadge
@@ -44,11 +47,13 @@ const usageColumns: ColumnDef<AdminUserUsageSummaryRow>[] = [
   },
   {
     id: "limit",
+    accessorKey: "resolved_limit",
     header: () => "Max",
     cell: ({ row }) => row.original.resolved_limit.toLocaleString(),
   },
   {
     id: "used",
+    accessorKey: "current_count",
     header: () => "Used",
     cell: ({ row }) => row.original.current_count.toLocaleString(),
   },

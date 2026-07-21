@@ -35,21 +35,25 @@ export function Subscriptions() {
   const columns: ColumnDef<AdminSubscriptionRow>[] = [
     {
       id: "user",
+      accessorFn: row => row.user_email ?? row.user_id ?? "",
       header: () => t("admin.subscriptions.columns.user"),
       cell: ({ row }) => row.original.user_email ?? row.original.user_id ?? "—",
     },
     {
       id: "plan",
+      accessorKey: "plan_key",
       header: () => t("admin.subscriptions.columns.plan"),
       cell: ({ row }) => row.original.plan_key ?? "—",
     },
     {
       id: "provider",
+      accessorKey: "provider",
       header: () => t("admin.subscriptions.columns.provider"),
       cell: ({ row }) => row.original.provider,
     },
     {
       id: "amount",
+      accessorKey: "transaction_amount",
       header: () => t("admin.subscriptions.columns.amount"),
       cell: ({ row }) =>
         row.original.transaction_amount != null && row.original.currency_id
@@ -59,11 +63,13 @@ export function Subscriptions() {
     },
     {
       id: "status",
+      accessorKey: "status",
       header: () => t("admin.subscriptions.columns.status"),
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
       id: "updated",
+      accessorKey: "updated_at",
       header: () => t("admin.subscriptions.columns.updated"),
       cell: ({ row }) =>
         row.original.updated_at

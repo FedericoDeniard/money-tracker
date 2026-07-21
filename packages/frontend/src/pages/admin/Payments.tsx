@@ -14,6 +14,7 @@ export function Payments() {
   const columns: ColumnDef<AdminPaymentEventRow>[] = [
     {
       id: "received",
+      accessorKey: "received_at",
       header: () => t("admin.payments.columns.received"),
       cell: ({ row }) =>
         row.original.received_at
@@ -22,26 +23,31 @@ export function Payments() {
     },
     {
       id: "user",
+      accessorFn: row => row.user_email ?? row.user_id ?? "",
       header: () => t("admin.payments.columns.user"),
       cell: ({ row }) => row.original.user_email ?? row.original.user_id ?? "—",
     },
     {
       id: "payment",
+      accessorKey: "payment_id",
       header: () => t("admin.payments.columns.paymentId"),
       cell: ({ row }) => `#${row.original.payment_id}`,
     },
     {
       id: "topic",
+      accessorKey: "topic",
       header: () => t("admin.payments.columns.topic"),
       cell: ({ row }) => row.original.topic,
     },
     {
       id: "action",
+      accessorKey: "action",
       header: () => t("admin.payments.columns.action"),
       cell: ({ row }) => row.original.action ?? "—",
     },
     {
       id: "signature",
+      accessorFn: row => (row.signature_valid ? 1 : 0),
       header: () => t("admin.payments.columns.signature"),
       cell: ({ row }) =>
         row.original.signature_valid ? (
@@ -56,6 +62,7 @@ export function Payments() {
     },
     {
       id: "processing",
+      accessorKey: "processing_status",
       header: () => t("admin.payments.columns.processing"),
       cell: ({ row }) => row.original.processing_status,
     },

@@ -18,27 +18,33 @@ export function Seeds() {
   const columns: ColumnDef<AdminSeedRow>[] = [
     {
       id: "user",
+      accessorFn: row => row.user_email ?? row.user_id ?? "",
       header: () => t("admin.seeds.columns.user"),
       cell: ({ row }) => row.original.user_email ?? row.original.user_id ?? "—",
     },
     {
       id: "gmail",
+      accessorKey: "gmail_email",
       header: () => t("admin.seeds.columns.gmail"),
       cell: ({ row }) => row.original.gmail_email ?? "—",
     },
     {
       id: "status",
+      accessorKey: "status",
       header: () => t("admin.seeds.columns.status"),
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
       id: "progress",
+      accessorFn: row =>
+        `${row.transactions_found ?? 0}/${row.total_emails ?? 0}`,
       header: () => t("admin.seeds.columns.progress"),
       cell: ({ row }) =>
         `${row.original.transactions_found ?? 0}/${row.original.total_emails ?? 0}`,
     },
     {
       id: "updated",
+      accessorKey: "updated_at",
       header: () => t("admin.seeds.columns.updated"),
       cell: ({ row }) =>
         row.original.updated_at

@@ -26,6 +26,7 @@ export function Users() {
   const columns: ColumnDef<AdminUserRow>[] = [
     {
       id: "email",
+      accessorKey: "email",
       header: () => t("admin.users.columns.email"),
       cell: ({ row }) => (
         <span className="font-medium text-[var(--text-primary)]">
@@ -35,26 +36,31 @@ export function Users() {
     },
     {
       id: "name",
+      accessorKey: "name",
       header: () => t("admin.users.columns.name"),
       cell: ({ row }) => row.original.name ?? "—",
     },
     {
       id: "role",
+      accessorKey: "role",
       header: () => t("admin.users.columns.role"),
       cell: ({ row }) => <RoleBadge role={row.original.role} />,
     },
     {
       id: "plan",
+      accessorKey: "active_plan_key",
       header: () => t("admin.users.columns.plan"),
       cell: ({ row }) => row.original.active_plan_key ?? "—",
     },
     {
       id: "status",
+      accessorKey: "sub_status",
       header: () => t("admin.users.columns.status"),
       cell: ({ row }) => <StatusBadge status={row.original.sub_status} />,
     },
     {
       id: "created",
+      accessorKey: "created_at",
       header: () => t("admin.users.columns.createdAt"),
       cell: ({ row }) =>
         row.original.created_at
