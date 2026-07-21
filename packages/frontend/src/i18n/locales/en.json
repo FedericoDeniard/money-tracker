@@ -1440,6 +1440,7 @@
         "period": "Period",
         "maxCount": "Max",
         "currentCount": "Used",
+        "remaining": "Remaining",
         "affectedUsers": "Affected users",
         "user": "User"
       }
