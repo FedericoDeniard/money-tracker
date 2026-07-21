@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { getSupabase } from "../lib/supabase";
+import { captureError } from "../lib/sentry";
 import { toast } from "sonner";
 import { formatCurrency } from "../utils/currency";
 import type { Transaction } from "../services/transactions.service";
@@ -152,7 +153,14 @@ export function useTransactionsRealtime() {
             );
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            captureError(err ?? new Error(`Realtime channel ${status}`), {
+              source: "realtime",
+              fingerprint: ["realtime", status],
+            });
+          }
+        });
 
       subscription = channel;
       channelRef.current = subscription;

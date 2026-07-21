@@ -1,10 +1,28 @@
-import { QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { captureError } from "./sentry";
 
 // Convert times to milliseconds
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes for transaction data
 const CACHE_TIME = 30 * 60 * 1000; // 30 minutes cache time
 
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      captureError(error, {
+        source: "query",
+        queryKey: query.queryKey,
+        attemptCount: query.state.fetchFailureCount,
+      });
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      captureError(error, {
+        source: "mutation",
+        mutationKey: mutation.options.mutationKey,
+      });
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: STALE_TIME,
