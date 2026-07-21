@@ -8,6 +8,7 @@ import { RoleBadge } from "../../components/admin/RoleBadge";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { ScopeBadge } from "../../components/admin/ScopeBadge";
 import { AdminDataTable } from "../../components/admin/AdminDataTable";
+import { UserIdCopy } from "../../components/admin/UserIdCopy";
 import { useAdminUserDetail } from "../../hooks/useAdminUserDetail";
 import { useAdminSetUserRole } from "../../hooks/useAdminSetUserRole";
 import { useAdminUserUsageSummary } from "../../hooks/useAdminUserUsageSummary";
@@ -118,6 +119,10 @@ export function UserDetail() {
           label={t("admin.userDetail.gmailConnected")}
           value={detail.has_gmail ? t("common.yes") : t("common.no")}
         />
+      </section>
+
+      <section className="mt-4">
+        <UserIdCopy userId={detail.user_id} />
       </section>
 
       <section className="mt-6 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4">

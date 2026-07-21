@@ -7,6 +7,7 @@ import { AdminDataTable } from "../../components/admin/AdminDataTable";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { RoleBadge } from "../../components/admin/RoleBadge";
 import { StatusBadge } from "../../components/admin/StatusBadge";
+import { UserIdCopy } from "../../components/admin/UserIdCopy";
 import { useAdminUsers } from "../../hooks/useAdminUsers";
 import { AdminInput } from "../../components/admin/AdminInput";
 import type { AdminUserRow } from "../../services/admin.service";
@@ -29,9 +30,12 @@ export function Users() {
       accessorKey: "email",
       header: () => t("admin.users.columns.email"),
       cell: ({ row }) => (
-        <span className="font-medium text-[var(--text-primary)]">
-          {row.original.email ?? "—"}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="font-medium text-[var(--text-primary)]">
+            {row.original.email ?? "—"}
+          </span>
+          <UserIdCopy userId={row.original.user_id} compact />
+        </div>
       ),
     },
     {

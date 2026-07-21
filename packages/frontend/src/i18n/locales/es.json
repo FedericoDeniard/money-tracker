@@ -1361,6 +1361,7 @@
       "description": "Identidad, rol, suscripción y límites de uso efectivos.",
       "email": "Email",
       "name": "Nombre",
+      "userId": "User ID",
       "createdAt": "Creado",
       "gmailConnected": "Gmail conectado",
       "roleSection": "Rol",
