@@ -439,13 +439,17 @@ export type Database = {
           datasetId: string
           datasetVersion: number
           expectedTrajectory: Json | null
+          externalId: string | null
           groundTruth: Json | null
           id: string
           input: Json
           isDeleted: boolean
           metadata: Json | null
+          organizationId: string | null
+          projectId: string | null
           requestContext: Json | null
           source: Json | null
+          toolMocks: Json | null
           updatedAt: string
           updatedAtZ: string | null
           validTo: number | null
@@ -456,13 +460,17 @@ export type Database = {
           datasetId: string
           datasetVersion: number
           expectedTrajectory?: Json | null
+          externalId?: string | null
           groundTruth?: Json | null
           id: string
           input: Json
           isDeleted: boolean
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           requestContext?: Json | null
           source?: Json | null
+          toolMocks?: Json | null
           updatedAt: string
           updatedAtZ?: string | null
           validTo?: number | null
@@ -473,13 +481,17 @@ export type Database = {
           datasetId?: string
           datasetVersion?: number
           expectedTrajectory?: Json | null
+          externalId?: string | null
           groundTruth?: Json | null
           id?: string
           input?: Json
           isDeleted?: boolean
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           requestContext?: Json | null
           source?: Json | null
+          toolMocks?: Json | null
           updatedAt?: string
           updatedAtZ?: string | null
           validTo?: number | null
@@ -512,6 +524,8 @@ export type Database = {
       }
       mastra_datasets: {
         Row: {
+          candidateId: string | null
+          candidateKey: string | null
           createdAt: string
           createdAtZ: string | null
           description: string | null
@@ -520,6 +534,8 @@ export type Database = {
           inputSchema: Json | null
           metadata: Json | null
           name: string
+          organizationId: string | null
+          projectId: string | null
           requestContextSchema: Json | null
           scorerIds: Json | null
           tags: Json | null
@@ -530,6 +546,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          candidateId?: string | null
+          candidateKey?: string | null
           createdAt: string
           createdAtZ?: string | null
           description?: string | null
@@ -538,6 +556,8 @@ export type Database = {
           inputSchema?: Json | null
           metadata?: Json | null
           name: string
+          organizationId?: string | null
+          projectId?: string | null
           requestContextSchema?: Json | null
           scorerIds?: Json | null
           tags?: Json | null
@@ -548,6 +568,8 @@ export type Database = {
           version: number
         }
         Update: {
+          candidateId?: string | null
+          candidateKey?: string | null
           createdAt?: string
           createdAtZ?: string | null
           description?: string | null
@@ -556,6 +578,8 @@ export type Database = {
           inputSchema?: Json | null
           metadata?: Json | null
           name?: string
+          organizationId?: string | null
+          projectId?: string | null
           requestContextSchema?: Json | null
           scorerIds?: Json | null
           tags?: Json | null
@@ -580,12 +604,15 @@ export type Database = {
           input: Json
           itemDatasetVersion: number | null
           itemId: string
+          organizationId: string | null
           output: Json | null
+          projectId: string | null
           retryCount: number
           startedAt: string
           startedAtZ: string | null
           status: string | null
           tags: Json | null
+          toolMockReport: Json | null
           traceId: string | null
         }
         Insert: {
@@ -600,12 +627,15 @@ export type Database = {
           input: Json
           itemDatasetVersion?: number | null
           itemId: string
+          organizationId?: string | null
           output?: Json | null
+          projectId?: string | null
           retryCount: number
           startedAt: string
           startedAtZ?: string | null
           status?: string | null
           tags?: Json | null
+          toolMockReport?: Json | null
           traceId?: string | null
         }
         Update: {
@@ -620,12 +650,15 @@ export type Database = {
           input?: Json
           itemDatasetVersion?: number | null
           itemId?: string
+          organizationId?: string | null
           output?: Json | null
+          projectId?: string | null
           retryCount?: number
           startedAt?: string
           startedAtZ?: string | null
           status?: string | null
           tags?: Json | null
+          toolMockReport?: Json | null
           traceId?: string | null
         }
         Relationships: []
@@ -644,6 +677,8 @@ export type Database = {
           id: string
           metadata: Json | null
           name: string | null
+          organizationId: string | null
+          projectId: string | null
           skippedCount: number
           startedAt: string | null
           startedAtZ: string | null
@@ -668,6 +703,8 @@ export type Database = {
           id: string
           metadata?: Json | null
           name?: string | null
+          organizationId?: string | null
+          projectId?: string | null
           skippedCount: number
           startedAt?: string | null
           startedAtZ?: string | null
@@ -692,6 +729,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           name?: string | null
+          organizationId?: string | null
+          projectId?: string | null
           skippedCount?: number
           startedAt?: string | null
           startedAtZ?: string | null
@@ -1454,6 +1493,8 @@ export type Database = {
           createdAtZ: string | null
           id: string
           metadata: Json | null
+          organizationId: string | null
+          projectId: string | null
           status: string
           updatedAt: string
           updatedAtZ: string | null
@@ -1465,6 +1506,8 @@ export type Database = {
           createdAtZ?: string | null
           id: string
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           status: string
           updatedAt: string
           updatedAtZ?: string | null
@@ -1476,6 +1519,8 @@ export type Database = {
           createdAtZ?: string | null
           id?: string
           metadata?: Json | null
+          organizationId?: string | null
+          projectId?: string | null
           status?: string
           updatedAt?: string
           updatedAtZ?: string | null
@@ -1487,8 +1532,11 @@ export type Database = {
           additionalContext: Json | null
           analyzePrompt: string | null
           analyzeStepResult: Json | null
+          batchId: string | null
           createdAt: string
           createdAtZ: string | null
+          datasetId: string | null
+          datasetItemId: string | null
           entity: Json | null
           entityId: string | null
           entityType: string | null
@@ -1499,9 +1547,11 @@ export type Database = {
           id: string
           input: Json
           metadata: Json | null
+          organizationId: string | null
           output: Json
           preprocessPrompt: string | null
           preprocessStepResult: Json | null
+          projectId: string | null
           reason: string | null
           reasonPrompt: string | null
           requestContext: Json | null
@@ -1521,8 +1571,11 @@ export type Database = {
           additionalContext?: Json | null
           analyzePrompt?: string | null
           analyzeStepResult?: Json | null
+          batchId?: string | null
           createdAt: string
           createdAtZ?: string | null
+          datasetId?: string | null
+          datasetItemId?: string | null
           entity?: Json | null
           entityId?: string | null
           entityType?: string | null
@@ -1533,9 +1586,11 @@ export type Database = {
           id: string
           input: Json
           metadata?: Json | null
+          organizationId?: string | null
           output: Json
           preprocessPrompt?: string | null
           preprocessStepResult?: Json | null
+          projectId?: string | null
           reason?: string | null
           reasonPrompt?: string | null
           requestContext?: Json | null
@@ -1555,8 +1610,11 @@ export type Database = {
           additionalContext?: Json | null
           analyzePrompt?: string | null
           analyzeStepResult?: Json | null
+          batchId?: string | null
           createdAt?: string
           createdAtZ?: string | null
+          datasetId?: string | null
+          datasetItemId?: string | null
           entity?: Json | null
           entityId?: string | null
           entityType?: string | null
@@ -1567,9 +1625,11 @@ export type Database = {
           id?: string
           input?: Json
           metadata?: Json | null
+          organizationId?: string | null
           output?: Json
           preprocessPrompt?: string | null
           preprocessStepResult?: Json | null
+          projectId?: string | null
           reason?: string | null
           reasonPrompt?: string | null
           requestContext?: Json | null
@@ -2326,6 +2386,138 @@ export type Database = {
       }
     }
     Functions: {
+      admin_cancel_subscription: {
+        Args: { p_target_status?: string; p_user_id: string }
+        Returns: string
+      }
+      admin_get_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          active_plan_key: string
+          created_at: string
+          email: string
+          has_gmail: boolean
+          name: string
+          role: Database["public"]["Enums"]["app_role"]
+          sub_status: string
+          sub_updated_at: string
+          user_id: string
+        }[]
+      }
+      admin_list_payment_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          action: string
+          id: number
+          payment_id: number
+          processing_error: string
+          processing_status: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_subscription_id: string
+          received_at: string
+          signature_valid: boolean
+          topic: string
+          user_email: string
+          user_id: string
+        }[]
+      }
+      admin_list_seeds: {
+        Args: { p_limit?: number; p_status?: string }
+        Returns: {
+          created_at: string
+          emails_processed_by_ai: number
+          error_message: string
+          gmail_email: string
+          id: string
+          last_processed_index: number
+          status: string
+          total_emails: number
+          total_skipped: number
+          transactions_found: number
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_oauth_token_id: string
+        }[]
+      }
+      admin_list_subscriptions: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          currency_id: string
+          plan_key: string
+          provider: Database["payments"]["Enums"]["provider_name"]
+          provider_subscription_id: string
+          status: string
+          subscription_id: string
+          transaction_amount: number
+          updated_at: string
+          user_email: string
+          user_id: string
+        }[]
+      }
+      admin_list_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          active_plan_key: string
+          created_at: string
+          email: string
+          name: string
+          role: Database["public"]["Enums"]["app_role"]
+          sub_status: string
+          sub_updated_at: string
+          user_id: string
+        }[]
+      }
+      admin_retry_seed: {
+        Args: { p_seed_id: string }
+        Returns: {
+          connection_id: string
+          seed_id: string
+          user_id: string
+        }[]
+      }
+      admin_set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_stats: { Args: never; Returns: Json }
+      admin_usage_limits: {
+        Args: never
+        Returns: {
+          affected_users: number
+          capability: Database["payments"]["Enums"]["capability"]
+          max_count: number
+          period: Database["payments"]["Enums"]["usage_period"]
+          scope_kind: Database["payments"]["Enums"]["usage_scope_kind"]
+          scope_value: string
+        }[]
+      }
+      admin_usage_top_consumers: {
+        Args: {
+          p_capability: Database["payments"]["Enums"]["capability"]
+          p_limit?: number
+          p_period_start: string
+        }
+        Returns: {
+          count: number
+          user_email: string
+          user_id: string
+        }[]
+      }
+      admin_user_usage_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          capability: Database["payments"]["Enums"]["capability"]
+          current_count: number
+          period: Database["payments"]["Enums"]["usage_period"]
+          resolved_limit: number
+          scope_kind: string
+          scope_value: string
+        }[]
+      }
       check_and_increment_usage: {
         Args: { cap: string; period_kind?: string; target_user_id: string }
         Returns: {
@@ -2348,7 +2540,6 @@ export type Database = {
         | "gmail_sync"
         | "ai_assistant"
         | "push_notifications"
-        | "advanced_reports"
         | "process_documents"
         | "report_pdf_export"
       provider_name: "mercadopago"
@@ -3445,7 +3636,6 @@ export const Constants = {
         "gmail_sync",
         "ai_assistant",
         "push_notifications",
-        "advanced_reports",
         "process_documents",
         "report_pdf_export",
       ],

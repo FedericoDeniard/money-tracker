@@ -19,7 +19,9 @@
     "note": "Note",
     "refresh": "Refresh",
     "open": "Open",
-    "edit": "Edit"
+    "edit": "Edit",
+    "yes": "Yes",
+    "no": "No"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -31,7 +33,8 @@
     "logout": "Logout",
     "home": "Home",
     "emails": "Emails",
-    "reports": "Reports"
+    "reports": "Reports",
+    "admin": "Admin"
   },
   "auth": {
     "login": "Login",
@@ -1315,6 +1318,130 @@
       "canceling": "Cancelling update…",
       "error": "Could not update the transaction",
       "tagsUnchanged": "No tag changes"
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Manage users, subscriptions and platform usage",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "subscriptions": "Subscriptions",
+      "payments": "Payments",
+      "seeds": "Seeds",
+      "usageLimits": "Usage limits"
+    },
+    "stats": {
+      "mrr": "Monthly recurring revenue",
+      "mrrHint": "Sum of active subscription amounts, per provider+currency",
+      "activeSubs": "Active subscriptions",
+      "activeSubsHint": "Distinct users with at least one active subscription",
+      "churn30d": "Churn (30d)",
+      "churnHint": "{{count}} cancelled in the last 30 days",
+      "generatedAt": "Last updated",
+      "noData": "Not enough data yet"
+    },
+    "users": {
+      "title": "Users",
+      "description": "Every account on the platform with their role and current subscription.",
+      "empty": "No users match this search.",
+      "searchPlaceholder": "Search by email or name…",
+      "columns": {
+        "email": "Email",
+        "name": "Name",
+        "role": "Role",
+        "plan": "Plan",
+        "status": "Status",
+        "createdAt": "Created"
+      }
+    },
+    "userDetail": {
+      "notFound": "User not found.",
+      "backToUsers": "Back to users",
+      "description": "Identity, role, subscription and effective usage limits.",
+      "email": "Email",
+      "name": "Name",
+      "userId": "User ID",
+      "createdAt": "Created",
+      "gmailConnected": "Gmail connected",
+      "roleSection": "Role",
+      "roleSaving": "Saving…",
+      "activePlan": "Active plan",
+      "subStatus": "Subscription",
+      "subUpdated": "Last subscription update",
+      "usageTitle": "Effective usage limits",
+      "usageEmpty": "No usage counters for this user yet."
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "description": "All subscriptions across the platform with cancel-on-behalf.",
+      "empty": "No subscriptions match this filter.",
+      "columns": {
+        "user": "User",
+        "plan": "Plan",
+        "provider": "Provider",
+        "amount": "Amount",
+        "status": "Status",
+        "updated": "Updated"
+      },
+      "cancel": "Cancel"
+    },
+    "payments": {
+      "title": "Recent payments",
+      "description": "Latest MercadoPago webhook deliveries with a payment_id.",
+      "empty": "No payment events recorded yet.",
+      "rawWarning": "Provider bodies can contain PII. Raw payloads are not shown by default.",
+      "columns": {
+        "received": "Received",
+        "user": "User",
+        "paymentId": "Payment",
+        "topic": "Topic",
+        "action": "Action",
+        "signature": "Signature",
+        "processing": "Processing"
+      },
+      "signatureOk": "valid",
+      "signatureBad": "invalid"
+    },
+    "seeds": {
+      "title": "Seed jobs",
+      "description": "All Gmail import jobs across the platform. Failed seeds can be retried.",
+      "empty": "No seed jobs recorded yet.",
+      "columns": {
+        "user": "User",
+        "gmail": "Gmail",
+        "status": "Status",
+        "progress": "Found / total",
+        "updated": "Updated"
+      },
+      "retry": "Retry"
+    },
+    "usageLimits": {
+      "title": "Usage limits",
+      "description": "Inspect the three usage_limits tables, top consumers and effective limits per user.",
+      "configuredTitle": "Configured limits",
+      "configuredHint": "Union of usage_limits_role, usage_limits_plan and usage_limits_default with the number of users each row affects.",
+      "topConsumersTitle": "Top consumers this month",
+      "topConsumersEmpty": "No usage recorded yet this period.",
+      "userLookupTitle": "Resolve effective limit for a user",
+      "userLookupHint": "Paste a user_id (UUID) to see their effective monthly limit per capability.",
+      "userLookupPlaceholder": "User ID (UUID)",
+      "userLookupEmpty": "No usage counters for this user yet.",
+      "userLookupInactive": "Enter a user_id above to inspect their effective limits.",
+      "empty": "No usage limits configured.",
+      "columns": {
+        "capability": "Capability",
+        "scope": "Scope",
+        "period": "Period",
+        "maxCount": "Max",
+        "currentCount": "Used",
+        "affectedUsers": "Affected users",
+        "user": "User"
+      }
+    },
+    "errors": {
+      "adminOnly": "Admin access required",
+      "loadFailed": "Failed to load admin data"
     }
   }
 }

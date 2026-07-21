@@ -41,7 +41,7 @@ export function SeedEmailsModal({
       title={t("settings.seedEmailsTitle") || "¡Importa tus facturas!"}
       confirmText={t("settings.seedStart") || "Sí, importar"}
       cancelText={t("settings.seedSkip") || "Ahora no"}
-      isPending={isPending}
+      isLoading={isPending}
     >
       <div className="space-y-4">
         {isPending && (

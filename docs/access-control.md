@@ -372,6 +372,49 @@ capability gate (a different concern). Integration coverage lives in
 `delete from payments.usage_counters where period_start < now() - interval '3 months'`
 keeps the table bounded. Out of scope for this PR.
 
+## Route-level admin gating (`/admin/*`)
+
+The admin panel lives inside the existing frontend SPA at `/admin/*` and
+gates on the same `user_role` JWT claim as the rest of the access
+control story. Implementation contract:
+
+- **Route guard.** `<AdminRoute>` in
+  `packages/frontend/src/routes/index.tsx` checks `useAuth().role` and
+  redirects non-admins to `/dashboard` and unauthenticated users to
+  `/login`. The guard is the only thing standing between a non-admin
+  and an admin RPC — every RPC under the `payments.admin_*` family
+  enforces the same check server-side (SECURITY DEFINER with an inline
+  guard) so a stale token or a direct postgrest call cannot bypass it.
+- **Sidebar link.** `Sidebar.tsx` only injects the `Admin` link when
+  `role === "admin"`. The link is not in the static `links` array so
+  it cannot leak via a stale translation file or a cache hit.
+- **RPCs.** `payments.admin_list_users`, `payments.admin_get_user`,
+  `payments.admin_set_user_role`, `payments.admin_list_subscriptions`,
+  `payments.admin_cancel_subscription`, `payments.admin_list_payment_events`,
+  `payments.admin_list_seeds`, `payments.admin_retry_seed`,
+  `payments.admin_stats`, `payments.admin_usage_limits`,
+  `payments.admin_user_usage_summary`, `payments.admin_usage_top_consumers`.
+  Every one starts with the same admin guard — raise a `42501` if the
+  caller does not have `role = 'admin'` in `public.user_roles`. The
+  guard is intentionally duplicated per function (not extracted into a
+  helper) so each function is self-contained and reviewable; the
+  duplication is the security boundary.
+- **Mutations.** `admin_set_user_role` blocks self-edits
+  (`p_user_id = auth.uid()` raises `42501`). `admin_cancel_subscription`
+  updates the local `payments.subscriptions.status` to
+  `cancelled | paused | pending_cancellation`; the provider-side
+  reconciliation is the `payments-webhook` job — this is best-effort UX
+  for the panel, not a substitute for the webhook.
+- **Seed retry.** `admin_retry_seed` resets a `failed`/`completed`
+  seed row to `pending` and returns `(seed_id, connection_id, user_id)`.
+  The frontend then calls `mastra-server /api/seed-emails` with the
+  connection id to actually re-run the processor.
+
+The `payments.admin_*` family is intentionally not added to
+`FEATURES` — that map is for role-gated _edge functions_, and the admin
+panel is a route-level concern (not an edge function call site). Keep
+the FEATURES map focused on the back end.
+
 ## Related references
 
 - `supabase/functions/_shared/auth.ts` — `requireMinRole`,
@@ -395,3 +438,11 @@ keeps the table bounded. Out of scope for this PR.
   `payments.capability` enum + table.
 - `supabase/migrations/20260705031217_add_user_capabilities_to_jwt.sql`
   — JWT hook extension for `user_capabilities`.
+- `supabase/migrations/20260720234327_add_admin_rpcs.sql` — the
+  `payments.admin_*` family + the route-level admin gating contract.
+- `packages/frontend/src/services/admin.service.ts` — typed RPC
+  wrappers for the `admin_*` family.
+- `packages/frontend/src/components/admin/AdminShell.tsx` — tabs +
+  page-header for every admin page.
+- `packages/frontend/src/routes/index.tsx` — `<AdminRoute>` guard
+  (reads `useAuth().role`, redirects non-admins).

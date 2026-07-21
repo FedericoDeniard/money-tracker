@@ -63,6 +63,31 @@ const PrivacyPolicy = lazy(() =>
   import("../pages/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy }))
 );
 
+// Admin pages
+const AdminIndex = lazy(() =>
+  import("../pages/admin/AdminIndex").then(m => ({ default: m.AdminIndex }))
+);
+const AdminUsers = lazy(() =>
+  import("../pages/admin/Users").then(m => ({ default: m.Users }))
+);
+const AdminUserDetail = lazy(() =>
+  import("../pages/admin/UserDetail").then(m => ({ default: m.UserDetail }))
+);
+const AdminSubscriptions = lazy(() =>
+  import("../pages/admin/Subscriptions").then(m => ({
+    default: m.Subscriptions,
+  }))
+);
+const AdminPayments = lazy(() =>
+  import("../pages/admin/Payments").then(m => ({ default: m.Payments }))
+);
+const AdminSeeds = lazy(() =>
+  import("../pages/admin/Seeds").then(m => ({ default: m.Seeds }))
+);
+const AdminUsageLimits = lazy(() =>
+  import("../pages/admin/UsageLimits").then(m => ({ default: m.UsageLimits }))
+);
+
 const chunkFallback = <SuspenseFallbackPage />;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -95,6 +120,36 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * Gate for `/admin/*` routes. Reads the `user_role` JWT claim injected by
+ * `public.custom_access_token_hook`. The role is authoritative — every
+ * `payments.admin_*` RPC enforces the same guard server-side, so this
+ * wrapper is defense in depth (and gives non-admins a clean redirect
+ * instead of a 401 from postgrest). See docs/access-control.md for the
+ * full access-control matrix.
+ */
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, role } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -274,6 +329,79 @@ export function AppRoutes() {
               <Suspense fallback={chunkFallback}>
                 <ReportDetail />
               </Suspense>
+            }
+          />
+
+          {/* Admin routes — gated by AdminRoute on the JWT user_role claim.
+              Sidebar only links here when role==='admin' (see Sidebar.tsx). */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminIndex />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminUsers />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users/:userId"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminUserDetail />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/subscriptions"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminSubscriptions />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/payments"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminPayments />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/seeds"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminSeeds />
+                </Suspense>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/usage-limits"
+            element={
+              <AdminRoute>
+                <Suspense fallback={chunkFallback}>
+                  <AdminUsageLimits />
+                </Suspense>
+              </AdminRoute>
             }
           />
         </Route>

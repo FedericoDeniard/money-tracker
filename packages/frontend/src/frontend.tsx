@@ -9,6 +9,9 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import { App } from "./App";
 
+document.title =
+  process.env.NODE_ENV === "production" ? "Receiptle" : "Receiptle - Dev";
+
 if (process.env.NODE_ENV !== "production") {
   import("react-grab");
 }

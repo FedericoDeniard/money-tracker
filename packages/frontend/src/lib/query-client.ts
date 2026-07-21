@@ -124,4 +124,36 @@ export const queryKeys = {
     transactions: (id: string) =>
       [...queryKeys.reports.detail(id), "transactions"] as const,
   },
+  admin: {
+    all: ["admin"] as const,
+    users: (params: { search?: string; limit: number; offset: number }) =>
+      [...queryKeys.admin.all, "users", params] as const,
+    userDetail: (userId: string) =>
+      [...queryKeys.admin.all, "user-detail", userId] as const,
+    subscriptions: (params: {
+      status?: string;
+      limit: number;
+      offset: number;
+    }) => [...queryKeys.admin.all, "subscriptions", params] as const,
+    paymentEvents: (limit: number) =>
+      [...queryKeys.admin.all, "payment-events", limit] as const,
+    seeds: (params: { status?: string; limit: number }) =>
+      [...queryKeys.admin.all, "seeds", params] as const,
+    stats: () => [...queryKeys.admin.all, "stats"] as const,
+    usageLimits: () => [...queryKeys.admin.all, "usage-limits"] as const,
+    userUsageSummary: (userId: string) =>
+      [...queryKeys.admin.all, "user-usage-summary", userId] as const,
+    usageTopConsumers: (params: {
+      capability: string;
+      periodStart: string;
+      limit: number;
+    }) =>
+      [
+        ...queryKeys.admin.all,
+        "usage-top-consumers",
+        params.capability,
+        params.periodStart,
+        params.limit,
+      ] as const,
+  },
 } as const;
