@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
-import { AdminTable } from "../../components/admin/AdminTable";
+import { AdminDataTable } from "../../components/admin/AdminDataTable";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { useAdminSubscriptions } from "../../hooks/useAdminSubscriptions";
@@ -31,6 +32,73 @@ export function Subscriptions() {
 
   const cancel = useAdminCancelSubscription();
 
+  const columns: ColumnDef<AdminSubscriptionRow>[] = [
+    {
+      id: "user",
+      header: () => t("admin.subscriptions.columns.user"),
+      cell: ({ row }) => row.original.user_email ?? row.original.user_id ?? "—",
+    },
+    {
+      id: "plan",
+      header: () => t("admin.subscriptions.columns.plan"),
+      cell: ({ row }) => row.original.plan_key ?? "—",
+    },
+    {
+      id: "provider",
+      header: () => t("admin.subscriptions.columns.provider"),
+      cell: ({ row }) => row.original.provider,
+    },
+    {
+      id: "amount",
+      header: () => t("admin.subscriptions.columns.amount"),
+      cell: ({ row }) =>
+        row.original.transaction_amount != null && row.original.currency_id
+          ? `${row.original.currency_id} ${row.original.transaction_amount.toLocaleString()}`
+          : "—",
+      meta: { align: "right" },
+    },
+    {
+      id: "status",
+      header: () => t("admin.subscriptions.columns.status"),
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      id: "updated",
+      header: () => t("admin.subscriptions.columns.updated"),
+      cell: ({ row }) =>
+        row.original.updated_at
+          ? formatDateSafe(row.original.updated_at, i18n.language)
+          : "—",
+    },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      cell: ({ row }) => {
+        if (!row.original.user_id) return null;
+        const isTerminal =
+          row.original.status === "cancelled" ||
+          row.original.status === "completed";
+        if (isTerminal) return null;
+        return (
+          <Button
+            variant="danger"
+            size="sm"
+            loading={cancel.isPending}
+            onClick={() => {
+              cancel.mutate({
+                userId: row.original.user_id as string,
+                targetStatus: "pending_cancellation",
+              });
+            }}
+          >
+            {t("admin.subscriptions.cancel")}
+          </Button>
+        );
+      },
+    },
+  ];
+
   return (
     <AdminShell>
       <PageHeader
@@ -51,78 +119,13 @@ export function Subscriptions() {
       />
 
       <div className="mt-4">
-        <AdminTable
+        <AdminDataTable
           loading={subsQuery.isLoading}
           error={subsQuery.error as Error | null}
           emptyMessage={t("admin.subscriptions.empty")}
           rows={subsQuery.data ?? []}
           rowKey={row => row.subscription_id}
-          columns={[
-            {
-              key: "email",
-              label: t("admin.subscriptions.columns.user"),
-              render: (row: AdminSubscriptionRow) =>
-                row.user_email ?? row.user_id ?? "—",
-            },
-            {
-              key: "plan",
-              label: t("admin.subscriptions.columns.plan"),
-              render: row => row.plan_key ?? "—",
-            },
-            {
-              key: "provider",
-              label: t("admin.subscriptions.columns.provider"),
-              render: row => row.provider,
-            },
-            {
-              key: "amount",
-              label: t("admin.subscriptions.columns.amount"),
-              render: row =>
-                row.transaction_amount != null && row.currency_id
-                  ? `${row.currency_id} ${row.transaction_amount.toLocaleString()}`
-                  : "—",
-              className: "text-right tabular-nums",
-            },
-            {
-              key: "status",
-              label: t("admin.subscriptions.columns.status"),
-              render: row => <StatusBadge status={row.status} />,
-            },
-            {
-              key: "updated",
-              label: t("admin.subscriptions.columns.updated"),
-              render: row =>
-                row.updated_at
-                  ? formatDateSafe(row.updated_at, i18n.language)
-                  : "—",
-            },
-            {
-              key: "actions",
-              label: "",
-              className: "text-right",
-              render: row => {
-                if (!row.user_id) return null;
-                const isTerminal =
-                  row.status === "cancelled" || row.status === "completed";
-                if (isTerminal) return null;
-                return (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    loading={cancel.isPending}
-                    onClick={() => {
-                      cancel.mutate({
-                        userId: row.user_id as string,
-                        targetStatus: "pending_cancellation",
-                      });
-                    }}
-                  >
-                    {t("admin.subscriptions.cancel")}
-                  </Button>
-                );
-              },
-            },
-          ]}
+          columns={columns}
         />
       </div>
     </AdminShell>

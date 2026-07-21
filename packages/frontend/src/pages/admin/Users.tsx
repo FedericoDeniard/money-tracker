@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
-import { AdminTable } from "../../components/admin/AdminTable";
+import { AdminDataTable } from "../../components/admin/AdminDataTable";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { RoleBadge } from "../../components/admin/RoleBadge";
 import { StatusBadge } from "../../components/admin/StatusBadge";
@@ -21,6 +22,46 @@ export function Users() {
     search: debouncedSearch || undefined,
     page: 0,
   });
+
+  const columns: ColumnDef<AdminUserRow>[] = [
+    {
+      id: "email",
+      header: () => t("admin.users.columns.email"),
+      cell: ({ row }) => (
+        <span className="font-medium text-[var(--text-primary)]">
+          {row.original.email ?? "—"}
+        </span>
+      ),
+    },
+    {
+      id: "name",
+      header: () => t("admin.users.columns.name"),
+      cell: ({ row }) => row.original.name ?? "—",
+    },
+    {
+      id: "role",
+      header: () => t("admin.users.columns.role"),
+      cell: ({ row }) => <RoleBadge role={row.original.role} />,
+    },
+    {
+      id: "plan",
+      header: () => t("admin.users.columns.plan"),
+      cell: ({ row }) => row.original.active_plan_key ?? "—",
+    },
+    {
+      id: "status",
+      header: () => t("admin.users.columns.status"),
+      cell: ({ row }) => <StatusBadge status={row.original.sub_status} />,
+    },
+    {
+      id: "created",
+      header: () => t("admin.users.columns.createdAt"),
+      cell: ({ row }) =>
+        row.original.created_at
+          ? formatDateSafe(row.original.created_at, i18n.language)
+          : "—",
+    },
+  ];
 
   return (
     <AdminShell>
@@ -46,54 +87,14 @@ export function Users() {
       />
 
       <div className="mt-4">
-        <AdminTable
+        <AdminDataTable
           loading={usersQuery.isLoading}
           error={usersQuery.error as Error | null}
           emptyMessage={t("admin.users.empty")}
           rows={usersQuery.data ?? []}
           rowKey={row => row.user_id}
           onRowClick={row => navigate(`/admin/users/${row.user_id}`)}
-          columns={[
-            {
-              key: "email",
-              label: t("admin.users.columns.email"),
-              render: (row: AdminUserRow) => (
-                <span className="font-medium text-[var(--text-primary)]">
-                  {row.email ?? "—"}
-                </span>
-              ),
-            },
-            {
-              key: "name",
-              label: t("admin.users.columns.name"),
-              render: (row: AdminUserRow) => row.name ?? "—",
-            },
-            {
-              key: "role",
-              label: t("admin.users.columns.role"),
-              render: (row: AdminUserRow) => <RoleBadge role={row.role} />,
-            },
-            {
-              key: "plan",
-              label: t("admin.users.columns.plan"),
-              render: (row: AdminUserRow) => row.active_plan_key ?? "—",
-            },
-            {
-              key: "status",
-              label: t("admin.users.columns.status"),
-              render: (row: AdminUserRow) => (
-                <StatusBadge status={row.sub_status} />
-              ),
-            },
-            {
-              key: "created",
-              label: t("admin.users.columns.createdAt"),
-              render: (row: AdminUserRow) =>
-                row.created_at
-                  ? formatDateSafe(row.created_at, i18n.language)
-                  : "—",
-            },
-          ]}
+          columns={columns}
         />
       </div>
     </AdminShell>

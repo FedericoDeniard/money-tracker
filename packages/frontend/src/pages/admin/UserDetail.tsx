@@ -1,12 +1,13 @@
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowLeft } from "lucide-react";
 import { AdminShell } from "../../components/admin/AdminShell";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { RoleBadge } from "../../components/admin/RoleBadge";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { ScopeBadge } from "../../components/admin/ScopeBadge";
-import { AdminTable } from "../../components/admin/AdminTable";
+import { AdminDataTable } from "../../components/admin/AdminDataTable";
 import { useAdminUserDetail } from "../../hooks/useAdminUserDetail";
 import { useAdminSetUserRole } from "../../hooks/useAdminSetUserRole";
 import { useAdminUserUsageSummary } from "../../hooks/useAdminUserUsageSummary";
@@ -19,6 +20,39 @@ import type {
 import { formatDateSafe } from "../../utils/format";
 
 const ROLES: AppRole[] = ["user", "tester", "admin"];
+
+const usageColumns: ColumnDef<AdminUserUsageSummaryRow>[] = [
+  {
+    id: "capability",
+    header: () => "Capability",
+    cell: ({ row }) => row.original.capability,
+  },
+  {
+    id: "period",
+    header: () => "Period",
+    cell: ({ row }) => row.original.period,
+  },
+  {
+    id: "scope",
+    header: () => "Scope",
+    cell: ({ row }) => (
+      <ScopeBadge
+        scope={row.original.scope_kind as never}
+        value={row.original.scope_value}
+      />
+    ),
+  },
+  {
+    id: "limit",
+    header: () => "Max",
+    cell: ({ row }) => row.original.resolved_limit.toLocaleString(),
+  },
+  {
+    id: "used",
+    header: () => "Used",
+    cell: ({ row }) => row.original.current_count.toLocaleString(),
+  },
+];
 
 export function UserDetail() {
   const { userId } = useParams<{ userId: string }>();
@@ -140,48 +174,13 @@ export function UserDetail() {
         <h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
           {t("admin.userDetail.usageTitle")}
         </h3>
-        <AdminTable
+        <AdminDataTable
           loading={usageQuery.isLoading}
           error={usageQuery.error as Error | null}
           emptyMessage={t("admin.userDetail.usageEmpty")}
           rows={usage}
-          rowKey={(row: AdminUserUsageSummaryRow) =>
-            `${row.capability}-${row.period}`
-          }
-          columns={[
-            {
-              key: "capability",
-              label: t("admin.usageLimits.columns.capability"),
-              render: row => row.capability,
-            },
-            {
-              key: "period",
-              label: t("admin.usageLimits.columns.period"),
-              render: row => row.period,
-            },
-            {
-              key: "scope",
-              label: t("admin.usageLimits.columns.scope"),
-              render: row => (
-                <ScopeBadge
-                  scope={row.scope_kind as never}
-                  value={row.scope_value}
-                />
-              ),
-            },
-            {
-              key: "limit",
-              label: t("admin.usageLimits.columns.maxCount"),
-              render: row => row.resolved_limit.toLocaleString(),
-              className: "text-right tabular-nums",
-            },
-            {
-              key: "used",
-              label: t("admin.usageLimits.columns.currentCount"),
-              render: row => row.current_count.toLocaleString(),
-              className: "text-right tabular-nums",
-            },
-          ]}
+          rowKey={row => `${row.capability}-${row.period}`}
+          columns={usageColumns}
         />
       </section>
 

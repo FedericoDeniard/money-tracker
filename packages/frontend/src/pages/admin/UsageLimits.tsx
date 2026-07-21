@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
-import { AdminTable } from "../../components/admin/AdminTable";
+import { AdminDataTable } from "../../components/admin/AdminDataTable";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { ScopeBadge } from "../../components/admin/ScopeBadge";
 import { useAdminUsageLimits } from "../../hooks/useAdminUsageLimits";
@@ -52,6 +53,85 @@ export function UsageLimits() {
   const userSummary = userSummaryQuery.data ?? [];
   const topConsumers = topConsumersQuery.data ?? [];
 
+  const limitsColumns: ColumnDef<AdminUsageLimitRow>[] = [
+    {
+      id: "capability",
+      header: () => t("admin.usageLimits.columns.capability"),
+      cell: ({ row }) => row.original.capability,
+    },
+    {
+      id: "scope",
+      header: () => t("admin.usageLimits.columns.scope"),
+      cell: ({ row }) => (
+        <ScopeBadge
+          scope={row.original.scope_kind}
+          value={row.original.scope_value}
+        />
+      ),
+    },
+    {
+      id: "period",
+      header: () => t("admin.usageLimits.columns.period"),
+      cell: ({ row }) => row.original.period,
+    },
+    {
+      id: "max",
+      header: () => t("admin.usageLimits.columns.maxCount"),
+      cell: ({ row }) => row.original.max_count.toLocaleString(),
+    },
+    {
+      id: "affected",
+      header: () => t("admin.usageLimits.columns.affectedUsers"),
+      cell: ({ row }) => row.original.affected_users.toLocaleString(),
+    },
+  ];
+
+  const topConsumersColumns: ColumnDef<AdminTopConsumerRow>[] = [
+    {
+      id: "user",
+      header: () => t("admin.usageLimits.columns.user"),
+      cell: ({ row }) => row.original.user_email ?? row.original.user_id,
+    },
+    {
+      id: "count",
+      header: () => t("admin.usageLimits.columns.currentCount"),
+      cell: ({ row }) => row.original.count.toLocaleString(),
+    },
+  ];
+
+  const userSummaryColumns: ColumnDef<AdminUserUsageSummaryRow>[] = [
+    {
+      id: "capability",
+      header: () => t("admin.usageLimits.columns.capability"),
+      cell: ({ row }) => row.original.capability,
+    },
+    {
+      id: "scope",
+      header: () => t("admin.usageLimits.columns.scope"),
+      cell: ({ row }) => (
+        <ScopeBadge
+          scope={row.original.scope_kind as never}
+          value={row.original.scope_value}
+        />
+      ),
+    },
+    {
+      id: "period",
+      header: () => t("admin.usageLimits.columns.period"),
+      cell: ({ row }) => row.original.period,
+    },
+    {
+      id: "limit",
+      header: () => t("admin.usageLimits.columns.maxCount"),
+      cell: ({ row }) => row.original.resolved_limit.toLocaleString(),
+    },
+    {
+      id: "used",
+      header: () => t("admin.usageLimits.columns.currentCount"),
+      cell: ({ row }) => row.original.current_count.toLocaleString(),
+    },
+  ];
+
   return (
     <AdminShell>
       <PageHeader
@@ -66,45 +146,15 @@ export function UsageLimits() {
         <p className="mb-3 text-xs text-[var(--text-secondary)]">
           {t("admin.usageLimits.configuredHint")}
         </p>
-        <AdminTable
+        <AdminDataTable
           loading={limitsQuery.isLoading}
           error={limitsQuery.error as Error | null}
           emptyMessage={t("admin.usageLimits.empty")}
           rows={limits}
-          rowKey={(row: AdminUsageLimitRow) =>
+          rowKey={row =>
             `${row.capability}-${row.scope_kind}-${row.scope_value ?? "default"}-${row.period}`
           }
-          columns={[
-            {
-              key: "capability",
-              label: t("admin.usageLimits.columns.capability"),
-              render: row => row.capability,
-            },
-            {
-              key: "scope",
-              label: t("admin.usageLimits.columns.scope"),
-              render: row => (
-                <ScopeBadge scope={row.scope_kind} value={row.scope_value} />
-              ),
-            },
-            {
-              key: "period",
-              label: t("admin.usageLimits.columns.period"),
-              render: row => row.period,
-            },
-            {
-              key: "max",
-              label: t("admin.usageLimits.columns.maxCount"),
-              render: row => row.max_count.toLocaleString(),
-              className: "text-right tabular-nums",
-            },
-            {
-              key: "affected",
-              label: t("admin.usageLimits.columns.affectedUsers"),
-              render: row => row.affected_users.toLocaleString(),
-              className: "text-right tabular-nums",
-            },
-          ]}
+          columns={limitsColumns}
         />
       </section>
 
@@ -125,25 +175,13 @@ export function UsageLimits() {
             ))}
           </AdminSelect>
         </div>
-        <AdminTable
+        <AdminDataTable
           loading={topConsumersQuery.isLoading}
           error={topConsumersQuery.error as Error | null}
           emptyMessage={t("admin.usageLimits.topConsumersEmpty")}
           rows={topConsumers}
-          rowKey={(row: AdminTopConsumerRow) => row.user_id}
-          columns={[
-            {
-              key: "user",
-              label: t("admin.usageLimits.columns.user"),
-              render: row => row.user_email ?? row.user_id,
-            },
-            {
-              key: "count",
-              label: t("admin.usageLimits.columns.currentCount"),
-              render: row => row.count.toLocaleString(),
-              className: "text-right tabular-nums",
-            },
-          ]}
+          rowKey={row => row.user_id}
+          columns={topConsumersColumns}
         />
       </section>
 
@@ -171,7 +209,7 @@ export function UsageLimits() {
           />
         </form>
         <div className="mt-4">
-          <AdminTable
+          <AdminDataTable
             loading={userSummaryQuery.isLoading}
             error={userSummaryQuery.error as Error | null}
             emptyMessage={
@@ -180,43 +218,8 @@ export function UsageLimits() {
                 : t("admin.usageLimits.userLookupInactive")
             }
             rows={userSummary}
-            rowKey={(row: AdminUserUsageSummaryRow) =>
-              `${row.capability}-${row.period}`
-            }
-            columns={[
-              {
-                key: "capability",
-                label: t("admin.usageLimits.columns.capability"),
-                render: row => row.capability,
-              },
-              {
-                key: "scope",
-                label: t("admin.usageLimits.columns.scope"),
-                render: row => (
-                  <ScopeBadge
-                    scope={row.scope_kind as never}
-                    value={row.scope_value}
-                  />
-                ),
-              },
-              {
-                key: "period",
-                label: t("admin.usageLimits.columns.period"),
-                render: row => row.period,
-              },
-              {
-                key: "limit",
-                label: t("admin.usageLimits.columns.maxCount"),
-                render: row => row.resolved_limit.toLocaleString(),
-                className: "text-right tabular-nums",
-              },
-              {
-                key: "used",
-                label: t("admin.usageLimits.columns.currentCount"),
-                render: row => row.current_count.toLocaleString(),
-                className: "text-right tabular-nums",
-              },
-            ]}
+            rowKey={row => `${row.capability}-${row.period}`}
+            columns={userSummaryColumns}
           />
         </div>
       </section>
