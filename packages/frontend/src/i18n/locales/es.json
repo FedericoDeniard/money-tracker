@@ -1357,7 +1357,6 @@
         "name": "Nombre",
         "role": "Rol",
         "plan": "Plan",
-        "status": "Estado",
         "createdAt": "Creado"
       }
     },

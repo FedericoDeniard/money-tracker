@@ -7,7 +7,6 @@ import { AdminDataTable } from "../../components/admin/AdminDataTable";
 import { AdminPagination } from "../../components/admin/AdminPagination";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { RoleBadge } from "../../components/admin/RoleBadge";
-import { StatusBadge } from "../../components/admin/StatusBadge";
 import { UserIdCopy } from "../../components/admin/UserIdCopy";
 import { useAdminUsers, useAdminUsersCount } from "../../hooks/useAdminUsers";
 import { AdminInput } from "../../components/admin/AdminInput";
@@ -60,12 +59,6 @@ export function Users() {
       accessorKey: "active_plan_key",
       header: () => t("admin.users.columns.plan"),
       cell: ({ row }) => row.original.active_plan_key ?? "—",
-    },
-    {
-      id: "status",
-      accessorKey: "sub_status",
-      header: () => t("admin.users.columns.status"),
-      cell: ({ row }) => <StatusBadge status={row.original.sub_status} />,
     },
     {
       id: "created",
