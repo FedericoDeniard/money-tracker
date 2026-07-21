@@ -6,13 +6,7 @@ import { PageHeader } from "../../components/admin/PageHeader";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { useAdminSubscriptions } from "../../hooks/useAdminSubscriptions";
 import { useAdminCancelSubscription } from "../../hooks/useAdminCancelSubscription";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/shadcn/select";
+import { AdminSelect } from "../../components/admin/AdminSelect";
 import { Button } from "../../components/ui/Button";
 import type { AdminSubscriptionRow } from "../../services/admin.service";
 import { formatDateSafe } from "../../utils/format";
@@ -43,18 +37,16 @@ export function Subscriptions() {
         title={t("admin.subscriptions.title")}
         description={t("admin.subscriptions.description")}
         actions={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AdminSelect
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+          >
+            {STATUS_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </AdminSelect>
         }
       />
 

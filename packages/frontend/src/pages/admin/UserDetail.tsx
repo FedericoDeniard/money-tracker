@@ -10,13 +10,7 @@ import { AdminTable } from "../../components/admin/AdminTable";
 import { useAdminUserDetail } from "../../hooks/useAdminUserDetail";
 import { useAdminSetUserRole } from "../../hooks/useAdminSetUserRole";
 import { useAdminUserUsageSummary } from "../../hooks/useAdminUserUsageSummary";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/shadcn/select";
+import { AdminSelect } from "../../components/admin/AdminSelect";
 import { Button } from "../../components/ui/Button";
 import type {
   AdminUserUsageSummaryRow,
@@ -93,27 +87,23 @@ export function UserDetail() {
         </h3>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
           <RoleBadge role={detail.role} />
-          <Select
+          <AdminSelect
             value={detail.role ?? "user"}
-            onValueChange={value => {
+            onChange={e => {
               setRole.mutate({
                 userId: detail.user_id,
-                role: value as AppRole,
+                role: e.target.value as AppRole,
               });
             }}
             disabled={setRole.isPending}
+            className="w-40"
           >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ROLES.map(r => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {ROLES.map(r => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </AdminSelect>
           {setRole.isPending ? (
             <span className="text-xs text-[var(--text-secondary)]">
               {t("admin.userDetail.roleSaving")}

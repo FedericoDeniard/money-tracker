@@ -7,7 +7,7 @@ import { PageHeader } from "../../components/admin/PageHeader";
 import { RoleBadge } from "../../components/admin/RoleBadge";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { useAdminUsers } from "../../hooks/useAdminUsers";
-import { Input } from "../../components/ui/shadcn/input";
+import { AdminInput } from "../../components/admin/AdminInput";
 import type { AdminUserRow } from "../../services/admin.service";
 import { formatDateSafe } from "../../utils/format";
 
@@ -28,7 +28,7 @@ export function Users() {
         title={t("admin.users.title")}
         description={t("admin.users.description")}
         actions={
-          <Input
+          <AdminInput
             placeholder={t("admin.users.searchPlaceholder")}
             value={search}
             onChange={e => {

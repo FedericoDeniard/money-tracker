@@ -7,14 +7,8 @@ import { ScopeBadge } from "../../components/admin/ScopeBadge";
 import { useAdminUsageLimits } from "../../hooks/useAdminUsageLimits";
 import { useAdminUserUsageSummary } from "../../hooks/useAdminUserUsageSummary";
 import { useAdminTopConsumers } from "../../hooks/useAdminTopConsumers";
-import { Input } from "../../components/ui/shadcn/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/shadcn/select";
+import { AdminInput } from "../../components/admin/AdminInput";
+import { AdminSelect } from "../../components/admin/AdminSelect";
 import type {
   AdminTopConsumerRow,
   AdminUsageLimitRow,
@@ -119,21 +113,17 @@ export function UsageLimits() {
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">
             {t("admin.usageLimits.topConsumersTitle")}
           </h3>
-          <Select
+          <AdminSelect
             value={topCapability}
-            onValueChange={value => setTopCapability(value as Capability)}
+            onChange={e => setTopCapability(e.target.value as Capability)}
+            className="w-56"
           >
-            <SelectTrigger className="w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CAPABILITIES.map(cap => (
-                <SelectItem key={cap} value={cap}>
-                  {cap}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {CAPABILITIES.map(cap => (
+              <option key={cap} value={cap}>
+                {cap}
+              </option>
+            ))}
+          </AdminSelect>
         </div>
         <AdminTable
           loading={topConsumersQuery.isLoading}
@@ -173,7 +163,7 @@ export function UsageLimits() {
           }}
           className="flex flex-col gap-2 sm:flex-row sm:items-center"
         >
-          <Input
+          <AdminInput
             placeholder={t("admin.usageLimits.userLookupPlaceholder")}
             value={userLookupId}
             onChange={e => setUserLookupId(e.target.value)}
