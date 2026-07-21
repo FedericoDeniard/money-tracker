@@ -8,8 +8,6 @@ import { AdminSelect } from "../../components/admin/AdminSelect";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { useAdminSeeds, useAdminSeedsCount } from "../../hooks/useAdminSeeds";
-import { useAdminRetrySeed } from "../../hooks/useAdminRetrySeed";
-import { Button } from "../../components/ui/Button";
 import type { AdminSeedRow } from "../../services/admin.service";
 import { formatDateSafe } from "../../utils/format";
 
@@ -35,7 +33,6 @@ export function Seeds() {
   const totalQuery = useAdminSeedsCount(
     statusFilter === "all" ? undefined : statusFilter
   );
-  const retry = useAdminRetrySeed();
 
   const columns: ColumnDef<AdminSeedRow>[] = [
     {
@@ -72,34 +69,6 @@ export function Seeds() {
         row.original.updated_at
           ? formatDateSafe(row.original.updated_at, i18n.language)
           : "—",
-    },
-    {
-      id: "actions",
-      header: "",
-      enableSorting: false,
-      cell: ({ row }) => {
-        const canRetry =
-          row.original.status === "failed" ||
-          row.original.status === "completed";
-        if (!canRetry) return null;
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            loading={
-              retry.isPending && retry.variables?.seedId === row.original.id
-            }
-            onClick={() =>
-              retry.mutate({
-                seedId: row.original.id,
-                connectionId: row.original.user_oauth_token_id,
-              })
-            }
-          >
-            {t("admin.seeds.retry")}
-          </Button>
-        );
-      },
     },
   ];
 
@@ -144,10 +113,6 @@ export function Seeds() {
         total={totalQuery.data ?? 0}
         onPageChange={setPage}
       />
-
-      {retry.isError ? (
-        <p className="mt-2 text-sm text-red-600">{retry.error.message}</p>
-      ) : null}
     </AdminShell>
   );
 }
