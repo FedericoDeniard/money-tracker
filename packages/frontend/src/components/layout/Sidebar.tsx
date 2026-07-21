@@ -7,6 +7,7 @@ import {
   LogOut,
   MessageSquare,
   FileText,
+  Shield,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -24,7 +25,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const { t } = useTranslation();
   const { data: config } = useConfig();
   const isChatEnabled = config?.chatEnabled !== false;
@@ -53,6 +54,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             icon: MessageSquare,
             label: t("navigation.assistant"),
             path: "/assistant" as const,
+          },
+        ]
+      : []),
+    ...(role === "admin"
+      ? [
+          {
+            icon: Shield,
+            label: t("navigation.admin"),
+            path: "/admin" as const,
           },
         ]
       : []),

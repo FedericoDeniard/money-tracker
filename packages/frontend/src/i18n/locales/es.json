@@ -19,7 +19,9 @@
     "note": "Nota",
     "refresh": "Actualizar",
     "open": "Abrir",
-    "edit": "Editar"
+    "edit": "Editar",
+    "yes": "Sí",
+    "no": "No"
   },
   "navigation": {
     "dashboard": "Panel",
@@ -31,7 +33,8 @@
     "logout": "Cerrar sesión",
     "home": "Inicio",
     "emails": "Correos",
-    "reports": "Reportes"
+    "reports": "Reportes",
+    "admin": "Admin"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -1315,6 +1318,132 @@
       "canceling": "Cancelando actualización…",
       "error": "No se pudo actualizar la transacción",
       "tagsUnchanged": "Sin cambios en etiquetas"
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Gestionar usuarios, suscripciones y uso de la plataforma",
+    "shortcut": {
+      "refresh": "Refrescar datos"
+    },
+    "tabs": {
+      "overview": "Resumen",
+      "users": "Usuarios",
+      "subscriptions": "Suscripciones",
+      "payments": "Pagos",
+      "seeds": "Seeds",
+      "usageLimits": "Límites de uso"
+    },
+    "stats": {
+      "mrr": "Ingresos mensuales recurrentes",
+      "mrrHint": "Suma de suscripciones activas, por proveedor+moneda",
+      "activeSubs": "Suscripciones activas",
+      "activeSubsHint": "Usuarios únicos con al menos una suscripción activa",
+      "churn30d": "Churn (30d)",
+      "churnHint": "{{count}} canceladas en los últimos 30 días",
+      "generatedAt": "Última actualización",
+      "noData": "Aún no hay datos suficientes"
+    },
+    "users": {
+      "title": "Usuarios",
+      "description": "Cada cuenta de la plataforma con su rol y suscripción actual.",
+      "empty": "Ningún usuario coincide con esta búsqueda.",
+      "searchPlaceholder": "Buscar por email o nombre…",
+      "columns": {
+        "email": "Email",
+        "name": "Nombre",
+        "role": "Rol",
+        "plan": "Plan",
+        "status": "Estado",
+        "createdAt": "Creado"
+      }
+    },
+    "userDetail": {
+      "notFound": "Usuario no encontrado.",
+      "backToUsers": "Volver a usuarios",
+      "description": "Identidad, rol, suscripción y límites de uso efectivos.",
+      "email": "Email",
+      "name": "Nombre",
+      "createdAt": "Creado",
+      "gmailConnected": "Gmail conectado",
+      "roleSection": "Rol",
+      "roleSaving": "Guardando…",
+      "activePlan": "Plan activo",
+      "subStatus": "Suscripción",
+      "subUpdated": "Última actualización de la suscripción",
+      "usageTitle": "Límites de uso efectivos",
+      "usageEmpty": "Aún no hay contadores de uso para este usuario."
+    },
+    "subscriptions": {
+      "title": "Suscripciones",
+      "description": "Todas las suscripciones de la plataforma con cancelación en nombre del usuario.",
+      "empty": "Ninguna suscripción coincide con este filtro.",
+      "columns": {
+        "user": "Usuario",
+        "plan": "Plan",
+        "provider": "Proveedor",
+        "amount": "Monto",
+        "status": "Estado",
+        "updated": "Actualizado"
+      },
+      "cancel": "Cancelar"
+    },
+    "payments": {
+      "title": "Pagos recientes",
+      "description": "Últimas entregas del webhook de MercadoPago con payment_id.",
+      "empty": "No hay eventos de pago registrados.",
+      "rawWarning": "Los payloads del proveedor pueden contener PII. Por defecto no se muestran.",
+      "columns": {
+        "received": "Recibido",
+        "user": "Usuario",
+        "paymentId": "Pago",
+        "topic": "Topic",
+        "action": "Acción",
+        "signature": "Firma",
+        "processing": "Procesamiento"
+      },
+      "signatureOk": "válida",
+      "signatureBad": "inválida"
+    },
+    "seeds": {
+      "title": "Jobs de seed",
+      "description": "Todos los jobs de importación de Gmail en la plataforma. Los seeds fallidos se pueden reintentar.",
+      "empty": "Aún no hay jobs de seed.",
+      "columns": {
+        "user": "Usuario",
+        "gmail": "Gmail",
+        "status": "Estado",
+        "progress": "Encontradas / total",
+        "updated": "Actualizado"
+      },
+      "retry": "Reintentar"
+    },
+    "usageLimits": {
+      "title": "Límites de uso",
+      "description": "Inspecciona las tres tablas usage_limits, los principales consumidores y los límites efectivos por usuario.",
+      "configuredTitle": "Límites configurados",
+      "configuredHint": "Unión de usage_limits_role, usage_limits_plan y usage_limits_default con la cantidad de usuarios afectados por cada fila.",
+      "topConsumersTitle": "Mayores consumidores este mes",
+      "topConsumersEmpty": "Aún no hay uso registrado en este período.",
+      "userLookupTitle": "Resolver límite efectivo para un usuario",
+      "userLookupHint": "Pegá un user_id (UUID) para ver el límite mensual efectivo por capability.",
+      "userLookupPlaceholder": "User ID (UUID)",
+      "userLookupEmpty": "Aún no hay contadores de uso para este usuario.",
+      "userLookupInactive": "Ingresá un user_id arriba para inspeccionar sus límites efectivos.",
+      "empty": "No hay límites de uso configurados.",
+      "columns": {
+        "capability": "Capability",
+        "scope": "Scope",
+        "period": "Período",
+        "maxCount": "Máx",
+        "currentCount": "Usado",
+        "affectedUsers": "Usuarios afectados",
+        "user": "Usuario"
+      }
+    },
+    "errors": {
+      "adminOnly": "Se requiere acceso de administrador",
+      "loadFailed": "No se pudieron cargar los datos de admin"
     }
   }
 }
