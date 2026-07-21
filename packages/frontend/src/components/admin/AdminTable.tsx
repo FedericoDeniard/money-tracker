@@ -49,7 +49,7 @@ export function AdminTable<TRow>({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)]">
+    <div className="w-full overflow-x-auto rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)]">
       <table className="w-full text-sm">
         <thead className="bg-[var(--bg-secondary)] text-left text-xs font-medium uppercase tracking-wide text-[var(--text-secondary)]">
           <tr>
