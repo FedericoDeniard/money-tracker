@@ -30,3 +30,21 @@ export function useAdminSubscriptions(params: UseAdminSubscriptionsParams) {
     staleTime: 30_000,
   });
 }
+
+export function useAdminSubscriptionsCount(status?: string) {
+  return useQuery<number>({
+    queryKey: [
+      ...queryKeys.admin.subscriptions({
+        status,
+        limit: 0,
+        offset: 0,
+      }),
+      "count",
+    ],
+    queryFn: async () => {
+      const result = await adminService.countSubscriptions(status);
+      return result ?? 0;
+    },
+    staleTime: 30_000,
+  });
+}

@@ -1323,6 +1323,12 @@
   "admin": {
     "title": "Admin",
     "subtitle": "Manage users, subscriptions and platform usage",
+    "pagination": {
+      "empty": "No results",
+      "range": "{{start}}-{{end}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
     "tabs": {
       "overview": "Overview",
       "users": "Users",
