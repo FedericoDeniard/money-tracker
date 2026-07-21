@@ -1323,9 +1323,6 @@
   "admin": {
     "title": "Admin",
     "subtitle": "Manage users, subscriptions and platform usage",
-    "shortcut": {
-      "refresh": "Refresh data"
-    },
     "tabs": {
       "overview": "Overview",
       "users": "Users",

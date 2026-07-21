@@ -1323,9 +1323,6 @@
   "admin": {
     "title": "Admin",
     "subtitle": "Gestionar usuarios, suscripciones y uso de la plataforma",
-    "shortcut": {
-      "refresh": "Refrescar datos"
-    },
     "tabs": {
       "overview": "Resumen",
       "users": "Usuarios",
