@@ -63,14 +63,21 @@ interface UIMessageLike {
   parts?: unknown[];
 }
 
-function isMissingRunSnapshotError(err: unknown): boolean {
+function isStaleApprovalResumeError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const id = (err as { id?: unknown }).id;
-  if (id === "AGENT_RESUME_NO_SNAPSHOT_FOUND") return true;
+  if (
+    id === "AGENT_RESUME_NO_SNAPSHOT_FOUND" ||
+    id === "AGENT_RESUME_TOOL_CALL_NOT_SUSPENDED"
+  ) {
+    return true;
+  }
   const message = (err as { message?: unknown }).message;
   return (
     typeof message === "string" &&
-    message.includes("could not find a suspended run")
+    (message.includes("could not find a suspended run") ||
+      (message.includes("cannot resume tool call") &&
+        message.includes("because it is not suspended")))
   );
 }
 
@@ -267,19 +274,9 @@ export const chatHandler = async (c: Context) => {
     sendReasoning: false,
     sendSources: false,
   }).catch((err: unknown) => {
-    // Workaround for an upstream @mastra/ai-sdk issue: when the user
-    // approves/denies a tool whose suspended-run snapshot is no longer
-    // available (server restart, an already-completed run, or a stale
-    // runId), handleChatStream throws AGENT_RESUME_NO_SNAPSHOT_FOUND
-    // with a 500. The AI SDK does not recover from this and the
-    // frontend's tool part stays stuck in approval-responded forever.
-    // We synthesize an outcome stream that mirrors the parts the
-    // agent would have emitted so the frontend's reducer transitions
-    // the tool part out of approval-responded. Without this fix the
-    // approval flow breaks the whole chat for the rest of the session.
-    if (isMissingRunSnapshotError(err)) {
+    if (isStaleApprovalResumeError(err)) {
       console.warn(
-        "[chatHandler] agent run snapshot missing; synthesizing approval outcome stream"
+        "[chatHandler] stale agent approval; synthesizing approval outcome stream"
       );
       return synthesizeApprovalOutcomeStream(params);
     }
