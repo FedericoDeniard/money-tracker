@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
 import { AdminDataTable } from "../../components/admin/AdminDataTable";
+import { AdminPagination } from "../../components/admin/AdminPagination";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { RoleBadge } from "../../components/admin/RoleBadge";
-import { StatusBadge } from "../../components/admin/StatusBadge";
 import { UserIdCopy } from "../../components/admin/UserIdCopy";
-import { useAdminUsers } from "../../hooks/useAdminUsers";
+import { useAdminUsers, useAdminUsersCount } from "../../hooks/useAdminUsers";
 import { AdminInput } from "../../components/admin/AdminInput";
 import type { AdminUserRow } from "../../services/admin.service";
 import { formatDateSafe } from "../../utils/format";
@@ -18,11 +18,15 @@ export function Users() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const pageSize = 25;
 
   const usersQuery = useAdminUsers({
     search: debouncedSearch || undefined,
-    page: 0,
+    page,
+    pageSize,
   });
+  const totalQuery = useAdminUsersCount(debouncedSearch || undefined);
 
   const columns: ColumnDef<AdminUserRow>[] = [
     {
@@ -57,12 +61,6 @@ export function Users() {
       cell: ({ row }) => row.original.active_plan_key ?? "—",
     },
     {
-      id: "status",
-      accessorKey: "sub_status",
-      header: () => t("admin.users.columns.status"),
-      cell: ({ row }) => <StatusBadge status={row.original.sub_status} />,
-    },
-    {
       id: "created",
       accessorKey: "created_at",
       header: () => t("admin.users.columns.createdAt"),
@@ -89,7 +87,10 @@ export function Users() {
                 Number((window as { __adminSearchT?: number }).__adminSearchT)
               );
               (window as { __adminSearchT?: number }).__adminSearchT =
-                window.setTimeout(() => setDebouncedSearch(value), 250);
+                window.setTimeout(() => {
+                  setDebouncedSearch(value);
+                  setPage(0);
+                }, 250);
             }}
             className="w-64"
           />
@@ -107,6 +108,14 @@ export function Users() {
           columns={columns}
         />
       </div>
+
+      <AdminPagination
+        className="mt-4"
+        page={page}
+        pageSize={pageSize}
+        total={totalQuery.data ?? 0}
+        onPageChange={setPage}
+      />
     </AdminShell>
   );
 }

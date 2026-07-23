@@ -27,3 +27,17 @@ export function useAdminUsers(params: UseAdminUsersParams) {
     staleTime: 30_000,
   });
 }
+
+export function useAdminUsersCount(search?: string) {
+  return useQuery<number>({
+    queryKey: [
+      ...queryKeys.admin.users({ search, limit: 0, offset: 0 }),
+      "count",
+    ],
+    queryFn: async () => {
+      const result = await adminService.countUsers(search);
+      return result ?? 0;
+    },
+    staleTime: 30_000,
+  });
+}

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Loader2 } from "lucide-react";
 import type { ToolUIPart } from "ai";
 import { getSupabase } from "../../lib/supabase";
 import { TagBadge } from "../tags/TagBadge";
 import { ToolApprovalCard } from "./ToolApprovalCard";
 import { useTags } from "../../hooks/useTags";
+import { useReports } from "../../hooks/useReports";
 import type { Tag } from "../../types/tags";
 
 type UpdateFields = {
@@ -19,6 +20,7 @@ type UpdateFields = {
   transaction_type?: "income" | "expense";
   transaction_date?: string;
   tag_ids?: string[];
+  report_id?: string | null;
 };
 
 type UpdateTransactionInput = {
@@ -49,6 +51,8 @@ interface TransactionDetail {
   transaction_type: string | null;
   category: string | null;
   transaction_description: string | null;
+  report_id: string | null;
+  reports: { id: string; title: string; status: string } | null;
 }
 
 const FIELD_LABELS: Partial<Record<keyof UpdateFields, string>> = {
@@ -118,6 +122,7 @@ function diffTagLists(
 interface DetailFetchResult {
   detail: TransactionDetail | null;
   currentTagIds: string[];
+  currentReportId: string | null;
   loading: boolean;
   notFound: boolean;
 }
@@ -129,6 +134,7 @@ function useTransactionDetail(
 ): DetailFetchResult {
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [currentTagIds, setCurrentTagIds] = useState<string[]>([]);
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [notFound, setNotFound] = useState(false);
 
@@ -145,7 +151,7 @@ function useTransactionDetail(
         supabase
           .from("transactions")
           .select(
-            "id, name, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description"
+            "id, name, merchant, amount, currency, transaction_date, transaction_type, category, transaction_description, report_id, reports ( id, title, status )"
           )
           .eq("id", transactionId)
           .eq("discarded", false)
@@ -161,7 +167,9 @@ function useTransactionDetail(
         setDetail(null);
         setNotFound(true);
       } else {
-        setDetail(detailRes.data as unknown as TransactionDetail);
+        const row = detailRes.data as unknown as TransactionDetail;
+        setDetail(row);
+        setCurrentReportId(row.report_id ?? null);
       }
       setCurrentTagIds(
         ((tagsRes.data ?? []) as unknown as Array<{ tag_id: string }>).map(
@@ -176,7 +184,7 @@ function useTransactionDetail(
     };
   }, [transactionId, enabled]);
 
-  return { detail, currentTagIds, loading, notFound };
+  return { detail, currentTagIds, currentReportId, loading, notFound };
 }
 
 export function UpdateTransactionConfirmation({
@@ -189,12 +197,40 @@ export function UpdateTransactionConfirmation({
   const updates = input?.updates ?? {};
   const enabled = part.state === "approval-requested";
 
-  const { detail, currentTagIds, loading, notFound } = useTransactionDetail(
-    transactionId,
-    enabled
-  );
+  const { detail, currentTagIds, currentReportId, loading, notFound } =
+    useTransactionDetail(transactionId, enabled);
 
   const summary = detail?.name ?? detail?.merchant ?? "";
+
+  const proposedReportId =
+    typeof updates.report_id === "string" ? updates.report_id : null;
+  const proposedReportChange = updates.report_id !== undefined;
+
+  const shouldResolveProposedReport =
+    enabled && proposedReportChange && proposedReportId !== null;
+  const {
+    data: activeReports = [],
+    isLoading: proposedReportPending,
+    isError: proposedReportError,
+  } = useReports("active", shouldResolveProposedReport);
+  const activeReportsById = useMemo(
+    () => new Map(activeReports.map(report => [report.id, report])),
+    [activeReports]
+  );
+  const currentReport = detail?.reports ?? null;
+  const proposedReport = proposedReportId
+    ? activeReportsById.get(proposedReportId)
+    : undefined;
+  const invalidProposedReport =
+    shouldResolveProposedReport &&
+    !proposedReportPending &&
+    (proposedReportError || !proposedReport);
+  const reportCannotApprove =
+    loading ||
+    notFound ||
+    !detail ||
+    proposedReportPending ||
+    invalidProposedReport;
 
   let content: React.ReactNode;
   if (loading) {
@@ -207,11 +243,18 @@ export function UpdateTransactionConfirmation({
         detail={detail}
         updates={updates}
         currentTagIds={currentTagIds}
+        currentReportId={currentReportId}
+        currentReport={currentReport}
+        proposedReportChange={proposedReportChange}
+        proposedReportId={proposedReportId}
+        proposedReport={proposedReport ?? null}
+        proposedReportLoading={proposedReportPending}
+        invalidProposedReport={invalidProposedReport}
       />
     );
   }
 
-  const disableApprovalActions = !loading && (notFound || !detail);
+  const disableApprovalActions = reportCannotApprove;
 
   return (
     <ApprovalCardShell
@@ -275,15 +318,31 @@ function UpdateApprovalNotFound() {
   );
 }
 
+interface UpdateApprovalContentProps {
+  detail: TransactionDetail;
+  updates: UpdateFields;
+  currentTagIds: string[];
+  currentReportId: string | null;
+  currentReport: { id: string; title: string; status: string } | null;
+  proposedReportChange: boolean;
+  proposedReportId: string | null;
+  proposedReport: { id: string; title: string; status: string } | null;
+  proposedReportLoading: boolean;
+  invalidProposedReport: boolean;
+}
+
 function UpdateApprovalContent({
   detail,
   updates,
   currentTagIds,
-}: {
-  detail: TransactionDetail;
-  updates: UpdateFields;
-  currentTagIds: string[];
-}) {
+  currentReportId,
+  currentReport,
+  proposedReportChange,
+  proposedReportId,
+  proposedReport,
+  proposedReportLoading,
+  invalidProposedReport,
+}: UpdateApprovalContentProps) {
   const { t } = useTranslation();
   const { data: allTags = [] } = useTags();
   const tagsById = useMemo(
@@ -321,6 +380,16 @@ function UpdateApprovalContent({
         detail={detail}
         updates={updates}
         changedFields={changedFields}
+        t={t}
+      />
+      <UpdateReportSection
+        currentReportId={currentReportId}
+        currentReport={currentReport}
+        proposedReportChange={proposedReportChange}
+        proposedReportId={proposedReportId}
+        proposedReport={proposedReport}
+        proposedReportLoading={proposedReportLoading}
+        invalidProposedReport={invalidProposedReport}
         t={t}
       />
       <UpdateTagsSection
@@ -501,6 +570,77 @@ function UpdateWideDiffField({
       ) : (
         <dd className="font-medium text-[var(--text-primary)]">
           {currentDisplay}
+        </dd>
+      )}
+    </div>
+  );
+}
+
+interface UpdateReportSectionProps {
+  currentReportId: string | null;
+  currentReport: { title: string } | null;
+  proposedReportChange: boolean;
+  proposedReportId: string | null;
+  proposedReport: { title: string; status: string } | null;
+  proposedReportLoading: boolean;
+  invalidProposedReport: boolean;
+  t: TFunction;
+}
+
+function UpdateReportSection({
+  currentReportId,
+  currentReport,
+  proposedReportChange,
+  proposedReportId,
+  proposedReport,
+  proposedReportLoading,
+  invalidProposedReport,
+  t,
+}: UpdateReportSectionProps) {
+  if (!proposedReportChange) return null;
+
+  const oldTitle = currentReportId
+    ? (currentReport?.title ?? "—")
+    : t("assistant.updateTransaction.reportNone");
+  const newTitle =
+    proposedReportId === null
+      ? t("assistant.updateTransaction.reportNone")
+      : proposedReportLoading
+        ? null
+        : (proposedReport?.title ?? null);
+
+  const currentDisplay = oldTitle;
+  const proposedDisplay = newTitle ?? (proposedReportLoading ? "…" : "—");
+
+  const renderUnavailable =
+    invalidProposedReport && !proposedReportLoading && proposedReportId;
+
+  return (
+    <div className="col-span-2 mb-4 min-w-0">
+      <dt className="text-xs font-medium text-[var(--text-secondary)]">
+        {t("assistant.updateTransaction.report")}
+      </dt>
+      {renderUnavailable ? (
+        <dd className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-rose-700">
+          <CircleAlert className="size-4 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">
+              {t("assistant.updateTransaction.reportUnavailable")}
+            </p>
+            <p className="text-xs text-rose-600/80">
+              {t("assistant.updateTransaction.reportUnavailableHint")}
+            </p>
+          </div>
+        </dd>
+      ) : (
+        <dd className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="truncate font-medium text-[var(--text-secondary)]">
+            {currentDisplay}
+          </span>
+          <span className="text-[var(--text-secondary)]">→</span>
+          <span className="truncate font-semibold text-[var(--text-primary)]">
+            {proposedDisplay}
+          </span>
         </dd>
       )}
     </div>

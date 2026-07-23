@@ -160,40 +160,60 @@ export const getSpendingSummaryTool = createTool({
   id: "get-spending-summary",
   description:
     "Get an aggregated financial summary for a time range: total income, total expense, net balance, transaction count, and a breakdown grouped by category, merchant, or month. Use this whenever the user asks about totals, sums, how much they spent or earned, spending breakdown, top categories, or any aggregate question (e.g. 'how much did I spend this month', 'my top spending categories', 'total income this year'). This is much more reliable than listing transactions and doing math yourself. The agent does not reliably know today's date, so prefer the 'preset' field for relative ranges ('this_month', 'last_month', 'this_year', 'last_30_days', 'last_90_days', 'last_365_days'). Use explicit 'from'/'to' only when the user names exact dates.",
-  inputSchema: z.object({
-    preset: z
-      .enum(PRESET_VALUES)
-      .optional()
-      .describe(
-        "Predefined range resolved server-side. Use for relative questions like 'this month', 'last month', 'this year', 'last 30/90/365 days'."
-      ),
-    from: z
-      .string()
-      .date()
-      .optional()
-      .describe(
-        "Start date YYYY-MM-DD inclusive. Overrides preset. Use only when the user gives an exact start date."
-      ),
-    to: z
-      .string()
-      .date()
-      .optional()
-      .describe(
-        "End date YYYY-MM-DD inclusive. Overrides preset. Use only when the user gives an exact end date."
-      ),
-    currency: z
-      .string()
-      .length(3)
-      .toUpperCase()
-      .optional()
-      .describe("ISO 4217 currency code. Omit to sum across all currencies."),
-    group_by: z
-      .enum(GROUP_BY_VALUES)
-      .default("category")
-      .describe(
-        "How to group the breakdown. 'category' (default), 'merchant', or 'month' (YYYY-MM)."
-      ),
-  }),
+  inputSchema: z
+    .object({
+      preset: z
+        .enum(PRESET_VALUES)
+        .optional()
+        .describe(
+          "Predefined range resolved server-side. Use for relative questions like 'this month', 'last month', 'this year', 'last 30/90/365 days'."
+        ),
+      from: z
+        .string()
+        .date()
+        .optional()
+        .describe(
+          "Start date YYYY-MM-DD inclusive. Overrides preset. Use only when the user gives an exact start date."
+        ),
+      to: z
+        .string()
+        .date()
+        .optional()
+        .describe(
+          "End date YYYY-MM-DD inclusive. Overrides preset. Use only when the user gives an exact end date."
+        ),
+      currency: z
+        .string()
+        .length(3)
+        .toUpperCase()
+        .optional()
+        .describe("ISO 4217 currency code. Omit to sum across all currencies."),
+      group_by: z
+        .enum(GROUP_BY_VALUES)
+        .default("category")
+        .describe(
+          "How to group the breakdown. 'category' (default), 'merchant', or 'month' (YYYY-MM)."
+        ),
+      report_ids: z
+        .array(z.string().uuid())
+        .min(1)
+        .max(50)
+        .optional()
+        .describe(
+          "Optional list of 1-50 report UUIDs. Restricts the summary to transactions whose `report_id` matches one of these reports. Resolve report UUIDs first by calling listReportsTool. Mutually exclusive with `without_report`."
+        ),
+      without_report: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, restricts the summary to transactions that are not assigned to any report (report_id is null). Mutually exclusive with `report_ids`."
+        ),
+    })
+    .refine(d => !(d.report_ids && d.without_report), {
+      message:
+        "report_ids and without_report are mutually exclusive; pass only one.",
+      path: ["report_ids"],
+    }),
   outputSchema: z.object({
     rangeFrom: z.string(),
     rangeTo: z.string(),
@@ -253,6 +273,11 @@ export const getSpendingSummaryTool = createTool({
         .range(offset, offset + pageSize - 1);
 
       if (input.currency) q = q.eq("currency", input.currency);
+      if (input.report_ids && input.report_ids.length > 0) {
+        q = q.in("report_id", input.report_ids);
+      } else if (input.without_report) {
+        q = q.is("report_id", null);
+      }
 
       const { data, error } = await q;
       if (error) {

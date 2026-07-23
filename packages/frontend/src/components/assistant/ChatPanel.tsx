@@ -87,6 +87,7 @@ export function ChatPanel({
   // stays on screen, the next send replays the same broken history,
   // and the empty assistant reply piles on top.
   const lastSentUserIdRef = useRef<string | null>(null);
+  const respondedApprovalIdsRef = useRef(new Set<string>());
 
   const keepaliveFetch = useCallback<typeof fetch>(
     (input, init) => fetch(input, { ...init, keepalive: true }),
@@ -165,17 +166,25 @@ export function ChatPanel({
     },
   });
 
-  const handleApproveTool = useCallback(
-    (id: string) => {
-      addToolApprovalResponse({ id, approved: true });
+  const handleToolResponse = useCallback(
+    (id: string, approved: boolean) => {
+      if (respondedApprovalIdsRef.current.has(id)) return;
+      respondedApprovalIdsRef.current.add(id);
+      addToolApprovalResponse({ id, approved });
     },
     [addToolApprovalResponse]
   );
+  const handleApproveTool = useCallback(
+    (id: string) => {
+      handleToolResponse(id, true);
+    },
+    [handleToolResponse]
+  );
   const handleRejectTool = useCallback(
     (id: string) => {
-      addToolApprovalResponse({ id, approved: false });
+      handleToolResponse(id, false);
     },
-    [addToolApprovalResponse]
+    [handleToolResponse]
   );
 
   // React to error state changes. Wrapped in useEffect (not onError)
@@ -334,6 +343,12 @@ export function ChatPanel({
       // so the next mount of the Settings usage panel shows the new
       // number.
       queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.transactionTags.all,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
     }
   }, [status, onMessageComplete, queryClient]);
 

@@ -104,7 +104,7 @@ export function UserDetail() {
         description={t("admin.userDetail.description")}
       />
 
-      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 min-w-0">
         <Card label={t("admin.userDetail.email")} value={detail.email ?? "—"} />
         <Card label={t("admin.userDetail.name")} value={detail.name ?? "—"} />
         <Card
@@ -161,7 +161,7 @@ export function UserDetail() {
         </div>
       </section>
 
-      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3 min-w-0">
         <Card
           label={t("admin.userDetail.activePlan")}
           value={detail.active_plan_key ?? "—"}
@@ -204,12 +204,22 @@ export function UserDetail() {
 }
 
 function Card({ label, value }: { label: string; value: React.ReactNode }) {
+  const displayValue =
+    typeof value === "string" ? (
+      <span title={value} className="block truncate">
+        {value}
+      </span>
+    ) : (
+      value
+    );
   return (
-    <div className="flex flex-col gap-1 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4">
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-[var(--text-secondary)]/20 bg-[var(--bg-primary)] p-4">
       <span className="text-xs font-medium uppercase tracking-wide text-[var(--text-secondary)]">
         {label}
       </span>
-      <span className="text-base text-[var(--text-primary)]">{value}</span>
+      <span className="block min-w-0 text-base text-[var(--text-primary)]">
+        {displayValue}
+      </span>
     </div>
   );
 }

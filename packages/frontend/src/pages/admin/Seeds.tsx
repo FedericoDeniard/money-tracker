@@ -1,19 +1,38 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
 import { AdminDataTable } from "../../components/admin/AdminDataTable";
+import { AdminPagination } from "../../components/admin/AdminPagination";
+import { AdminSelect } from "../../components/admin/AdminSelect";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { StatusBadge } from "../../components/admin/StatusBadge";
-import { useAdminSeeds } from "../../hooks/useAdminSeeds";
-import { useAdminRetrySeed } from "../../hooks/useAdminRetrySeed";
-import { Button } from "../../components/ui/Button";
+import { useAdminSeeds, useAdminSeedsCount } from "../../hooks/useAdminSeeds";
 import type { AdminSeedRow } from "../../services/admin.service";
 import { formatDateSafe } from "../../utils/format";
 
+const STATUS_OPTIONS = [
+  { value: "all", label: "all" },
+  { value: "pending", label: "pending" },
+  { value: "processing", label: "processing" },
+  { value: "completed", label: "completed" },
+  { value: "failed", label: "failed" },
+] as const;
+
 export function Seeds() {
   const { t, i18n } = useTranslation();
-  const seedsQuery = useAdminSeeds({ limit: 100 });
-  const retry = useAdminRetrySeed();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const pageSize = 25;
+
+  const seedsQuery = useAdminSeeds({
+    status: statusFilter === "all" ? undefined : statusFilter,
+    page,
+    pageSize,
+  });
+  const totalQuery = useAdminSeedsCount(
+    statusFilter === "all" ? undefined : statusFilter
+  );
 
   const columns: ColumnDef<AdminSeedRow>[] = [
     {
@@ -51,34 +70,6 @@ export function Seeds() {
           ? formatDateSafe(row.original.updated_at, i18n.language)
           : "—",
     },
-    {
-      id: "actions",
-      header: "",
-      enableSorting: false,
-      cell: ({ row }) => {
-        const canRetry =
-          row.original.status === "failed" ||
-          row.original.status === "completed";
-        if (!canRetry) return null;
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            loading={
-              retry.isPending && retry.variables?.seedId === row.original.id
-            }
-            onClick={() =>
-              retry.mutate({
-                seedId: row.original.id,
-                connectionId: row.original.user_oauth_token_id,
-              })
-            }
-          >
-            {t("admin.seeds.retry")}
-          </Button>
-        );
-      },
-    },
   ];
 
   return (
@@ -86,6 +77,22 @@ export function Seeds() {
       <PageHeader
         title={t("admin.seeds.title")}
         description={t("admin.seeds.description")}
+        actions={
+          <AdminSelect
+            value={statusFilter}
+            onChange={e => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
+            className="w-48"
+          >
+            {STATUS_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </AdminSelect>
+        }
       />
 
       <div className="mt-4">
@@ -99,9 +106,13 @@ export function Seeds() {
         />
       </div>
 
-      {retry.isError ? (
-        <p className="mt-2 text-sm text-red-600">{retry.error.message}</p>
-      ) : null}
+      <AdminPagination
+        className="mt-4"
+        page={page}
+        pageSize={pageSize}
+        total={totalQuery.data ?? 0}
+        onPageChange={setPage}
+      />
     </AdminShell>
   );
 }

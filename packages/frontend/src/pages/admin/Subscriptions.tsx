@@ -3,9 +3,13 @@ import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
 import { AdminDataTable } from "../../components/admin/AdminDataTable";
+import { AdminPagination } from "../../components/admin/AdminPagination";
 import { PageHeader } from "../../components/admin/PageHeader";
 import { StatusBadge } from "../../components/admin/StatusBadge";
-import { useAdminSubscriptions } from "../../hooks/useAdminSubscriptions";
+import {
+  useAdminSubscriptions,
+  useAdminSubscriptionsCount,
+} from "../../hooks/useAdminSubscriptions";
 import { useAdminCancelSubscription } from "../../hooks/useAdminCancelSubscription";
 import { AdminSelect } from "../../components/admin/AdminSelect";
 import { Button } from "../../components/ui/Button";
@@ -24,11 +28,17 @@ const STATUS_OPTIONS = [
 export function Subscriptions() {
   const { t, i18n } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const pageSize = 25;
 
   const subsQuery = useAdminSubscriptions({
     status: statusFilter === "all" ? undefined : statusFilter,
-    page: 0,
+    page,
+    pageSize,
   });
+  const totalQuery = useAdminSubscriptionsCount(
+    statusFilter === "all" ? undefined : statusFilter
+  );
 
   const cancel = useAdminCancelSubscription();
 
@@ -113,7 +123,10 @@ export function Subscriptions() {
         actions={
           <AdminSelect
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
           >
             {STATUS_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>
@@ -134,6 +147,14 @@ export function Subscriptions() {
           columns={columns}
         />
       </div>
+
+      <AdminPagination
+        className="mt-4"
+        page={page}
+        pageSize={pageSize}
+        total={totalQuery.data ?? 0}
+        onPageChange={setPage}
+      />
     </AdminShell>
   );
 }

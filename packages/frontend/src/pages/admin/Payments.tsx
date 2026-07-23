@@ -1,15 +1,24 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AdminShell } from "../../components/admin/AdminShell";
 import { AdminDataTable } from "../../components/admin/AdminDataTable";
+import { AdminPagination } from "../../components/admin/AdminPagination";
 import { PageHeader } from "../../components/admin/PageHeader";
-import { useAdminPaymentEvents } from "../../hooks/useAdminPaymentEvents";
+import {
+  useAdminPaymentEvents,
+  useAdminPaymentEventsCount,
+} from "../../hooks/useAdminPaymentEvents";
 import type { AdminPaymentEventRow } from "../../services/admin.service";
 import { formatDateSafe } from "../../utils/format";
 
 export function Payments() {
   const { t, i18n } = useTranslation();
-  const eventsQuery = useAdminPaymentEvents(50);
+  const [page, setPage] = useState(0);
+  const pageSize = 25;
+
+  const eventsQuery = useAdminPaymentEvents({ page, pageSize });
+  const totalQuery = useAdminPaymentEventsCount();
 
   const columns: ColumnDef<AdminPaymentEventRow>[] = [
     {
@@ -89,6 +98,14 @@ export function Payments() {
           columns={columns}
         />
       </div>
+
+      <AdminPagination
+        className="mt-4"
+        page={page}
+        pageSize={pageSize}
+        total={totalQuery.data ?? 0}
+        onPageChange={setPage}
+      />
     </AdminShell>
   );
 }

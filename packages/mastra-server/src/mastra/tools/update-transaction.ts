@@ -1,7 +1,12 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { supabaseFromToken } from "../../lib/supabase-from-token";
-import { CATEGORY_VALUES, TRANSACTION_TYPE_VALUES } from "./constants";
+import {
+  CATEGORY_VALUES,
+  REPORT_STATUS_VALUES,
+  TRANSACTION_TYPE_VALUES,
+} from "./constants";
+import { loadOwnedActiveReports } from "./report-helpers";
 
 const updateFields = z.object({
   category: z
@@ -56,12 +61,20 @@ const updateFields = z.object({
     .describe(
       "Optional list of tag UUIDs that REPLACE the current tag set on the transaction. Omit the field to leave tags unchanged. Pass an empty array to remove all tags. Resolve tag UUIDs first by calling listTagsTool."
     ),
+  report_id: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional()
+    .describe(
+      "Optional report assignment. Omit the field to leave the report unchanged. Pass a UUID to assign or move the transaction to that report (must be an ACTIVE report owned by the user). Pass `null` to remove the transaction from any report. Only one report can be assigned per transaction. Resolve report UUIDs first by calling listReportsTool."
+    ),
 });
 
 export const updateTransactionTool = createTool({
   id: "update-transaction",
   description:
-    "Update a single existing transaction's fields (name, category, merchant, amount, currency, description, type, date, or tags). Use this only when the user explicitly asks to change, correct, recategorize, edit, or fix a transaction. The user must identify the transaction (by merchant, date, amount, or by listing it first with listTransactionsTool). Requires explicit user approval before any database write. NEVER use this to delete a transaction; use deleteTransactionTool instead. NEVER invent or guess a UUID — if you do not have an exact `id` from listTransactionsTool in this conversation, call listTransactionsTool first and copy the `id` verbatim from its result.",
+    "Update a single existing transaction's fields (name, category, merchant, amount, currency, description, type, date, tags, or report assignment). Use this only when the user explicitly asks to change, correct, recategorize, edit, or fix a transaction. The user must identify the transaction (by merchant, date, amount, or by listing it first with listTransactionsTool). Requires explicit user approval before any database write. NEVER use this to delete a transaction; use deleteTransactionTool instead. NEVER invent or guess a UUID — if you do not have an exact `id` from listTransactionsTool in this conversation, call listTransactionsTool first and copy the `id` verbatim from its result. To assign or move the transaction to a report, pass `report_id` with a UUID from listReportsTool; the report must be owned by the user and currently active. Pass `null` to remove the transaction from any report. Omit the field to leave the report unchanged.",
   requireApproval: true,
   strict: true,
   inputExamples: [
@@ -103,6 +116,10 @@ export const updateTransactionTool = createTool({
         category: z.enum(CATEGORY_VALUES),
         transactionDescription: z.string(),
         tagIds: z.array(z.string().uuid()),
+        reportId: z.string().uuid().nullable(),
+        reportTitle: z.string().nullable(),
+        reportStatus: z.enum(REPORT_STATUS_VALUES).nullable(),
+        reportChanged: z.boolean(),
       })
       .nullable(),
     message: z.string(),
@@ -124,13 +141,46 @@ export const updateTransactionTool = createTool({
       updates.currency !== undefined ||
       updates.transaction_description !== undefined ||
       updates.transaction_type !== undefined ||
-      updates.transaction_date !== undefined;
+      updates.transaction_date !== undefined ||
+      updates.report_id !== undefined;
     const hasTagsChange = updates.tag_ids !== undefined;
 
     if (!hasFieldChange && !hasTagsChange) {
       throw new Error(
         "No fields provided to update. At least one field or tag_ids must be supplied."
       );
+    }
+
+    if (updates.report_id !== undefined && updates.report_id !== null) {
+      await loadOwnedActiveReports(
+        supabase,
+        userId,
+        [updates.report_id],
+        "transaction update"
+      );
+    }
+
+    const requestedTagIds = hasTagsChange
+      ? Array.from(new Set(updates.tag_ids ?? []))
+      : [];
+    if (requestedTagIds.length > 0) {
+      const { data: ownedTags, error: ownedTagsError } = await supabase
+        .from("tags")
+        .select("id")
+        .eq("user_id", userId)
+        .in("id", requestedTagIds);
+
+      if (ownedTagsError) {
+        throw new Error(`Failed to validate tags: ${ownedTagsError.message}`);
+      }
+
+      const valid = new Set((ownedTags ?? []).map(t => t.id as string));
+      const missing = requestedTagIds.filter(id => !valid.has(id));
+      if (missing.length > 0) {
+        throw new Error(
+          `One or more tag_ids do not belong to the user: ${missing.join(", ")}`
+        );
+      }
     }
 
     // Build the update payload. When the date changes, also update the
@@ -150,6 +200,7 @@ export const updateTransactionTool = createTool({
       payload.transaction_date = updates.transaction_date;
       payload.date = `${updates.transaction_date}T00:00:00Z`;
     }
+    if (updates.report_id !== undefined) payload.report_id = updates.report_id;
 
     let data: Record<string, unknown> | null = null;
     let updateError: { message: string } | null = null;
@@ -160,7 +211,7 @@ export const updateTransactionTool = createTool({
         .update(payload)
         .eq("id", input.transactionId)
         .select(
-          "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description"
+          "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description, report_id, reports ( id, title, status )"
         )
         .single();
 
@@ -192,7 +243,7 @@ export const updateTransactionTool = createTool({
       const { data: full, error: fullError } = await supabase
         .from("transactions")
         .select(
-          "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description"
+          "id, transaction_date, name, merchant, amount, currency, transaction_type, category, transaction_description, report_id, reports ( id, title, status )"
         )
         .eq("id", input.transactionId)
         .single();
@@ -218,28 +269,6 @@ export const updateTransactionTool = createTool({
 
     let finalTagIds: string[] = [];
     if (hasTagsChange) {
-      const requestedTagIds = Array.from(new Set(updates.tag_ids ?? []));
-
-      if (requestedTagIds.length > 0) {
-        const { data: ownedTags, error: ownedTagsError } = await supabase
-          .from("tags")
-          .select("id")
-          .eq("user_id", userId)
-          .in("id", requestedTagIds);
-
-        if (ownedTagsError) {
-          throw new Error(`Failed to validate tags: ${ownedTagsError.message}`);
-        }
-
-        const valid = new Set((ownedTags ?? []).map(t => t.id as string));
-        const missing = requestedTagIds.filter(id => !valid.has(id));
-        if (missing.length > 0) {
-          throw new Error(
-            `One or more tag_ids do not belong to the user: ${missing.join(", ")}`
-          );
-        }
-      }
-
       const { error: deleteError } = await supabase
         .from("transaction_tags")
         .delete()
@@ -284,6 +313,32 @@ export const updateTransactionTool = createTool({
       finalTagIds = (existing ?? []).map(r => r.tag_id as string);
     }
 
+    const reportRaw = (data as { reports?: unknown }).reports;
+    let finalReport: {
+      id: string;
+      title: string;
+      status: "active" | "archived";
+    } | null = null;
+    if (
+      reportRaw &&
+      typeof reportRaw === "object" &&
+      "id" in reportRaw &&
+      "title" in reportRaw &&
+      "status" in reportRaw
+    ) {
+      const status = (reportRaw as { status: string }).status;
+      finalReport = {
+        id: (reportRaw as { id: string }).id,
+        title: (reportRaw as { title: string }).title,
+        status: status === "archived" ? "archived" : "active",
+      };
+    }
+
+    const finalReportId =
+      (data as { report_id?: string | null }).report_id ?? null;
+    const finalReportTitle = finalReport?.title ?? null;
+    const finalReportStatus = finalReport?.status ?? null;
+
     return {
       success: true,
       transaction: {
@@ -298,6 +353,10 @@ export const updateTransactionTool = createTool({
         category: data.category as (typeof CATEGORY_VALUES)[number],
         transactionDescription: data.transaction_description as string,
         tagIds: finalTagIds,
+        reportId: finalReportId,
+        reportTitle: finalReportTitle,
+        reportStatus: finalReportStatus,
+        reportChanged: updates.report_id !== undefined,
       },
       message: "Transaction updated successfully.",
     };
@@ -321,6 +380,11 @@ export const updateTransactionTool = createTool({
       t.transactionType === "expense"
         ? `-${t.currency} ${t.amount.toLocaleString()}`
         : `+${t.currency} ${t.amount.toLocaleString()}`;
+    const reportLine = t.reportChanged
+      ? t.reportTitle
+        ? `- Report: ${t.reportTitle} (${t.reportStatus ?? "active"})\n`
+        : "- Report: (removed)\n"
+      : "";
     return {
       type: "content",
       value: [
@@ -329,7 +393,9 @@ export const updateTransactionTool = createTool({
           text:
             `Transaction updated:\n` +
             `- ${t.name} (${t.merchant}): ${signedAmount} (${t.category}, ${t.transactionDate})\n` +
-            `- Description: ${t.transactionDescription}\n\n` +
+            `- Description: ${t.transactionDescription}\n` +
+            reportLine +
+            `\n` +
             `Reply to the user in plain prose confirming these details. Do NOT call any more tools.`,
         },
       ],

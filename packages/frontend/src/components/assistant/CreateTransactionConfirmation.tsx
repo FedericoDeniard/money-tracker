@@ -14,6 +14,8 @@ import type { ToolUIPart } from "ai";
 import { Button } from "@/components/ui/Button";
 import { TagBadge } from "../tags/TagBadge";
 import { useTags } from "../../hooks/useTags";
+import { useReports } from "../../hooks/useReports";
+import type { ReportSummary } from "../../types/reports";
 import type { Tag } from "../../types/tags";
 
 type Txn = {
@@ -26,6 +28,7 @@ type Txn = {
   transaction_date?: string;
   transaction_description?: string;
   tag_ids?: string[];
+  report_id?: string;
 };
 
 type CreateTransactionInput = {
@@ -42,6 +45,8 @@ type CreateTransactionOutputTxn = {
   transactionType: "income" | "expense";
   category: string;
   tagIds: string[];
+  reportId: string | null;
+  reportTitle: string | null;
 };
 
 type CreateTransactionOutput = {
@@ -188,6 +193,7 @@ interface CreateTransactionApprovalCardProps {
 }
 
 function CreateTransactionApprovalCard({
+  part,
   current,
   currentIndex,
   total,
@@ -199,6 +205,15 @@ function CreateTransactionApprovalCard({
 }: CreateTransactionApprovalCardProps) {
   const { t } = useTranslation();
   const { data: allTags = [] } = useTags();
+  const {
+    data: activeReports = [],
+    isLoading: reportsLoading,
+    isError: reportsError,
+  } = useReports("active");
+  const activeReportsById = useMemo(
+    () => new Map(activeReports.map(r => [r.id, r])),
+    [activeReports]
+  );
   const tagsById = useMemo(
     () => new Map(allTags.map(tag => [tag.id, tag])),
     [allTags]
@@ -207,6 +222,31 @@ function CreateTransactionApprovalCard({
     const ids = current.tag_ids ?? [];
     return ids.map(id => tagsById.get(id)).filter((tag): tag is Tag => !!tag);
   }, [current, tagsById]);
+
+  const allTransactions = (part.input?.transactions ?? []).filter(
+    (t): t is Txn => t !== undefined && t !== null
+  );
+  const requestedReportIds = Array.from(
+    new Set(
+      allTransactions
+        .map(txn => txn.report_id)
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
+    )
+  );
+  const hasReportRequests = requestedReportIds.length > 0;
+  const resolvedCurrentReport = current.report_id
+    ? activeReportsById.get(current.report_id)
+    : undefined;
+  const currentReportResolved = !current.report_id || !reportsLoading;
+  const anyReportInvalid =
+    reportsError ||
+    (!reportsLoading &&
+      requestedReportIds.some(id => activeReportsById.get(id) === undefined));
+  const reportsReady = !hasReportRequests || (!reportsLoading && !reportsError);
+  const canConfirm = reportsReady && !anyReportInvalid;
+  const showBatchReportError =
+    anyReportInvalid &&
+    (!current.report_id || resolvedCurrentReport !== undefined);
 
   const type = current.transaction_type;
   const isIncome = type === "income";
@@ -310,6 +350,14 @@ function CreateTransactionApprovalCard({
             wide
           />
         )}
+        {current.report_id && (
+          <CreateReportField
+            label={t("assistant.createTransaction.report")}
+            report={resolvedCurrentReport}
+            resolved={currentReportResolved}
+            t={t}
+          />
+        )}
         {currentTags.length > 0 && (
           <div className="col-span-2 min-w-0">
             <dt className="text-xs font-medium text-[var(--text-secondary)]">
@@ -329,6 +377,20 @@ function CreateTransactionApprovalCard({
         )}
       </dl>
 
+      {showBatchReportError && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-rose-700">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">
+              {t("assistant.createTransaction.reportUnavailable")}
+            </p>
+            <p className="text-xs text-rose-600/80">
+              {t("assistant.createTransaction.reportUnavailableHint")}
+            </p>
+          </div>
+        </div>
+      )}
+
       <footer className="mt-5 flex items-center justify-end gap-2">
         <Button
           variant="secondary"
@@ -338,16 +400,74 @@ function CreateTransactionApprovalCard({
         >
           {t("common.cancel")}
         </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<CheckIcon size={16} />}
-          onClick={onApprove}
-        >
-          {t("common.confirm")}
-        </Button>
+        {canConfirm && (
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<CheckIcon size={16} />}
+            onClick={onApprove}
+          >
+            {t("common.confirm")}
+          </Button>
+        )}
       </footer>
     </article>
+  );
+}
+
+function CreateReportField({
+  label,
+  report,
+  resolved,
+  t,
+}: {
+  label: string;
+  report: ReportSummary | undefined;
+  resolved: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (!resolved) {
+    return (
+      <div className="col-span-2 min-w-0">
+        <dt className="text-xs font-medium text-[var(--text-secondary)]">
+          {label}
+        </dt>
+        <dd className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+          <Loader2 className="size-3 animate-spin" />
+          <span>…</span>
+        </dd>
+      </div>
+    );
+  }
+  if (!report) {
+    return (
+      <div className="col-span-2 min-w-0">
+        <dt className="text-xs font-medium text-[var(--text-secondary)]">
+          {label}
+        </dt>
+        <dd className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-rose-700">
+          <CircleAlert className="size-4 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">
+              {t("assistant.createTransaction.reportUnavailable")}
+            </p>
+            <p className="text-xs text-rose-600/80">
+              {t("assistant.createTransaction.reportUnavailableHint")}
+            </p>
+          </div>
+        </dd>
+      </div>
+    );
+  }
+  return (
+    <div className="col-span-2 min-w-0">
+      <dt className="text-xs font-medium text-[var(--text-secondary)]">
+        {label}
+      </dt>
+      <dd className="truncate font-medium text-[var(--text-primary)]">
+        {report.title}
+      </dd>
+    </div>
   );
 }
 

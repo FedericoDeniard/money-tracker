@@ -50,7 +50,9 @@ const AUTH_PHRASES = [
   "Invalid or expired token",
 ];
 
-function classifyEdgeFunctionError(err: unknown): ClassifiedEdgeFunctionError {
+export function classifyEdgeFunctionError(
+  err: unknown
+): ClassifiedEdgeFunctionError {
   const message = err instanceof Error ? err.message : String(err);
 
   if (message.startsWith(ROLE_FORBIDDEN_PREFIX)) {

@@ -1227,7 +1227,8 @@
       "getSpendingSummary": "Spending Summary",
       "updateTransaction": "Update Transaction",
       "deleteTransaction": "Delete Transaction",
-      "getCurrentDate": "Current Date"
+      "getCurrentDate": "Current Date",
+      "listReports": "List Reports"
     },
     "toolStates": {
       "input-streaming": "Pending",
@@ -1275,7 +1276,10 @@
       "processing_other": "Saving {{count}} transactions...",
       "canceling_one": "Cancelling transaction...",
       "canceling_other": "Cancelling {{count}} transactions...",
-      "error": "Could not create the transactions"
+      "error": "Could not create the transactions",
+      "report": "Report",
+      "reportUnavailable": "Report unavailable",
+      "reportUnavailableHint": "This report cannot be used. It may be archived, unavailable, or no longer exist."
     },
     "deleteTransaction": {
       "title_one": "Delete this transaction?",
@@ -1317,12 +1321,22 @@
       "processing": "Updating transaction…",
       "canceling": "Cancelling update…",
       "error": "Could not update the transaction",
-      "tagsUnchanged": "No tag changes"
+      "tagsUnchanged": "No tag changes",
+      "report": "Report",
+      "reportNone": "No report",
+      "reportUnavailable": "Report unavailable",
+      "reportUnavailableHint": "This report cannot be used. It may be archived, unavailable, or no longer exist."
     }
   },
   "admin": {
     "title": "Admin",
     "subtitle": "Manage users, subscriptions and platform usage",
+    "pagination": {
+      "empty": "No results",
+      "range": "{{start}}-{{end}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
     "tabs": {
       "overview": "Overview",
       "users": "Users",
@@ -1351,7 +1365,6 @@
         "name": "Name",
         "role": "Role",
         "plan": "Plan",
-        "status": "Status",
         "createdAt": "Created"
       }
     },
@@ -1435,6 +1448,7 @@
         "period": "Period",
         "maxCount": "Max",
         "currentCount": "Used",
+        "remaining": "Remaining",
         "affectedUsers": "Affected users",
         "user": "User"
       }

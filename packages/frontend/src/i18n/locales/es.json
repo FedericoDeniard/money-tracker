@@ -1227,7 +1227,8 @@
       "getSpendingSummary": "Resumen de Gastos",
       "updateTransaction": "Actualizar Transacción",
       "deleteTransaction": "Eliminar Transacción",
-      "getCurrentDate": "Fecha Actual"
+      "getCurrentDate": "Fecha Actual",
+      "listReports": "Listar Reportes"
     },
     "toolStates": {
       "input-streaming": "Pendiente",
@@ -1275,7 +1276,10 @@
       "processing_other": "Guardando {{count}} transacciones...",
       "canceling_one": "Cancelando transacción...",
       "canceling_other": "Cancelando {{count}} transacciones...",
-      "error": "No se pudieron crear las transacciones"
+      "error": "No se pudieron crear las transacciones",
+      "report": "Reporte",
+      "reportUnavailable": "Reporte no disponible",
+      "reportUnavailableHint": "Este reporte no se puede usar. Puede estar archivado, no disponible o haber sido eliminado."
     },
     "deleteTransaction": {
       "title_one": "¿Eliminar esta transacción?",
@@ -1317,12 +1321,22 @@
       "processing": "Actualizando transacción…",
       "canceling": "Cancelando actualización…",
       "error": "No se pudo actualizar la transacción",
-      "tagsUnchanged": "Sin cambios en etiquetas"
+      "tagsUnchanged": "Sin cambios en etiquetas",
+      "report": "Reporte",
+      "reportNone": "Sin reporte",
+      "reportUnavailable": "Reporte no disponible",
+      "reportUnavailableHint": "Este reporte no se puede usar. Puede estar archivado, no disponible o haber sido eliminado."
     }
   },
   "admin": {
     "title": "Admin",
     "subtitle": "Gestionar usuarios, suscripciones y uso de la plataforma",
+    "pagination": {
+      "empty": "Sin resultados",
+      "range": "{{start}}-{{end}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
     "tabs": {
       "overview": "Resumen",
       "users": "Usuarios",
@@ -1351,7 +1365,6 @@
         "name": "Nombre",
         "role": "Rol",
         "plan": "Plan",
-        "status": "Estado",
         "createdAt": "Creado"
       }
     },
@@ -1435,6 +1448,7 @@
         "period": "Período",
         "maxCount": "Máx",
         "currentCount": "Usado",
+        "remaining": "Restante",
         "affectedUsers": "Usuarios afectados",
         "user": "Usuario"
       }

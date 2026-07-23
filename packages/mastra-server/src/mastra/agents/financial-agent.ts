@@ -15,6 +15,7 @@ import { updateTransactionTool } from "../tools/update-transaction";
 import { deleteTransactionTool } from "../tools/delete-transaction";
 import { getCurrentDateTool } from "../tools/get-current-date";
 import { listTagsTool } from "../tools/list-tags";
+import { listReportsTool } from "../tools/list-reports";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -53,6 +54,7 @@ export const financialAgent = new Agent({
     deleteTransactionTool,
     getCurrentDateTool,
     listTagsTool,
+    listReportsTool,
   },
   inputProcessors: [
     // Single guardrail: TopicGuardrailProcessor classifies every message

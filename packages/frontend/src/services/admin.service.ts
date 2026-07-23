@@ -147,6 +147,10 @@ export const adminService = {
     });
   },
 
+  countUsers(search?: string): Promise<number | null> {
+    return rpc<number>("admin_count_users", { p_search: search ?? null });
+  },
+
   getUser(userId: string): Promise<AdminUserDetail[] | null> {
     return rpc<AdminUserDetail[]>("admin_get_user", { p_user_id: userId });
   },
@@ -170,6 +174,12 @@ export const adminService = {
     });
   },
 
+  countSubscriptions(status?: string): Promise<number | null> {
+    return rpc<number>("admin_count_subscriptions", {
+      p_status: status ?? null,
+    });
+  },
+
   cancelSubscription(
     userId: string,
     targetStatus:
@@ -183,20 +193,34 @@ export const adminService = {
     });
   },
 
-  listPaymentEvents(limit: number): Promise<AdminPaymentEventRow[] | null> {
+  listPaymentEvents(
+    limit: number,
+    offset: number
+  ): Promise<AdminPaymentEventRow[] | null> {
     return rpc<AdminPaymentEventRow[]>("admin_list_payment_events", {
       p_limit: limit,
+      p_offset: offset,
     });
+  },
+
+  countPaymentEvents(): Promise<number | null> {
+    return rpc<number>("admin_count_payment_events", {});
   },
 
   listSeeds(params: {
     status?: string;
     limit: number;
+    offset: number;
   }): Promise<AdminSeedRow[] | null> {
     return rpc<AdminSeedRow[]>("admin_list_seeds", {
       p_status: params.status ?? null,
       p_limit: params.limit,
+      p_offset: params.offset,
     });
+  },
+
+  countSeeds(status?: string): Promise<number | null> {
+    return rpc<number>("admin_count_seeds", { p_status: status ?? null });
   },
 
   retrySeed(seedId: string): Promise<

@@ -142,6 +142,29 @@ export function UsageLimits() {
       header: () => t("admin.usageLimits.columns.currentCount"),
       cell: ({ row }) => row.original.current_count.toLocaleString(),
     },
+    {
+      id: "remaining",
+      accessorFn: row => Math.max(0, row.resolved_limit - row.current_count),
+      header: () => t("admin.usageLimits.columns.remaining"),
+      cell: ({ row }) => {
+        const remaining = Math.max(
+          0,
+          row.original.resolved_limit - row.original.current_count
+        );
+        const pct =
+          row.original.resolved_limit > 0
+            ? Math.round(
+                (row.original.current_count / row.original.resolved_limit) * 100
+              )
+            : 0;
+        return (
+          <span className="tabular-nums">
+            {remaining.toLocaleString()}{" "}
+            <span className="opacity-60">/ {pct}%</span>
+          </span>
+        );
+      },
+    },
   ];
 
   return (
