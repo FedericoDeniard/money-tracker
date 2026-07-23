@@ -2,11 +2,12 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { supabaseFromToken } from "../../lib/supabase-from-token";
 import { CATEGORY_VALUES, TRANSACTION_TYPE_VALUES } from "./constants";
+import { loadOwnedActiveReports } from "./report-helpers";
 
 export const createTransactionTool = createTool({
   id: "create-transaction",
   description:
-    "If the user did not state whether the transaction is income or expense, ask them before calling this tool. Do not guess. Create one or more new transactions on behalf of the user. Pass an array of 1-50 transactions in a single call. Use this only when the user explicitly asks to add, log, register, or record transactions (income or expense). Do NOT use this for transactions already detected from Gmail emails (those are inserted by the email processing pipeline). The tool requires explicit user approval before any database write: the agent must summarize the proposed transactions and then call this tool so the user can confirm or cancel.",
+    "If the user did not state whether the transaction is income or expense, ask them before calling this tool. Do not guess. Create one or more new transactions on behalf of the user. Pass an array of 1-50 transactions in a single call. Use this only when the user explicitly asks to add, log, register, or record transactions (income or expense). Do NOT use this for transactions already detected from Gmail emails (those are inserted by the email processing pipeline). The tool requires explicit user approval before any database write: the agent must summarize the proposed transactions and then call this tool so the user can confirm or cancel. Each transaction may optionally include `report_id` to assign it to one of the user's ACTIVE reports (resolve UUIDs via listReportsTool); archived reports are rejected.",
   requireApproval: true,
   strict: true,
   inputExamples: [
@@ -90,6 +91,13 @@ export const createTransactionTool = createTool({
             .describe(
               "Optional UUIDs of existing custom tags to assign to the new transaction. Resolve tag UUIDs first by calling listTagsTool. Tags are not created or deleted here — only assigned."
             ),
+          report_id: z
+            .string()
+            .uuid()
+            .optional()
+            .describe(
+              "Optional UUID of an existing ACTIVE report to assign this transaction to. Resolve report UUIDs first by calling listReportsTool. Pass only one report per transaction. Omit the field to leave the transaction unassigned. Archived reports cannot be used; the tool fails before any insert if any report_id is missing or archived."
+            ),
         })
       )
       .min(1)
@@ -111,6 +119,8 @@ export const createTransactionTool = createTool({
         transactionType: z.enum(TRANSACTION_TYPE_VALUES),
         category: z.enum(CATEGORY_VALUES),
         tagIds: z.array(z.string().uuid()),
+        reportId: z.string().uuid().nullable(),
+        reportTitle: z.string().nullable(),
       })
     ),
     totalCount: z.number().int().nonnegative(),
@@ -155,6 +165,20 @@ export const createTransactionTool = createTool({
       }
     }
 
+    const requestedReportIds = Array.from(
+      new Set(
+        input.transactions
+          .map(t => t.report_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    );
+    const ownedReports = await loadOwnedActiveReports(
+      supabase,
+      userId,
+      requestedReportIds,
+      "transaction assignment"
+    );
+
     for (const txn of input.transactions) {
       const { data, error } = await supabase
         .from("transactions")
@@ -171,6 +195,7 @@ export const createTransactionTool = createTool({
           date: `${txn.transaction_date}T00:00:00Z`,
           source_email: "manual",
           source_message_id: `manual-${crypto.randomUUID()}`,
+          report_id: txn.report_id ?? null,
         })
         .select(
           "id, transaction_date, name, merchant, amount, currency, transaction_type, category"
@@ -199,6 +224,10 @@ export const createTransactionTool = createTool({
         }
       }
 
+      const reportMeta = txn.report_id
+        ? ownedReports.get(txn.report_id)
+        : undefined;
+
       results.push({
         id: data.id as string,
         transactionDate: data.transaction_date as string,
@@ -210,6 +239,8 @@ export const createTransactionTool = createTool({
           data.transaction_type as (typeof TRANSACTION_TYPE_VALUES)[number],
         category: data.category as (typeof CATEGORY_VALUES)[number],
         tagIds: tagIds,
+        reportId: txn.report_id ?? null,
+        reportTitle: reportMeta?.title ?? null,
       });
     }
 
@@ -243,12 +274,14 @@ export const createTransactionTool = createTool({
         merchant: string;
         category: string;
         transactionDate: string;
+        reportTitle: string | null;
       }) => {
         const signedAmount =
           t.transactionType === "expense"
             ? `-${t.currency} ${t.amount.toLocaleString()}`
             : `+${t.currency} ${t.amount.toLocaleString()}`;
-        return `- ${t.name} (${t.merchant}): ${signedAmount} (${t.category}, ${t.transactionDate})`;
+        const reportSuffix = t.reportTitle ? `, report "${t.reportTitle}"` : "";
+        return `- ${t.name} (${t.merchant}): ${signedAmount} (${t.category}, ${t.transactionDate}${reportSuffix})`;
       }
     );
     return {

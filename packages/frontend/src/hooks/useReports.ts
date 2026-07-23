@@ -10,13 +10,14 @@ import type {
 
 const STALE_TIME = 5 * 60 * 1000;
 
-export function useReports(status: ReportStatus) {
+export function useReports(status: ReportStatus, enabled = true) {
   return useQuery<ReportSummary[]>({
     queryKey: queryKeys.reports.list(status),
     queryFn: async () => {
       const supabase = await getSupabase();
       return createReportsService(supabase).listReports(status);
     },
+    enabled,
     staleTime: STALE_TIME,
   });
 }

@@ -343,6 +343,12 @@ export function ChatPanel({
       // so the next mount of the Settings usage panel shows the new
       // number.
       queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.transactionTags.all,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.metrics.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
     }
   }, [status, onMessageComplete, queryClient]);
 
